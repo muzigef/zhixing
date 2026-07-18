@@ -75,7 +75,7 @@ learning-notes/
 
 ## 当前验证状态
 
-P0 的 E01–E31 已在 mock 与纯本地路径下完成自动化覆盖。最近一次 `npm run verify` 通过 lint、typecheck、89 个测试、integration、eval 与 mock smoke。
+P0–P4 已在 mock 与纯本地路径下完成自动化覆盖。最近一次 `npm run verify` 通过 lint、typecheck、93 个测试、integration、eval 与 mock smoke。
 
 P1 已完成逐 Day Topic Plan、主题课程模板、按需 Skill 摘要、citation 强制的 grounded answer、评分驱动复习与 topic-scoped session snapshot。验收记录见 `docs/evidence/p1-acceptance.md`。
 

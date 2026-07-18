@@ -10,4 +10,4 @@
 | `npm run smoke:mock` | 不依赖 Provider 的 CLI 冒烟 |
 | `npm run verify` | 全部质量门、敏感信息扫描与 diff 检查 |
 
-最新基线：28 个测试文件、89 个测试通过。真实 Provider 属于可选验收；OS sandbox 文件拒绝与 HTTP/SSE 订阅已纳入自动化覆盖，状态见 `docs/evidence/`。
+最新基线：31 个测试文件、93 个测试通过。真实 Provider 属于可选验收；OS sandbox 文件拒绝与 HTTP/SSE 订阅已纳入自动化覆盖，状态见 `docs/evidence/`。

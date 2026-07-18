@@ -17,6 +17,10 @@ export class TopicRegistry {
     return topic;
   }
 
+  has(topicId: string): boolean {
+    return this.#topics.has(topicIdSchema.parse(topicId));
+  }
+
   list(): readonly TopicDefinition[] {
     return [...this.#topics.values()];
   }

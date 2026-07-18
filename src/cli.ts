@@ -29,11 +29,16 @@ import { LocalSyncServer } from "./sync-server.js";
 import { LearningProfileStore } from "./learning-profile.js";
 import { GeneratedSkillStore } from "./generated-skill-store.js";
 import { collectInvocation } from "./model-invocation.js";
+import { TopicStore } from "./topic-store.js";
+import { CustomCourseStore } from "./custom-course-store.js";
+import { ReminderStore } from "./reminder-store.js";
 
 assertSupportedNodeVersion();
 const root = process.env.ZHIXING_ROOT ? path.resolve(process.env.ZHIXING_ROOT) : path.resolve(import.meta.dirname, "../..");
 const policy = new PathPolicy(root);
 const registry = createDefaultTopicRegistry();
+const topicStore = new TopicStore(root);
+await topicStore.load(registry);
 const runtime = new LearningRuntime(registry, policy);
 let database = new ZhixingDatabase(path.join(root, "zhixing", "db", "zhixing.sqlite"));
 let library = new DocumentLibrary(database, policy);
@@ -55,6 +60,8 @@ const providerSetup = new ProviderSetup(keychain);
 const skills = new SkillCatalog(path.join(root, "zhixing"));
 const learningProfiles = new LearningProfileStore(policy);
 const generatedSkills = new GeneratedSkillStore(path.join(root, "zhixing"), policy);
+const customCourses = new CustomCourseStore(root);
+const reminders = new ReminderStore(policy);
 let syncServer: LocalSyncServer | undefined;
 const rawArguments = process.argv.slice(2);
 const topicArgumentIndex = rawArguments.indexOf("--topic");
@@ -65,6 +72,12 @@ const input = argumentsWithoutRepl.join(" ");
 
 async function execute(line: string): Promise<string> {
   const command = line.trim();
+  const createTopic = /^创建主题\s+([a-z0-9][a-z0-9-]*)\s+(.+)$/.exec(command);
+  if (createTopic) return run("create_topic", activeTopic, async () => {
+    const topic = await topicStore.create(registry, createTopic[1]!, createTopic[2]!.trim());
+    activeTopic = topic.topicId;
+    return `已创建主题：${topic.topicId}（${topic.title}）\n已初始化：计划、Skill 目录和 inbox/${topic.topicId}/。下一步：设置学习画像 <目标> --水平 <当前水平> --每天 <15–480> --周期 <1–180>`;
+  });
   const syncPort = /^启动同步服务(?:\s+(\d{1,5}))?$/.exec(command)?.[1];
   if (/^启动同步服务(?:\s+\d{1,5})?$/.test(command)) {
     if (syncServer) return "同步服务已启动。";
@@ -112,6 +125,18 @@ async function execute(line: string): Promise<string> {
   if (command === "生成个性化计划") return run("propose_personal_plan", activeTopic, async () => {
     const version = await learningProfiles.proposePlan(activeTopic);
     return `已生成个性化计划草案：${version}\n请检查后使用“启用个性化计划 ${version}”确认。`;
+  });
+  if (command === "生成定制课程") return run("propose_custom_course", activeTopic, async () => {
+    const profile = await learningProfiles.load(activeTopic);
+    if (!profile) throw new Error("learning_profile_required: 请先设置学习画像。");
+    const version = await customCourses.propose(activeTopic, registry.get(activeTopic).title, profile);
+    return `已生成定制课程草案：${version}\n请检查后使用“启用定制课程 ${version} --确认”替换当前主题计划；旧计划会备份。`;
+  });
+  const activateCourse = /^启用定制课程\s+(course-[\dTZ-]+)(\s+--确认)?$/.exec(command);
+  if (activateCourse) return run("activate_custom_course", activeTopic, async () => {
+    if (!activateCourse[2]) throw new Error("course_activation_confirmation_required");
+    await customCourses.activate(activeTopic, activateCourse[1]!);
+    return `已启用定制课程：${activateCourse[1]}。旧计划已备份到主题笔记。`;
   });
   const activatePersonalPlan = /^启用个性化计划\s+(personal-plan-[\dTZ-]+)$/.exec(command)?.[1];
   if (activatePersonalPlan) return run("activate_personal_plan", activeTopic, async () => {
@@ -164,6 +189,19 @@ async function execute(line: string): Promise<string> {
     const profile = await learningProfiles.load(activeTopic);
     const activePlan = profile ? "已设置画像；可生成个性化计划。" : "未设置学习画像。";
     return `主题：${activeTopic}\n资料：${documents.length} 份${documents.length ? `\n${documents.map((document) => `- ${document.name}（${document.status}）`).join("\n")}` : ""}\n${activePlan}\n提示：资料以主题隔离；删除仍需先预览再确认。`;
+  });
+  if (command === "主题概览") return run("topic_overview", activeTopic, async () => {
+    const [profile, reminder] = await Promise.all([learningProfiles.load(activeTopic), reminders.status(activeTopic)]);
+    const documents = library.list(activeTopic);
+    const progress = await runtime.handle("进度", activeTopic);
+    return `主题：${registry.get(activeTopic).title}\n${progress}\n资料：${documents.length} 份\n画像：${profile ? `${profile.goal}（每天 ${profile.dailyMinutes} 分钟）` : "未设置"}\n提醒：${reminder ? `每天 ${reminder.time}（仅本地计划）` : "未设置"}`;
+  });
+  const reminder = /^提醒设置\s+([0-2]\d:[0-5]\d)$/.exec(command)?.[1];
+  if (reminder) return run("set_reminder", activeTopic, async () => { await reminders.set(activeTopic, reminder); return `已设置本地提醒计划：每天 ${reminder}。当前版本不会启动后台通知；可在“主题概览”查看。 `; });
+  if (command === "下一步") return run("next_step", activeTopic, async () => {
+    const reminder = await reminders.status(activeTopic);
+    const next = await runtime.handle("继续", activeTopic);
+    return `${next}${reminder ? `\n提醒计划：每天 ${reminder.time}（本地记录，未启动后台通知）。` : "\n提示：可使用“提醒设置 HH:MM”记录学习提醒计划。"}`;
   });
   const coaching = /^学习建议(\s+--允许外发)?$/.exec(command);
   if (coaching) return run("learning_guidance", activeTopic, async (lifecycle, signal) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const topicIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, "topicId 必须为 kebab-case");
+export const topicIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "topicId 必须为 kebab-case");
 export type TopicId = z.infer<typeof topicIdSchema>;
 
 export const memoryTypeSchema = z.enum(["profile", "learning_fact", "mistake", "knowledge_card", "episodic"]);

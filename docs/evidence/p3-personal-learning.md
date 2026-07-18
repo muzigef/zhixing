@@ -11,4 +11,4 @@
 | 可选模型建议 | `学习建议` 离线可用；带 `--允许外发` 时走当前 tutor 路由，且只传画像和资料名称，不传资料正文。 | CLI E40（本地路径） |
 | Provider 审计 | 运行时审计记录实际执行的 Provider；受控 fallback 时记录 `mock`，而非抽象的 `routed`。 | `tests/model-invocation.test.ts` |
 
-最近验证：`npm run verify` 于本机通过，28 个测试文件、89 个测试。
+P3 的单独功能已通过；当前全量基线已由 P4 更新为 31 个测试文件、93 个测试，见 `p4-learning-orchestration.md`。
