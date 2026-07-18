@@ -1,0 +1,1 @@
+import { describe, expect, it } from "vitest"; import { AgentLoop } from "../src/agent-loop.js"; describe("agent loop",()=>{it("在运行时边界停止重复工具和超轮次",()=>{const loop=new AgentLoop(1);expect(loop.turn()).toBeUndefined();expect(loop.tool("search",{q:"x"})).toBeUndefined();expect(loop.tool("search",{q:"x"})).toBe("repeated_tool_call");expect(loop.turn()).toBe("max_turns")})});

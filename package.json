@@ -1,0 +1,40 @@
+{
+  "name": "zhixing-learning-agent",
+  "version": "0.1.0",
+  "description": "Local-first, evidence-driven learning agent CLI for interview demonstration.",
+  "private": true,
+  "license": "UNLICENSED",
+  "keywords": ["learning-agent", "rag", "typescript", "local-first", "cli"],
+  "type": "module",
+  "engines": {
+    "node": "24.8.x"
+  },
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "repl": "tsx src/cli.ts --repl",
+    "lint": "eslint src tests",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/integration.test.ts",
+    "eval": "vitest run tests/eval.test.ts",
+    "smoke:mock": "tsx src/cli.ts '主题列表'",
+    "fixtures:generate": "node scripts/generate-fixtures.mjs",
+    "verify": "node scripts/verify.mjs",
+    "pi:safe": "bash scripts/pi-safe.sh"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "pdfjs-dist": "^5.0.375",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

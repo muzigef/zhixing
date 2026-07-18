@@ -1,0 +1,4 @@
+import { AgentLoop } from "./agent-loop.js";
+import { RunContext } from "./run-context.js";
+export type Tool = { name: string; run(input: unknown): Promise<unknown> };
+export class ToolDispatcher { constructor(private readonly loop: AgentLoop, private readonly tools: readonly Tool[], private readonly run?: RunContext) {} async call(name:string,input:unknown):Promise<unknown>{const stop=this.loop.tool(name,input);if(stop)throw new Error(stop);if(this.run&&typeof input==="object"&&input!==null&&"topicId" in input&&(input as {topicId?:unknown}).topicId!==this.run.topicId)throw new Error("cross_topic_denied");const tool=this.tools.find(t=>t.name===name);if(!tool)throw new Error("tool_not_allowed");await this.run?.tool(name,"started");try{const result=await tool.run(input);await this.run?.tool(name,"finished");return result;}catch(error){await this.run?.tool(name,"failed");throw error;}} }

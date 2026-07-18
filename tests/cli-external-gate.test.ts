@@ -1,0 +1,1 @@
+import { execFile } from "node:child_process"; import { promisify } from "node:util"; import { describe, expect, it } from "vitest"; const exec=promisify(execFile); describe("CLI external gate",()=>{it("资料问答未显式允许外发时只返回本地检索",async()=>{const result=await exec("npx",["tsx","src/cli.ts","资料问答 RAG"],{cwd:process.cwd()});expect(result.stdout).not.toContain("Mock：")})});

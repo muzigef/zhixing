@@ -1,0 +1,12 @@
+{
+  "enableInstallTelemetry": false,
+  "images": {
+    "blockImages": true
+  },
+  "retry": {
+    "provider": {
+      "maxRetries": 0,
+      "maxRetryDelayMs": 60000
+    }
+  }
+}

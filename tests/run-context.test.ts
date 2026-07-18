@@ -1,0 +1,10 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { AuditLogger } from "../src/audit.js";
+import { PathPolicy } from "../src/paths.js";
+import { RunContext } from "../src/run-context.js";
+const roots: string[] = [];
+afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
+describe("run context", () => { it("将模型 metadata 写入同一递增审计链", async () => { const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-run-")); roots.push(root); const logger = new AuditLogger(new PathPolicy(root), () => new Date("2026-02-03T00:00:00.000Z")); const run = new RunContext(logger, "rag", "answer"); await run.start(); await run.tool("search_library", "started"); await run.tool("search_library", "finished"); await run.model("mock", "tutor", 3, "success"); await run.finish(); const lines = (await fs.readFile(path.join(root, "zhixing", "data", "audit", "rag", "2026-02-03.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line)); expect(lines.map((line) => line.seq)).toEqual([1, 2, 3, 4, 5]); expect(lines[3]?.type).toBe("model_invoked"); expect(new Set(lines.map((line) => line.runId)).size).toBe(1); }); it("持久化取消状态", async () => { const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-run-")); roots.push(root); const logger = new AuditLogger(new PathPolicy(root), () => new Date("2026-02-03T00:00:00.000Z")); const run = new RunContext(logger, "rag", "cancel"); await run.start(); await run.cancel(); const content = await fs.readFile(path.join(root, "zhixing", "data", "audit", "rag", "2026-02-03.jsonl"), "utf8"); expect(content).toContain("run_cancelled"); }); });

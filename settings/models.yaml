@@ -1,0 +1,9 @@
+defaultRole: tutor
+privacyMode: local-only
+providers:
+  mock:
+    kind: mock
+routing:
+  tutor: mock
+  reviewer: mock
+  lab: mock
