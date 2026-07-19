@@ -35,4 +35,14 @@ describe("provider runtime", () => {
     registry.route("tutor", "codex-cli");
     await expect(collect(new ProviderRuntime(registry, new MockModelClient()))).resolves.toEqual(["Mock：lesson", "done"]);
   });
+
+  it("调用方可禁止降级，以保证明确选择的 Provider 不会被伪装成 mock", async () => {
+    const failing: ModelClient = { async *stream() { throw new Error("provider_timeout"); yield { type: "done" as const }; } };
+    const registry = new ProviderRegistry();
+    registry.register({ id: "codex-cli", client: failing, health: async () => "unavailable" });
+    registry.route("tutor", "codex-cli");
+    const runtime = new ProviderRuntime(registry, new MockModelClient());
+    const events = runtime.stream("tutor", "lesson", new AbortController().signal, undefined, false);
+    await expect((async () => { for await (const event of events) void event; })()).rejects.toThrow("provider_timeout");
+  });
 });

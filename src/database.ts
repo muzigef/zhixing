@@ -50,9 +50,21 @@ export class ZhixingDatabase {
         confirmed_at TEXT, deleted_at TEXT
       );
       CREATE INDEX IF NOT EXISTS memories_topic_type ON memories(topic_id, memory_type, deleted_at);
+      CREATE TABLE IF NOT EXISTS workflow_runs (
+        run_id TEXT PRIMARY KEY, topic_id TEXT NOT NULL, action_id TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL, status TEXT NOT NULL, state_version INTEGER NOT NULL DEFAULT 1,
+        started_at TEXT NOT NULL, finished_at TEXT, error_code TEXT,
+        UNIQUE(topic_id, idempotency_key)
+      );
+      CREATE TABLE IF NOT EXISTS workflow_steps (
+        run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+        step_id TEXT NOT NULL, status TEXT NOT NULL, at TEXT NOT NULL, detail TEXT,
+        PRIMARY KEY(run_id, step_id)
+      );
     `);
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(1, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(2, new Date().toISOString());
+    this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(3, new Date().toISOString());
   }
 
   addDocument(id: string, topicId: TopicId, sha256: string, name: string, mimeType: string, status = "indexed"): boolean {
@@ -124,6 +136,10 @@ export class ZhixingDatabase {
 
   searchMemories(topicId: TopicId, query: string): Array<{ id: string; content: string; sourceRef: string }> {
     return this.db.prepare("SELECT id, content, source_ref AS sourceRef FROM memories WHERE topic_id = ? AND deleted_at IS NULL AND content LIKE ? ORDER BY confirmed_at DESC LIMIT 10").all(topicId, `%${query}%`) as Array<{ id: string; content: string; sourceRef: string }>;
+  }
+
+  memoryCount(topicId: TopicId): number {
+    return (this.db.prepare("SELECT count(*) AS count FROM memories WHERE topic_id = ? AND deleted_at IS NULL").get(topicId) as { count: number }).count;
   }
 
   async backup(destination: string): Promise<void> {

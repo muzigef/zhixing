@@ -8,7 +8,7 @@
 - P1：完整 Topic Plan、课程/Skill 内容、带 citation 的 grounded answer、计划调整/复习与 session snapshot。
 - P2：本地 OCR 和低置信度页、本地向量兼容存储与混合检索、无 Docker 的 macOS 受限执行、loopback Web/SSE 同步契约。
 
-详见 [任务台账](../TASKS.md) 和各阶段 Evidence。真实 Provider smoke 仍为可选项：默认纯本地策略下不执行、也不发送用户资料。
+详见 [任务台账](../TASKS.md) 和各阶段 Evidence。真实 Provider smoke 仍为可选项；已配置 Provider 时默认可用，设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止调用。
 
 ## 新需求入队标准
 

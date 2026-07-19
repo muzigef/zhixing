@@ -35,9 +35,11 @@ export class LearningRuntime {
     if (command === "进度") return this.progress(activeTopic);
     if (command === "全部进度") return this.allProgress();
     if (command === "继续") return this.continueDay(activeTopic);
+    if (command === "开始任务") return this.beginTask(activeTopic);
+    if (command === "下一步") return this.continueDay(activeTopic);
     const sourceDay = /^读源码\s+(D\d{2})$/.exec(command)?.[1];
     if (sourceDay) return this.sourceGuide(activeTopic, sourceDay);
-    return "支持：主题列表、学习 <主题>、开始第 N 天、进度、继续。";
+    return "支持：主题列表、学习 <主题>、开始第 N 天、开始任务、下一步、进度、继续。";
   }
 
   async proposePlan(topicId: TopicId, dailyMinutes: number): Promise<string> {
@@ -98,7 +100,7 @@ export class LearningRuntime {
     const planDay = await this.planLoader.day(topic, dayId);
     const evidence = planDay?.requiredEvidence.map((item) => ({ implementation: "实现", testOutput: "测试输出", failureCase: "失败案例", reflection: "复盘" })[item]).join("、") ?? "实现、测试输出、失败案例、复盘";
     const schedule = planDay ? (planDay.estimatedMinutes === 240 ? "4 小时安排" : `${planDay.estimatedMinutes} 分钟安排`) : "4 小时安排";
-    return result.created ? `今日目标\n${topicId}/${dayId}${planDay ? `：${planDay.title}` : ""}\n\n${schedule}\n完成实验并提交证据。${planDay?.optional ? "（可选）" : ""}\n\n完成证据\n${evidence}\n\n开始任务\n开始实验后提交对应证据。` : `已恢复 ${topicId}/${dayId}，请提交缺失证据。`;
+    return result.created ? `今日目标\n${topicId}/${dayId}${planDay ? `：${planDay.title}` : ""}\n\n${schedule}\n完成实验并提交证据。${planDay?.optional ? "（可选）" : ""}\n\n当日学习卡\n讲解：围绕“${planDay?.title ?? "当前主题核心概念"}”建立可验证理解；先阅读资料，再做一个最小实验。\n任务 1：查询或阅读一份当前主题资料，写下 3 个关键概念。\n任务 2：完成一个最小实现/复现实验，并保留测试输出。\n失败案例：主动记录一个错误输入、失败配置或未达预期结果及原因。\n复盘问题：今天哪个假设被证据支持或推翻？\n\n完成证据\n${evidence}\n\n下一步\n输入“开始任务”领取第一步；完成后输入“检查 ${dayId} --实现 --测试 --失败 --复盘”。` : `已恢复 ${topicId}/${dayId}，输入“开始任务”查看当日学习卡并提交缺失证据。`;
   }
 
   private async progress(topicId: TopicId): Promise<string> {
@@ -109,6 +111,13 @@ export class LearningRuntime {
   private async continueDay(topicId: TopicId): Promise<string> {
     const snapshot = await this.sessions.load<{ dayId: string }>(topicId, "current");
     const next = (await this.notebook.list(topicId)).find((day) => day.dayId === snapshot?.dayId && day.state === "进行中") ?? (await this.notebook.list(topicId)).find((day) => day.state === "进行中");
-    return next ? `下一步：为 ${next.dayId} 提交实现、测试输出、失败案例和复盘。` : "当前主题没有进行中的学习日；请开始下一个 Day。";
+    return next ? `下一步：继续 ${next.dayId}。输入“开始任务”查看学习卡；完成后提交实现、测试输出、失败案例和复盘。` : "当前主题没有进行中的学习日；请开始下一个 Day。";
+  }
+
+  private async beginTask(topicId: TopicId): Promise<string> {
+    const snapshot = await this.sessions.load<{ dayId: string }>(topicId, "current");
+    if (!snapshot || await this.notebook.state(topicId, snapshot.dayId) !== "进行中") return "当前没有进行中的学习日；请先使用“开始第 N 天”。";
+    const day = await this.planLoader.day(this.registry.get(topicId), snapshot.dayId);
+    return `开始 ${snapshot.dayId}${day ? `：${day.title}` : ""}\n1. 阅读/查询当前主题资料，整理 3 个关键概念。\n2. 做一个最小实验并保留测试输出。\n3. 记录一个失败案例和原因。\n4. 回答复盘问题后使用“检查 ${snapshot.dayId} --实现 --测试 --失败 --复盘”。`;
   }
 }

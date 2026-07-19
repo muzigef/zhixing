@@ -16,4 +16,4 @@ DEEPSEEK_SMOKE_OK
 
 ## 结论
 
-macOS Keychain -> DeepSeekClient -> OpenAI-compatible DeepSeek endpoint 的最小连通性已验证。此证据不表示用户资料可以外发；包含用户资料的请求仍必须经过 `external_content_confirmation_required` 确认门。
+macOS Keychain -> DeepSeekClient -> OpenAI-compatible DeepSeek endpoint 的最小连通性已验证。该记录不改变当前 Provider 策略：已配置 Provider 默认可用，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 会禁止真实调用；不同命令的用户材料范围见 `CONFIGURATION.md`。

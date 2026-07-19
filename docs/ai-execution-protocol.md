@@ -14,7 +14,7 @@ AI 不得自主执行：Git commit/push、访问或导出浏览器 Cookie/账号
 1. **范围约束**：优先完成 [任务台账](../TASKS.md) 中首个未完成切片；不以框架替换、范围外扩展或多 Agent 来逃避当前缺陷。
 2. **契约先行**：修改公共行为前先更新或新增 TypeScript/Zod 契约、测试和相关文档；`topicId`、权限、引用、隐私和记忆写入规则不得只依赖 prompt。
 3. **测试先行**：每个行为修复或新增能力至少先新增一个失败/边界测试，再做最小实现；真实模型不作为必需测试前提。
-4. **最小权限**：资料只能从 `inbox/<topicId>/` 显式导入；写入只能通过受控 Store；默认纯本地；所有路径先经 `PathPolicy`。
+4. **最小权限**：资料只能从 `inbox/<topicId>/` 显式导入；写入只能通过受控 Store；真实 Provider 上下文必须受限于当前主题并标记用户材料；所有路径先经 `PathPolicy`。
 5. **敏感信息零落盘**：不得在源码、测试、settings、日志、Evidence、错误信息中写入 API Key、token、Cookie、邮箱、手机号或仓库外绝对路径。
 6. **用户资料零直读**：模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`；资料只可由受控本地 Runtime 处理。
 7. **质量门禁**：不得使用 `it.skip`、`it.only` 或吞掉失败退出码；每个切片完成前必须运行 `npm run verify`。

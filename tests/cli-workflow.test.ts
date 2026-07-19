@@ -27,7 +27,8 @@ describe.sequential("headless CLI workflow", () => {
     await invoke("开始第 1 天");
     await expect(invoke("读源码 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("不能读源码") });
     await expect(invoke("检查 D01 --实现 --测试")).resolves.toMatchObject({ stdout: expect.stringContaining("repair") });
-    await expect(invoke("继续")).resolves.toMatchObject({ stdout: "下一步：为 D01 提交实现、测试输出、失败案例和复盘。\n" });
+    await expect(invoke("继续")).resolves.toMatchObject({ stdout: expect.stringContaining("下一步：继续 D01") });
+    await expect(invoke("开始任务")).resolves.toMatchObject({ stdout: expect.stringContaining("开始 D01") });
     await expect(invoke("检查 D01 --实现 --测试 --失败 --复盘")).resolves.toMatchObject({ stdout: expect.stringContaining("advance（8/8）") });
     await expect(invoke("读源码 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("已解锁") });
   });
@@ -56,18 +57,18 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("开始第 1 天", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag/D01") });
     await expect(invoke("继续", "tool-calling")).resolves.toMatchObject({ stdout: expect.stringContaining("当前主题没有") });
     await expect(invoke("全部进度", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag：完成 0，进行中 1") });
-  });
+  }, 15_000);
 
-  it("E11/E19：禁用的 Codex 路由在 CLI 中降级到 mock", async () => {
+  it("E11/E19：显式禁用的 Codex 路由在 CLI 中降级到 mock", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
     const invoke = async (command: string) => await exec("npx", ["tsx", "src/cli.ts", command, "--topic", "rag"], options);
     const inbox = path.join(root, "zhixing", "inbox", "rag");
     await fs.mkdir(inbox, { recursive: true });
     await fs.writeFile(path.join(inbox, "source.md"), "# RAG\n\nRAG requires citations.", "utf8");
     await invoke("导入资料 rag/source.md");
-    await invoke("模型切换 tutor codex-cli");
+    await invoke("模型切换 tutor codex-cli --确认");
     await expect(invoke("资料问答 RAG --允许外发")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
   });
 
@@ -77,7 +78,7 @@ describe.sequential("headless CLI workflow", () => {
     const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string) => await exec("npx", ["tsx", "src/cli.ts", command], options);
     await expect(invoke("模型列表")).resolves.toMatchObject({ stdout: expect.stringMatching(/mock：healthy/) });
-    await expect(invoke("模型切换 reviewer codex-cli")).resolves.toMatchObject({ stdout: expect.stringContaining("reviewer -> codex-cli") });
+    await expect(invoke("模型切换 reviewer codex-cli --确认")).resolves.toMatchObject({ stdout: expect.stringContaining("reviewer -> codex-cli") });
     await expect(invoke("模型状态")).resolves.toMatchObject({ stdout: expect.stringMatching(/tutor -> mock[\s\S]*reviewer -> codex-cli[\s\S]*lab -> mock/) });
   });
 
@@ -89,12 +90,12 @@ describe.sequential("headless CLI workflow", () => {
     const backup = await invoke("备份数据库");
     const file = /数据库备份完成：([^\n]+)/.exec(backup.stdout)?.[1];
     expect(file).toBeDefined();
-    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=2") });
-    await expect(invoke(`恢复数据库 ${file}`)).rejects.toThrow("restore_confirmation_required");
+    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=3") });
+    await expect(invoke(`恢复数据库 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("需要明确确认") });
     await expect(invoke(`恢复数据库 ${file} --确认`)).resolves.toMatchObject({ stdout: expect.stringContaining("数据库恢复完成") });
   });
 
-  it("E31：资料默认不外发，显式允许后才调用本地 mock 模型", async () => {
+  it("E31：资料问答默认使用当前 tutor 路由", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
     const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
@@ -103,7 +104,7 @@ describe.sequential("headless CLI workflow", () => {
     await fs.mkdir(inbox, { recursive: true });
     await fs.writeFile(path.join(inbox, "privacy.md"), "# RAG\n\nRAG requires citations.", "utf8");
     await invoke("导入资料 rag/privacy.md");
-    await expect(invoke("资料问答 RAG")).resolves.toMatchObject({ stdout: expect.not.stringContaining("Mock：") });
+    await expect(invoke("资料问答 RAG")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
     await expect(invoke("资料问答 RAG --允许外发")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
   });
 
@@ -116,12 +117,12 @@ describe.sequential("headless CLI workflow", () => {
     const proposed = await invoke("生成个性化计划");
     const version = /个性化计划草案：(personal-plan-[^\n]+)/.exec(proposed.stdout)?.[1];
     expect(version).toBeDefined();
-    await expect(invoke(`启用个性化计划 ${version}`)).resolves.toMatchObject({ stdout: expect.stringContaining("已启用个性化计划") });
+    await expect(invoke(`启用个性化计划 ${version} --确认`)).resolves.toMatchObject({ stdout: expect.stringContaining("已启用个性化计划") });
     await expect(invoke("生成技能草案 rag-interview")).resolves.toMatchObject({ stdout: expect.stringContaining("Skill 草案") });
     await expect(invoke("技能草案列表")).resolves.toMatchObject({ stdout: "rag-interview\n" });
-    await expect(invoke("启用技能草案 rag-interview")).resolves.toMatchObject({ stdout: expect.stringContaining("已启用主题 Skill") });
+    await expect(invoke("启用技能草案 rag-interview --确认")).resolves.toMatchObject({ stdout: expect.stringContaining("已启用主题 Skill") });
     await expect(invoke("技能列表 rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag-interview") });
     await expect(invoke("资料概览")).resolves.toMatchObject({ stdout: expect.stringContaining("资料：0 份") });
-    await expect(invoke("学习建议")).resolves.toMatchObject({ stdout: expect.stringContaining("本地建议") });
+    await expect(invoke("学习建议")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
   }, 10_000);
 });

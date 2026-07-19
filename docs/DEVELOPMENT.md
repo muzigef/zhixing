@@ -16,7 +16,7 @@ npm run verify
 
 - TypeScript ESM，严格类型检查。
 - 主题由 `topicId` 隔离；所有用户路径经 `PathPolicy`。
-- 默认纯本地；不得把资料、记忆、凭证或审计发送至外部 Provider。
+- 未配置真实 Provider 时使用 mock；配置后默认可用，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止外发。凭证和审计绝不外发；资料、记忆仅可作为受限当前主题上下文发送，并必须在调用层标记为用户材料。
 - 不使用 focused/skipped 测试；`verify` 会扫描敏感信息和 diff 空白错误。
 
 详细自动化规则见 [AI 执行协议](ai-execution-protocol.md) 与 [项目约束](pi-constraints.md)。

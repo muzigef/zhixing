@@ -15,7 +15,7 @@
 - 支持来源：API Key、本机官方 Codex / Claude Code CLI 登录态和本地模型；不得读取浏览器 Cookie、订阅 token 或 CLI 认证文件。
 - 初始入口：`pnpm start -- "开始第 1 天"` 和交互式 `pnpm repl`。
 - 数据目录：`zhixing/data/` 与 `zhixing/db/`，加入 `.gitignore`；主题学习记录写入 `learning-notes/topics/<topicId>/`，全局偏好仅写入 `learning-notes/profile.md`；测试使用临时目录，不污染真实笔记。
-- 默认纯本地模式：资料不会发送到外部 Provider；首次外发资料必须显式确认。
+- 历史策略（已替换）：曾采用默认纯本地与首次外发显式确认。当前策略见 `SECURITY.md`：已配置 Provider 默认可用，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止外发。
 - 资料与记忆：三天 MVP 支持文字 PDF/Markdown、SQLite 元数据、FTS5、带引用查询和结构化长期记忆；向量检索、Embedding 与 OCR 明确排入第二阶段。
 
 > 本文保留原始三天排期和交付门槛，不代表当前功能清单；P0–P3 已完成，当前基线见 `development-plan.md`、`TASKS.md` 与 Evidence。

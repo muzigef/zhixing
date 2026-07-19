@@ -22,8 +22,9 @@ export class AuditLogger {
     await this.append({ runId, topicId, seq, type: `tool_${phase}` as AuditEvent["type"], command: `tool:${tool}`, at: this.now().toISOString() });
   }
 
-  async appendModel(topicId: TopicId, runId: string, seq: number, providerId: string, role: string, durationMs: number, status: string): Promise<void> {
-    const event: AuditEvent = { runId, topicId, seq, type: "model_invoked", command: `model:${providerId}:${role}`, message: `durationMs=${durationMs};status=${status}`, at: this.now().toISOString() };
+  async appendModel(topicId: TopicId, runId: string, seq: number, providerId: string, role: string, durationMs: number, status: string, trace?: { events: number; turns: number; toolCalls: number }): Promise<void> {
+    const suffix = trace ? `;events=${trace.events};turns=${trace.turns};toolCalls=${trace.toolCalls}` : "";
+    const event: AuditEvent = { runId, topicId, seq, type: "model_invoked", command: `model:${providerId}:${role}`, message: `durationMs=${durationMs};status=${status}${suffix}`, at: this.now().toISOString() };
     await this.append(event);
   }
 
@@ -55,9 +56,9 @@ export class AuditRun {
     this.#seq += 1;
     await this.logger.appendTool(this.topicId, this.runId, this.#seq, tool, phase);
   }
-  async model(providerId: string, role: string, durationMs: number, status: string): Promise<void> {
+  async model(providerId: string, role: string, durationMs: number, status: string, trace?: { events: number; turns: number; toolCalls: number }): Promise<void> {
     this.#seq += 1;
-    await this.logger.appendModel(this.topicId, this.runId, this.#seq, providerId, role, durationMs, status);
+    await this.logger.appendModel(this.topicId, this.runId, this.#seq, providerId, role, durationMs, status, trace);
   }
 
   private async write(type: AuditEvent["type"], message?: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CodexCliClient } from "../src/codex-client.js";
+import { CodexCliClient, codexJsonText } from "../src/codex-client.js";
 
 async function collect(client: CodexCliClient): Promise<string[]> {
   const controller = new AbortController();
@@ -9,9 +9,14 @@ async function collect(client: CodexCliClient): Promise<string[]> {
 }
 
 describe("Codex CLI adapter", () => {
-  it("默认纯本地策略拒绝真实 Provider", async () => {
+  it("extracts incremental assistant text from codex JSONL without rendering lifecycle events", () => {
+    expect(codexJsonText('{"type":"item.agent_message.delta","delta":"你好"}')).toBe("你好");
+    expect(codexJsonText('{"type":"item.completed","item":{"type":"agent_message","text":"完整回答"}}')).toBe("完整回答");
+    expect(codexJsonText('{"type":"thread.started"}')).toBeUndefined();
+  });
+  it("默认允许真实 Provider", async () => {
     const client = new CodexCliClient(async () => ({ code: 0, stdout: "never", stderr: "" }), {});
-    await expect(collect(client)).rejects.toThrow("live_provider_disabled");
+    await expect(collect(client)).resolves.toEqual(["never", "done"]);
   });
 
   it("只使用官方 CLI 的只读、临时 argv 并支持 mock 响应", async () => {
@@ -21,7 +26,8 @@ describe("Codex CLI adapter", () => {
       return { code: 0, stdout: "model reply", stderr: "" };
     }, { ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
     await expect(collect(client)).resolves.toEqual(["model reply", "done"]);
-    expect(received).toEqual(expect.arrayContaining(["exec", "--sandbox", "read-only", "--ephemeral", "--ignore-rules"]));
+    expect(received).toEqual(expect.arrayContaining(["exec", "--sandbox", "read-only", "--ephemeral", "--ignore-user-config"]));
+    expect(received).not.toContain("--ignore-rules");
     expect(received).not.toContain("--dangerously-bypass-approvals-and-sandbox");
   });
 
@@ -34,4 +40,5 @@ describe("Codex CLI adapter", () => {
     const client = new CodexCliClient(async (_args, signal) => await new Promise((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true })), { ZHIXING_ALLOW_LIVE_PROVIDER: "1" }, 1);
     await expect(collect(client)).rejects.toThrow("provider_timeout");
   });
+
 });

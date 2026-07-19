@@ -20,6 +20,6 @@ npm run verify
 -> mock smoke pass
 ```
 
-## 限制
+## 限制（历史快照）
 
-- 真实 Provider smoke 仍为可选项，默认纯本地模式不调用外部 Provider。
+- 真实 Provider smoke 仍为可选项。记录时采用默认纯本地；当前 Provider 策略见 `SECURITY.md`。

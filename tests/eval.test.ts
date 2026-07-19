@@ -40,7 +40,7 @@ describe("mock evaluation", () => {
     const runtime = new LearningRuntime(createDefaultTopicRegistry(), new PathPolicy(root));
     await runtime.handle("开始第 1 天", "agent-development");
     await expect(runtime.reviewDay("agent-development", "D01", { implementation: true, testOutput: true, failureCase: false, reflection: true })).resolves.toContain("repair");
-    await expect(runtime.handle("继续", "agent-development")).resolves.toBe("下一步：为 D01 提交实现、测试输出、失败案例和复盘。");
+    await expect(runtime.handle("继续", "agent-development")).resolves.toBe("下一步：继续 D01。输入“开始任务”查看学习卡；完成后提交实现、测试输出、失败案例和复盘。");
     await expect(runtime.reviewDay("agent-development", "D01", { implementation: true, testOutput: true, failureCase: true, reflection: true })).resolves.toContain("advance（8/8）");
     await expect(runtime.handle("开始第 2 天", "agent-development")).resolves.toContain("D02");
   });

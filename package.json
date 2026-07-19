@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:integration": "vitest run tests/integration.test.ts",
     "eval": "vitest run tests/eval.test.ts",
+    "test:harness": "vitest run tests/teaching-session-store.test.ts tests/learning-context.test.ts tests/cli-workflow.test.ts",
     "smoke:mock": "tsx src/cli.ts '主题列表'",
     "fixtures:generate": "node scripts/generate-fixtures.mjs",
     "verify": "node scripts/verify.mjs",

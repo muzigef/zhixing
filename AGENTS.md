@@ -11,10 +11,10 @@
 
 ## 数据与隐私
 
-- 默认纯本地：不得把 PDF、Chunk、学习笔记或记忆发送给外部 Provider。
+- 未配置真实 Provider 时使用本地 mock。已配置 Provider 后，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止外发的总开关；发送内容必须是当前主题的受限上下文，并在调用层标记为用户材料。
 - 只允许通过受控 Runtime 从 `inbox/<topicId>/` 显式导入资料；模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`。
 - 不得读取、写入、输出或提交 API Key、token、Cookie、认证文件、`.env`、`auth.json`、`.ssh` 或 `.codex` 内容。
-- 知行应用的真实 Provider 默认关闭；只有用户显式设置 `ZHIXING_ALLOW_LIVE_PROVIDER=1` 后，未来 adapter 才可调用外部 Provider。该开关不影响 Pi/Codex 开发会话。
+- 知行应用的真实 Provider 在已配置时默认可用；设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 后 adapter 必须拒绝调用。该开关不影响 Pi/Codex 开发会话。
 - 不得删除用户资料、主题、数据库或审计；需要时先报告影响范围并等待用户确认。
 
 ## 工程边界

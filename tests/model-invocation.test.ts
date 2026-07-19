@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { collectInvocation } from "../src/model-invocation.js";
-import { MockModelClient } from "../src/model.js";
+import { MockModelClient, type ContinuableModelClient } from "../src/model.js";
 import { ProviderRegistry } from "../src/provider-registry.js";
 import { ProviderRuntime } from "../src/provider-runtime.js";
 import { AgentLoop } from "../src/agent-loop.js";
@@ -22,8 +22,43 @@ describe("external content gate", () => {
     const request = { role: "tutor" as const, providerId: "tool", prompt: "safe", containsUserMaterials: false, confirmed: false };
     await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), request, new AbortController().signal)).rejects.toThrow("tool_dispatcher_required");
     const calls: unknown[] = [];
-    await collectInvocation(new ProviderRuntime(registry, new MockModelClient()), { ...request, onToolCall: async (tool, input) => { calls.push({ tool, input }); } }, new AbortController().signal);
+    const toolResults: unknown[] = [];
+    const result = await collectInvocation(new ProviderRuntime(registry, new MockModelClient()), { ...request, onToolCall: async (tool, input) => { calls.push({ tool, input }); return "safe-result"; }, onToolResult: (_tool, value) => toolResults.push(value) }, new AbortController().signal);
     expect(calls).toEqual([{ tool: "search", input: { q: "x" } }]);
+    expect(result.toolResults).toEqual([{ tool: "search", result: "safe-result" }]);
+    expect(toolResults).toEqual(["safe-result"]);
+  });
+  it("保留 Provider 显式发出的受控工具结果事件", async () => {
+    const registry = new ProviderRegistry();
+    registry.register({ id: "tool-result", client: { async *stream() { yield { type: "tool_result" as const, tool: "search", result: { count: 1 } }; } }, health: async () => "healthy" });
+    registry.route("tutor", "tool-result");
+    await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
+      role: "tutor", providerId: "tool-result", prompt: "safe", containsUserMaterials: false, confirmed: false,
+    }, new AbortController().signal)).resolves.toMatchObject({ toolResults: [{ tool: "search", result: { count: 1 } }] });
+  });
+  it("支持 Provider 在受控工具结果后继续下一模型回合", async () => {
+    const registry = new ProviderRegistry();
+    const continued: unknown[] = [];
+    const client: ContinuableModelClient = {
+      async *stream() { yield { type: "tool_call" as const, tool: "lookup", input: { id: "a" } }; },
+      async *continue(_prompt, results) { continued.push(results); yield { type: "text_delta" as const, text: `答案：${(results[0]?.result as { value: string }).value}` }; yield { type: "done" as const }; },
+    };
+    registry.register({ id: "continuable", client, health: async () => "healthy" });
+    registry.route("tutor", "continuable");
+    const result = await collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
+      role: "tutor", providerId: "continuable", prompt: "safe", containsUserMaterials: false, confirmed: false,
+      onToolCall: async () => ({ value: "已查到" }),
+    }, new AbortController().signal);
+    expect(result.text).toBe("答案：已查到");
+    expect(continued).toEqual([[{ tool: "lookup", result: { value: "已查到" } }]]);
+    // The trace has no prompt or tool payload, but exposes loop shape.
+    const traces: unknown[] = [];
+    await collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
+      role: "tutor", providerId: "continuable", prompt: "private", containsUserMaterials: false, confirmed: false,
+      onToolCall: async () => ({ value: "已查到" }), onAudit: (record) => traces.push(record),
+    }, new AbortController().signal);
+    expect(traces).toEqual([expect.objectContaining({ turns: 2, toolCalls: 1 })]);
+    expect(JSON.stringify(traces)).not.toContain("private");
   });
   it("未确认时拒绝把用户资料交给外部 Provider", async () => {
     await expect(collectInvocation(runtime(), {
@@ -54,6 +89,16 @@ describe("external content gate", () => {
     }, new AbortController().signal)).rejects.toThrow("provider failed");
     expect(audits).toEqual([expect.objectContaining({ status: "error", providerId: "broken" })]);
     expect(JSON.stringify(audits)).not.toContain("private prompt");
+  });
+  it("awaits asynchronous audit sinks before resolving the invocation", async () => {
+    const order: string[] = [];
+    const result = await collectInvocation(runtime(), {
+      role: "tutor", providerId: "mock", prompt: "safe", containsUserMaterials: false, confirmed: false,
+      onAudit: async () => { await new Promise((resolve) => setTimeout(resolve, 2)); order.push("audit"); },
+    }, new AbortController().signal);
+    order.push("returned");
+    expect(result.text).toContain("Mock：");
+    expect(order).toEqual(["audit", "returned"]);
   });
 
   it("无用户资料的 smoke prompt 可走角色 Runtime，并仅记录调用元数据", async () => {
@@ -89,12 +134,21 @@ describe("external content gate", () => {
     }, new AbortController().signal)).rejects.toThrow("repeated_tool_call");
   });
 
-  it("E12：超过最大模型轮次会稳定停止", async () => {
+  it("即使回调未自带 dispatcher，重复工具调用也由 Invocation 边界拒绝", async () => {
+    const registry = new ProviderRegistry();
+    registry.register({ id: "tool", client: { async *stream() { yield { type: "tool_call", tool: "search", input: { q: "x" } }; yield { type: "tool_call", tool: "search", input: { q: "x" } }; } }, health: async () => "healthy" });
+    registry.route("tutor", "tool");
+    await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
+      role: "tutor", providerId: "tool", prompt: "safe", containsUserMaterials: false, confirmed: false, onToolCall: async () => "ok",
+    }, new AbortController().signal)).rejects.toThrow("repeated_tool_call");
+  });
+
+  it("流式文本分段不会被误判为多个模型轮次", async () => {
     const registry = new ProviderRegistry();
     registry.register({ id: "loop", client: { async *stream() { for (let index = 0; index < 7; index += 1) yield { type: "text_delta", text: String(index) }; } }, health: async () => "healthy" });
     registry.route("tutor", "loop");
     await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
       role: "tutor", providerId: "loop", prompt: "safe", containsUserMaterials: false, confirmed: false,
-    }, new AbortController().signal)).rejects.toThrow("max_turns");
+    }, new AbortController().signal)).resolves.toMatchObject({ text: "0123456", events: 7 });
   });
 });

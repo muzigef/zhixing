@@ -3,7 +3,15 @@ data/
 db/
 settings/models.local.yaml
 settings/model-routing.local.json
+settings/current-topic.local.json
+settings/topics.local.json
 settings/secrets.json
 coverage/
 inbox/*
 !inbox/.gitkeep
+# Learning topics created by an end user are local state.  Built-in topic assets
+# remain tracked separately under topics/.
+# Built-in topics are already tracked; this prevents newly created user topics
+# and their plans/sessions from being staged accidentally.
+topics/*/
+learning-notes/

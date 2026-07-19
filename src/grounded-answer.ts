@@ -4,7 +4,7 @@ import { ToolDispatcher } from "./tool-dispatcher.js";
 import { ProviderRuntime } from "./provider-runtime.js";
 
 /** Produces a citation-constrained answer from retrieved evidence only. */
-export async function answerFromEvidence(runtime: ProviderRuntime, question: string, evidence: readonly SearchResult[], confirmed: boolean, signal: AbortSignal, onAudit?: (providerId: string, role: string, durationMs: number, status: string) => void, tools?: ToolDispatcher, skills: readonly { name: string; description: string }[] = []): Promise<string> {
+export async function answerFromEvidence(runtime: ProviderRuntime, question: string, evidence: readonly SearchResult[], confirmed: boolean, signal: AbortSignal, onAudit?: (providerId: string, role: string, durationMs: number, status: string) => unknown | Promise<unknown>, tools?: ToolDispatcher, skills: readonly { name: string; description: string }[] = []): Promise<string> {
   if (evidence.length === 0 || evidence.some((item) => !item.citation.topicId || !item.citation.documentId || !item.citation.documentName || (!item.citation.pageNumber && !item.citation.anchor))) return "insufficient_evidence：当前资料中没有足够证据。";
   const sources = evidence.slice(0, 3).map((item, index) => `${index + 1}. ${item.text}\n[${item.citation.documentName}#${item.citation.pageNumber ? `page=${item.citation.pageNumber}` : `anchor=${item.citation.anchor ?? "root"}`}]`).join("\n\n");
   const skillContext = skills.length ? `当前工作流 Skill（仅摘要）：\n${skills.map((skill) => `- ${skill.name}: ${skill.description}`).join("\n")}\n\n` : "";

@@ -1,7 +1,15 @@
 export type ModelRole = "tutor" | "reviewer" | "lab";
 
-export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "done"; readonly text?: string; readonly tool?: string; readonly input?: unknown; }
+export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_result" | "done"; readonly text?: string; readonly tool?: string; readonly input?: unknown; readonly result?: unknown; }
 export interface ModelClient { stream(prompt: string, signal: AbortSignal): AsyncIterable<ModelEvent>; }
+export interface ToolResultMessage { readonly tool: string; readonly result: unknown; }
+/** Optional capability: a provider can continue an agent turn after controlled tool results. */
+export interface ContinuableModelClient extends ModelClient {
+  continue(prompt: string, toolResults: readonly ToolResultMessage[], signal: AbortSignal): AsyncIterable<ModelEvent>;
+}
+export function isContinuableModelClient(client: ModelClient): client is ContinuableModelClient {
+  return typeof (client as Partial<ContinuableModelClient>).continue === "function";
+}
 
 /** Offline deterministic provider used by all mandatory tests. */
 export class MockModelClient implements ModelClient {

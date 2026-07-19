@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { AuditLogger } from "../src/audit.js";
 import { PathPolicy } from "../src/paths.js";
 import { RunManager } from "../src/run-manager.js";
+import { WorkflowLedger } from "../src/workflow-ledger.js";
+import { ZhixingDatabase } from "../src/database.js";
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
@@ -22,5 +24,14 @@ describe("RunManager", () => {
     expect(audit).toContain("run_cancelled");
     expect(audit).toContain("tool_started");
     expect(audit).toContain("tool_finished");
+  });
+  it("persists the semantic action id rather than a generic CLI label", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-run-ledger-"));
+    roots.push(root);
+    const database = new ZhixingDatabase(path.join(root, "db.sqlite"));
+    const manager = new RunManager(new AuditLogger(new PathPolicy(root)), new WorkflowLedger(database));
+    await expect(manager.run("rag", "开始第 1 天", async () => "ok", "learning.start_day")).resolves.toBe("ok");
+    expect(database.db.prepare("SELECT action_id AS actionId, status FROM workflow_runs").get()).toEqual({ actionId: "learning.start_day", status: "completed" });
+    database.close();
   });
 });

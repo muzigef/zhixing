@@ -17,4 +17,11 @@ describe("custom course store", () => {
     await expect(fs.readFile(plan, "utf8")).resolves.toContain("D03");
     await expect(fs.readFile(path.join(root, "learning-notes", "topics", "3dgs", "plans", `before-${version}.md`), "utf8")).resolves.toBe("old plan");
   });
+
+  it("keeps the full requested duration instead of truncating a long course", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-course-")); roots.push(root);
+    const store = new CustomCourseStore(root, () => new Date("2026-07-18T00:00:00.000Z"));
+    const version = await store.propose("3dgs", "3DGS", { goal: "完成项目", level: "初学", dailyMinutes: 120, totalDays: 84 });
+    await expect(fs.readFile(path.join(root, "learning-notes", "topics", "3dgs", "courses", `${version}.md`), "utf8")).resolves.toContain("D84");
+  });
 });

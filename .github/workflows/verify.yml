@@ -13,6 +13,13 @@ jobs:
         with:
           node-version: 24.8.0
           cache: npm
-      - run: npm ci
+      # npm 11 has intermittently crashed in GitHub-hosted runners with
+      # "Exit handler never called" during clean installs. Pin the installer;
+      # package resolution remains locked by package-lock.json.
+      - name: Pin npm installer
+        run: npm install --global npm@10.9.2
+      - name: Show runtime versions
+        run: node --version && npm --version
+      - run: npm ci --no-audit --no-fund
       - run: npm run verify
       - run: npm audit --omit=dev --audit-level=high

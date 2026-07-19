@@ -15,7 +15,7 @@
 - `bash` 仅允许项目验证命令和只读检查命令；阻止网络、`codex` CLI、凭证、删除、权限变更、Git 写操作和依赖安装命令。
 - 模型工具不能直接读取或写入 `inbox/`、`data/`、`db/`、`learning-notes/`；资料只能由受控 Runtime 本地导入，审计不能被模型篡改。
 - 被阻止的调用仅记录规则名与工具类型到 `data/audit/pi-guard.jsonl`，不记录参数或敏感内容。
-- 知行应用的 live Provider adapter 必须通过 `ZHIXING_ALLOW_LIVE_PROVIDER=1` 显式解锁；该开关不影响 Pi 自身使用 Codex 开发。
+- 知行应用的 live Provider adapter 在已配置时默认可用；`ZHIXING_ALLOW_LIVE_PROVIDER=0` 必须显式禁止调用。该开关不影响 Pi 自身使用 Codex 开发。
 
 这不限制人类在终端直接执行命令，也不等同于操作系统隔离。需要防御恶意扩展或任意本机进程时，应在容器/OS sandbox 中运行 Pi。
 
