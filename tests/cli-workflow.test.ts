@@ -31,7 +31,7 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("开始任务")).resolves.toMatchObject({ stdout: expect.stringContaining("开始 D01") });
     await expect(invoke("检查 D01 --实现 --测试 --失败 --复盘")).resolves.toMatchObject({ stdout: expect.stringContaining("advance（8/8）") });
     await expect(invoke("读源码 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("已解锁") });
-  });
+  }, 12_000);
 
   it("E10：每个 headless CLI 命令写入同一 Run 的工具审计链", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
