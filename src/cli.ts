@@ -239,7 +239,7 @@ async function execute(line: string): Promise<string> {
   });
   if (command === "生成个性化计划") return run("propose_personal_plan", activeTopic, async () => {
     const version = await learningProfiles.proposePlan(activeTopic);
-    return `已生成个性化计划草案：${version}\n请检查后使用“启用个性化计划 ${version}”确认。`;
+    return `已生成个性化计划草案：${version}\n请检查后使用“启用个性化计划 ${version} --确认”确认。`;
   });
   if (command === "生成定制课程") return run("propose_custom_course", activeTopic, async () => {
     const profile = await learningProfiles.load(activeTopic);
@@ -263,7 +263,7 @@ async function execute(line: string): Promise<string> {
     const profile = await learningProfiles.load(activeTopic);
     if (!profile) throw new Error("learning_profile_required: 请先设置学习画像。");
     await generatedSkills.createDraft(activeTopic, generateSkill, profile);
-    return `已生成本地 Skill 草案：${generateSkill}\n使用“读取技能草案 ${generateSkill}”检查；使用“启用技能草案 ${generateSkill}”加入当前主题。`;
+    return `已生成本地 Skill 草案：${generateSkill}\n使用“读取技能草案 ${generateSkill}”检查；使用“启用技能草案 ${generateSkill} --确认”加入当前主题。`;
   });
   if (command === "技能草案列表") return run("list_skill_drafts", activeTopic, async () => {
     const drafts = await generatedSkills.listDrafts(activeTopic);
@@ -278,7 +278,7 @@ async function execute(line: string): Promise<string> {
   });
   const adjust = /^调整计划\s+(\d+)$/.exec(command)?.[1];
   if (adjust) return run("propose_plan", activeTopic, () => runtime.proposePlan(activeTopic, Number(adjust)));
-  const activate = /^启用计划\s+(plan-[\dTZ-]+)$/.exec(command)?.[1];
+  const activate = /^启用计划\s+(plan-[\dTZ-]+)(?:\s+--确认)?$/.exec(command)?.[1];
   if (activate) return run("activate_plan", activeTopic, () => runtime.activatePlan(activeTopic, activate));
   if (command === "复习计划") return run("create_review_plan", activeTopic, () => runtime.createReviewPlan(activeTopic));
   const skillList = /^技能列表(?:\s+([a-z][a-z0-9-]*))?$/.exec(command);
@@ -570,7 +570,7 @@ async function executeConversationCommand(command: string): Promise<string> {
     await generatedSkills.activate(activeTopic, activateSkill);
     return `已启用主题 Skill：${activateSkill}`;
   }
-  const activatePlan = /^启用计划\s+(plan-[\dTZ-]+)$/.exec(command)?.[1];
+  const activatePlan = /^启用计划\s+(plan-[\dTZ-]+)(?:\s+--确认)?$/.exec(command)?.[1];
   if (activatePlan) return await runtime.activatePlan(activeTopic, activatePlan);
   const switchModel = /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli)$/.exec(command);
   if (switchModel) {

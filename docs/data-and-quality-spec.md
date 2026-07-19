@@ -41,6 +41,8 @@ days:
 | `chunk_embeddings` | `chunk_id`, `topic_id`, `dimensions`, `vector_json` | 本地 HashEmbedding 的 SQLite 兼容存储 |
 | `memories` | `id`, `topic_id`, `memory_type`, `content`, `source_kind`, `source_ref`, `confidence`, `confirmed_at`, `deleted_at` | `(topic_id, memory_type, deleted_at)` 索引；软删除可追溯 |
 | `citations` | `id`, `topic_id`, `document_id`, `chunk_id`, `page_number`, `anchor` | 保证回答引用可定位 |
+| `workflow_runs` | `run_id`, `topic_id`, `action_id`, `status`, `started_at`, `finished_at`, `error_code` | 前台操作的持久运行账本；命令原文仅以哈希形式保存 |
+| `workflow_steps` | `run_id`, `step_id`, `status`, `at`, `detail` | 运行内步骤状态；进程中断不会自动重放写操作 |
 
 Session snapshot 和审计日志仍以文件保存；数据库只保存需要检索、关联和事务约束的数据。
 
@@ -78,9 +80,9 @@ Session snapshot 和审计日志仍以文件保存；数据库只保存需要检
 
 ## 6. 质量、预算与隐私
 
-RAG MVP 的离线 Eval 至少测量：关键词召回命中、引用可定位率、groundedness、证据不足拒答率、跨主题隔离率。回答中每个事实性结论必须至少有一个 citation；引用不存在、主题不一致或无法定位即判失败。
+RAG 离线 Eval 至少测量：关键词召回命中、引用可定位率、groundedness、证据不足拒答率、跨主题隔离率。回答中每个事实性结论必须至少有一个 citation；引用不存在、主题不一致或无法定位即判失败。
 
-导入和 Provider 调用有各自的超时与大小限制。当前没有通用并发、token 或费用预算，也没有 Provider 能力表；这些属于后续能力。
+导入和 Provider 调用有各自的超时与大小限制。Provider 审计记录角色、耗时、状态、事件数、模型回合数与工具调用数，不记录 prompt、回答或工具参数。当前没有通用并发、token 或费用预算；这些属于后续能力。
 
 设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 会禁止真实 Provider；本地 embedding 不会外发。已配置 Provider 时当前策略默认允许调用；不同命令的发送范围见 [配置](CONFIGURATION.md)。
 

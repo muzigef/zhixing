@@ -31,13 +31,13 @@ npm run start -- '进度' --topic rag
 ## 个性化学习流程（无需模型）
 
 ```bash
-npm run start -- '设置学习画像 掌握 RAG 面试 --水平 初学 --每天 45 --周期 14' --topic rag
+npm run start -- '设置学习画像 掌握 RAG 原理与实践 --水平 初学 --每天 45 --周期 14' --topic rag
 npm run start -- '生成个性化计划' --topic rag
 # 查看输出的版本号后：
-npm run start -- '启用个性化计划 personal-plan-<version>' --topic rag
+npm run start -- '启用个性化计划 personal-plan-<version> --确认' --topic rag
 npm run start -- '生成技能草案 rag-interview' --topic rag
 npm run start -- '读取技能草案 rag-interview' --topic rag
-npm run start -- '启用技能草案 rag-interview' --topic rag
+npm run start -- '启用技能草案 rag-retrieval --确认' --topic rag
 npm run start -- '学习建议' --topic rag
 ```
 
