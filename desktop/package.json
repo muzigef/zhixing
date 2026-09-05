@@ -1,0 +1,101 @@
+{
+  "name": "zhixing-desktop",
+  "version": "0.2.0",
+  "description": "知行 · 让学习成为连续的对话",
+  "author": "Zhixing",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "build/main.mjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "pack": "npm run build && electron-builder --dir",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --arm64",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "test:ui": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.80.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "electron": "44.2.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.25.0",
+    "katex": "^0.16.22",
+    "lucide-react": "^0.468.0",
+    "playwright": "^1.55.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.0.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "prettier": "^3.9.6"
+  },
+  "build": {
+    "appId": "com.zhixing.desktop",
+    "productName": "知行",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "build/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/runtime",
+        "to": "runtime"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/**/*"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null
+    },
+    "dmg": {
+      "title": "知行",
+      "window": {
+        "width": 540,
+        "height": 360
+      },
+      "contents": [
+        {
+          "x": 140,
+          "y": 170,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 170,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "artifactName": "Zhixing-${version}-${os}-${arch}.${ext}",
+    "electronDist": "node_modules/electron/dist"
+  }
+}

@@ -4,7 +4,13 @@
   "description": "Local-first, evidence-driven learning agent CLI for interview demonstration.",
   "private": true,
   "license": "UNLICENSED",
-  "keywords": ["learning-agent", "rag", "typescript", "local-first", "cli"],
+  "keywords": [
+    "learning-agent",
+    "rag",
+    "typescript",
+    "local-first",
+    "cli"
+  ],
   "type": "module",
   "engines": {
     "node": "24.8.x"
@@ -12,7 +18,7 @@
   "scripts": {
     "start": "tsx src/cli.ts",
     "repl": "tsx src/cli.ts --repl",
-    "lint": "eslint src tests",
+    "lint": "eslint src tests desktop/core desktop/electron desktop/renderer",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration.test.ts",
@@ -21,7 +27,10 @@
     "smoke:mock": "node scripts/smoke-mock.mjs",
     "fixtures:generate": "node scripts/generate-fixtures.mjs",
     "verify": "node scripts/verify.mjs",
-    "pi:safe": "bash scripts/pi-safe.sh"
+    "pi:safe": "bash scripts/pi-safe.sh",
+    "desktop": "npm --prefix desktop start",
+    "desktop:build": "npm --prefix desktop run build",
+    "desktop:pack": "npm --prefix desktop run dist:mac"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

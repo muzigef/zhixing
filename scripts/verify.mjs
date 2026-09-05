@@ -6,6 +6,7 @@ const root = process.cwd();
 const commands = [
   ["npm", ["run", "lint"]],
   ["npm", ["run", "typecheck"]],
+  ["npm", ["--prefix", "desktop", "run", "typecheck"]],
   ["npm", ["run", "test"]],
   ["npm", ["run", "test:integration"]],
   ["npm", ["run", "eval"]],
@@ -17,7 +18,7 @@ for (const [command, args] of commands) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-const files = collect(root).filter((file) => /\.(?:[cm]?[jt]s|md|json|ya?ml)$/i.test(file));
+const files = collect(root).filter((file) => /\.(?:[cm]?[jt]sx?|md|json|ya?ml)$/i.test(file));
 const forbidden = [
   { name: "focused/skipped test", pattern: /\b(?:it|test|describe)\.(?:only|skip)\s*\(/ },
   { name: "probable API credential", pattern: /\b(?:sk-[A-Za-z0-9_-]{12,}|Bearer\s+[A-Za-z0-9._-]{12,})/i },
@@ -40,7 +41,7 @@ if (git.status !== 0 && git.status !== 129) {
 console.log("verify passed: quality gates, sensitive scan, and diff whitespace check");
 
 function collect(directory) {
-  const ignored = new Set(["node_modules", "data", "db", "inbox", "coverage", ".git"]);
+  const ignored = new Set(["node_modules", "data", "db", "inbox", "coverage", ".git", "build", "release", "test-results"]);
   const files = [];
   for (const entry of readdirSync(directory)) {
     if (ignored.has(entry)) continue;

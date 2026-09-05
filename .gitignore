@@ -15,3 +15,8 @@ inbox/*
 # and their plans/sessions from being staged accidentally.
 topics/*/
 learning-notes/
+
+# Desktop build products and local UI test captures
+desktop/build/
+desktop/release/
+desktop/test-results/

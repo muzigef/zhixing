@@ -77,6 +77,18 @@
 - [~] 真实连接：Pi 能列出已配置 Codex 模型，但调用未取得可用认证；等待在 Pi 完成登录后重试。当前不能报告模型可用或响应速度。
 - 验收记录见 [Pi Codex 接入](docs/evidence/pi-codex-integration.md)。
 
+## P10：可安装桌面应用
+
+- [x] Electron + React 桌面外壳、会话侧栏、流式聊天、输入草稿、停止/继续/重试、快捷键、Markdown 与数学、浅色/深色主题。
+- [x] 会话历史、搜索、重命名、Markdown 导出，独立系统应用数据目录和原子保存。
+- [x] 内附 Pi 运行时；Pi Codex / DeepSeek API 切换、Codex 失败后一键切 API 重试，复用现有钥匙串配置及应用内加密配置入口。
+- [x] 58 个测试文件/281 个测试及完整质量门；真实 Electron 和打包 `.app` 的端到端 UI 测试通过。
+- [x] macOS Apple Silicon `.app` / DMG / ZIP 已构建，DMG 完整性检查通过。
+- [x] DeepSeek 真实短请求返回 `4`：首字 2.317 秒，总耗时 2.383 秒。
+- [ ] Windows 实机验收、Intel Mac 构建及 Apple Developer ID 签名/公证。
+- [ ] 课程、资料与进度功能的桌面入口（现有 CLI 功能保留）。
+- 验收记录见 [桌面应用](docs/evidence/desktop-app.md)，使用说明见 [桌面版 README](desktop/README.md)。
+
 ## 当前前台下一项
 
-**P0–P8 已完成本地验收。P9 接入已完成本地验证并已切换 tutor 路由，真实模型连通性尚未通过：需要在 Pi 中完成 OpenAI Codex 登录后，用非敏感短问题复测。下一步不再盲目重试、不读取凭据，也不将本地测试通过等同于真实模型可用。**
+**P10 第一版已完成 macOS Apple Silicon 本地验收，DeepSeek API 已真实连通，可用于当前桌面对话。Pi Codex 登录仍待恢复；后续按用户选择扩展 Windows、完整学习功能或公开签名分发。**

@@ -2,6 +2,12 @@
 
 知行是一个本地优先的学习 Agent。它通过 CLI 和 REPL 管理学习主题、资料、计划、教学会话、证据 Review 与 Provider 路由；学习状态可恢复，资料问答带可定位引用，模型驱动的动作必须经过统一的授权、确认与证据校验。
 
+## 桌面版（新）
+
+已提供接近 Codex 布局的独立桌面对话应用，支持 **Pi Codex / DeepSeek API 切换**、流式回答、会话与草稿恢复、公式、复制和导出。第一版安装包面向 macOS Apple Silicon；课程、资料与进度管理仍使用下方 CLI。
+
+安装和开发说明见 [桌面版 README](desktop/README.md)，验收记录见 [桌面版验证](docs/evidence/desktop-app.md)。本机产物在 `desktop/release/`，构建产物不提交到源码仓库。
+
 ## 核心能力
 
 - 主题化学习：选择或创建主题，保存当前主题，重启后恢复学习上下文。
@@ -20,6 +26,7 @@
 
 ```bash
 npm ci
+npm ci --prefix desktop
 npm run verify
 npm run start -- '主题列表'
 npm run repl
