@@ -9,6 +9,12 @@ describe("global interaction protocol", () => {
     expect(decideInteraction("请给第一题答案", "teaching")).toMatchObject({ kind: "teaching_input" });
     expect(decideInteraction("帮我做一个新的学习计划", "learning")).toMatchObject({ kind: "natural_input" });
   });
+  it("accepts natural plan confirmation only when a reviewed draft exists", () => {
+    expect(decideInteraction("就按这个来", "pending_plan")).toEqual({ kind: "execute_pending", confirmed: false });
+    expect(decideInteraction("好，执行吧", "pending_plan")).toEqual({ kind: "execute_pending", confirmed: false });
+    expect(decideInteraction("就按这个来", "teaching")).toMatchObject({ kind: "teaching_input" });
+    expect(decideInteraction("这个方案会删除资料吗？", "pending_plan")).toMatchObject({ kind: "natural_input" });
+  });
   it("derives state from persisted checkpoints and pending plans", () => {
     expect(nextInteractionMode(false, false)).toBe("learning");
     expect(nextInteractionMode(true, false)).toBe("teaching");

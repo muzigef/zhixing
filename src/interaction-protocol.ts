@@ -23,6 +23,7 @@ export function decideInteraction(input: string, mode: InteractionMode, registry
   const command = input.trim();
   const confirmed = /^(你)?直接运行\s+--确认$|^我?确认执行$/.test(command);
   if (/^(你)?直接运行(吧)?$|^确认执行$/.test(command) || confirmed) return { kind: "execute_pending", confirmed };
+  if (mode === "pending_plan" && /^(?:就按这个(?:来|执行)|按这个方案(?:执行)?|好[，, ]*执行吧|可以[，, ]*开始(?:吧)?)[。！!]?$/u.test(command)) return { kind: "execute_pending", confirmed: false };
   const action: RegisteredAction | undefined = registry.resolve(command);
   if (action) return { kind: "command", command, confirmationRequired: action.confirmationRequired, confirmed: action.confirmed, actionId: action.id };
   if (mode === "teaching") return { kind: "teaching_input", text: command };

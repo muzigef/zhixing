@@ -28,16 +28,21 @@ export class ToolHarness {
   async execute(name: string, rawInput: unknown, context: ToolExecutionContext): Promise<ToolResult> {
     const tool = this.#tools.get(name); const started = Date.now();
     if (!tool) return { tool: name, ok: false, errorCode: "tool_not_allowed", durationMs: Date.now() - started };
+    if (context.signal.aborted) return { tool: name, ok: false, errorCode: "tool_cancelled", durationMs: Date.now() - started };
+    // Inspect the raw input: object schemas can strip a model-supplied topicId.
+    if (typeof rawInput === "object" && rawInput !== null && "topicId" in rawInput && rawInput.topicId !== context.topicId) return { tool: name, ok: false, errorCode: "cross_topic_denied", durationMs: Date.now() - started };
     if (riskRank(tool.risk) > riskRank(context.maxRisk ?? "read")) return { tool: name, ok: false, errorCode: "tool_policy_denied", durationMs: Date.now() - started };
     let timeout: AbortSignal | undefined;
     try {
       const input = tool.input.parse(rawInput);
       timeout = AbortSignal.timeout(tool.timeoutMs);
       const signal = AbortSignal.any([context.signal, timeout]);
+      signal.throwIfAborted();
       const output = await withDeadline(tool.execute(input, { ...context, signal }), signal);
+      signal.throwIfAborted();
       return { tool: name, ok: true, output: bound(output), durationMs: Date.now() - started };
     } catch (error) {
-      const code = error instanceof z.ZodError ? "tool_input_invalid" : timeout?.aborted ? "tool_timeout" : context.signal.aborted ? "tool_cancelled" : "tool_failed";
+      const code = context.signal.aborted ? "tool_cancelled" : timeout?.aborted ? "tool_timeout" : error instanceof z.ZodError ? "tool_input_invalid" : "tool_failed";
       return { tool: name, ok: false, errorCode: code, durationMs: Date.now() - started };
     }
   }
@@ -55,7 +60,8 @@ async function withDeadline<T>(operation: Promise<T>, signal: AbortSignal): Prom
 }
 
 function bound(output: unknown): unknown {
-  const serialized = JSON.stringify(output);
-  if (serialized.length <= 12_000) return output;
+  const serialized = JSON.stringify(output ?? null);
+  if (serialized === undefined) throw new Error("tool_output_invalid");
+  if (serialized.length <= 12_000) return output ?? null;
   return { truncated: true, preview: serialized.slice(0, 12_000) };
 }

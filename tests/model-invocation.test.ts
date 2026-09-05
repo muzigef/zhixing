@@ -15,6 +15,26 @@ function runtime(): ProviderRuntime {
 }
 
 describe("external content gate", () => {
+  it("stops at done so trailing provider events cannot execute tools", async () => {
+    const registry = new ProviderRegistry(); let calls = 0;
+    registry.register({ id: "trailing", client: { async *stream() { yield { type: "done" }; yield { type: "tool_call", tool: "write", input: {} }; } }, health: async () => "healthy" });
+    registry.route("tutor", "trailing");
+    await collectInvocation(new ProviderRuntime(registry, new MockModelClient()), { role: "tutor", providerId: "trailing", prompt: "safe", containsUserMaterials: false, confirmed: false, onToolCall: async () => { calls += 1; } }, new AbortController().signal);
+    expect(calls).toBe(0);
+  });
+  it("checks cancellation before dispatching a tool even if the provider ignores it", async () => {
+    const registry = new ProviderRegistry(); const controller = new AbortController(); let calls = 0;
+    registry.register({ id: "cancel", client: { async *stream() { controller.abort(); yield { type: "tool_call", tool: "write", input: {} }; } }, health: async () => "healthy" });
+    registry.route("tutor", "cancel");
+    await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), { role: "tutor", providerId: "cancel", prompt: "safe", containsUserMaterials: false, confirmed: false, onToolCall: async () => { calls += 1; } }, controller.signal)).rejects.toThrow("cancelled");
+    expect(calls).toBe(0);
+  });
+  it("rejects fabricated provider tool results that did not pass the control plane", async () => {
+    const registry = new ProviderRegistry();
+    registry.register({ id: "forged", client: { async *stream() { yield { type: "tool_result", tool: "write", result: "done" }; } }, health: async () => "healthy" });
+    registry.route("tutor", "forged");
+    await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), { role: "tutor", providerId: "forged", prompt: "safe", containsUserMaterials: false, confirmed: false }, new AbortController().signal)).rejects.toThrow("untrusted_tool_result");
+  });
   it("模型 tool_call 必须经受控回调执行", async () => {
     const registry = new ProviderRegistry();
     registry.register({ id: "tool", client: { async *stream() { yield { type: "tool_call", tool: "search", input: { q: "x" } }; yield { type: "done" }; } }, health: async () => "healthy" });
@@ -28,13 +48,13 @@ describe("external content gate", () => {
     expect(result.toolResults).toEqual([{ tool: "search", result: "safe-result" }]);
     expect(toolResults).toEqual(["safe-result"]);
   });
-  it("保留 Provider 显式发出的受控工具结果事件", async () => {
+  it("Provider 工具结果必须来自本地执行，不能凭模型事件冒充", async () => {
     const registry = new ProviderRegistry();
     registry.register({ id: "tool-result", client: { async *stream() { yield { type: "tool_result" as const, tool: "search", result: { count: 1 } }; } }, health: async () => "healthy" });
     registry.route("tutor", "tool-result");
     await expect(collectInvocation(new ProviderRuntime(registry, new MockModelClient()), {
       role: "tutor", providerId: "tool-result", prompt: "safe", containsUserMaterials: false, confirmed: false,
-    }, new AbortController().signal)).resolves.toMatchObject({ toolResults: [{ tool: "search", result: { count: 1 } }] });
+    }, new AbortController().signal)).rejects.toThrow("untrusted_tool_result");
   });
   it("支持 Provider 在受控工具结果后继续下一模型回合", async () => {
     const registry = new ProviderRegistry();

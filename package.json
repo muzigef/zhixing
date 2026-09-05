@@ -17,8 +17,8 @@
     "test": "vitest run",
     "test:integration": "vitest run tests/integration.test.ts",
     "eval": "vitest run tests/eval.test.ts",
-    "test:harness": "vitest run tests/teaching-session-store.test.ts tests/learning-context.test.ts tests/cli-workflow.test.ts",
-    "smoke:mock": "tsx src/cli.ts '主题列表'",
+    "test:harness": "vitest run tests/agent-*.test.ts tests/learning-agent*.test.ts tests/model-invocation.test.ts tests/tool-harness.test.ts tests/provider-runtime.test.ts tests/deepseek-client.test.ts tests/codex-client.test.ts tests/pi-*.test.ts tests/run-manager.test.ts tests/teaching-*.test.ts tests/learning-context.test.ts tests/cli-workflow.test.ts",
+    "smoke:mock": "node scripts/smoke-mock.mjs",
     "fixtures:generate": "node scripts/generate-fixtures.mjs",
     "verify": "node scripts/verify.mjs",
     "pi:safe": "bash scripts/pi-safe.sh"

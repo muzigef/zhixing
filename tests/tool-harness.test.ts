@@ -3,6 +3,26 @@ import { z } from "zod";
 import { ToolHarness } from "../src/tool-harness.js";
 
 describe("ToolHarness", () => {
+  it("does not start side effects after cancellation", async () => {
+    const harness = new ToolHarness();
+    let executed = false;
+    harness.register({ name: "write", input: z.object({}), risk: "write", timeoutMs: 100, idempotent: false, execute: async () => { executed = true; return "written"; } });
+    const controller = new AbortController(); controller.abort();
+    await expect(harness.execute("write", {}, { topicId: "rag", signal: controller.signal, maxRisk: "write" })).resolves.toMatchObject({ ok: false, errorCode: "tool_cancelled" });
+    expect(executed).toBe(false);
+  });
+  it("rejects cross-topic input before Zod strips unknown fields", async () => {
+    const harness = new ToolHarness();
+    let executed = false;
+    harness.register({ name: "lookup", input: z.object({}), risk: "read", timeoutMs: 100, idempotent: true, execute: async () => { executed = true; } });
+    await expect(harness.execute("lookup", { topicId: "other" }, { topicId: "rag", signal: new AbortController().signal })).resolves.toMatchObject({ ok: false, errorCode: "cross_topic_denied" });
+    expect(executed).toBe(false);
+  });
+  it("accepts void results without converting successful work into failure", async () => {
+    const harness = new ToolHarness();
+    harness.register({ name: "noop", input: z.object({}), risk: "read", timeoutMs: 100, idempotent: true, execute: async () => undefined });
+    await expect(harness.execute("noop", {}, { topicId: "rag", signal: new AbortController().signal })).resolves.toMatchObject({ ok: true, output: null });
+  });
   it("enforces schemas and blocks unknown tools", async () => {
     const harness = new ToolHarness();
     harness.register({ name: "echo", input: z.object({ value: z.string().max(8) }), risk: "read", timeoutMs: 100, idempotent: true, execute: async ({ value }) => ({ value }) });

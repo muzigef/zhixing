@@ -27,4 +27,19 @@ describe("grounded answer", () => {
     registry.route("tutor", "ungrounded");
     await expect(answerFromEvidence(new ProviderRuntime(registry, new MockModelClient()), "what", evidence, true, new AbortController().signal)).resolves.toContain("insufficient_evidence");
   });
+  it("rejects a citation with an invented location even if the document name matches", async () => {
+    const registry = new ProviderRegistry();
+    const client: ModelClient = { async *stream() { yield { type: "text_delta", text: "结论 [notes.md#anchor=Invented]" }; yield { type: "done" }; } };
+    registry.register({ id: "fixture", client, health: async () => "healthy" }); registry.route("tutor", "fixture");
+    expect(await answerFromEvidence(new ProviderRuntime(registry, new MockModelClient()), "what", evidence, true, new AbortController().signal)).toContain("insufficient_evidence");
+  });
+  it("marks a cited but interrupted answer as incomplete", async () => {
+    const registry = new ProviderRegistry();
+    const client: ModelClient = { async *stream() { yield { type: "text_delta", text: "结论 [notes.md#anchor=Grounding]" }; throw new Error("provider_incomplete"); } };
+    registry.register({ id: "fixture", client, health: async () => "healthy" }); registry.route("tutor", "fixture");
+    const result = await answerFromEvidence(new ProviderRuntime(registry, new MockModelClient()), "what", evidence, true, new AbortController().signal);
+    expect(result).toContain("[notes.md#anchor=Grounding]");
+    expect(result).toContain("未完成");
+  });
+
 });

@@ -13,7 +13,11 @@ export class LoopGuard {
   }
 
   recordToolCall(name: string, input: unknown): LoopStopReason | undefined {
-    const key = `${name}:${JSON.stringify(input)}`;
+    const key = `${name}:${JSON.stringify(input, (_key, value: unknown) => {
+      // Object key order is not part of a tool's meaning; array order is.
+      if (value && typeof value === "object" && !Array.isArray(value)) return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
+      return value;
+    })}`;
     if (this.#seen.has(key)) return "repeated_tool_call";
     this.#seen.add(key);
     return undefined;

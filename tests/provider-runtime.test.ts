@@ -10,6 +10,14 @@ async function collect(runtime: ProviderRuntime): Promise<string[]> {
 }
 
 describe("provider runtime", () => {
+  it("never appends fallback text after observable provider output", async () => {
+    const registry = new ProviderRegistry();
+    registry.register({ id: "partial", client: { async *stream() { yield { type: "text_delta", text: "partial" }; throw new Error("provider_timeout"); } }, health: async () => "healthy" });
+    registry.route("tutor", "partial");
+    const values: string[] = [];
+    await expect((async () => { for await (const event of new ProviderRuntime(registry, new MockModelClient()).stream("tutor", "x", new AbortController().signal)) values.push(event.text ?? event.type); })()).rejects.toThrow("provider_timeout");
+    expect(values).toEqual(["partial"]);
+  });
   it("角色路由优先，缺少路由时回退 mock", async () => {
     const registry = new ProviderRegistry();
     const routed = new MockModelClient();

@@ -11,7 +11,7 @@ export function hasUserTextEvidence(originalInput: string, claimedText: string |
   const normalize = (value: string) => value.replace(/[\s，。；：、,.!?！？]/g, "");
   const claim = normalize(claimedText);
   const input = normalize(originalInput);
-  return claim.length >= 4 && (input.includes(claim) || claim.includes(input));
+  return claim.length >= 4 && input.includes(claim);
 }
 
 export function authorizeConversationTransition(input: {

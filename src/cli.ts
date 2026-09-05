@@ -18,6 +18,7 @@ import { MacOSKeychainSecretStore } from "./macos-keychain.js";
 import { ProviderSetup } from "./provider-setup.js";
 import { DeepSeekClient } from "./deepseek-client.js";
 import { CodexCliClient } from "./codex-client.js";
+import { PiCodexClient } from "./pi-client.js";
 import { previewBackup, restoreBackup } from "./backup-service.js";
 import { answerFromEvidence } from "./grounded-answer.js";
 import { readHiddenSecret } from "./hidden-secret-input.js";
@@ -29,17 +30,26 @@ import { createDefaultTopicRegistry } from "./topics.js";
 import { LocalSyncServer } from "./sync-server.js";
 import { LearningProfileStore } from "./learning-profile.js";
 import { GeneratedSkillStore } from "./generated-skill-store.js";
-import { collectInvocation } from "./model-invocation.js";
+import { collectInvocation, type InvocationRequest, type InvocationResult } from "./model-invocation.js";
 import { TopicStore } from "./topic-store.js";
 import { CustomCourseStore } from "./custom-course-store.js";
 import { ReminderStore } from "./reminder-store.js";
 import { conversationPlanSchema, formatIntentProposal, intentSchema, isAutomatableConversationCommand, parseLocalIntent, requiresConversationConfirmation, type ConversationPlan } from "./intent-parser.js";
-import { interpretTeachingInput, type TeachingAction } from "./teaching-dialogue.js";
+import { interpretTeachingInput, resolveTeachingInput } from "./teaching-dialogue.js";
 import { authorizationMessage, decideInteraction, nextInteractionMode } from "./interaction-protocol.js";
 import { CurrentTopicStore } from "./current-topic-store.js";
 import { TeachingSessionStore, type TeachingSession } from "./teaching-session-store.js";
 import { LearningContextBuilder } from "./learning-context.js";
 import { authorizeConversationTransition } from "./conversation-policy.js";
+import { createLearningTools, runLearningAgent } from "./learning-agent.js";
+import { completeTeachingTurn } from "./teaching-turn.js";
+import { routeConversation } from "./conversation-routing.js";
+import { ResponseStyleStore, parseResponseStyle, responseGuidelines, styleLabels } from "./response-style.js";
+import { answerPrompt, lessonPrompt, teachingPrompt } from "./teaching-prompts.js";
+import { formatTerminalMarkdown, TerminalMarkdownWriter } from "./terminal-markdown.js";
+import { ConversationSessionStore, emptyConversation, conversationHistory } from "./conversation-session.js";
+import { ReplController, PromptAssembler, type ReplSnapshot } from "./repl-controller.js";
+import { ReplInput, ReplOutput } from "./repl-input.js";
 
 assertSupportedNodeVersion();
 const root = process.env.ZHIXING_ROOT ? path.resolve(process.env.ZHIXING_ROOT) : path.resolve(import.meta.dirname, "../..");
@@ -62,6 +72,8 @@ providerRegistry.register({ id: "deepseek-api", client: new DeepSeekClient(keych
 // `codex exec` is the supported non-interactive CLI surface. The experimental
 // app-server can start successfully but stall before producing an assistant turn.
 providerRegistry.register({ id: "codex-cli", client: new CodexCliClient(undefined, process.env, 150_000), health: async () => process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0" ? "unavailable" : "unknown" });
+const piProvider = new PiCodexClient();
+providerRegistry.register({ id: "pi-codex", client: piProvider, health: async () => { if (process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") return "unavailable"; await piProvider.selection(); return "unknown"; } });
 providerRegistry.route("tutor", "mock");
 providerRegistry.route("reviewer", "mock");
 providerRegistry.route("lab", "mock");
@@ -76,12 +88,12 @@ const customCourses = new CustomCourseStore(root);
 const reminders = new ReminderStore(policy);
 let syncServer: LocalSyncServer | undefined;
 let conversationalMode = true;
-let teachingMode = false;
 let teachingSession: TeachingSession | undefined;
 const conversation: string[] = [];
+const planningHistory: string[] = [];
+let awaitingPlanDetails = false;
 let pendingConversationPlan: Extract<ConversationPlan, { kind: "proposal" }> | undefined;
 const rawArguments = process.argv.slice(2);
-const replMode = rawArguments.includes("--repl");
 const topicArgumentIndex = rawArguments.indexOf("--topic");
 const requestedTopic = topicArgumentIndex >= 0 ? rawArguments[topicArgumentIndex + 1] : undefined;
 const currentTopicStore = new CurrentTopicStore(path.join(root, "zhixing", "settings", "current-topic.local.json"));
@@ -90,19 +102,50 @@ let activeTopic: TopicId = registry.list().find((topic) => topic.topicId === req
 const teachingSessions = new TeachingSessionStore(policy);
 let learningContext = new LearningContextBuilder(learningProfiles, database, library);
 teachingSession = await teachingSessions.load(activeTopic);
-teachingMode = Boolean(teachingSession);
+const responseStyles = new ResponseStyleStore(policy);
+let responseStyle = await responseStyles.load(activeTopic);
+const chats = new ConversationSessionStore(policy);
+let chat = await chats.current(activeTopic) ?? emptyConversation(activeTopic, teachingSession ? "lesson" : "chat");
+conversation.push(...conversationHistory(chat));
+let replying = false;
+let responseStartedAt = 0;
+let replInput: ReplInput | undefined;
+let replOutput: ReplOutput | undefined;
+let activity = "思考中";
+let streamFlushTimer: ReturnType<typeof setInterval> | undefined;
 const argumentsWithoutRepl = rawArguments.filter((argument, index) => argument !== "--repl" && argument !== "--topic" && (topicArgumentIndex < 0 || index !== topicArgumentIndex + 1));
 const input = argumentsWithoutRepl.join(" ");
+const replMode = !input || rawArguments.includes("--repl");
+const useTerminalColor = Boolean(stdout.isTTY && process.env.NO_COLOR === undefined && process.env.TERM !== "dumb");
+let liveText: TerminalMarkdownWriter | undefined;
 
 // The persisted provider setting is the user's session-level permission for
 // bounded learning context. Set ZHIXING_ALLOW_LIVE_PROVIDER=0 to disable it.
 const liveProviderConsent = process.env.ZHIXING_ALLOW_LIVE_PROVIDER !== "0";
 
+/** Keep in-memory context within the same bounds as persisted teaching history. */
+function appendConversation(message: string): void {
+  conversation.push(message.slice(0, 8_000));
+  if (conversation.length > 12) conversation.splice(0, conversation.length - 12);
+}
+
 async function selectActiveTopic(topicId: TopicId): Promise<void> {
+  const restored = await teachingSessions.load(topicId);
+  const restoredStyle = await responseStyles.load(topicId);
+  const restoredChat = await chats.current(topicId) ?? emptyConversation(topicId, restored ? "lesson" : "chat");
+  await currentTopicStore.save(topicId);
+  if (activeTopic !== topicId) {
+    // Conversation and pending authorization belong to a single topic.
+    conversation.length = 0;
+    pendingConversationPlan = undefined;
+    planningHistory.length = 0;
+    awaitingPlanDetails = false;
+  }
   activeTopic = topicId;
-  teachingSession = await teachingSessions.load(activeTopic);
-  teachingMode = Boolean(teachingSession);
-  await currentTopicStore.save(activeTopic);
+  teachingSession = restored;
+  responseStyle = restoredStyle;
+  chat = restoredChat;
+  conversation.splice(0, conversation.length, ...conversationHistory(chat));
 }
 
 async function restoreDatabaseSafely(file: string): Promise<void> {
@@ -126,8 +169,71 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
 }
 
 async function execute(line: string): Promise<string> {
-  const command = line.trim();
-  const interaction = decideInteraction(command, nextInteractionMode(Boolean(teachingSession), Boolean(pendingConversationPlan)));
+  let command = line.trim();
+  if (!command) return "";
+  if (command.length > 8_000) return "这条消息太长，请拆成几条发送（每条最多 8,000 字符）。";
+  if (["/new", "新对话", "重新聊一个话题"].includes(command)) return run("conversation_new", activeTopic, async () => {
+    chat = await chats.save(emptyConversation(activeTopic)); conversation.length = 0;
+    pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
+    return "已开启新对话。原对话已保留，可用 /resume 找回。";
+  });
+  const resume = /^\/resume(?:\s+(\S+))?$/.exec(command);
+  if (resume) return run("conversation_resume", activeTopic, async () => {
+    if (!resume[1]) {
+      const recent = await chats.list(activeTopic);
+      return recent.length ? `最近对话：\n${recent.map((item) => `- ${item.title}\n  /resume ${item.id}`).join("\n")}\n\n复制对应 /resume 命令恢复。` : "当前主题还没有保存的对话。";
+    }
+    if (!/^[0-9a-f-]{36}$/.test(resume[1])) return "会话编号无效。用 /resume 查看当前主题的对话。";
+    chat = await chats.save(await chats.load(activeTopic, resume[1]));
+    conversation.splice(0, conversation.length, ...conversationHistory(chat));
+    pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
+    return `已恢复对话：${chat.turns[0]?.user.slice(0, 60) ?? "新对话"}。可以直接接着说。`;
+  });
+  if (["/stop", "停止", "停一下", "暂停回答"].includes(command)) return "当前没有正在生成的回答。";
+  let forceConversation = false;
+  if (["/retry", "重试", "再试一次"].includes(command)) {
+    const previous = chat.turns.at(-1);
+    if (!previous) return "还没有可重试的问题。可以直接输入。";
+    command = `重新回答上一个请求：${previous.user}`;
+    forceConversation = true;
+  }
+  if (/^(?:继续|继续吧|接着说|接着讲)[。！!]?$/u.test(command) && (chat.turns.length || chat.mode === "lesson" && teachingSession?.transcript.length)) {
+    command = "继续刚才的回答，从尚未讲完的地方接着说，不要重复已有内容。";
+    forceConversation = true;
+  }
+  if (["/help", "帮助", "help"].includes(command)) return `可以直接提问，例如“解释注意力”“举个例子”“简短一点”或“用代码说明”。
+
+- 开始学习：开始第 1 天
+- 练习：开始练习 / 来一道题 / 给答案 / 换一道题
+- 回答风格：/style concise（简洁）、balanced（适中）、detailed（详细）
+- 查看当前状态：/status（回答过程中也可用）
+- 停止或调整当前回答：停止 / 等等，换个例子 / /steer 新要求
+- 会话：/new 开启新对话，/resume 找回旧对话，继续 / 重试
+- 多行输入：/paste 后粘贴，单独 /send 发送；也可用反斜杠换行
+- 排队：/queue 查看，/queue clear 撤回未处理消息
+- 调整计划：直接描述需求；确认草案后执行
+- 取消草案：/cancel-plan
+- 退出：退出 或 /exit
+
+风格按当前主题保存，本轮明确的格式要求优先；终端用 Ctrl-C 停止当前回答。`;
+  if (["/cancel-plan", "取消草案", "取消计划草案", "不要这个草案"].includes(command)) {
+    pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
+    return "已取消待执行草案。可以继续提问。";
+  }
+  if (["/status", "当前状态", "/queue"].includes(command)) return statusSummary();
+  const styleCommand = /^(?:\/style|回答风格)(?:\s+(\S+))?$/.exec(command);
+  if (styleCommand) {
+    if (!styleCommand[1]) return `当前回答风格：${styleLabels[responseStyle]}。可设置：简洁 / 适中 / 详细。`;
+    const style = parseResponseStyle(styleCommand[1]);
+    if (!style) return "可用风格：/style concise（简洁）、balanced（适中）、detailed（详细）。";
+    return run("set_response_style", activeTopic, async () => {
+      await responseStyles.save(activeTopic, style); responseStyle = style;
+      return `当前主题回答风格已设为${styleLabels[style]}；本轮明确要求的格式和篇幅优先。`;
+    });
+  }
+  if (command === "/plan") return "直接描述学习目标或调整要求，例如“帮我制定 14 天的 RAG 学习计划”。";
+  if (command.startsWith("/plan ")) command = `帮我调整学习计划：${command.slice(6)}`;
+  const interaction = decideInteraction(command, nextInteractionMode(chat.mode === "lesson" && Boolean(teachingSession), Boolean(pendingConversationPlan)));
   const authorizationError = authorizationMessage(interaction);
   if (authorizationError) return authorizationError;
   const confirmConversationPlan = interaction.kind === "execute_pending" && interaction.confirmed;
@@ -158,14 +264,14 @@ async function execute(line: string): Promise<string> {
         throw new Error("conversation_action_denied: 草案包含未授权命令。");
       }
     }
-    pendingConversationPlan = undefined;
-    conversation.push(`执行结果：${results.join("；")}`);
+    pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
+    appendConversation(`执行结果：${results.join("；")}`);
     const overview = plan.actions.some((action) => action.type === "generate_custom_course") ? `\n\n${await formatCourseOverview(activeTopic)}` : "";
     return `${results.join("\n")}${overview}\n\n下一步：输入“开始第 1 天”开始学习；需要调整时可说“调整当前学习计划”。`;
   });
   if (command === "自然交互开启 --允许外发") {
     conversationalMode = true; conversation.length = 0;
-    return "已开启自然交互模式。未识别的输入会交给当前 tutor 追问和生成草案；模型不会直接执行创建、覆盖或删除操作。";
+    return "已开启自然交互模式。可以直接提问；明确的计划管理请求会生成草案；模型不会直接执行创建、覆盖或删除操作。";
   }
   if (command === "自然交互关闭") {
     conversationalMode = false; conversation.length = 0;
@@ -192,6 +298,24 @@ async function execute(line: string): Promise<string> {
     const port = await syncServer.listen(syncPort ? Number(syncPort) : 0);
     return `本地同步服务已启动：http://127.0.0.1:${port}/topics/<topicId>/progress（SSE：/events）`;
   }
+  const agentQuestion = /^学习助手\s+([\s\S]+)$/.exec(command)?.[1];
+  if (agentQuestion) return run("learning_agent", activeTopic, async (lifecycle, signal) => {
+    const allowMaterials = /\s+--允许外发$/.test(agentQuestion);
+    const question = agentQuestion.replace(/\s+--允许外发$/, "").trim();
+    const tools = createLearningTools({
+      progress: (topicId) => runtime.handle("进度", topicId),
+      list: (topicId) => library.list(topicId),
+      search: (topicId, query) => library.search(topicId, query),
+    }, allowMaterials);
+    announceModelWork();
+    const streamed = beginLiveModelText("学习助手（实时）");
+    const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
+      topicId: activeTopic, question, style: responseStyle, history: conversation, confirmed: liveProviderConsent, onText,
+      onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
+      onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
+    }, signal), signal);
+    return modelReply(result, Boolean(streamed));
+  });
   const topicSelection = /^学习\s+(.+)$/.exec(command)?.[1]?.trim();
   if (topicSelection) {
     const topic = registry.list().find((item) => item.topicId === topicSelection || item.title.includes(topicSelection));
@@ -199,7 +323,8 @@ async function execute(line: string): Promise<string> {
   }
   const addApiKey = /^模型添加\s+api-key\s+([a-z][a-z0-9-]*)$/.exec(command)?.[1];
   if (addApiKey) return run("configure_api_key", activeTopic, async () => {
-    const secret = await readHiddenSecret(`请输入 ${addApiKey} API Key（隐藏输入）：`);
+    const prompt = `请输入 ${addApiKey} API Key（隐藏输入）：`;
+    const secret = await (replInput ? replInput.exclusive(() => readHiddenSecret(prompt)) : readHiddenSecret(prompt));
     const configured = await providerSetup.configureApiKey(addApiKey, secret);
     return `已安全保存 ${configured.secretRef}`;
   });
@@ -323,7 +448,7 @@ async function execute(line: string): Promise<string> {
     const profile = await learningProfiles.load(activeTopic);
     if (!profile) return "请先设置学习画像，再生成建议。";
     const documents = library.list(activeTopic);
-    const prompt = `你是学习教练。基于以下仅含元数据的学习画像和资料清单，给出一个 ${profile.dailyMinutes} 分钟学习会话：一个目标、一个练习、一个失败案例、一个复盘问题。不得声称完成学习日，不得要求读取未提供的资料。\n主题：${activeTopic}\n目标：${profile.goal}\n水平：${profile.level}\n周期：${profile.totalDays} 天\n资料名称：${documents.map((document) => document.name).join("、") || "无"}`;
+    const prompt = `${responseGuidelines(responseStyle)}\n你是学习教练。基于以下仅含元数据的学习画像和资料清单，给出一个 ${profile.dailyMinutes} 分钟学习会话：一个目标、一个练习、一个失败案例、一个复盘问题。不得声称完成学习日，不得要求读取未提供的资料。\n主题：${activeTopic}\n目标：${profile.goal}\n水平：${profile.level}\n周期：${profile.totalDays} 天\n资料名称：${documents.map((document) => document.name).join("、") || "无"}`;
     announceModelWork();
     const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     return result.text;
@@ -387,7 +512,7 @@ async function execute(line: string): Promise<string> {
     const { topicId, question } = resolveTopicQuery(answerQuestion);
     const evidence = library.search(topicId, question);
     const workflowSkills = (await skills.list(topicId)).map((skill) => ({ name: skill.name, description: skill.description }));
-    return answerFromEvidence(providers, question, evidence, true, signal, (providerId, role, durationMs, status) => lifecycle.model(providerId, role, durationMs, status), undefined, workflowSkills);
+    return answerFromEvidence(providers, question, evidence, true, signal, (providerId, role, durationMs, status) => lifecycle.model(providerId, role, durationMs, status), undefined, workflowSkills, responseStyle);
   });
   const query = /^查询资料\s+(.+)$/.exec(command)?.[1];
   if (query) return run("search_library", activeTopic, async () => {
@@ -408,91 +533,105 @@ async function execute(line: string): Promise<string> {
   });
   const startDayCommand = /^开始第\s*\d+\s*天$/.test(command);
   if (startDayCommand) return run("guided_start_day", activeTopic, async (lifecycle, signal) => {
+    chat.mode = "lesson";
     const dayNumber = /^开始第\s*(\d+)\s*天$/.exec(command)?.[1];
     const requestedDayId = dayNumber ? `D${dayNumber.padStart(2, "0")}` : undefined;
     if (teachingSession?.topicId === activeTopic && teachingSession.dayId === requestedDayId) {
-      teachingMode = true;
-      return `已恢复 ${activeTopic}/${teachingSession.dayId} 的教学现场（${teachingSession.stage}）。${teachingSession.stage === "practice" ? "可直接继续回答当前练习。" : "可直接提问；没有疑问时输入“没有问题，开始练习”。"}`;
+      chat = await chats.save(chat);
+      return `已恢复 ${activeTopic}/${teachingSession.dayId} 的教学现场（${teachingSession.stage === "practice" ? "练习" : "答疑"}）。${teachingSession.stage === "practice" ? "可直接继续回答当前练习。" : "可直接提问，或说“开始练习”。"}`;
     }
     const dayCard = await runtime.handle(command, activeTopic);
     const routed = providerRegistry.routedProvider("tutor") ?? "mock";
     if (routed === "mock" || dayCard.startsWith("不能开始")) return dayCard;
-    announceModelWork(routed);
+    announceModelWork();
     const streamed = beginLiveModelText("教师讲解（实时）");
-    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt: `你是纯文本学习教师，不是编码代理。立即开始中文讲解；不得读取文件、检查工作区、调用工具、描述将要执行的动作，或输出 Shell。基于以下当天学习卡，为有一定学习能力的用户进行严谨、细致的中文授课。先说明本日内容在整个课程中的位置和完成后能解决的问题；再用不少于 800 个中文字符讲解核心概念、因果关系或推导逻辑，给一个具体例子并指出至少两个常见误区。最后只提出 1 个诊断问题，并邀请用户先提问：明确告诉用户“有疑问可直接问；确认没有疑问后输入‘没有问题，开始练习’，我才会出题”。此阶段不得布置测验或实验。\n${dayCard}`, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
-    teachingMode = true;
+    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt: lessonPrompt(dayCard, responseStyle, await learningContext.build(activeTopic, command)), containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     teachingSession = await teachingSessions.save(activeTopic, { dayId: /\/(D\d{2})/.exec(dayCard)?.[1], dayCard, stage: "answer_questions", quizRound: 0, transcript: result.text ? [`教师：${result.text}`] : [] });
-    const completion = result.partial ? "讲解只返回了部分内容；可直接追问“继续刚才的讲解”，或稍后重试。" : "讲解已完成。请先提问或回答诊断问题；确认没有疑问后输入“没有问题，开始练习”。";
-    return streamed ? `\n\n本日学习卡\n${dayCard}\n\n${completion}` : `${dayCard}\n\n教师讲解\n${result.text}\n\n${completion}`;
+    return modelReply(result, Boolean(streamed), "可直接提问，或说“开始练习”。");
   });
   if (/^开始任/.test(command) && command !== "开始任务") return execute("开始任务");
   if (command === "开始任务") return run("guided_learning_task", activeTopic, async (lifecycle, signal) => {
-    if (teachingSession?.topicId === activeTopic) return `当前教学已在 ${teachingSession.dayId ?? "本日"} 进行中。${teachingSession.stage === "practice" ? "请直接回答当前练习。" : "请直接提问；没有疑问时输入“没有问题，开始练习”。"}`;
+    chat.mode = "lesson";
+    if (teachingSession?.topicId === activeTopic) {
+      chat = await chats.save(chat);
+      return `当前教学已在 ${teachingSession.dayId ?? "本日"} 进行中。${teachingSession.stage === "practice" ? "请直接回答当前练习。" : "可直接提问，或说“开始练习”。"}`;
+    }
     const taskCard = await runtime.handle(command, activeTopic);
     const routed = providerRegistry.routedProvider("tutor") ?? "mock";
     if (routed === "mock") return taskCard;
     const profile = await learningProfiles.load(activeTopic);
     const enabledSkills = (await skills.list(activeTopic)).map((skill) => `${skill.name}: ${skill.description}`).join("；") || "无";
-    const prompt = `你是知行的专业教学 tutor。现在开始 ${activeTopic} 的学习任务，面向 ${profile?.level ?? "学习者"}。请按已启用 Skill 设计严谨、细致的中文讲解：不少于 800 个中文字符，包含概念、原理/推导、具体例子、边界条件和常见误区。最后仅给一个诊断问题，并明确邀请用户提问；只有用户确认“没有问题，开始练习”后才进入测验。不要调用工具、输出 Shell 或声称用户已完成。已启用 Skill：${enabledSkills}\n学习状态卡：\n${taskCard}`;
-    announceModelWork(routed);
+    const prompt = lessonPrompt(taskCard, responseStyle, `学习者基础：${profile?.level ?? "未知"}；可参考的技能摘要：${enabledSkills}`);
+    announceModelWork();
     const streamed = beginLiveModelText("教师讲解（实时）");
-    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
-    conversation.push(`Tutor：${result.text}`);
-    teachingMode = true;
+    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     teachingSession = await teachingSessions.save(activeTopic, { dayId: /开始\s+(D\d{2})/.exec(taskCard)?.[1], dayCard: taskCard, stage: "answer_questions", quizRound: 0, transcript: result.text ? [`教师：${result.text}`] : [] });
-    const completion = result.partial ? "讲解只返回了部分内容；可直接追问“继续刚才的讲解”，或稍后重试。" : "讲解已完成。现在可以直接提问；确认没有疑问后输入“没有问题，开始练习”。";
-    return streamed ? `\n\n${completion}` : `教师讲解\n${result.text}\n\n${completion}`;
+    return modelReply(result, Boolean(streamed), "可直接提问，或说“开始练习”。");
   });
   const localIntent = parseLocalIntent(command);
-  if (localIntent.intent?.intent === "next_step") return execute("下一步");
+  if (!forceConversation && localIntent.intent?.intent === "next_step") return execute("下一步");
   if (localIntent.intent?.intent === "progress") return execute("进度");
   if (localIntent.intent?.intent === "current_topic") return `当前学习主题：${activeTopic}（${registry.get(activeTopic).title}）${teachingSession ? `\n教学阶段：${teachingSession.stage}${teachingSession.dayId ? `（${teachingSession.dayId}）` : ""}` : ""}`;
   // Deterministic learning-flow commands always take precedence over conversational interpretation.
-  const deterministic = await runtime.handle(command, activeTopic);
+  const deterministic = forceConversation ? "支持：" : await runtime.handle(command, activeTopic);
   if (!deterministic.startsWith("支持：")) return run("learning_command", activeTopic, async () => deterministic);
   if (localIntent.candidates.length && !conversationalMode) return `未执行写操作。你可能想使用：\n${localIntent.candidates.map((candidate, index) => `${index + 1}. ${candidate}`).join("\n")}\n模型可用且你允许本次外发时，可使用“理解命令 <请求> --允许外发”生成命令草案。`;
   if (conversationalMode) return run("conversational_guidance", activeTopic, async (lifecycle, signal) => {
     const routed = providerRegistry.routedProvider("tutor") ?? "mock";
-    if (routed === "mock") return "当前 tutor 是 mock，无法进行自然多轮辅导。执行“模型切换 tutor codex-cli”或“模型切换 tutor deepseek-api”后重试；也可继续使用明确 CLI 命令。";
-    announceModelWork(routed);
-    conversation.push(`用户：${command}`);
-    if (teachingMode && /(调整|创建|新建|切换|导入|删除|提醒|模型|计划|课程)/.test(command)) teachingMode = false;
-    if (interaction.kind === "teaching_input" && teachingMode) {
-      const session = teachingSession?.topicId === activeTopic ? teachingSession : undefined;
-      const actionPrompt = `将学习者在教学会话中的输入分类为一个 JSON 对象，不要 Markdown：{"action":"start_practice|answer_question|request_solution|ask_question|skip_question|change_plan","target":"current","learnerAnswer":"仅在实际作答时填写"}。“没有问题，开始练习”等确认进入练习为 start_practice。索要答案、提示、讲解绝不是作答；不要虚构学习者答案。当前阶段=${session?.stage ?? "answer_questions"}；当前练习=${session?.currentExercise?.slice(0, 1500) ?? "无"}；输入=${command}`;
-      const classified = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt: actionPrompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
-      const interpreted = interpretTeachingInput(classified.text, command);
-      const action: TeachingAction = interpreted.action;
-      const isPractice = session?.stage === "practice" || action.action === "start_practice" || action.action === "answer_question" || action.action === "request_solution" || action.action === "skip_question";
-      const wantsSolution = action.action === "request_solution";
-      if (session && (action.action === "start_practice" || action.action === "answer_question" || action.action === "request_solution" || action.action === "skip_question")) teachingSession = await teachingSessions.save(activeTopic, { ...session, stage: "practice", transcript: [...session.transcript, `用户：${command}`].slice(-12) });
-      const practiceInstruction = wantsSolution
-        ? "用户明确要求直接给出答案或解析；这不是用户作答。请针对当前练习中被请求的题目，先给出完整参考答案，再分步解释关键概念或推导，并说明常见误区。不得声称用户已经回答、不得批改虚构答案；给完后询问用户是否要自己尝试下一题。"
-        : interpreted.hasVerifiedSubmission
-          ? "用户已经实际提交了可验证的作答。请严谨批改，指出正确点、错误或缺失，并用当前题目给出针对性解释；不要把未回答的其他题目也判为完成。"
-          : action.action === "start_practice"
-            ? "用户已确认讲解阶段没有疑问，现在进入练习测验阶段。先用一两句话说明练习检验的能力，然后只出 2 道由浅入深的问题：第一题检查概念，第二题要求应用或推导。暂不公布答案，要求用户逐题作答。"
-            : "用户尚未提交可验证的作答。请直接回应他的澄清问题、说明当前题意或邀请他作答；绝不能声称看到了答案、批改答案，或凭空生成用户答案。";
-      const prompt = isPractice
-        ? `你是正在带领用户学习 ${activeTopic} 的专业教师。${practiceInstruction}不要跳到实验、复盘或下一天，不要输出 JSON 或 Shell。\n${await learningContext.build(activeTopic, command, teachingSession)}\n学习卡：\n${session?.dayCard ?? "当前学习日"}\n最近对话：\n${[...(session?.transcript ?? []), ...conversation].slice(-12).join("\n")}`
-        : `你是正在带领用户学习 ${activeTopic} 的专业教师，当前处于讲解后的答疑阶段。针对用户的问题或诊断回答，给出准确、细致、有例子的解释；必要时纠正其理解，但不要出题或进入实验。结尾必须询问“还有疑问吗？确认没有疑问后请输入‘没有问题，开始练习’。”不要输出 JSON、Shell 命令或计划草案。\n${await learningContext.build(activeTopic, command, teachingSession)}\n对话：\n${[...(session?.transcript ?? []), ...conversation].slice(-12).join("\n")}`;
-      const streamed = beginLiveModelText(isPractice ? "练习测验（实时）" : "教师答疑（实时）");
-      const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
-      conversation.push(`Tutor：${result.text}`);
-      if (teachingSession) teachingSession = await teachingSessions.save(activeTopic, { ...teachingSession, stage: isPractice ? "practice" : teachingSession.stage, quizRound: isPractice ? teachingSession.quizRound + 1 : teachingSession.quizRound, transcript: [...teachingSession.transcript, `用户：${command}`, `教师：${result.text}`].filter(Boolean).slice(-12), currentExercise: isPractice ? result.text.slice(0, 8_000) : teachingSession.currentExercise, learnerAttempts: interpreted.hasVerifiedSubmission ? [...teachingSession.learnerAttempts, action.learnerAnswer!].slice(-8) : teachingSession.learnerAttempts });
-      return streamed ? "\n\n本轮教学完成。" : result.text;
+    if (routed === "mock") return "当前 tutor 是 mock，无法进行自然多轮辅导。执行“模型切换 tutor pi-codex --确认”使用 Pi 中配置的 Codex，或切换到其他已配置 Provider 后重试；也可继续使用明确 CLI 命令。";
+    announceModelWork();
+    const route = line.trim().startsWith("/plan ") ? "planning" : forceConversation ? (chat.mode === "lesson" && teachingSession ? "teaching" : "answer") : routeConversation(command, { teaching: chat.mode === "lesson" && Boolean(teachingSession), planning: Boolean(pendingConversationPlan) || awaitingPlanDetails });
+    if (route === "teaching" && teachingSession) {
+      const session = teachingSession;
+      let interpreted = resolveTeachingInput(command, session.stage === "practice" && Boolean(session.currentExercise));
+      if (!interpreted) {
+        const actionPrompt = `将学习者输入分类为 JSON：{"action":"answer_question|ask_question","target":"current","learnerAnswer":"仅在实际作答时逐字引用用户原文"}。索要答案、提示或讲解绝不是作答；不能扩写用户答案。当前练习=${session.currentExercise?.slice(0, 1500) ?? "无"}；输入=${command}`;
+        const classified = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt: actionPrompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+        interpreted = interpretTeachingInput(classified.text, command);
+      }
+      if (["start_practice", "skip_question"].includes(interpreted.action.action) && session.quizRound >= 20) return "本日已达到 20 轮练习上限。可以继续讲解或回顾已有题目。";
+      const prompt = teachingPrompt(command, interpreted, session, responseStyle, await learningContext.build(activeTopic, command, session), teachingHistory());
+      const streamed = beginLiveModelText("知行");
+      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+      teachingSession = await teachingSessions.save(activeTopic, completeTeachingTurn(session, command, interpreted, result));
+      return modelReply(result, Boolean(streamed));
     }
-    const history = conversation.slice(-6).join("\n");
+    if (route === "answer" && providers.supportsTools("tutor")) {
+      const allowMaterials = /\s+--允许外发$/.test(command);
+      const question = command.replace(/\s+--允许外发$/, "");
+      const tools = createLearningTools({ progress: (topic) => runtime.handle("进度", topic), list: (topic) => library.list(topic), search: (topic, query) => library.search(topic, query) }, allowMaterials);
+      const context = await learningContext.build(activeTopic, question);
+      const streamed = beginLiveModelText("知行");
+      const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
+        topicId: activeTopic, question, style: responseStyle, history: conversation, context, confirmed: liveProviderConsent, onText,
+        onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
+        onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
+      }, signal), signal);
+      return modelReply(result, Boolean(streamed));
+    }
+    if (route === "answer") {
+      const prompt = answerPrompt(command, responseStyle, await learningContext.build(activeTopic, command), conversation);
+      const streamed = beginLiveModelText("知行");
+      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+      return modelReply(result, Boolean(streamed));
+    }
+    pendingConversationPlan = undefined;
+    awaitingPlanDetails = true;
+    const history = [...planningHistory.slice(-6), `用户：${command}`].join("\n");
     const topics = registry.list().map((topic) => `${topic.topicId}:${topic.title}`).join("、");
     const prompt = `你是知行学习 Agent 的对话协调器。只能返回一个 JSON 对象，不能使用 Markdown、Shell 命令或解释。可选格式：{"kind":"clarify","question":"只问一个最关键的问题"}；或 {"kind":"proposal","topicId":"主题ID","summary":"简短摘要","actions":[{"type":"set_learning_profile","goal":"...","level":"...","dailyMinutes":120,"totalDays":84},{"type":"generate_custom_course"}]}。也可在 actions 中使用 {"type":"command","command":"一条规范知行命令"}。允许的规范命令仅包括：主题列表、学习 <主题>、开始第 N 天、开始任务、下一步、进度、全部进度、继续、主题概览、学习画像、资料概览、技能草案列表、复习计划、创建主题、设置学习画像、生成个性化计划、生成定制课程、调整计划、提醒设置、生成/读取技能草案、读取技能、检查 DNN、读源码 DNN、查询资料、启用计划/课程/Skill、导入资料、删除资料、恢复数据库、模型切换。若用户要新主题，proposal 的首个 command 必须是“创建主题 <topicId> <标题>”，并且 topicId 与 proposal.topicId 相同；否则只能使用现有主题。不得使用 npm、bash、curl 或任何未列命令；不得声称已经执行。待执行草案含启用/覆盖、导入、删除、恢复或模型切换时，必须提示用户以“直接运行 --确认”人工授权。现有主题：${topics}。当前主题：${activeTopic}\n对话：\n${history}`;
     const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
-    conversation.push(`Agent：${result.text}`);
+    if (result.partial) return "计划生成未完成，请重试；没有生成新的可执行草案。";
     const json = /\{[\s\S]*\}/.exec(result.text)?.[0];
     try {
       const plan = conversationPlanSchema.parse(JSON.parse(json ?? ""));
-      if (plan.kind === "clarify") return plan.question;
+      planningHistory.push(`用户：${command.slice(0, 8_000)}`, `协调器：${result.text.slice(0, 8_000)}`);
+      if (planningHistory.length > 8) planningHistory.splice(0, planningHistory.length - 8);
+      if (plan.kind === "clarify") { awaitingPlanDetails = true; pendingConversationPlan = undefined; return plan.question; }
+      awaitingPlanDetails = false;
       pendingConversationPlan = plan;
-      return `待执行草案：${plan.summary}\n主题：${plan.topicId}\n动作：${plan.actions.map((action) => action.type === "set_learning_profile" ? "保存学习画像" : action.type === "generate_custom_course" ? "生成定制课程草案" : action.command).join(" → ")}\n回复“直接运行”即可执行。`;
+      const needsConfirmation = plan.actions.some((action) => action.type === "command" && requiresConversationConfirmation(action.command));
+      return `待执行草案：${plan.summary}\n主题：${plan.topicId}\n\n${plan.actions.map((action) => action.type === "set_learning_profile" ? `保存学习画像：${action.goal}；基础 ${action.level}；每天 ${action.dailyMinutes} 分钟，共 ${action.totalDays} 天` : action.type === "generate_custom_course" ? "生成并启用定制课程" : action.command).map((description, index) => `${index + 1}. ${description}`).join("\n")}\n\n回复“${needsConfirmation ? "直接运行 --确认" : "直接运行"}”执行，或输入“取消草案”。`;
     } catch {
       return "模型未返回可校验的学习草案；请补充主题、目标、基础、每天时间和周期。";
     }
@@ -506,27 +645,84 @@ function resolveTopicQuery(value: string): { topicId: TopicId; question: string 
   return { topicId: explicitTopic ?? activeTopic, question: explicitTopic ? rest.join(" ") : value };
 }
 
-/** Keep REPL feedback concise and identical for every live-model interaction. */
-function announceModelWork(providerId = providerRegistry.routedProvider("tutor") ?? "模型"): void {
-  if (replMode) console.log(`正在由 ${providerId} 处理；可按 Ctrl-C 取消…`);
+function teachingHistory(): string[] {
+  const last = chat.turns.at(-1);
+  const interrupted = last && ["interrupted", "failed"].includes(last.status) ? conversationHistory({ ...chat, turns: [last] }) : [];
+  return [...(teachingSession?.transcript ?? []), ...interrupted].slice(-10);
 }
 
-/** Streams model text in a REPL without printing the completed answer twice. */
+function showToolActivity(name: string, phase: "started" | "finished" | "failed"): void {
+  const labels: Record<string, string> = { learning_progress: "查看学习进度", list_materials: "查看资料目录", search_materials: "检索资料" };
+  activity = phase === "started" ? labels[name] ?? "查询中" : phase === "failed" ? "查询未完成，正在调整" : "整理结果";
+  if (replMode && stdout.isTTY && phase === "started") writeLive(`\n${activity}…\n`);
+}
+
+function statusSummary(state?: ReplSnapshot): string {
+  const working = state?.running || replying;
+  return `当前主题：${registry.get(activeTopic).title}（${activeTopic}）\n${working ? `${replying ? "正在回答" : "正在处理"} · ${activity} · ${Math.max(0, Math.floor((Date.now() - responseStartedAt) / 1000))} 秒` : "可以继续提问"} · 排队 ${state?.queued ?? 0} 条\n回答风格：${styleLabels[responseStyle]}${chat.mode === "lesson" && teachingSession ? `\n教学：${teachingSession.dayId ?? "当前任务"} · ${teachingSession.stage === "practice" ? "练习" : "答疑"}` : ""}${pendingConversationPlan ? "\n有待执行草案，可说“就按这个来”或“取消草案”。" : ""}`;
+}
+
+async function collectReply(userInput: string, request: InvocationRequest, signal: AbortSignal): Promise<InvocationResult> {
+  return recordReply(userInput, request.onText, (onText) => collectInvocation(providers, { ...request, onText }, signal), signal);
+}
+
+/** Save the real user turn before requesting text, then keep partial text on interruption. */
+async function recordReply(userInput: string, display: InvocationRequest["onText"], produce: (onText: NonNullable<InvocationRequest["onText"]>) => Promise<InvocationResult>, signal: AbortSignal): Promise<InvocationResult> {
+  chat = await chats.save({ ...chat, turns: [...chat.turns, { user: userInput, assistant: "", status: "running" }] });
+  const turn = chat.turns.at(-1)!;
+  replying = true; responseStartedAt = Date.now(); activity = "思考中";
+  try {
+    const result = await produce((text, providerId) => { activity = "正在生成"; turn.assistant += text; display?.(text, providerId); });
+    turn.assistant = result.text;
+    turn.status = result.partial ? "incomplete" : "completed";
+    return result;
+  } catch (error) {
+    turn.status = signal.aborted || error instanceof Error && error.name === "AbortError" ? "interrupted" : "failed";
+    throw error;
+  } finally {
+    replying = false;
+    chat = await chats.save(chat);
+    conversation.splice(0, conversation.length, ...conversationHistory(chat));
+  }
+}
+
+/** Keep model status out of exported/piped Markdown. */
+function announceModelWork(): void {
+  if (replMode && stdout.isTTY) writeLive("思考中…（Ctrl-C 停止）\n");
+}
+
+/** A single writer owns each streamed reply and is always flushed by run(). */
 function beginLiveModelText(label: string): ((text: string, providerId: string) => void) | undefined {
   if (!replMode) return undefined;
+  liveText = new TerminalMarkdownWriter(writeLive, useTerminalColor);
+  if (streamFlushTimer) clearInterval(streamFlushTimer);
+  streamFlushTimer = setInterval(() => liveText?.flush(), 80);
   let started = false;
   return (text) => {
-    if (!started) { stdout.write(`\n${label}\n\n`); started = true; }
-    stdout.write(text);
+    if (!started && text) { if (stdout.isTTY) writeLive(`\n${label.replace(/（实时）$/, "")}\n\n`); started = true; }
+    liveText?.write(text);
   };
+}
+
+function modelReply(result: { text: string; partial?: boolean }, streamed: boolean, hint = ""): string {
+  const notice = result.partial ? "回答未完成，可说“继续刚才的回答”或重试。" : hint;
+  return [streamed ? "" : result.text, notice].filter(Boolean).join("\n\n");
+}
+
+function writeLive(text: string): void {
+  if (replOutput) replOutput.write(text); else stdout.write(text);
+}
+
+function printOutput(text: string): void {
+  if (text) writeLive(`${formatTerminalMarkdown(text, useTerminalColor)}\n`);
 }
 
 async function formatCourseOverview(topicId: TopicId): Promise<string> {
   const profile = await learningProfiles.load(topicId);
   if (!profile) return "课程总览：画像尚未保存。";
   const phases = ["基础与术语：建立核心概念和资料地图", "原理与方法：理解关键机制并完成受控练习", "实现与调试：完成最小可运行实验，记录失败案例", "综合项目：整合成果、复盘并形成可展示证据"];
-  const span = Math.ceil(profile.totalDays / phases.length);
-  return `课程总览\n目标：${profile.goal}\n基础：${profile.level}\n节奏：${profile.totalDays} 天，每天 ${profile.dailyMinutes} 分钟\n${phases.map((phase, index) => `${index + 1}. 第 ${index * span + 1}–${Math.min((index + 1) * span, profile.totalDays)} 天：${phase}`).join("\n")}\n完成方式：每个学习日依次经历讲解、答疑、练习/测验、实验与证据 Review；Review 通过才会推进。`;
+  const activePhases = phases.slice(0, Math.min(phases.length, profile.totalDays));
+  return `课程总览\n目标：${profile.goal}\n基础：${profile.level}\n节奏：${profile.totalDays} 天，每天 ${profile.dailyMinutes} 分钟\n${activePhases.map((phase, index) => `${index + 1}. 第 ${Math.floor(index * profile.totalDays / activePhases.length) + 1}–${Math.floor((index + 1) * profile.totalDays / activePhases.length)} 天：${phase}`).join("\n")}\n完成方式：每个学习日依次经历讲解、答疑、练习/测验、实验与证据 Review；Review 通过才会推进。`;
 }
 
 /** Executes a validated conversational command inside the current audit run (never recursively via execute()). */
@@ -572,7 +768,7 @@ async function executeConversationCommand(command: string): Promise<string> {
   }
   const activatePlan = /^启用计划\s+(plan-[\dTZ-]+)(?:\s+--确认)?$/.exec(command)?.[1];
   if (activatePlan) return await runtime.activatePlan(activeTopic, activatePlan);
-  const switchModel = /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli)$/.exec(command);
+  const switchModel = /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli|pi-codex)$/.exec(command);
   if (switchModel) {
     providerRegistry.route(switchModel[1] as "tutor" | "reviewer" | "lab", switchModel[2]!);
     await routingStore.save(providerRegistry);
@@ -684,11 +880,16 @@ async function run(command: string, topicId: TopicId, action: (lifecycle: import
   const actionId = ({
     create_topic: "topic.create", provider_list: "provider.list", provider_status: "provider.status", update_model_routing: "provider.route",
     guided_start_day: "learning.start_day", guided_learning_task: "learning.start_task", next_step: "learning.progress",
-    import_document: "library.import", delete_document: "library.delete", restore_backup: "database.restore", write_memory: "memory.write",
+    learning_agent: "learning.agent", import_document: "library.import", delete_document: "library.delete", restore_backup: "database.restore", write_memory: "memory.write",
   } as Record<string, string>)[command] ?? command;
-  const result = await runs.run(topicId, command, async (signal, lifecycle) => action(lifecycle, signal), actionId);
-  syncServer?.publish({ topicId, type: "progress", payload: { topicId, command, at: new Date().toISOString() } });
-  return result;
+  try {
+    const result = await runs.run(topicId, command, async (signal, lifecycle) => action(lifecycle, signal), actionId);
+    syncServer?.publish({ topicId, type: "progress", payload: { topicId, command, at: new Date().toISOString() } });
+    return result;
+  } finally {
+    if (streamFlushTimer) { clearInterval(streamFlushTimer); streamFlushTimer = undefined; }
+    if (liveText) { liveText.end(); liveText = undefined; writeLive("\n\n"); }
+  }
 }
 
 let releaseShutdown: (() => void) | undefined;
@@ -698,7 +899,14 @@ process.on("SIGTERM", () => { void runs.cancel(); releaseShutdown?.(); });
 
 function presentError(error: unknown): string {
   const message = error instanceof Error ? error.message : "unknown_error";
-  if (message.startsWith("provider_timeout")) return "模型暂时没有及时响应。请保持当前 REPL，稍后重试；连接建立后后续回答会更快。";
+  if (message === "pi_login_required") return "Pi 无法使用当前 Codex 登录信息。请通过 ./scripts/pi-safe.sh 进入 Pi，执行 /login 并选择 OpenAI Codex，完成登录后重试；无需在知行填写 API Key。";
+  if (message === "pi_configuration_required") return "Pi 尚未配置有效的 Codex 默认模型。请在 Pi 中选择 openai-codex 模型并保存配置后重试。";
+  if (message === "provider_model_mismatch") return "Pi 返回的模型与配置不一致，本轮已停止。请检查 Pi 模型设置。";
+  if (message === "provider_tools_unsupported") return "当前 tutor 适配器不支持知行工具调用。请使用“模型切换 tutor deepseek-api --确认”后重试；mock、codex-cli 和 pi-codex 仍可使用原有学习命令。";
+  if (error instanceof Error && error.name === "AbortError") return "已停止本轮回答，可以继续输入。";
+  if (/^(provider_timeout|invocation_timeout)/.test(message)) return "模型响应超时，本轮未完成。可以重试，或用“模型状态”检查连接。";
+  if (/^provider_(unavailable|incomplete|protocol_error)/.test(message)) return "模型连接失败或响应中断，本轮未完成。可重试；持续失败时用“模型状态”和“诊断”检查。";
+  if (message === "live_provider_disabled" || message === "external_content_confirmation_required") return "当前设置禁止向模型发送内容。仍可使用本地进度、资料查询和学习命令。";
   if (message === "run_in_progress") return "上一项操作仍在处理。请等待结果，或按 Ctrl-C 取消后再试。";
   if (message.includes("confirmation_required") || message.includes("course_activation_confirmation_required")) return `该操作会改变已有学习状态（${message}）。请核对草案后使用“直接运行 --确认”。`;
   if (message.startsWith("learning_profile_required")) return "还缺少学习画像。请告诉我你的目标、基础、每天可投入时间和周期。";
@@ -707,25 +915,56 @@ function presentError(error: unknown): string {
 
 try {
   if (input) {
-    console.log(await execute(input));
+    printOutput(await execute(input));
     if (syncServer) await shutdown;
   }
   else {
-    const reader = createInterface({ input: stdin, output: stdout });
-    for (;;) {
-      let line: string;
-      try { line = await reader.question("知行> "); }
-      catch { break; }
-      if (["退出", "exit", "quit"].includes(line.trim())) break;
-      try { console.log(await execute(line)); }
-      catch (error) { console.error(presentError(error)); }
+    replInput = new ReplInput(stdin);
+    if (stdout.isTTY) replOutput = new ReplOutput((text) => stdout.write(text));
+    const reader = createInterface({ input: replInput.stream, output: stdout, terminal: Boolean(stdin.isTTY && stdout.isTTY), prompt: "› " });
+    const composer = new PromptAssembler();
+    let closing = false;
+    const queue = new ReplController({
+      execute: async (line) => {
+        if (closing) return;
+        if (["退出", "exit", "quit", "/exit"].includes(line.trim())) { closing = true; reader.close(); return; }
+        responseStartedAt = Date.now();
+        printOutput(await execute(line));
+      },
+      canSteer: () => replying,
+      interrupt: () => runs.cancel(),
+      status: (state) => { liveText?.flush(); stdout.write("\n"); printOutput(statusSummary(state)); },
+      notice: (text) => { if (stdout.isTTY) process.stderr.write(`\n${text}\n`); },
+      error: (error) => console.error(presentError(error)),
+      idle: () => { if (stdout.isTTY && !closing && !replOutput?.composing) reader.prompt(true); },
+    });
+    replInput.beforeInput = (data) => {
+      if (stdout.isTTY && queue.snapshot().running && !replOutput?.composing && !["\u0003", "\u0004"].includes(data.toString())) {
+        liveText?.flush(); replOutput?.beginInput(); reader.prompt(true);
+      }
+    };
+    reader.on("SIGINT", () => { composer.cancel(); reader.write(null, { ctrl: true, name: "u" }); replOutput?.endInput(); void queue.interrupt(); if (!queue.snapshot().running) { stdout.write("\n"); reader.prompt(); } });
+    reader.on("line", (line) => {
+      replOutput?.endInput();
+      const input = composer.accept(line);
+      if (input.kind === "message") queue.submit(input.text);
+      else if (stdout.isTTY) { if (input.hint) printOutput(input.hint); reader.setPrompt("… "); reader.prompt(); }
+      reader.setPrompt("› ");
+    });
+    if (stdout.isTTY) {
+      printOutput(`知行 · ${registry.get(activeTopic).title} · ${styleLabels[responseStyle]}\n直接提问；生成时可继续输入，Ctrl-C 停止，/help 查看用法。${chat.turns.length ? `\n已恢复对话：${chat.turns[0]!.user.slice(0, 60)}。` : teachingSession ? "\n已恢复教学，可以继续追问。" : ""}`);
+      reader.prompt();
     }
+    await new Promise<void>((resolve, reject) => { reader.once("close", resolve); reader.once("error", reject); });
+    replOutput?.endInput();
+    await queue.drain();
     reader.close();
   }
 } catch (error) {
   console.error(presentError(error));
   process.exitCode = 1;
 } finally {
+  replInput?.close();
   await syncServer?.close();
   database.close();
 }
