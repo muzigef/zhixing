@@ -15,6 +15,17 @@
 - 聊天记录是应用目录内的明文 JSON，草稿保存在 renderer 的本地存储；API Key 加密不等于全部会话加密。Markdown 导出和复制会把所选内容写入用户指定文件或系统剪贴板。
 - 桌面会话原子保存，拒绝预先存在的会话目录/文件符号链接；CLI 路径策略检查信任根之下的路径组件。这些检查不等同于防御任意本机进程的 OS 隔离。
 
+## 依赖安全检查
+
+根目录与 `desktop/` 分别维护依赖和锁文件。`verify` 与 `desktop-release` 工作流均在安装后检查两套生产依赖，遇到 high/critical 漏洞时失败；本地 `npm run verify` 不包含需要联网的 npm audit，须单独运行：
+
+```bash
+npm audit --omit=dev --audit-level=high
+npm audit --prefix desktop --omit=dev --audit-level=high
+```
+
+两端 PDF.js 固定为 `6.2.108`，修复 [GHSA-hq66-cqwq-w95j](https://github.com/advisories/GHSA-hq66-cqwq-w95j)。内附 Pi 升级至 `0.85.0`，使用其修复后的生产依赖及 `package.json` 声明的 `bin.pi` 入口；不再依赖内部 `dist/cli.js`。旧安装包不会随源码更新而改变，重新发布时需使用修复后的锁文件构建并验收。审计结果是执行时的快照，见 [依赖修复 Evidence](docs/evidence/dependency-security.md)。
+
 ## 已知边界
 
 CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均有充分依据；桌面引用元数据经主题/文档/页码/锚点/片段 ID 校验，但不保证每句回答均得到引用支持。loopback 同步服务只提供本机 progress JSON/SSE，不是云同步。历史 Provider smoke 只证明当次请求结果，不证明当前登录持续有效。

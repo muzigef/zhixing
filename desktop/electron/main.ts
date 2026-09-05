@@ -27,7 +27,7 @@ import {
   type BootState,
   type ModelStatus,
 } from "../core/contracts.js";
-import { packagedPiRunner } from "../core/pi-runner.js";
+import { packagedPiRunner, resolvePackagedPiCli } from "../core/pi-runner.js";
 import { LearningApplication } from "../../src/learning-application.js";
 import { summarizePerformance } from "../core/diagnostics.js";
 import { checkRelease } from "../core/updates.js";
@@ -166,14 +166,7 @@ else {
         path.join(resources, "AGENTS.md"),
         path.join(runtime, "AGENTS.md"),
       );
-      const piCli = path.join(
-        app.getAppPath().replace(/app\.asar$/, "app.asar.unpacked"),
-        "node_modules",
-        "@earendil-works",
-        "pi-coding-agent",
-        "dist",
-        "cli.js",
-      );
+      const piCli = await resolvePackagedPiCli(app.getAppPath());
       pi = new PiCodexClient({
         projectDir: runtime,
         runner: packagedPiRunner(

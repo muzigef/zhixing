@@ -22,6 +22,9 @@ jobs:
         run: node --version && npm --version
       - run: npm ci --no-audit --no-fund
       - run: npm ci --prefix desktop --no-audit --no-fund
+      - name: Audit CLI production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit desktop production dependencies
+        run: npm audit --prefix desktop --omit=dev --audit-level=high
       - run: npm run verify
       - run: npm --prefix desktop run test:ui
-      - run: npm audit --omit=dev --audit-level=high

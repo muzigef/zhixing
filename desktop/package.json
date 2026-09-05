@@ -21,9 +21,9 @@
     "pretest:ui": "npm run prepare:runtime && npm run build"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.80.7",
+    "@earendil-works/pi-coding-agent": "0.85.0",
     "better-sqlite3": "^12.11.1",
-    "pdfjs-dist": "^5.7.284"
+    "pdfjs-dist": "6.2.108"
   },
   "devDependencies": {
     "@electron/rebuild": "4.2.0",

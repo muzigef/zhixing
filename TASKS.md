@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 核对日期：2026-09-05，本轮基于 `e072512` 的 0.3 升级。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
+> 核对日期：2026-09-05，最新维护基于 `9c4c901` 修复 CI 依赖安全告警。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
 > 状态：`[x]` 已验证，`[~]` 基础实现/待收口，`[ ]` 未开始。
 > 历史 P0 分解见 [P0 自动执行 Tasklist](docs/p0-tasklist.md)。
 
@@ -104,3 +104,7 @@
 ## 当前状态
 
 P11 本机可执行开发与 macOS 验收完成，详见 [升级 Evidence](docs/evidence/agent-upgrade.md) 和 [使用指南](docs/agent-upgrade.md)。没有重跑真实 Pi/DeepSeek 请求。Windows/Intel Mac 实机、签名/公证、远端 Actions 与真实模型质量/速度仍需对应环境，不算作已验收。下一步边界见 [Backlog](docs/implementation-backlog.md)。
+
+## 依赖安全维护
+
+- [x] 升级 CLI/桌面 PDF.js 和内附 Pi，修复官方 CLI 启动入口，CI/发布均审计两套生产依赖；两套审计 0 漏洞、310 个测试及开发/实包 UI 回归通过。实际验收见 [依赖安全修复](docs/evidence/dependency-security.md)。

@@ -23,6 +23,10 @@ jobs:
             desktop/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm ci --prefix desktop --no-audit --no-fund
+      - name: Audit CLI production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit desktop production dependencies
+        run: npm audit --prefix desktop --omit=dev --audit-level=high
       - name: Verify release tag matches the desktop version
         run: node -e "if(process.env.GITHUB_REF?.startsWith('refs/tags/') && process.env.GITHUB_REF_NAME !== 'v'+require('./desktop/package.json').version) process.exit(1)"
       - run: npm run lint

@@ -177,7 +177,7 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录；模型 ID 不写死在知行中。每次调用读取 `${PI_CODING_AGENT_DIR}/settings.json`（未设置时为 `~/.pi/agent/settings.json`），再合并调用工作目录内的 `.pi/settings.json`，同名项目设置优先。
 
 - CLI 的调用工作目录是代码仓库，通过 `scripts/pi-safe.sh` 启动系统 `pi`，因此需另行安装 Pi 并使 `pi` 和 `bash` 可用；根包 `npm ci` 不会安装 Pi。
-- 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.80.7`，不会自动读取源码仓库的 `.pi/settings.json`。
+- 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.85.0`，不会自动读取源码仓库的 `.pi/settings.json`。
 
 两种 Pi 接入都使用 JSON 文本流、临时会话、同一工具守卫和空工具列表。CLI 的普通问答、教学、计划生成和资料问答由知行自身流程处理；Pi 的文件与命令工具不开放给模型。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
 

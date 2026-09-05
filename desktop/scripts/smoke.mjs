@@ -61,14 +61,15 @@ try {
     const { execFile } = process.getBuiltinModule("node:child_process");
     const { promisify } = process.getBuiltinModule("node:util");
     const { join } = process.getBuiltinModule("node:path");
-    const cli = join(
+    const { readFile } = process.getBuiltinModule("node:fs/promises");
+    const piPackage = join(
       app.getAppPath().replace(/app\.asar$/, "app.asar.unpacked"),
       "node_modules",
       "@earendil-works",
       "pi-coding-agent",
-      "dist",
-      "cli.js",
     );
+    const metadata = JSON.parse(await readFile(join(piPackage, "package.json"), "utf8"));
+    const cli = join(piPackage, metadata.bin.pi);
     const result = await promisify(execFile)(
       process.execPath,
       [cli, "--version"],
@@ -85,7 +86,8 @@ try {
     );
     return result.stdout.trim();
   });
-  assert.equal(piVersion, "0.80.7");
+  const desktopPackage = JSON.parse(await fs.readFile(path.join(root, "package.json"), "utf8"));
+  assert.equal(piVersion, desktopPackage.dependencies["@earendil-works/pi-coding-agent"]);
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await page
     .getByRole("button", { name: "离线演示 无需联网，体验界面与交互" })
@@ -215,6 +217,10 @@ try {
     .getByRole("button", { name: "切换到 DeepSeek 重试", exact: true })
     .click();
   await page.locator(".model-picker").filter({ hasText: "DeepSeek" }).waitFor();
+  // The model selector updates before the asynchronous retry appends its response.
+  await page.locator(".assistant-message").nth(1)
+    .getByText("当前已禁用联网模型。可以在设置中切换到离线演示。", { exact: true })
+    .waitFor();
   await page
     .getByRole("button", { name: "停止生成", exact: true })
     .waitFor({ state: "hidden" });

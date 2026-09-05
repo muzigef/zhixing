@@ -1,8 +1,36 @@
-import { describe, expect, it } from "vitest";
-import { packagedPiRequest } from "../desktop/core/pi-runner.js";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { packagedPiRequest, resolvePackagedPiCli } from "../desktop/core/pi-runner.js";
 import type { PiProcessRequest } from "../src/pi-client.js";
 
+const roots: string[] = [];
+afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
+async function piFixture(packaged: boolean, entry = "dist/bundle/cli.js") {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-pi-entry-"));
+  roots.push(root);
+  const appPath = packaged ? path.join(root, "app.asar") : root;
+  const packageRoot = path.join(packaged ? `${appPath}.unpacked` : root, "node_modules/@earendil-works/pi-coding-agent");
+  await fs.mkdir(path.join(packageRoot, "dist/bundle"), { recursive: true });
+  await fs.writeFile(path.join(packageRoot, "package.json"), JSON.stringify({ bin: { pi: entry } }));
+  await fs.writeFile(path.join(packageRoot, "dist/bundle/cli.js"), "// fixture");
+  return { appPath, packageRoot };
+}
+
 describe("packaged Pi launcher", () => {
+  it.each([false, true])("resolves the published bundled CLI from package metadata (packaged=%s)", async (packaged) => {
+    const { appPath, packageRoot } = await piFixture(packaged);
+    await expect(resolvePackagedPiCli(appPath)).resolves.toBe(path.join(packageRoot, "dist/bundle/cli.js"));
+  });
+  it("rejects an entry outside the installed Pi package", async () => {
+    const { appPath } = await piFixture(false, "../outside.js");
+    await expect(resolvePackagedPiCli(appPath)).rejects.toThrow("pi_entry_invalid");
+  });
+  it("fails when the declared CLI is missing instead of using a private module", async () => {
+    const { appPath } = await piFixture(false, "dist/missing.js");
+    await expect(resolvePackagedPiCli(appPath)).rejects.toThrow();
+  });
   it("uses the bundled runtime without bash, retains the guard and passes prompt only through stdin", () => {
     const request: PiProcessRequest = {
       command: "bash",

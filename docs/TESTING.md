@@ -27,6 +27,8 @@ npm ci --prefix desktop
 | `npm run smoke:mock` | 临时根目录中的 CLI 冒烟，禁用真实 Provider，不接触用户数据库 |
 | `npm run test:harness` | Agent loop、教学检查点、流式 Provider 适配的定向回归 |
 | `npm run verify` | lint、根目录/桌面 typecheck、Vitest、integration、eval、mock smoke、敏感信息扫描与 diff 检查 |
+| `npm audit --omit=dev --audit-level=high` | 联网检查 CLI 生产依赖安全，高危及以上导致失败 |
+| `npm audit --prefix desktop --omit=dev --audit-level=high` | 联网检查独立桌面生产依赖安全 |
 
 完整本地质量门：
 
@@ -104,7 +106,9 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 当前没有配置 lines、branches、functions、statements 的最低覆盖率，也没有专用 coverage 脚本。质量门以测试行为和失败退出码为准；不要将测试总数解释为覆盖率。
 
-[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-latest`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录与桌面两套 npm ci、`npm run verify`、`npm --prefix desktop run test:ui` 和根目录生产依赖的 `npm audit --omit=dev --audit-level=high`。
+[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-latest`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录与桌面两套 npm ci、两套生产依赖 audit、`npm run verify` 和 `npm --prefix desktop run test:ui`。[`desktop-release.yml`](../.github/workflows/desktop-release.yml) 也在构建前检查两套生产依赖；不忽略漏洞退出码。
+
+本地 npm registry 不可达时，可以在安装/审计命令末尾临时添加 `--registry=https://registry.npmjs.org`，无需修改全局配置。依赖升级同时更新 `package.json` 与对应锁文件，再用 `npm ci` 验证可复现安装；PDF.js 和内附 Pi 的修复记录见 [依赖安全 Evidence](evidence/dependency-security.md)。
 
 CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。当前没有远端 Actions 成功记录，不将工作流配置等同于平台验收。
 
