@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 执行方式：AI 不后台运行。每次前台执行从首个未完成项开始；完成后更新本文件、Evidence，并运行 `npm run verify`。
+> 核对日期：2026-09-05，代码基线 `6b87f51`。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
 > 状态：`[x]` 已验证，`[~]` 基础实现/待收口，`[ ]` 未开始。
 > 历史 P0 分解见 [P0 自动执行 Tasklist](docs/p0-tasklist.md)。
 
@@ -87,8 +87,11 @@
 - [x] DeepSeek 真实短请求返回 `4`：首字 2.317 秒，总耗时 2.383 秒。
 - [ ] Windows 实机验收、Intel Mac 构建及 Apple Developer ID 签名/公证。
 - [ ] 课程、资料与进度功能的桌面入口（现有 CLI 功能保留）。
+- [ ] CI 安装桌面依赖：现有 workflow 只安装根依赖，而 `verify` 已包含桌面类型检查；本次文档维护已登记，尚未改动 CI。
 - 验收记录见 [桌面应用](docs/evidence/desktop-app.md)，使用说明见 [桌面版 README](desktop/README.md)。
 
 ## 当前前台下一项
 
-**P10 第一版已完成 macOS Apple Silicon 本地验收，DeepSeek API 已真实连通，可用于当前桌面对话。Pi Codex 登录仍待恢复；后续按用户选择扩展 Windows、完整学习功能或公开签名分发。**
+**P10 第一版已完成 macOS Apple Silicon 本地验收；DeepSeek 的当次真实短请求通过。Pi Codex 登录仍待恢复；平台、学习功能与正式分发的下一步由用户任务决定。**
+
+本轮为全量文档同步，未扩展功能或重新打包。当前能力见 [功能与验收](docs/features-and-acceptance.md)，本次核对记录见 [文档同步](docs/evidence/documentation-sync.md)。计划解析、分块保真与 CI 等已知缺口见 [数据契约](docs/data-and-quality-spec.md) 和 [Backlog](docs/implementation-backlog.md)。

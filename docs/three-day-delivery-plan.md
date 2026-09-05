@@ -1,13 +1,13 @@
 # 三天 AI 自动开发与验证计划
 
-> 状态：已完成（历史三天排期）。当前实现状态以 `development-plan.md`、`TASKS.md` 和 Evidence 为准。
+> 状态：历史三天排期，相关阶段验收已归档。以下 Node 20+、pnpm、Claude/本地模型、全局 profile 等是原始设想，不是当前配置或已交付承诺。当前基线为 Node 24.8.x + npm、四种 CLI Provider 与独立桌面应用，见 [开发计划](development-plan.md)、[任务台账](../TASKS.md) 和 [配置](CONFIGURATION.md)。
 > 范围：仅 `zhixing/`；不修改已有学习计划、skills 或 `learning-notes/` 的既有内容。
 > 决策基线：[已确认产品决策](decisions.md)
 > AI 执行边界：[AI 自动开发、验证与测试协议](ai-execution-protocol.md)
 > 实际代码任务：[实际开发 Backlog](implementation-backlog.md)
 > 全阶段状态：[全量开发计划](development-plan.md)
 
-## 已确认实施决策
+## 当时的实施决策与设想（历史）
 
 - 技术：Node 20+、TypeScript ESM、CLI；测试使用 Vitest，schema 使用 Zod。
 - 首批主题：`agent-development`、`rag`、`tool-calling`、`interview-project`；每个主题有独立计划、Skill、进度、资料与记忆空间。
@@ -18,7 +18,7 @@
 - 历史策略（已替换）：曾采用默认纯本地与首次外发显式确认。当前策略见 `SECURITY.md`：已配置 Provider 默认可用，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止外发。
 - 资料与记忆：三天 MVP 支持文字 PDF/Markdown、SQLite 元数据、FTS5、带引用查询和结构化长期记忆；向量检索、Embedding 与 OCR 明确排入第二阶段。
 
-> 本文保留原始三天排期和交付门槛，不代表当前功能清单；P0–P3 已完成，当前基线见 `development-plan.md`、`TASKS.md` 与 Evidence。
+> 本文保留原始排期和交付门槛，不代表当前功能清单。P6–P9 的交互与 Provider 改进、P10 桌面版均发生在此计划之后，具体结果见 [证据索引](evidence/README.md)。
 
 ## Day 1：可控学习闭环
 

@@ -1,14 +1,70 @@
+<!-- generated-by: gsd-doc-writer -->
 # 知行（ZhiXing）
 
-知行是一个本地优先的学习 Agent。它通过 CLI 和 REPL 管理学习主题、资料、计划、教学会话、证据 Review 与 Provider 路由；学习状态可恢复，资料问答带可定位引用，模型驱动的动作必须经过统一的授权、确认与证据校验。
+知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面对话应用，以及管理主题、资料、课程和学习进度的 CLI / REPL。
 
-## 桌面版（新）
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.2.0`。两者复用模型适配器和回答规范，会话、偏好与学习数据分别保存。
 
-已提供接近 Codex 布局的独立桌面对话应用，支持 **Pi Codex / DeepSeek API 切换**、流式回答、会话与草稿恢复、公式、复制和导出。第一版安装包面向 macOS Apple Silicon；课程、资料与进度管理仍使用下方 CLI。
+| 入口 | 当前能力 | 默认模型设置 |
+| --- | --- | --- |
+| 桌面版 | 连续对话、流式回答、公式排版、会话搜索与恢复、草稿、停止/继续/重试、复制和 Markdown 导出 | 新数据目录默认 `pi-codex`；可切换 `deepseek-api` 或离线 `demo` |
+| CLI / REPL | 主题、资料库、课程与进度、个性化计划、教学练习、证据 Review、受控学习工具 | 无本地路由设置时，tutor / reviewer / lab 均为 `mock` |
 
-安装和开发说明见 [桌面版 README](desktop/README.md)，验收记录见 [桌面版验证](docs/evidence/desktop-app.md)。本机产物在 `desktop/release/`，构建产物不提交到源码仓库。
+桌面版目前只接入文本对话；CLI 的资料导入、检索工具、课程和进度管理尚未接入桌面。
 
-## 核心能力
+## 快速开始
+
+### 使用桌面版
+
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.2.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+
+在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
+
+安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。Windows 仅有 NSIS 构建配置，Windows 和 Intel Mac 尚未验收。
+
+桌面安装、快捷键和平台构建步骤见 [桌面版 README](desktop/README.md)。
+
+### 从源码运行
+
+前置条件：Node.js `24.8.x` 与 npm。CLI 会检查 Node 版本；处理扫描 PDF 的 OCR 才需要额外安装 `tesseract` 和 `pdftoppm`。
+
+```bash
+git clone https://github.com/muzigef/zhixing.git
+cd zhixing
+npm ci
+npm ci --prefix desktop
+```
+
+启动桌面应用：
+
+```bash
+npm run desktop
+```
+
+或使用 CLI / REPL：
+
+```bash
+npm run start -- '主题列表'
+npm run repl
+```
+
+没有配置真实 Provider 时，CLI 使用本地 mock；学习状态操作可本地运行，自然生成的回答需要配置真实 tutor。在 REPL 中可以使用：
+
+```text
+/help
+学习 agent-development
+/style balanced
+解释 RAG 和微调的区别，用表格比较
+开始第 1 天
+来一道题
+/status
+```
+
+执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 普通聊天保留最近 6 轮，每轮用户输入和回答各保留最多 8,000 字符；这与桌面的保存和上下文限制不同。
+
+RAG 课程要求先完成 `agent-development/D01` 和 `D02`；上面的入门示例从无跨主题前置条件的 Agent 开发主题开始。
+
+## CLI 核心能力
 
 - 主题化学习：选择或创建主题，保存当前主题，重启后恢复学习上下文。
 - 课程与进度：按 Day 推进，前置条件与 Review 证据决定是否可以进入下一阶段。
@@ -20,33 +76,7 @@
 - 多 Provider：`mock`、`deepseek-api`、`codex-cli`、`pi-codex` 可按 tutor/reviewer/lab 角色路由；真实 Provider 支持文本流。
 - 受控 Agent runtime：统一输入分类、模型计划确认、运行账本、脱敏审计；DeepSeek 支持真实多轮工具调用，工具 schema/主题/风险/取消/超时以及总轮次、事件和上下文均受运行时限制。
 
-## 快速开始
-
-前置条件：Node.js `24.8.x` 与 npm。处理扫描 PDF 时还需要 `tesseract` 和 `pdftoppm`。
-
-```bash
-npm ci
-npm ci --prefix desktop
-npm run verify
-npm run start -- '主题列表'
-npm run repl
-```
-
-在 REPL 中可以使用：
-
-```text
-/help
-学习 rag
-/style balanced
-解释 RAG 和微调的区别，用表格比较
-开始第 1 天
-来一道题
-/status
-```
-
-执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。普通聊天保留最近 6 轮，每轮用户输入和回答各保留最多 8,000 字符。
-
-## 常用流程
+## CLI 常用流程
 
 ### 创建或定制学习计划
 
@@ -120,63 +150,101 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 
 ## Provider 配置
 
-默认路由使用本地 `mock`。DeepSeek API Key 通过隐藏输入写入 macOS Keychain；Codex 复用已登录的官方 Codex CLI，不读取或保存登录凭据。
+### 桌面设置
+
+- **Pi · Codex**：读取 Pi 的模型偏好，由 Pi 自己处理认证和刷新；知行不读取认证文件。设置页「已读取 Pi 模型配置」仅代表偏好可用，登录有效性在发送时检查。
+- **DeepSeek API**：默认模型 `deepseek-v4-flash`，界面也提供 `deepseek-v4-pro`。优先使用桌面保存的配置；macOS 上没有桌面配置时，可复用原 CLI 写入的知行 Keychain 项。新 Key 通过主进程使用系统加密后保存，不能从界面读取回原值。找到配置不代表 API 已连通。
+- **离线演示**：本地固定演示内容，不调用真实模型。
+
+桌面 Provider、模型和回答风格保存在独立的 `preferences.json`，不会改变 CLI 的角色路由。桌面内新增的加密 Key 也不会同步写入 CLI Keychain。两端回答风格均保存为 `concise` / `adaptive` / `detailed`；CLI 还接受 `balanced` 作为 `adaptive` 的输入别名。桌面风格按应用保存，CLI 风格按学习主题保存。
+
+### CLI 角色路由
+
+无本地设置时默认使用 `mock`。在 REPL 中添加 DeepSeek Key 或切换 tutor：
 
 ```text
 模型添加 api-key deepseek-api
 模型切换 tutor deepseek-api --确认
 模型切换 tutor codex-cli --确认
+模型切换 tutor pi-codex --确认
 模型状态
 ```
 
-### 使用 Pi 已配置的 Codex 模型
+这些切换命令是可选操作；执行最后一条切换后，tutor 使用 `pi-codex`。reviewer 和 lab 的路由需分别设置。CLI DeepSeek Key 使用隐藏输入写入 macOS Keychain，当前没有其他平台的 CLI 凭据存储适配；默认 DeepSeek 模型可通过 `ZHIXING_DEEPSEEK_MODEL` 覆盖。`codex-cli` 需要系统中已安装并登录的官方 Codex CLI，与 Pi 的认证独立。
 
-如果已经在 Pi 中配置并登录 Codex，可直接使用：
+### Pi 配置与启动方式
 
-```text
-模型切换 tutor pi-codex --确认
-```
+Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录；模型 ID 不写死在知行中。每次调用读取 `${PI_CODING_AGENT_DIR}/settings.json`（未设置时为 `~/.pi/agent/settings.json`），再合并调用工作目录内的 `.pi/settings.json`，同名项目设置优先。
 
-知行每轮读取 Pi 全局设置与项目 `.pi/settings.json` 中的默认模型和推理强度，要求默认 Provider 为 `openai-codex`。项目同名设置优先，模型 ID 不写死。Pi 自己使用已有登录状态；无需在知行填写 API Key。
+- CLI 的调用工作目录是代码仓库，通过 `scripts/pi-safe.sh` 启动系统 `pi`，因此需另行安装 Pi 并使 `pi` 和 `bash` 可用；根包 `npm ci` 不会安装 Pi。
+- 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.80.7`，不会自动读取源码仓库的 `.pi/settings.json`。
 
-此适配器通过 `scripts/pi-safe.sh` 启动 Pi，使用 JSON 文本流与临时会话，保留项目守卫，清空工具白名单。普通问答、教学、计划生成和资料问答仍由知行现有流程处理；它不把 Pi 的文件或命令工具开放给模型。普通对话遇到 Pi 错误会明确提示，不会静默改用其他模型。
+两种 Pi 接入都使用 JSON 文本流、临时会话、同一工具守卫和空工具列表。CLI 的普通问答、教学、计划生成和资料问答由知行自身流程处理；Pi 的文件与命令工具不开放给模型。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
 
-设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁用真实 Provider。真实调用只发送当前任务所需的最小上下文；凭证、审计原文和其他主题资料不会外发。
+设置进程环境变量 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。CLI 发送当前任务的受限主题上下文；桌面发送本轮输入和受限的当前会话历史。Provider 所需凭据仅用于认证，不拼入模型提示词；审计原文和其他主题资料不加入上下文。资料正文的额外授权规则见 [配置说明](docs/CONFIGURATION.md)。
 
 ## 安全与运行模型
 
+以下账本、主题授权和工具规则适用于 CLI 学习运行时：
+
 - 每轮输入都先经过统一控制层；模型输出只能提出建议，不能自行执行写操作或把推断写成用户事实。
 - 删除资料、恢复数据库、切换模型、启用计划/Skill 等高影响操作需要显式确认。
-- 每个前台操作有 SQLite 运行/步骤账本与脱敏审计。中断运行会安全标记为 `process_interrupted`，不会自动重放可能写入的操作。
+- 经过 RunManager 的业务操作有 SQLite 运行/步骤账本与脱敏审计；帮助、即时状态等控制命令不逐一入账。中断运行会标记为 `process_interrupted`，不会自动重放可能写入的操作。
 - 工具调用统一经过 schema 校验、主题边界、风险授权、强制超时和输出上限。
 - Provider trace 记录 Provider、角色、耗时、状态、事件数、回合数和工具调用数；不记录 prompt、回答或工具参数。
 
 输入 `诊断` 可查看当前主题、Provider、教学检查点、资料、记忆、提醒与最近运行摘要。
 
+桌面使用独立的对话服务和 JSON 存储，不使用 CLI 的 SQLite 运行账本。renderer 开启 sandbox、context isolation 和本地内容策略；文件导出、系统剪贴板、外部链接、模型请求与密钥保存均通过受校验的主进程命令。桌面当前不执行学习工具或文件/命令工具。
+
 ## 数据目录
 
+CLI 默认把仓库父目录作为数据根目录，也可用 `ZHIXING_ROOT` 指定；其下使用固定的 `zhixing/` 和 `learning-notes/` 子目录。按上述命令克隆为 `zhixing` 时，结构为：
+
 ```text
-zhixing/
-  data/       # 主题 session、审计与资料数据（忽略提交）
-  db/         # SQLite 元数据、检索索引与记忆（忽略提交）
-  inbox/      # 待导入资料（忽略提交）
-  settings/   # 本机主题与模型路由设置（忽略提交）
-learning-notes/
-  topics/     # 主题学习记录（忽略提交）
+<仓库父目录>/
+  zhixing/
+    data/       # 主题 session、审计与资料数据（忽略提交）
+    db/         # SQLite 元数据、检索索引与记忆（忽略提交）
+    inbox/      # 待导入资料（忽略提交）
+    settings/   # 本机主题与模型路由设置（忽略提交）
+  learning-notes/
+    topics/     # 主题学习记录（位于源码仓库之外）
 ```
+
+CLI 用户新建主题还会写入 `zhixing/topics/<topicId>/`，与已跟踪的内置主题资源区分。更改数据根目录前请参阅 [配置说明](docs/CONFIGURATION.md)。
+
+桌面保存在 Electron `appData` 下的 `Zhixing/`，macOS 默认位置为 `~/Library/Application Support/Zhixing/`：
+
+```text
+Zhixing/
+  conversations/       # 每会话一个 JSON 文件
+  preferences.json     # 桌面 Provider、模型、风格和主题
+  deepseek.credential  # 可选的系统加密 Key
+  runtime/             # 内附 Pi 的隔离调用工作目录
+```
+
+每会话最多 1,000 条消息，单条输入最多 20,000 字符、回答最多 64,000 字符，会话文件最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。发送给模型的历史最多 24 条、48,000 字符，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
 
 ## 验证
 
+安装根目录与桌面两套依赖后，从根目录执行：
+
 ```bash
 npm run verify
+npm --prefix desktop run build
+npm --prefix desktop run test:ui
 ```
 
-该质量门运行 lint、类型检查、单元测试、CLI 工作流、集成测试、评估与 mock smoke。
+`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 使用隔离数据和禁用真实 Provider 的环境启动 Electron，需先构建。
+
+按 [2026-09-05 桌面验证记录](docs/evidence/desktop-app.md)，当时质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。Pi 模型偏好和内附运行环境的验证不等于 Codex 登录完成，后者仍未通过真实调用验收。这些是已有验证记录，不代表每次阅读本文时重新运行过检查。
 
 ## 文档
 
 | 主题 | 文档 |
 | --- | --- |
+| 桌面安装、使用和打包 | [桌面版 README](desktop/README.md)、[桌面验收记录](docs/evidence/desktop-app.md) |
 | 安装与首次使用 | [快速开始](docs/GETTING-STARTED.md) |
 | 命令说明 | [CLI 参考](docs/CLI-REFERENCE.md) |
 | Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
@@ -184,3 +252,9 @@ npm run verify
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
 
 运行时审查、修复证据和仍未对齐的能力见 [Agent 审查报告](docs/evidence/agent-runtime-audit.md)。
+
+参与开发请阅读 [贡献指南](CONTRIBUTING.md)。
+
+## 许可证
+
+根包和桌面包均标记为 `UNLICENSED`，保留所有权利；使用与分发条件见 [LICENSE](LICENSE)。

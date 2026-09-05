@@ -1,6 +1,6 @@
 # 测试资料夹具
 
-`documents/` 中的资料由 `npm run fixtures:generate` 生成，均为无敏感、小体积测试数据。
+`documents/` 中的资料均为无敏感测试数据。`npm run fixtures:generate` 会生成文字/空文字层/超页数/损坏 PDF 与 Markdown；`encrypted.pdf` 是单独预置的加密夹具，不由该脚本重新生成。
 
 - `text.pdf`：有文字层，验证 PDF 页面提取与引用。
 - `scanned.pdf`：空文字层，验证 `ocr_required`。

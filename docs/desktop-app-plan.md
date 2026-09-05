@@ -2,7 +2,7 @@
 
 ## 第一版范围
 
-用户于 2026-09-05 授权新增可安装桌面软件，设计与交互参考 Codex。待平台/范围偏好回复前，先以当前 macOS Apple Silicon 为实际交付平台，提供 Windows 构建配置。
+2026-09-05 的 P10 已完成 macOS Apple Silicon 本地预览验收，代码提交为 `6b87f51`，桌面包版本 `0.2.0`。设计与交互参考 Codex；Windows 当前仅提供构建配置。
 
 用户补充要求至少支持 Pi Codex 和已有 DeepSeek API 两种方式切换；此要求纳入第一版。
 
@@ -25,7 +25,9 @@ Electron 提供安装包、应用数据路径和原生窗口；React renderer �
 
 复用 `src/pi-client.ts` 和 `src/deepseek-client.ts` 的协议校验、超时、取消、脱敏和联网总开关，以及 `responseGuidelines`。桌面内附 Pi 0.80.7，通过 Electron 的 Node 运行模式启动，不需要系统 bash/Node/Pi 可执行文件；显式载入同一审查过的工具守卫，工具列表为空。Pi 负责认证，界面只接触模型偏好与文本事件。
 
-桌面数据使用系统 `userData`，与仓库 CLI 数据分开。每个会话原子写入独立 JSON，保留最多 1000 条消息，达到上限要求新建会话；模型上下文仅发送最近 24 条、约 48,000 字符历史。上下文裁剪不删除会话历史。
+桌面将 `userData` 指定为系统 `appData` 下的 `Zhixing`，与 CLI 数据分开。每个会话原子写入独立 JSON，最多 1,000 条消息、12,000,000 字节，达到上限需新建会话；模型只发送最近最多 24 条、48,000 字符历史，当前请求另计。上下文裁剪不删除会话历史。API Key 系统加密，普通聊天 JSON 与草稿没有应用级加密。
+
+CLI 调用系统安装的 Pi，桌面调用内附 Pi，两者的项目工作目录不同；桌面只自动继承全局 Pi 偏好及自身 runtime 目录的项目设置，详情见 [配置](CONFIGURATION.md#pi-codex-接入)。界面没有内置 Pi 登录流程，需要先在 Pi 完成认证。
 
 ## 验证与交付
 
@@ -38,3 +40,5 @@ Electron 提供安装包、应用数据路径和原生窗口；React renderer �
 工程依据：[Electron 安全指南](https://www.electronjs.org/docs/latest/tutorial/security)、[Electron 应用分发](https://www.electronjs.org/docs/latest/tutorial/application-distribution)。
 
 DeepSeek 自动检查现有知行钥匙串引用是否存在；只有实际 API 调用才获取密钥。新配置使用 Electron 异步 safeStorage 加密，密钥不写入普通设置或消息。密码输入只在当前设置对话框内存中存在，保存后清空。
+
+实际验证结果、产物校验值和未验证项见 [P10 验收](evidence/desktop-app.md)。Mac 安装包为无 Developer ID 签名/公证的本地预览，源码仓库不包含安装包；Windows、Intel Mac、真实新 Key 系统加密往返与 Pi 登录恢复仍需单独验收。

@@ -1,5 +1,7 @@
 # E01–E31 验收覆盖映射
 
+> 历史证据：下文的测试数量、命令输出、提交状态、机器配置和“当前”均指本阶段记录时。2026-09-05 文档核对保留这些历史结果；现行功能与配置见 [功能验收](../features-and-acceptance.md)、[配置](../CONFIGURATION.md)，后续阶段见 [证据索引](README.md)。
+
 > 状态：历史 P0 验证快照。所有项均有单元、集成、Eval 或隔离 headless CLI 证据；当时未执行真实 Provider smoke。当前策略与基线以 `SECURITY.md`、`TASKS.md` 和 `npm run verify` 为准。
 
 | 验收 | 当前状态 | 自动化证据 |

@@ -1,8 +1,8 @@
 # 功能与验收（当前实现）
 
-> 本文只描述当前可执行行为。历史阶段设计与旧验收快照见 `docs/evidence/`；它们不覆盖本文件、[CLI 参考](CLI-REFERENCE.md) 或代码。
+> 核对日期：2026-09-05，代码基线 `6b87f51`。本文区分 CLI 学习 Agent 与桌面对话应用；历史阶段验收见 [证据索引](evidence/README.md)。
 
-## 当前功能
+## CLI 当前功能
 
 | 范围 | 当前行为 | 验证入口 |
 | --- | --- | --- |
@@ -11,26 +11,40 @@
 | 教学恢复 | 当前主题与受限教学检查点会持久化；重启后恢复 Day、阶段、受限转录与当前练习。 | `tests/current-topic-store.test.ts`、`tests/teaching-session-store.test.ts` |
 | 教学动作 | 练习阶段先将自然语言约束为开始练习、作答、索要答案、提问、跳题或改计划；模型分类只是建议。索要答案有确定性优先级，只有可验证来自用户原文的作答才能触发批改和持久化。 | `tests/teaching-dialogue.test.ts` |
 | 资料与 RAG | 仅导入 PDF/Markdown；本地 FTS5 与 HashEmbedding 混合检索。回答必须含可定位引用，否则返回 `insufficient_evidence`。 | `tests/integration.test.ts`、`tests/p2.test.ts` |
-| Provider | `mock`、`deepseek-api`、`codex-cli` 可按角色路由。已配置真实 Provider 默认可用；`ZHIXING_ALLOW_LIVE_PROVIDER=0` 禁止真实调用。Codex 与 DeepSeek 均支持文本流。 | `tests/provider-*.test.ts`、`tests/codex-client.test.ts`、`tests/deepseek-client.test.ts` |
+| Provider | `mock`、`deepseek-api`、`codex-cli`、`pi-codex` 可按角色路由。真实 Provider 支持文本流；Pi 显式继承 Codex 模型和推理偏好，认证由 Pi 处理。禁用外发开关会拒绝真实调用。 | `tests/provider-*.test.ts`、`tests/codex-client.test.ts`、`tests/deepseek-client.test.ts`、`tests/pi-client.test.ts`、`tests/pi-cli.test.ts` |
 | Provider trace | 同一 Run 审计链记录 Provider、角色、耗时、状态、事件数、模型回合数与工具调用数；不记录 prompt、回答或工具参数。 | `tests/model-audit.test.ts`、`tests/model-invocation.test.ts`、`tests/run-context.test.ts` |
-| 自然交互 | 模型只生成经 Zod 校验的草案；CLI 仅在“直接运行”后执行白名单动作。模型不能运行 Shell 或任意文件写入。 | `tests/intent-parser.test.ts`、`tests/cli-workflow.test.ts` |
+| 自然语言计划草案 | 计划草案经 Zod 校验，用户确认后只执行白名单知行命令；草案执行器不接受 Shell 或任意文件写入。普通知识问答可以直接生成回答，无需先生成计划。 | `tests/intent-parser.test.ts`、`tests/cli-workflow.test.ts` |
 | 全局控制层 | 每轮输入先归为确定性命令、计划确认、教学输入或自然输入；随后才进入对应状态机和内容生成。 | `tests/interaction-protocol.test.ts` |
 | 全局对话策略 | 命令、模型计划和教学分类共用授权/确认/用户原文证据策略；模型输出只能作为提议，不能单独触发状态写入或批改。 | `tests/interaction-protocol.test.ts`、`tests/teaching-dialogue.test.ts` |
-| 运行账本 | 每个前台命令有脱敏审计轨迹和 SQLite 运行/步骤账本；进程遗留的运行启动时标记为中断，不自动重放写操作。 | `tests/run-manager.test.ts`、`tests/workflow-ledger.test.ts` |
-| 工具执行契约 | 模型工具调用必须经受控回调；ToolHarness 校验输入、主题上下文、最大风险、截止时间和结果上限。当前 CLI 未给教学模型开放实际工具。 | `tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
-| 数据生命周期 | 可确认写入/忘记记忆、预览/删除资料、手动备份与确认恢复数据库。当前没有主题删除、自动每日备份、导出或迁移前自动备份。 | `tests/backup-service.test.ts`、`tests/cli-workflow.test.ts` |
+| 运行账本 | 经过 RunManager 的前台业务操作有脱敏审计和 SQLite 运行/步骤账本；帮助、即时状态等控制命令不逐一记入账本。遗留运行启动时标记为中断，不自动重放写操作。 | `tests/run-manager.test.ts`、`tests/workflow-ledger.test.ts` |
+| 工具执行契约 | DeepSeek 的普通自由问答与显式学习助手可多轮调用当前主题进度、资料目录、按次授权正文检索；完整维护 call ID 与工具历史。ToolHarness 校验 schema、主题、风险、截止时间与结果上限；教学阶段和两个 Codex adapter 仍走文本协议。 | `tests/agent-continuation.test.ts`、`tests/learning-agent-cli.test.ts`、`tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
+| 数据生命周期 | 可确认写入记忆、按 ID 忘记当前主题记忆、预览/确认删除资料、手动备份与确认恢复数据库。CLI 没有主题删除、自动每日备份、学习数据整体导出或迁移前自动备份。 | `tests/backup-service.test.ts`、`tests/cli-workflow.test.ts` |
+| 连续对话 | 每主题保存最近 6 轮；新建/恢复会话、继续/重试、生成时排队输入、即时状态/停止/调整、每主题回答风格及终端 Markdown。 | `tests/conversation-session.test.ts`、`tests/repl-controller.test.ts`、`tests/repl-input.test.ts`、`tests/terminal-markdown.test.ts` |
+
+## 桌面当前功能
+
+| 范围 | 当前行为 | 验证入口 |
+| --- | --- | --- |
+| 安装 | 自带 Electron 和 Pi 的 macOS arm64 `.app`、DMG、ZIP 本地预览；Windows 只有 NSIS 构建配置 | [桌面验收](evidence/desktop-app.md) |
+| 对话与显示 | 流式 Markdown、GFM 表格、KaTeX、代码/回答复制、停止/继续/重试、系统/浅色/深色主题、中文输入法和快捷键 | `desktop/scripts/smoke.mjs` |
+| 会话 | 历史、标题搜索、重命名、每会话草稿、Markdown 导出；独立系统应用目录原子保存，重启将未完成生成标记为中断 | `tests/desktop-storage.test.ts`、`tests/desktop-service.test.ts`、UI smoke |
+| Provider | Pi Codex / DeepSeek API / 离线 demo 可选择；Codex 失败后由用户点击切 API 重试，保留同一会话；Flash/Pro 选择持久化 | `tests/desktop-providers.test.ts`、`tests/desktop-pi-runner.test.ts`、UI smoke |
+| 凭据 | 主进程系统加密保存新增 DeepSeek Key，支持复用旧 macOS Keychain；不向页面回读已有 Key | `desktop/electron/secrets.ts`、`tests/desktop-providers.test.ts`；真实新 Key 保存仍待 OS 端到端验证 |
+| 能力边界 | 不接入 CLI 主题、课程、资料、工具、长期记忆或 Day Review；模型仅使用显式传入的有限会话上下文 | `desktop/core/service.ts`、`desktop/runtime-AGENTS.md` |
+
+每会话最多 1,000 条消息；模型历史最多 24 条、48,000 字符，当前输入另计。完整限制和持久化契约见 [数据契约](data-and-quality-spec.md)。桌面聊天与草稿并非应用级加密。
 
 ## Provider 数据边界
 
-真实 Provider 调用只使用当前主题的最小必要信息：资料问答发送检索证据；学习建议发送画像与资料名称；教学发送当天学习卡及受限主题上下文；自然交互发送当前会话文本。凭证、审计原文、其他主题资料不会发送。详见 [配置](CONFIGURATION.md)。
+CLI 真实 Provider 使用当前主题的必要信息：资料问答发送检索证据；学习建议发送画像与资料名称；教学发送当天学习卡及受限主题上下文；自然交互发送当前会话文本。桌面发送当前请求和受限历史，不扫描 CLI 资料。应用不将凭据放入模型 prompt，也不发送审计原文或其他主题资料。详见 [配置](CONFIGURATION.md)。
 
 ## 验收规则
 
 - Day 只有在 `检查 DNN --实现 --测试 --失败 --复盘` 通过后才能推进。
 - 自然交互的创建计划可在一次“直接运行”中保存画像、生成并启用定制课程；导入、删除、恢复和模型切换仍需明确确认。
 - Provider 失败时，允许 fallback 的调用可使用 mock；教学和自然交互不会静默替换成 mock，直接显示错误。
-- 本地发布门为 `npm run verify`；真实 Provider smoke 是可选环境验收。
+- 本地发布门为 `npm run verify`（先安装根目录和 desktop 两套依赖）；桌面 UI 与实际安装包需另跑 `npm --prefix desktop run test:ui` 及打包应用验证。真实 Provider smoke 是单独的环境验收。
 
 ## 非当前实现
 
-当前真实 Provider 尚未实现跨 Provider 的结构化工具续写适配；框架已经提供受限的可续写协议与测试 Provider。完整的注册表分派控制面、token/费用预算、Claude 或本地 HTTP Provider、DOCX 导入、主题删除、云同步和 Web UI 仍属于后续设计，不能作为已交付能力。
+完整注册表分派、其他 Provider 的结构化工具续写、精确 token/费用预算、Claude 或本地 HTTP Provider、DOCX 导入、主题删除、云同步和独立浏览器 Web 产品仍未实现。桌面已经有 UI，但不具备通用编码 Agent 的任意文件编辑、Shell、多 Agent 或任务自动执行能力。Pi Codex 最近真实认证未通过；Windows/Intel Mac、签名/公证也未完成验收。

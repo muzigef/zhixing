@@ -1,5 +1,7 @@
 # P1 自动执行 Tasklist
 
+> 历史阶段清单，保留完成标记。当前进展已包含 P6–P10，见 [任务台账](../TASKS.md)；实际功能边界见 [功能与验收](features-and-acceptance.md)。
+
 > P1 聚焦学习产品体验。每项先新增失败/边界测试，再实现最小闭环，最后运行 `npm run verify` 并更新 Evidence。
 
 - [x] P1-01：完整 Topic Plan 解析与按 Day 输出（`requiredEvidence`、时长、可选项）。

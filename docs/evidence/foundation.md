@@ -1,6 +1,8 @@
 # 基础实现验证记录
 
-> 状态：历史基础验证快照；当前 P0–P2 均已完成，见 `development-plan.md` 与各阶段 Evidence。
+> 历史证据：下文的测试数量、命令输出、提交状态、机器配置和“当前”均指本阶段记录时。2026-09-05 文档核对保留这些历史结果；现行功能与配置见 [功能验收](../features-and-acceptance.md)、[配置](../CONFIGURATION.md)，后续阶段见 [证据索引](README.md)。
+
+> 状态：历史基础验证快照；后续阶段见 [开发计划](../development-plan.md) 与各阶段 Evidence。
 
 ## 已实现
 
@@ -51,4 +53,4 @@ SQLite 验证该文档状态为 `indexed`，并存在 1,252 个带页码的 Chun
 
 ## 后续状态
 
-该快照中的 P0/P1 缺口均已收口；P2 增加本地 OCR、向量兼容存储、OS sandbox 与 loopback SSE。当前 SQLite schema migration 为 v2。
+该快照中的 P0/P1 缺口均已收口；P2 增加本地 OCR、向量兼容存储、OS sandbox 与 loopback SSE。当时 SQLite schema migration 为 v2；当前代码已记录 1、2、3 三个迁移版本，见 [数据契约](../data-and-quality-spec.md)。

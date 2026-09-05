@@ -1,5 +1,7 @@
 # P0 自动执行 Tasklist
 
+> 历史阶段清单，保留完成标记。当前进展已包含 P6–P10，见 [任务台账](../TASKS.md)；实际功能边界见 [功能与验收](features-and-acceptance.md)。
+
 > 本清单从 `TASKS.md` 的未收口项拆分而来。每项均遵循：失败/边界测试 → 最小实现 → 定向验证 → `npm run verify` → 更新 Evidence。除产品命令本身的确认语义外，不需要人工逐项授权。
 
 ## 1. CLI 工作流与审计

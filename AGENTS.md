@@ -1,17 +1,17 @@
 # 知行项目约束
 
-本文件由 Pi 在启动时加载，适用于每次模型调用。它提供行为规则；文件、命令和网络限制由 `.pi/extensions/zhixing-guard.ts` 强制执行。
+本文件是仓库开发指令，也由从项目目录启动的 Pi 加载。它提供行为规则；Pi 工具的路径、命令和网络限制由 `.pi/extensions/zhixing-guard.ts` 强制执行。桌面打包运行时加载 `desktop/runtime-AGENTS.md` 的副本，不将本文件作为聊天任务指令。
 
 ## 目标与顺序
 
-1. 按 `docs/ai-execution-protocol.md` 的固定顺序完成 P0 切片。
+1. 以当前用户任务和 `TASKS.md` 为准，按 `docs/ai-execution-protocol.md` 完成可验收切片；P0 固定顺序是历史记录，不重新执行已完成任务。
 2. 每个切片先写失败/边界测试，再做最小实现。
-3. 每个切片至少运行 `npm run lint`、`npm run typecheck`、`npm run test`；触及 CLI、资料库、SQLite、记忆或状态机时，再运行 integration、eval 和 mock smoke。
+3. 验证前安装根目录与 `desktop/` 两套依赖。行为变更至少运行 lint、类型检查和相关测试；完整 `npm run verify` 包含根目录/桌面类型检查、全部 Vitest、integration、eval 和 mock smoke。
 4. 只能依据真实命令输出报告完成；更新 `docs/evidence/` 记录已验证、未验证和风险。
 
 ## 数据与隐私
 
-- 未配置真实 Provider 时使用本地 mock。已配置 Provider 后，`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止外发的总开关；发送内容必须是当前主题的受限上下文，并在调用层标记为用户材料。
+- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 发送当前主题受限上下文并标记为用户材料，桌面只发送显式提供的有限会话上下文。
 - 只允许通过受控 Runtime 从 `inbox/<topicId>/` 显式导入资料；模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`。
 - 不得读取、写入、输出或提交 API Key、token、Cookie、认证文件、`.env`、`auth.json`、`.ssh` 或 `.codex` 内容。
 - 知行应用的真实 Provider 在已配置时默认可用；设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 后 adapter 必须拒绝调用。该开关不影响 Pi/Codex 开发会话。
@@ -30,7 +30,7 @@
 - 用户已授权可安装桌面应用及 Pi Codex / DeepSeek API 切换。`desktop/` 可以使用 Electron、React、必要的渲染和打包依赖。
 - 桌面内附 Pi 可使用等价的无 shell 启动器，必须保留同一工具守卫、空工具列表、协议检查和联网总开关。
 - 桌面用户数据存入独立系统应用目录；新 API 配置仅经受控主进程使用系统加密存储，不得输出或提交明文密钥。
-- 桌面变更运行根目录 `npm run verify`、`desktop/` 的 `npm run test:ui`，交付安装包前验证实际打包应用。
+- 桌面行为变更运行根目录 `npm run verify`、`desktop/` 的 `npm run test:ui`，交付安装包前验证实际打包应用。纯文档更新核对源码、命令、链接和历史证据，不将既有 UI/真实模型验收说成本次重跑。
 
 ## 约束冲突或阻塞
 

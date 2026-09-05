@@ -30,7 +30,7 @@ days:
 
 实验：导入一份 Markdown 或文字 PDF，验证文档 ID、Chunk 数和 citation。
 
-失败案例：扫描 PDF 必须返回 `ocr_required`，不能生成虚构文本。
+失败案例：本地 OCR 不可用、失败或未获得可用文本时，扫描 PDF 返回 `ocr_required`，不能生成虚构文本；OCR 成功时可以索引，低置信度结果标记为 `ocr_low_confidence`。
 
 ## D02：FTS5 检索与证据不足
 
@@ -40,6 +40,6 @@ days:
 
 ## D03：Grounded Answer 评估
 
-实验：对三个问题检查答案中的每个事实是否能定位到页码或 anchor。
+实验：对三个问题人工核对答案中的每个事实是否有页码或 anchor 对应的原文支持；程序的引用位置校验不能替代逐句事实核验。
 
 失败案例：移除 citation 后，评估必须判定不通过。
