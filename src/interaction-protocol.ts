@@ -12,7 +12,7 @@ export const interactionModeSchema = z.enum(["learning", "teaching", "pending_pl
 export type InteractionMode = z.infer<typeof interactionModeSchema>;
 
 export const interactionDecisionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("command"), command: z.string().min(1).max(600), confirmationRequired: z.boolean(), confirmed: z.boolean(), actionId: z.string().min(1).optional() }),
+  z.object({ kind: z.literal("command"), command: z.string().min(1).max(8_000), confirmationRequired: z.boolean(), confirmed: z.boolean(), actionId: z.string().min(1).optional() }),
   z.object({ kind: z.literal("execute_pending"), confirmed: z.boolean() }),
   z.object({ kind: z.literal("teaching_input"), text: z.string().min(1).max(8_000) }),
   z.object({ kind: z.literal("natural_input"), text: z.string().min(1).max(8_000) }),

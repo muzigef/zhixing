@@ -7,7 +7,10 @@ export interface ImportCommandResult extends ImportResult { readonly topicId: To
 const MAX_IMPORT_BYTES = 250 * 1024 * 1024;
 
 /** Imports one staged file only after its path and topic directory are verified. */
-export async function importStagedDocument(root: string, library: DocumentLibrary, suppliedPath: string): Promise<ImportCommandResult> {
+export async function importStagedDocument(root: string, library: DocumentLibrary, suppliedPath: string, parent?: AbortSignal, timeoutMs = 120_000): Promise<ImportCommandResult> {
+  const deadline = AbortSignal.timeout(timeoutMs);
+  const signal = parent ? AbortSignal.any([parent, deadline]) : deadline;
+  signal.throwIfAborted();
   if (path.isAbsolute(suppliedPath)) throw new Error("denied: 仅接受 inbox 下的相对路径");
   const inbox = path.resolve(root, "zhixing", "inbox");
   const requested = path.resolve(inbox, suppliedPath);
@@ -19,5 +22,8 @@ export async function importStagedDocument(root: string, library: DocumentLibrar
   const relative = path.relative(realInbox, realFile).split(path.sep);
   const topicId = topicIdSchema.parse(relative[0]);
   if (relative.length < 2) throw new Error("denied: 文件必须放在 inbox/<topicId>/ 中");
-  return { topicId, ...(await library.importFile(topicId, realFile)) };
+  signal.throwIfAborted();
+  const result = await library.importFile(topicId, realFile, signal);
+  signal.throwIfAborted();
+  return { topicId, ...result };
 }

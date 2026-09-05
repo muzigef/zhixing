@@ -35,6 +35,8 @@ describe("durable conversational context", () => {
     const restored = await store.current("rag");
     expect(restored?.turns).toHaveLength(6);
     expect(restored?.turns[0]?.user).toBe("问题4");
+    expect(restored?.goal).toBe("问题0");
+    expect(conversationHistory(restored!).slice(-10).join("\n")).toContain("问题0");
     expect(restored?.turns.at(-1)?.assistant.length).toBeLessThanOrEqual(8_000);
     expect(restored?.turns.at(-1)?.assistant).toContain("已截断");
     expect(restored?.turns.at(-1)?.status).toBe("interrupted");

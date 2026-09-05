@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
-import path from "node:path";
+import { parseDocument } from "yaml";
 import type { TopicDefinition } from "./contracts.js";
+import { PathPolicy } from "./paths.js";
+import { topicPlanSchema, type TopicPlan } from "./plan-schema.js";
 
 export type EvidenceRequirement = "implementation" | "testOutput" | "failureCase" | "reflection";
 export interface TopicPlanDay { readonly id: string; readonly title: string; readonly estimatedMinutes: number; readonly requiredEvidence: readonly EvidenceRequirement[]; readonly optional: boolean; }
@@ -12,37 +14,49 @@ const EVIDENCE_MAP: Record<string, EvidenceRequirement> = {
   reflection: "reflection",
 };
 
-/** Reads minimal Topic Plan frontmatter and safely falls back for legacy plans. */
+/** Validates complete plans; only plans without a days block use the legacy fallback. */
 export class TopicPlanLoader {
   constructor(private readonly root: string) {}
 
-  async requiredEvidence(topic: TopicDefinition): Promise<readonly EvidenceRequirement[]> {
-    const file = path.resolve(this.root, "zhixing", topic.planPath);
+  private async frontmatter(topic: TopicDefinition): Promise<Record<string, unknown> | undefined> {
+    const file = new PathPolicy(this.root).resolveWorkspacePath("zhixing", topic.planPath);
     let content: string;
-    try { content = await fs.readFile(file, "utf8"); } catch { return DEFAULT_REQUIREMENTS; }
-    const frontmatter = /^---\n([\s\S]*?)\n---/.exec(content)?.[1];
-    const values = /requiredEvidence:\s*\[([^\]]*)\]/.exec(frontmatter ?? "")?.[1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
-    const requirements = values.map((value) => EVIDENCE_MAP[value]).filter((value): value is EvidenceRequirement => value !== undefined);
+    try {
+      if ((await fs.stat(file)).size > 512_000) throw new Error("topic_plan_invalid");
+      content = await fs.readFile(file, "utf8");
+    } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined; throw error; }
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content)?.[1];
+    if (!frontmatter) return undefined;
+    try {
+      const parsed = parseDocument(frontmatter, { uniqueKeys: true });
+      if (parsed.errors.length) throw new Error("topic_plan_invalid");
+      const value: unknown = parsed.toJS({ maxAliasCount: 0 });
+      if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("topic_plan_invalid");
+      return value as Record<string, unknown>;
+    } catch { throw new Error("topic_plan_invalid"); }
+  }
+
+  async load(topic: TopicDefinition): Promise<TopicPlan | undefined> {
+    const value = await this.frontmatter(topic);
+    if (!value || !("days" in value)) return undefined;
+    const parsed = topicPlanSchema.safeParse(value);
+    if (!parsed.success || parsed.data.topicId !== topic.topicId) throw new Error("topic_plan_invalid");
+    return parsed.data;
+  }
+
+  async days(topic: TopicDefinition): Promise<readonly TopicPlanDay[]> {
+    return (await this.load(topic))?.days.map((day) => ({ ...day, requiredEvidence: day.requiredEvidence.map((item) => EVIDENCE_MAP[item]!) })) ?? [];
+  }
+
+  async requiredEvidence(topic: TopicDefinition): Promise<readonly EvidenceRequirement[]> {
+    const value = await this.frontmatter(topic);
+    if (value && "days" in value) await this.load(topic);
+    const values = Array.isArray(value?.requiredEvidence) ? value.requiredEvidence : [];
+    const requirements = values.map((item: unknown) => typeof item === "string" ? EVIDENCE_MAP[item] : undefined).filter((item): item is EvidenceRequirement => item !== undefined);
     return requirements.length ? requirements : DEFAULT_REQUIREMENTS;
   }
 
   async day(topic: TopicDefinition, dayId: string): Promise<TopicPlanDay | undefined> {
-    const file = path.resolve(this.root, "zhixing", topic.planPath);
-    let content: string;
-    try { content = await fs.readFile(file, "utf8"); } catch { return undefined; }
-    const daysStart = content.indexOf("days:\n");
-    const section = daysStart >= 0 ? content.slice(daysStart + "days:\n".length, content.indexOf("\n---", daysStart)) : "";
-    for (const entry of section.split(/^\s*-\s+id:\s*/m).slice(1)) {
-      const [id, ...bodyLines] = entry.split("\n");
-      if (id?.trim() !== dayId) continue;
-      const body = bodyLines.join("\n");
-      const title = /^\s+title:\s*(.+)$/m.exec(body)?.[1]?.trim();
-      const estimatedMinutes = Number(/^\s+estimatedMinutes:\s*(\d+)\s*$/m.exec(body)?.[1]);
-      const values = /^\s+requiredEvidence:\s*\[([^\]]*)\]/m.exec(body)?.[1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
-      const requiredEvidence = values.map((value) => EVIDENCE_MAP[value]).filter((value): value is EvidenceRequirement => value !== undefined);
-      const optional = /^\s+optional:\s*true\s*$/m.test(body);
-      if (title && Number.isInteger(estimatedMinutes) && estimatedMinutes > 0 && requiredEvidence.length) return { id: dayId, title, estimatedMinutes, requiredEvidence, optional };
-    }
-    return undefined;
+    return (await this.days(topic)).find((day) => day.id === dayId);
   }
 }

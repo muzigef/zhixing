@@ -30,3 +30,9 @@ describe("global interaction protocol", () => {
     expect(authorizeConversationTransition({ source: "model_proposal", mutatesState: true, userConfirmed: false, requiresExplicitConfirmation: true })).toEqual({ allowed: false, reason: "user_confirmation_required" });
   });
 });
+
+it("treats evidence submission and validation as explicit user commands during teaching", () => {
+  expect(decideInteraction("提交证据 D01 reflection 这是用户实际提交的复盘内容", "teaching")).toMatchObject({ kind: "command", actionId: "evidence.submit", confirmationRequired: false });
+  expect(decideInteraction("运行测试 D01", "teaching")).toMatchObject({ kind: "command", actionId: "evidence.validate" });
+  expect(decideInteraction("检查 D01", "teaching")).toMatchObject({ kind: "command", actionId: "evidence.review" });
+});

@@ -6,6 +6,14 @@ import { topicIdSchema, type TopicId } from "./contracts.js";
 export class PathPolicy {
   constructor(readonly root: string) {}
 
+  resolveWorkspacePath(...parts: string[]): string {
+    if (parts.some((part) => path.isAbsolute(part) || part.includes("\\") || part.split("/").includes(".."))) throw new Error("denied: 非法工作区路径");
+    const candidate = path.resolve(this.root, ...parts);
+    if (candidate !== path.resolve(this.root) && !candidate.startsWith(`${path.resolve(this.root)}${path.sep}`)) throw new Error("denied: 路径越界");
+    this.assertPath(candidate);
+    return candidate;
+  }
+
   topicDir(topicId: TopicId, area: "library" | "sessions" | "audit" | "notes"): string {
     const id = topicIdSchema.parse(topicId);
     const base = area === "notes" ? path.join(this.root, "learning-notes", "topics") : path.join(this.root, "zhixing", "data", area);

@@ -1,0 +1,11 @@
+import fs from "node:fs/promises";
+import crypto from "node:crypto";
+import path from "node:path";
+const directory = path.resolve(import.meta.dirname, "../release");
+const { version } = JSON.parse(await fs.readFile(path.resolve(import.meta.dirname, "../package.json"), "utf8"));
+const files = (await fs.readdir(directory)).filter((name) => name.startsWith(`Zhixing-${version}-`) && /\.(dmg|zip|exe)$/.test(name)).sort();
+if (!files.length) throw new Error("No installer artifacts found");
+const lines = [];
+for (const name of files) lines.push(`${crypto.createHash("sha256").update(await fs.readFile(path.join(directory, name))).digest("hex")}  ${name}`);
+await fs.writeFile(path.join(directory, `SHA256SUMS-${process.platform}-${process.arch}.txt`), `${lines.join("\n")}\n`);
+console.log(`Checksums generated for ${files.length} installer(s).`);

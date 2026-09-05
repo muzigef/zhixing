@@ -21,5 +21,7 @@ jobs:
       - name: Show runtime versions
         run: node --version && npm --version
       - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix desktop --no-audit --no-fund
       - run: npm run verify
+      - run: npm --prefix desktop run test:ui
       - run: npm audit --omit=dev --audit-level=high

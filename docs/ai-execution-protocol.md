@@ -9,7 +9,7 @@ AI 被授权在 `zhixing/` 内自主完成：创建和修改源代码、测试�
 
 没有用户相应授权时，AI 不得自主执行 Git commit/push、变更凭据、发送用户资料、删除或覆盖用户数据、调整系统权限、全局安装或破坏性命令。已有会话授权持续有效，不重复请求相同授权。任何情况下均不得读取或导出浏览器 Cookie、账号 token 或 CLI 认证文件；产品的受控 Provider/安全存储接口负责凭据使用。
 
-P10 已授权独立 Electron/React 桌面及 Pi Codex / DeepSeek 切换，边界见 [桌面计划](desktop-app-plan.md)。CLI 用户主题上下文和桌面有限会话上下文分别控制；桌面不直接接入 CLI 学习数据。
+P10 已授权独立 Electron/React 桌面及 Pi Codex / DeepSeek 切换，边界见 [桌面计划](desktop-app-plan.md)。CLI 用户主题上下文和桌面有限会话上下文分别控制；当前用户已授权通过共享 LearningApplication 接入学习工作区；聊天仍独立，资料外发须本会话授权。
 
 ## 2. 不可违反的开发约束
 
@@ -83,7 +83,7 @@ npm run smoke:mock
 
 涉及真实 Provider 时，mock 测试必须先全部通过；真实 smoke 只验证连通性和脱敏行为，不输入用户资料，不把模型输出当作功能验收唯一证据。
 
-`npm run verify` 已整合两套类型检查与上述测试。桌面交互变更额外执行 `npm --prefix desktop run test:ui`；交付安装包时指定实际 `.app` 重跑，见 [测试指南](TESTING.md)。CI 当前缺少桌面依赖安装，不能只凭工作流文件存在宣称干净 CI 通过。
+`npm run verify` 已整合两套类型检查与上述测试。桌面交互变更额外执行 `npm --prefix desktop run test:ui`；交付安装包时指定实际 `.app` 重跑，见 [测试指南](TESTING.md)。CI 已补两套依赖与 UI，但远端执行必须依据实际 Actions 结果，不能凭配置宣称通过。
 
 ## 6. 必须暂停并向用户报告的条件
 

@@ -8,7 +8,7 @@
 | 现象 | 处理 |
 | --- | --- |
 | Node 版本被拒绝，出现 `unsupported_node_version` | 源码开发及 CLI 要求 Node `24.8.x`。用 `node --version` 检查；切换到对应版本后，在仓库根目录执行 `npm ci`，再执行 `npm ci --prefix desktop`。已打包应用内附运行时，不要求另装 Node。 |
-| CLI 报 `better-sqlite3` 原生模块或 ABI 错误 | 确认安装依赖与运行 CLI 使用的是同一 Node `24.8.x` 和当前机器架构，再在根目录重新 `npm ci`。不要把 Electron 架构的原生模块复制给 CLI；桌面对话不使用该 SQLite 依赖。 |
+| CLI 报 `better-sqlite3` 原生模块或 ABI 错误 | 确认安装依赖与运行 CLI 使用的是同一 Node `24.8.x` 和当前机器架构，再在根目录重新 `npm ci`。不要把 Electron 架构的原生模块复制给 CLI；桌面独立使用 Electron ABI，执行 `npm --prefix desktop run prepare:runtime` 修复。 |
 | 只安装根依赖后，桌面或 `npm run verify` 报 React/Electron 类型缺失 | 两个目录有各自的锁文件。补执行 `npm ci --prefix desktop`；根质量检查也包含桌面类型检查。 |
 | GitHub Actions 在桌面类型检查失败，本机通过 | 当前 `.github/workflows/verify.yml` 只执行根目录 `npm ci`，随后 `npm run verify` 又检查桌面类型，存在未安装桌面依赖的配置缺口。不能将本机通过视为当前 CI 已覆盖；工作流需要补齐桌面依赖安装。 |
 | npm 报 `Exit handler never called` | 仓库工作流因历史 npm 11 安装故障固定了 npm `10.9.2`。先记录 `node --version`、`npm --version` 与失败步骤，对照工作流和锁文件定位；不要通过忽略安装退出码继续构建。 |
@@ -23,7 +23,7 @@
 | --- | --- |
 | CLI 提示 tutor 为 mock，无法自然多轮辅导 | `mock` 是初始路由和本地演示。已配置 Pi 时执行 `模型切换 tutor pi-codex --确认`；已配置 DeepSeek 时选择 `deepseek-api`。已有资料查询和确定性学习命令仍可本地使用。 |
 | 桌面只有固定演示回答 | 检查是否选择“离线演示”。它用于体验 UI，不调用模型；在设置中改选 Pi · Codex 或 DeepSeek API 后发送。 |
-| “当前已禁用联网模型。可以在设置中切换到离线演示。” / `live_provider_disabled` | 启动进程继承了 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。需要联网时在启动环境中移除此值并重启；需要本地演示时显式选择桌面 demo 或 CLI mock。该变量不会自动切换模型；某些 CLI 材料调用即使路由为 mock，也会先被外发授权门禁拒绝。 |
+| “当前已禁用联网模型。可以在设置中切换到离线演示。” / `live_provider_disabled` | 启动进程继承了 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。需要联网时在启动环境中移除此值并重启；需要本地演示时显式选择桌面 demo 或 CLI mock。该变量不会自动切换模型；本地 mock/demo 仍可用于离线流程。 |
 | `external_content_confirmation_required: routed`，尤其是测试时的“学习建议” | `collectInvocation` 在解析实际 Provider 前检查材料授权，而总开关会令 CLI 的 `confirmed` 为 false。标准质量检查按 `npm run verify` 运行；测试自身负责 mock 和临时目录，不应再把整个检查进程统一设为 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 并假定所有用例语义不变。 |
 | Pi 显示“未找到 Pi 的 Codex 模型配置” / `pi_configuration_required` | 在 Pi 中设置 `defaultProvider=openai-codex` 及有效 `defaultModel`，再刷新桌面设置或重试 CLI。默认推理强度为 `medium`。字段要求见[配置说明](CONFIGURATION.md#pi-codex-接入)。 |
 | CLI 能识别 Pi 模型，桌面不能 | 检查配置是否只存在仓库 `.pi/settings.json`。CLI 读取仓库级偏好，桌面读取应用数据 `runtime/.pi/settings.json`；通常应通过 Pi 的全局设置共享模型选择。另检查两种启动方式是否继承相同 `PI_CODING_AGENT_DIR`。 |
@@ -38,7 +38,7 @@
 | Codex 没有及时输出 | 先区分 `pi-codex` 和 `codex-cli`，检查对应的安装、模型与登录状态。输出时机受实际 Provider 影响，不能把“已启动进程”当成已连通；Pi 配置识别也不是首字延迟测试。 |
 | `provider_timeout`、回答只返回一部分或“等待回答超时” | CLI 两个 Codex 适配器上限为 150 秒，DeepSeek 为 60 秒；桌面总生成时限为 180 秒，但适配器的较短超时仍有效。保留部分内容，可点击重试/继续或输入追问；未完整结束的回答不算完成。 |
 | 切换 Provider 后当前回答仍使用旧模型 | 已开始的调用固定 Provider 和模型；切换影响下一次发送。桌面失败消息保留实际 Provider 标记，“切换到 DeepSeek 重试”会在原会话发起新请求。 |
-| “当前 tutor 适配器不支持知行工具调用” | `学习助手` 的多轮工具协议当前需要 `deepseek-api`。Pi Codex / Codex CLI 仍可纯文本问答；桌面当前只执行文本对话，没有资料工具入口。 |
+| “当前 tutor 适配器不支持知行工具调用” | `学习助手` 的多轮工具协议当前需要 `deepseek-api`。Pi Codex / Codex CLI 仍可纯文本问答；桌面 DeepSeek 在选定主题并勾选会话上下文授权后可用只读学习工具。 |
 
 Pi 的 `--offline` 只约束启动时的更新等网络操作，仍允许模型请求；它与知行的禁止联网开关不是一回事。环境变量及凭据优先级见[配置文档](CONFIGURATION.md)。
 
@@ -75,3 +75,12 @@ Pi 的 `--offline` 只约束启动时的更新等网络操作，仍允许模型�
 | SSE 收到了通知，但没有完整进度 | `progress` 事件载荷是 `topicId`、`command`、`at`，收到后再 GET 进度接口。主题范围在服务启动时固定，新建主题后需在后续重启的服务中访问。 |
 
 若 `npm run verify` 失败，按[测试文档](TESTING.md)运行对应单项检查缩小范围。报告问题时附系统/架构、版本、CLI 或桌面、所选 Provider、复现步骤及脱敏错误；不要提供用户资料、数据库、Key、认证文件或审计原文。
+
+## 新任务与产物
+
+- 待办重启后未自动执行：这是恢复规则，点击“继续待办”；停止会暂停整个队列。
+- 已勾选旧检查参数仍不能完成：布尔参数不再计入证据，使用“提交证据”或桌面产物面板。
+- 测试结果消失：实现/测试脚本的哈希改变后旧结果不再对应当前产物，重新运行。
+- 本地测试 unavailable：当前只有 macOS sandbox-exec 已验证；不会无约束执行。
+- 长段落出处不对：新检索引用带 chunkId，可精确定位；旧对话引用仍按页码/锚点兼容读取。
+- 原工作区会话不能继续：连接回对应工作区，或新建对话；不会跨工作区混合资料。

@@ -1,3 +1,4 @@
+import { DiagnosticsPanel } from "./diagnostics-panel.js";
 import {
   StrictMode,
   memo,
@@ -48,6 +49,9 @@ import type {
 } from "../core/contracts.js";
 import "katex/dist/katex.min.css";
 import "./styles.css";
+import { LearningPanel } from "./learning-panel.js";
+import type { Citation } from "../../src/contracts.js";
+import type { LearningSource } from "../../src/learning-contracts.js";
 
 declare global {
   interface Window {
@@ -151,6 +155,11 @@ function App() {
   const [sending, setSending] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [contextAllowed, setContextAllowed] = useState(false);
+  const [learningOpen, setLearningOpen] = useState(false);
+  const [source, setSource] = useState<LearningSource>();
+  const [contextOpen, setContextOpen] = useState(false);
   const currentId = useRef<string | null>(null);
   const draftRef = useRef("");
   const input = useRef<HTMLTextAreaElement>(null);
@@ -187,6 +196,8 @@ function App() {
       currentId.current = id;
       localStorage.setItem("last-session", id);
       setSession(value);
+      setSelectedTopic(value.topicId ?? "");
+      setContextAllowed(value.contextAllowed ?? false);
       setDraft(drafts.current[id] ?? "");
       setError("");
       setMenuOpen(false);
@@ -315,8 +326,19 @@ function App() {
   async function send(
     text = draftRef.current,
     providerOverride?: DesktopSettings["provider"],
+    steer = false,
   ) {
-    if (!text.trim() || activeId || sending) return;
+    if (!text.trim() || sending) return;
+    if (activeId) {
+      if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
+      setSending(true); setDraft("");
+      try {
+        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, steer });
+        notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
+      } catch (problem) { setError(messageOf(problem)); setDraft((previous) => previous || text); }
+      finally { setSending(false); }
+      return;
+    }
     setSending(true);
     setError("");
     stickToBottom.current = true;
@@ -346,6 +368,7 @@ function App() {
         text,
         provider: providerOverride ?? settings.provider,
         style: settings.style,
+        ...(selectedTopic ? { topicId: selectedTopic, contextAllowed } : {}),
       });
     } catch (problem) {
       setError(messageOf(problem));
@@ -493,6 +516,7 @@ function App() {
                     onClick={() => setMenuOpen(false)}
                   />
                   <div className="popover">
+                    <button disabled={isCurrentRunning} onClick={() => { setContextOpen(true); setMenuOpen(false); }}>任务目标与约束</button>
                     <button
                       disabled={isCurrentRunning}
                       onClick={() => {
@@ -525,6 +549,14 @@ function App() {
             </div>
           )}
         </header>
+        {boot?.workspace && <div className="learning-toolbar">
+          <label>学习主题 <select aria-label="学习主题" value={selectedTopic} disabled={!!activeId} onChange={(event) => {
+            if (hasMessages) newChat();
+            setSelectedTopic(event.target.value); setContextAllowed(false);
+          }}><option value="">自由对话</option>{boot.workspace.topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}</select></label>
+          <button onClick={() => setLearningOpen(true)}><BookOpen size={14} />课程与资料</button>
+          {selectedTopic && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId} onChange={(event) => setContextAllowed(event.target.checked)} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
+        </div>}
         {error && (
           <div className="error-banner" role="alert">
             <CircleHelp size={16} />
@@ -617,6 +649,9 @@ function App() {
                     );
                   }}
                   canSend={!activeId && !sending}
+                  onSource={(citation) => {
+                    void invoke<LearningSource>({ type: "learning-source", topicId: session.topicId ?? citation.topicId, citation }).then(setSource).catch((problem) => setError(messageOf(problem)));
+                  }}
                   onOpenLink={(url) => {
                     void invoke({ type: "open-link", url }).catch((problem) =>
                       setError(messageOf(problem)),
@@ -628,6 +663,11 @@ function App() {
           )}
         </div>
         <div className="composer-region">
+          {!!session?.pendingRequests?.length && <div className="pending-requests" aria-label="待发送消息">
+            <div><strong>{isCurrentRunning && !session.queuePaused ? "接下来" : "已暂停的待办"} · {session.pendingRequests.length}</strong>{!activeId && <button onClick={() => void invoke({ type: "resume-queue", sessionId: session.id }).catch((problem) => setError(messageOf(problem)))}>继续待办</button>}</div>
+            {session.queueError && <p role="alert">{session.queueError}</p>}
+            {session.pendingRequests.map((item) => <div key={item.id}><span>{item.text}</span><button aria-label={`撤回 ${item.text.slice(0, 30)}`} onClick={() => void invoke({ type: "withdraw", sessionId: session.id, requestId: item.id }).catch((problem) => setError(messageOf(problem)))}>撤回</button></div>)}
+          </div>}
           {!atBottom && hasMessages && (
             <button
               className="scroll-bottom"
@@ -676,7 +716,7 @@ function App() {
                   event.keyCode !== 229
                 ) {
                   event.preventDefault();
-                  if (!activeId) void send();
+                  void send();
                 }
               }}
             />
@@ -718,6 +758,10 @@ function App() {
                 </select>
               </label>
               <div className="composer-spacer" />
+              {isCurrentRunning && <>
+                <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send()}>排队</button>
+                <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send(draftRef.current, undefined, true)}>立即调整</button>
+              </>}
               {draft.length > 18_000 && (
                 <span className="char-count">{draft.length}/20000</span>
               )}
@@ -756,7 +800,7 @@ function App() {
                   ? "通过 DeepSeek API 直接连接"
                   : "使用你在 Pi 中配置的 Codex 模型"}
             </span>
-            <span>Enter 发送 · Shift + Enter 换行</span>
+            <span>{isCurrentRunning ? "Enter 排队" : "Enter 发送"} · Shift + Enter 换行</span>
           </div>
         </div>
       </main>
@@ -802,6 +846,16 @@ function App() {
           }}
         />
       )}
+      {learningOpen && boot?.workspace && <Modal title="课程与资料" className="learning-modal" onClose={() => setLearningOpen(false)}>
+        <LearningPanel workspace={boot.workspace} topicId={selectedTopic} busy={!!activeId} onWorkspace={(value) => { setBoot(value); newChat(); setSelectedTopic(""); setContextAllowed(false); }} onDiscuss={(text) => { setLearningOpen(false); setDraft(text); input.current?.focus(); }} />
+      </Modal>}
+      {source && <Modal title={`资料来源 · ${source.citation.documentName}`} className="learning-modal" onClose={() => setSource(undefined)}>
+        <p>{source.citation.pageNumber ? `第 ${source.citation.pageNumber} 页` : source.citation.anchor ?? "文档开头"}</p><pre className="source-excerpt">{source.text}</pre>{source.truncated && <p>当前展示部分原文，可用更具体的问题继续检索。</p>}
+      </Modal>}
+      {contextOpen && session && <ContextDialog session={session} onClose={() => setContextOpen(false)} onSave={async (goal, notes) => {
+        try { await invoke({ type: "context", sessionId: session.id, goal, notes }); setContextOpen(false); }
+        catch (problem) { setError(messageOf(problem)); }
+      }} />}
     </div>
   );
 }
@@ -815,6 +869,7 @@ const Message = memo(
     onSwitch,
     canSend,
     onOpenLink,
+    onSource,
   }: {
     message: ChatMessage;
     elapsed: number;
@@ -824,6 +879,7 @@ const Message = memo(
     onSwitch: () => void;
     canSend: boolean;
     onOpenLink: (url: string) => void;
+    onSource: (citation: Citation) => void;
   }) {
     if (message.role === "user")
       return (
@@ -846,6 +902,7 @@ const Message = memo(
             </span>
           )}
         </div>
+        {!!message.activities?.length && <details className="task-activities"><summary>任务进展 · {message.activities.length} 项活动</summary><ul>{message.activities.map((activity, index) => <li key={index}>{activity.status === "completed" ? "✓" : activity.status === "failed" ? "!" : "…"} {activity.label}</li>)}</ul></details>}
         <div className="markdown">
           <Markdown
             remarkPlugins={[remarkGfm, remarkMath]}
@@ -876,6 +933,7 @@ const Message = memo(
             {message.text}
           </Markdown>
         </div>
+        {!!message.citations?.length && <div className="source-list" aria-label="资料来源">{message.citations.map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{index + 1}. {citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</div>}
         {message.status === "running" && (
           <div className="generation-status" role="status">
             <span className="typing-dots">
@@ -1240,10 +1298,11 @@ function SettingsDialog({
           </select>
         </label>
       </div>
+      <DiagnosticsPanel />
       <div className="settings-footer">
         <Brand />
         <span>
-          知行桌面版 <b>0.2.0</b>
+          知行桌面版
           <small>
             会话与偏好保存在此设备；选择联网模型时，会发送当前对话的有限上下文。
           </small>
@@ -1251,6 +1310,17 @@ function SettingsDialog({
       </div>
     </Modal>
   );
+}
+function ContextDialog({ session, onClose, onSave }: { session: ChatSession; onClose: () => void; onSave: (goal: string, notes: string) => Promise<void> }) {
+  const [goal, setGoal] = useState(session.context?.goal ?? "");
+  const [notes, setNotes] = useState(session.context?.notes ?? "");
+  return <Modal title="任务目标与约束" onClose={onClose}>
+    <p className="modal-description">在这段对话中持续保留，切换模型或重启后仍然有效。最新明确纠正优先。</p>
+    <label className="context-field">任务目标<textarea aria-label="任务目标" maxLength={4000} value={goal} onChange={(event) => setGoal(event.target.value)} /></label>
+    <label className="context-field">明确约束与偏好<textarea aria-label="明确约束与偏好" maxLength={4000} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="例如：用中文解释；先给结论；保留引用" /></label>
+    {session.context?.summary && <details className="task-activities"><summary>较早对话的摘要</summary><p>{session.context.summary}</p></details>}
+    <div className="modal-actions"><button onClick={onClose}>取消</button><button className="primary" onClick={() => void onSave(goal, notes)}>保存</button></div>
+  </Modal>;
 }
 function RenameDialog({
   title,

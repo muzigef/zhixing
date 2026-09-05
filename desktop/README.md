@@ -1,17 +1,17 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行桌面版
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.2.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.3.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.3 使用指南](../docs/agent-upgrade.md)。完整项目介绍见 [根 README](../README.md)。
 
 ## 安装和使用
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/Zhixing-0.2.0-mac-arm64.dmg`。
+1. 打开本目录下的 `release/Zhixing-0.3.0-mac-arm64.dmg`。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
-`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证或自动更新发布；Windows 仅提供 x64 NSIS 构建配置，Windows 与 Intel Mac 尚未实机验收。产物及已验证范围见 [2026-09-05 验收记录](../docs/evidence/desktop-app.md)。
+`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，Windows 与 Intel Mac 尚未实机验收。产物及已验证范围见 [2026-09-05 验收记录](../docs/evidence/desktop-app.md)。
 
 应用内附 Electron 和 Pi `0.80.7`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。
 
@@ -69,13 +69,15 @@ Zhixing/
   preferences.json
   deepseek.credential       # 添加新 Key 后创建
   runtime/
+  workspace.json           # 显式连接的工作区路径
+  workspace/               # 默认学习工作区
 ```
 
 草稿和最近会话标识另存于应用 localStorage。源码启动和已安装应用默认使用同一桌面数据目录；不会自动迁移、合并或同步 CLI 的会话、资料和学习进度。
 
-每个会话最多 1,000 条消息，达到上限需要新建；会话文件最多 12,000,000 字节。单次输入最多 20,000 字符，回答最多 64,000 字符；发送给模型的历史最多 24 条、48,000 字符，再加本次输入和提示词，较早的本地历史不会因上下文裁剪被删除。生成总时限为 180 秒，DeepSeek 的 60 秒或 Pi 的 150 秒适配器超时可能先结束请求。
+每个会话最多 1,000 条消息，达到上限需要新建；会话文件最多 12,000,000 字节。单次输入最多 20,000 字符，回答最多 64,000 字符；发送给模型的历史最多 24 条、40,000 字符，再加本次输入、约束、摘要和授权的学习上下文，较早的本地历史不会因上下文裁剪被删除。生成总时限为 180 秒，DeepSeek 的 60 秒或 Pi 的 150 秒适配器超时可能先结束请求。
 
-第一版桌面入口覆盖学习对话。课程、资料导入、引用检索、练习进度等既有功能仍通过 CLI 使用，尚未搬入桌面界面。
+0.3 已提供主题、课程、资料导入/引用、进度和证据验收入口；CLI 的个性化课程生成、长期记忆管理等高级管理命令仍保留在 CLI。连接工作区共用学习数据，聊天仍分别保存。
 
 会话使用原子文件写入，重启后未结束的回答显示为中断。正常停止会保存部分文本；进程被强制结束仍可能丢失尚未落盘的增量。损坏文件会保留，不会自动清空整个会话目录。
 
@@ -101,7 +103,7 @@ npm --prefix desktop run build
 npm --prefix desktop run test:ui
 ```
 
-`verify` 包含根/桌面类型检查和核心单元测试，但不启动 Electron UI。`test:ui` 需要已有构建，在隔离临时数据目录启动真实 Electron，禁用真实 Provider 并使用临时 Pi 偏好，不读取真实认证。测试涵盖内附 Pi 在清空 PATH 后启动、流式文本、数学、复制、导出、取消、历史、草稿、中文输入法、模型切换、设置恢复和窄窗口；结束后清理测试数据。测试结果不能证明真实 Provider 已认证。
+`verify` 包含根/桌面类型检查和核心单元测试，但不启动 Electron UI。`test:ui` 自动准备运行时并构建，在隔离临时数据目录启动真实 Electron，禁用真实 Provider 并使用临时 Pi 偏好，不读取真实认证。测试涵盖内附 Pi 在清空 PATH 后启动、流式文本、数学、复制、导出、取消、历史、草稿、中文输入法、模型切换、设置恢复和窄窗口；结束后清理测试数据。测试结果不能证明真实 Provider 已认证。
 
 手动执行 `ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop` 会禁用真实 Provider，但仍使用正常数据目录，且不会自动选择离线演示；需要在设置中自行选择。环境变量只影响启动后的进程，不会更改已运行应用的环境。
 
@@ -113,7 +115,7 @@ npm --prefix desktop run test:ui
 npm --prefix desktop run dist:mac
 ```
 
-该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.2.0-mac-arm64.dmg` / `.zip`。构建不会自动签名、公证、上传 GitHub Release 或安装到 Applications。
+该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.3.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
 
 验证实际 `.app` 时，在 `desktop/` 内执行：
 
@@ -156,3 +158,9 @@ node desktop/scripts/check-deepseek.mjs --live
 复用仓库 `src/pi-client.ts`、`src/deepseek-client.ts`、`responseGuidelines` 的协议校验与对话规则。Pi 禁止模型工具执行，主进程只向 renderer 提供受校验的命令与消息；凭据不会回传到 renderer。
 
 继续阅读 [配置](../docs/CONFIGURATION.md)、[开发](../docs/DEVELOPMENT.md)、[测试](../docs/TESTING.md) 和 [架构](../docs/architecture.md)。
+
+## 学习任务与发布
+
+选择主题并打开“课程与资料”管理学习日、资料和真实证据；模型使用学习上下文需勾选本会话授权。运行时支持排队、立即调整、停止后暂停队列与重启后手动恢复。具体操作及 CLI 等价命令见 [升级指南](../docs/agent-upgrade.md)。
+
+`npm run prepare:runtime` 检查项目内 Electron 二进制和 SQLite ABI；`start`、`pack`、`dist:mac`、`dist:win` 与 `test:ui` 会自动调用。`npm run dist:host` 构建本机平台/架构，`npm run checksums` 生成安装器 SHA-256。GitHub Actions 的 `desktop-release` 工作流构建 macOS/Windows，验证实际应用并上传产物；tag 构建创建待发布草稿。远端执行、Windows 实机及签名/公证的真实结果单独验收。

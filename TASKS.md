@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 核对日期：2026-09-05，代码基线 `6b87f51`。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
+> 核对日期：2026-09-05，本轮基于 `e072512` 的 0.3 升级。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
 > 状态：`[x]` 已验证，`[~]` 基础实现/待收口，`[ ]` 未开始。
 > 历史 P0 分解见 [P0 自动执行 Tasklist](docs/p0-tasklist.md)。
 
@@ -86,12 +86,21 @@
 - [x] macOS Apple Silicon `.app` / DMG / ZIP 已构建，DMG 完整性检查通过。
 - [x] DeepSeek 真实短请求返回 `4`：首字 2.317 秒，总耗时 2.383 秒。
 - [ ] Windows 实机验收、Intel Mac 构建及 Apple Developer ID 签名/公证。
-- [ ] 课程、资料与进度功能的桌面入口（现有 CLI 功能保留）。
-- [ ] CI 安装桌面依赖：现有 workflow 只安装根依赖，而 `verify` 已包含桌面类型检查；本次文档维护已登记，尚未改动 CI。
+- [x] 课程、资料与进度桌面入口已在 P11 共享应用服务中实现并验收。
+- [x] CI 安装根目录与桌面依赖，增加 Electron UI；另有 macOS/Windows 构建与实际包 UI 流水线。远端运行结果仍待验收。
 - 验收记录见 [桌面应用](docs/evidence/desktop-app.md)，使用说明见 [桌面版 README](desktop/README.md)。
 
-## 当前前台下一项
+## P11：学习 Agent 架构与任务体验
 
-**P10 第一版已完成 macOS Apple Silicon 本地验收；DeepSeek 的当次真实短请求通过。Pi Codex 登录仍待恢复；平台、学习功能与正式分发的下一步由用户任务决定。**
+- [x] 共享 LearningApplication：桌面与 CLI 课程、进度、资料、证据；显式工作区连接，无聊天迁移。
+- [x] 长历史目标保留、资料无损分块/精确引用、完整计划校验、导入取消/重试/并发去重、mock 禁外发和数字主题修复。
+- [x] 共享受控模型/工具循环与任务步骤；持久目标/约束、可选上下文整理；队列/纠正/停止/撤回/重启后手动恢复。
+- [x] 实际产物哈希校验与来源，旧布尔标志失效；macOS 受限 JS 测试，结果绑定当前产物，报告与实际运行区分。
+- [x] 固定自动验收/人工质量集、分 Provider 耗时诊断、主动公开版本检查。
+- [x] Electron/SQLite ABI 准备；平台构建、实包 UI、SHA-256 和 draft release 工作流。
+- [x] 本地 verify：64 文件 / 306 测试；专项 eval：4 文件 / 15 测试；两套开发/打包 UI；macOS 0.3.0 DMG 校验。
+- [x] 当前文档、指南、Backlog 和 Evidence 同步；历史验收记录保留。
 
-本轮为全量文档同步，未扩展功能或重新打包。当前能力见 [功能与验收](docs/features-and-acceptance.md)，本次核对记录见 [文档同步](docs/evidence/documentation-sync.md)。计划解析、分块保真与 CI 等已知缺口见 [数据契约](docs/data-and-quality-spec.md) 和 [Backlog](docs/implementation-backlog.md)。
+## 当前状态
+
+P11 本机可执行开发与 macOS 验收完成，详见 [升级 Evidence](docs/evidence/agent-upgrade.md) 和 [使用指南](docs/agent-upgrade.md)。没有重跑真实 Pi/DeepSeek 请求。Windows/Intel Mac 实机、签名/公证、远端 Actions 与真实模型质量/速度仍需对应环境，不算作已验收。下一步边界见 [Backlog](docs/implementation-backlog.md)。

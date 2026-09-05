@@ -10,11 +10,17 @@ export class LocalSyncServer {
   constructor(private readonly progress: (topicId: TopicId) => Promise<unknown>, private readonly validTopics: readonly TopicId[]) {}
   async listen(port = 0): Promise<number> {
     this.#server = http.createServer(async (request, response) => {
-      const match = /^\/topics\/([a-z][a-z0-9-]*)\/(progress|events)$/.exec(request.url ?? "");
+      const match = /^\/topics\/([a-z0-9][a-z0-9-]*)\/(progress|events)$/.exec(request.url ?? "");
       if (!match || !isLoopbackAddress(request.socket.remoteAddress)) { response.writeHead(404).end(); return; }
-      const topicId = topicIdSchema.parse(match[1]);
+      const parsed = topicIdSchema.safeParse(match[1]);
+      if (!parsed.success) { response.writeHead(404).end(); return; }
+      const topicId = parsed.data;
       if (!this.validTopics.includes(topicId)) { response.writeHead(404).end(); return; }
-      if (match[2] === "progress" && request.method === "GET") { response.writeHead(200, { "content-type": "application/json" }); response.end(JSON.stringify(await this.progress(topicId))); return; }
+      if (match[2] === "progress" && request.method === "GET") {
+        try { const progress = await this.progress(topicId); response.writeHead(200, { "content-type": "application/json" }); response.end(JSON.stringify(progress)); }
+        catch { response.writeHead(500).end(JSON.stringify({ error: "progress_unavailable" })); }
+        return;
+      }
       if (match[2] !== "events" || request.method !== "GET") { response.writeHead(405).end(); return; }
       response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
       response.write(`event: ready\ndata: ${JSON.stringify({ topicId })}\n\n`);

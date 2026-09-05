@@ -28,13 +28,13 @@ export class LearningNotebook {
     } catch { return "未开始"; }
   }
 
-  async review(topicId: TopicId, dayId: string, evidence: EvidenceInput, verdict: ReviewVerdict): Promise<void> {
+  async review(topicId: TopicId, dayId: string, evidence: EvidenceInput, verdict: ReviewVerdict, provenance?: string): Promise<void> {
     const file = this.dayFile(topicId, dayId);
     const current = await fs.readFile(file, "utf8");
     const nextState = verdict.outcome === "advance" ? "完成" : "进行中";
     const review = `### ${new Date().toISOString()}\n- verdict：${verdict.outcome}\n- score：${verdict.score}/8\n- 缺失：${verdict.missing.length ? verdict.missing.join("、") : "无"}\n- 下一步：${verdict.nextAction}\n- 证据：实现=${evidence.implementation}，测试=${evidence.testOutput}，失败案例=${evidence.failureCase}，复盘=${evidence.reflection}\n\n`;
     const withState = current.replace(/> 状态：(进行中|完成)/, `> 状态：${nextState}`);
-    await atomicWrite(file, `${withState.replace("## Review\n\n", `## Review\n\n${review}`)}`);
+    await atomicWrite(file, `${withState.replace("## Review\n\n", `## Review\n\n${review}${provenance ? `证据来源与校验：${provenance}\n\n` : ""}`)}`);
     await this.updateProgress(topicId, dayId, nextState, `${verdict.score}/8`);
   }
 

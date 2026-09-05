@@ -3,24 +3,24 @@
 
 知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面对话应用，以及管理主题、资料、课程和学习进度的 CLI / REPL。
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.2.0`。两者复用模型适配器和回答规范，会话、偏好与学习数据分别保存。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.3.0`。两者复用学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 | 入口 | 当前能力 | 默认模型设置 |
 | --- | --- | --- |
 | 桌面版 | 连续对话、流式回答、公式排版、会话搜索与恢复、草稿、停止/继续/重试、复制和 Markdown 导出 | 新数据目录默认 `pi-codex`；可切换 `deepseek-api` 或离线 `demo` |
 | CLI / REPL | 主题、资料库、课程与进度、个性化计划、教学练习、证据 Review、受控学习工具 | 无本地路由设置时，tutor / reviewer / lab 均为 `mock` |
 
-桌面版目前只接入文本对话；CLI 的资料导入、检索工具、课程和进度管理尚未接入桌面。
+桌面现已接入课程、进度、资料导入与引用、真实产物验收、任务排队与纠正、持久目标及耗时诊断。完整使用步骤见 [0.3 升级指南](docs/agent-upgrade.md)。
 
 ## 快速开始
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.2.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.3.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
-安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。Windows 仅有 NSIS 构建配置，Windows 和 Intel Mac 尚未验收。
+安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。已有 macOS/Windows 构建与 draft release 流水线；Windows 和 Intel Mac 尚未实机验收。设置可主动检查公开新版本，不会自动替换安装。
 
 桌面安装、快捷键和平台构建步骤见 [桌面版 README](desktop/README.md)。
 
@@ -60,7 +60,7 @@ npm run repl
 /status
 ```
 
-执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 普通聊天保留最近 6 轮，每轮用户输入和回答各保留最多 8,000 字符；这与桌面的保存和上下文限制不同。
+执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 普通聊天保留最近 6 轮，每轮用户输入和回答各保留最多 8,000 字符，另行保存最初目标；这与桌面的保存和上下文限制不同。
 
 RAG 课程要求先完成 `agent-development/D01` 和 `D02`；上面的入门示例从无跨主题前置条件的 Agent 开发主题开始。
 
@@ -130,7 +130,7 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 - 要练习时说 `开始练习`、`来一道题` 或 `出两道题`；默认一题，明确数量和题型时按要求生成。旧口令 `没有问题，开始练习` 仍兼容。
 - 练习中可说 `给答案`、`给出参考解析`、`换一道题`；索要提示或答案不会记作用户作答。
 - 只有实际输入且可验证的作答会进入批改；模型不能把自己的内容当成用户答案。
-- 完成后使用 `检查 DNN --实现 --测试 --失败 --复盘` 提交证据。
+- 先用 `提交证据 DNN <implementation|testOutput|failureCase|reflection> <实际内容>` 保存产物，再执行 `检查 DNN`。旧布尔参数不再作为证据；分数表示完整性，不是掌握程度。
 
 `/style concise`、`/style balanced`、`/style detailed` 分别设置当前主题的简洁、适中、详细风格，重启后保留；也支持 `回答风格 简洁` 等中文形式。本轮的“只要结论”“详细推导”“用表格”等要求优先于默认风格。
 
@@ -181,7 +181,7 @@ Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录�
 
 两种 Pi 接入都使用 JSON 文本流、临时会话、同一工具守卫和空工具列表。CLI 的普通问答、教学、计划生成和资料问答由知行自身流程处理；Pi 的文件与命令工具不开放给模型。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
 
-设置进程环境变量 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。CLI 发送当前任务的受限主题上下文；桌面发送本轮输入和受限的当前会话历史。Provider 所需凭据仅用于认证，不拼入模型提示词；审计原文和其他主题资料不加入上下文。资料正文的额外授权规则见 [配置说明](docs/CONFIGURATION.md)。
+设置进程环境变量 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。CLI 发送当前任务的受限主题上下文；桌面发送本轮输入、目标、约束、受限历史及可选摘要；只有授权会话才增加当前主题学习上下文。Provider 所需凭据仅用于认证，不拼入模型提示词；审计原文和其他主题资料不加入上下文。资料正文的额外授权规则见 [配置说明](docs/CONFIGURATION.md)。
 
 ## 安全与运行模型
 
@@ -195,7 +195,7 @@ Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录�
 
 输入 `诊断` 可查看当前主题、Provider、教学检查点、资料、记忆、提醒与最近运行摘要。
 
-桌面使用独立的对话服务和 JSON 存储，不使用 CLI 的 SQLite 运行账本。renderer 开启 sandbox、context isolation 和本地内容策略；文件导出、系统剪贴板、外部链接、模型请求与密钥保存均通过受校验的主进程命令。桌面当前不执行学习工具或文件/命令工具。
+桌面聊天使用独立 JSON 存储，学习功能通过共享 LearningApplication 操作工作区 SQLite 与笔记；模型任务记录统一运行步骤。renderer 开启 sandbox、context isolation 和本地内容策略；文件导出、系统剪贴板、外部链接、模型请求与密钥保存均通过受校验的主进程命令。桌面 DeepSeek 可执行受授权的只读学习工具；任意文件或 Shell 工具不开放给模型。
 
 ## 数据目录
 
@@ -222,9 +222,11 @@ Zhixing/
   preferences.json     # 桌面 Provider、模型、风格和主题
   deepseek.credential  # 可选的系统加密 Key
   runtime/             # 内附 Pi 的隔离调用工作目录
+  workspace.json       # 用户显式选择的工作区路径
+  workspace/           # 未连接 CLI 工作区时的默认学习数据
 ```
 
-每会话最多 1,000 条消息，单条输入最多 20,000 字符、回答最多 64,000 字符，会话文件最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。发送给模型的历史最多 24 条、48,000 字符，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
+每会话最多 1,000 条消息，单条输入最多 20,000 字符、回答最多 64,000 字符，会话文件最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。历史选取最多 24 条，目标与历史片段使用约 40,000 字符预算；当前输入、约束、摘要和受授权学习上下文另计，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
 
 ## 验证
 
@@ -236,9 +238,11 @@ npm --prefix desktop run build
 npm --prefix desktop run test:ui
 ```
 
-`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 使用隔离数据和禁用真实 Provider 的环境启动 Electron，需先构建。
+`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行原有和学习流程两套 UI 回归。
 
-按 [2026-09-05 桌面验证记录](docs/evidence/desktop-app.md)，当时质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。Pi 模型偏好和内附运行环境的验证不等于 Codex 登录完成，后者仍未通过真实调用验收。这些是已有验证记录，不代表每次阅读本文时重新运行过检查。
+历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。Pi 模型偏好和内附运行环境的验证不等于 Codex 登录完成，后者仍未通过真实调用验收。这些是已有验证记录，不代表每次阅读本文时重新运行过检查。
+
+本轮完整命令、测试数量和实际 0.3 包验收见 [升级 Evidence](docs/evidence/agent-upgrade.md)。
 
 ## 文档
 

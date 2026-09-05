@@ -1,12 +1,13 @@
 # 验证证据索引
 
-截至 2026-09-05，代码基线为 `6b87f51`。Evidence 是各次实际执行的快照：保留原始测试数量、失败和未验证项，不将历史结果追改成今天的结果。现行功能见 [功能与验收](../features-and-acceptance.md)，配置见 [配置](../CONFIGURATION.md)。
+截至 2026-09-05，最新本地开发是基于 `e072512` 的桌面 0.3 升级。Evidence 是各次实际执行的快照：保留原始测试数量、失败和未验证项，不将历史结果追改成今天的结果。现行功能见 [功能与验收](../features-and-acceptance.md)，配置见 [配置](../CONFIGURATION.md)。
 
 ## 最近交付
 
 | 记录 | 范围与适用性 |
 | --- | --- |
-| [文档同步](documentation-sync.md) | 本轮按代码核对全部项目文档、修正事实与链接、记录现存缺口 |
+| [0.3 学习任务升级](agent-upgrade.md) | 共享学习服务、任务/上下文、真实产物、本地验证、306 个测试、开发/实包 UI 与 0.3 DMG；外部验收单列 |
+| [文档同步](documentation-sync.md) | 此前按代码核对全部项目文档、修正事实与链接、记录现存缺口 |
 | [P10 桌面应用](desktop-app.md) | macOS arm64 本地 `.app`/DMG/ZIP、281 个测试、开发与打包应用 UI、DeepSeek 最小真实请求；Pi 认证与 Windows 未通过真实验收 |
 | [P9 Pi Codex](pi-codex-integration.md) | 配置继承、协议/取消/身份校验；当时 267 个测试，真实认证失败 |
 | [P8 连续对话](fluent-conversation-audit.md) | 持久聊天、输入队列、即时停止/调整、多行输入；当时 249 个测试 |

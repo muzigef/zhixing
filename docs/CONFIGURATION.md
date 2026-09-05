@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # 配置
 
-知行有 CLI 学习工作区和独立桌面对话两套配置。CLI 默认使用 `mock`；桌面首次启动默认选择 `pi-codex`。两者可复用 Pi 的全局模型偏好及 macOS 上已有的知行 DeepSeek Keychain 项，但不会自动同步模型选择、会话或学习资料。
+知行有 CLI 学习工作区和桌面对话两套偏好配置。CLI 默认使用 `mock`；桌面首次启动默认选择 `pi-codex`。两者可复用 Pi 的全局模型偏好及 macOS 上已有的知行 DeepSeek Keychain 项，模型选择和聊天独立；学习资料可通过显式连接同一工作区共用。
 
 ## 运行时与环境变量
 
@@ -80,9 +80,10 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 | `preferences.json` | Provider、回答风格、主题及 DeepSeek 模型。 |
 | `conversations/<UUID>.json` | 每个会话的完整消息和状态，最多 1,000 条消息；达到上限后需新建会话。 |
 | `deepseek.credential` | 新添加 API Key 的系统加密数据，不是 JSON 或明文配置。 |
+| `workspace.json` / `workspace/` | 显式连接的工作区路径 / 默认学习数据根。连接已有 CLI 根时不迁移用户数据。 |
 | `runtime/` | Pi 子进程的工作目录；应用启动时复制专用 `AGENTS.md`，不会加载开发仓库的学习资料。 |
 
-输入草稿及最后打开的会话还保存在本机桌面渲染器的 `localStorage`（`drafts`、`last-session`），不在 `preferences.json` 中。会话、偏好和凭据不会自动迁移到另一台设备，也不与 CLI 数据库同步。
+输入草稿及最后打开的会话还保存在本机桌面渲染器的 `localStorage`（`drafts`、`last-session`），不在 `preferences.json` 中。会话、偏好和凭据不会自动迁移到另一台设备，学习数据由显式选择的工作区共享，不执行后台复制。
 
 首次使用、尚无偏好文件时的配置：
 
@@ -125,7 +126,7 @@ npm start -- 模型切换 tutor deepseek-api --确认
 
 桌面 Key 要求去除首尾空白后长度为 8–4,096 字符且不含空白字符。已有加密文件解密失败时会报错，不会再偷偷使用旧 Keychain 项。设置页只显示“是否配置/来源”，不会回填 Key；“已配置”也不等于余额、Key 有效性或网络已验证。真实系统加密写入及模型连接的验证范围见[桌面验证记录](evidence/desktop-app.md)。
 
-DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`，目前没有用户可配置的 base URL 设置。它使用 SSE 文本/工具协议并显式发送 `thinking: {"type":"disabled"}`。CLI 和桌面共用适配器；桌面对话只消费文本，不执行工具调用。默认单次 DeepSeek 请求超时为 60 秒。
+DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`，目前没有用户可配置的 base URL 设置。它使用 SSE 文本/工具协议并显式发送 `thinking: {"type":"disabled"}`。CLI 和桌面共用适配器；桌面选定主题并授权学习上下文后，可调用只读进度、资料目录和检索工具。默认单次 DeepSeek 请求超时为 60 秒。
 
 ## Pi Codex 接入
 
@@ -158,7 +159,7 @@ CLI 另有 `codex-cli`，复用已安装、已登录的官方 Codex CLI，调用
 
 需要区分三种行为：
 
-- `ZHIXING_ALLOW_LIVE_PROVIDER=0` 是真实 Provider 请求的拒绝开关，产生 `live_provider_disabled`；部分 CLI 调用会先在外发授权检查处被拒绝。该检查按 `containsUserMaterials` 与 `confirmed` 判断，不区分实际路由，因此某些带材料的调用（如“学习建议”）即使路由为 mock 也可能报 `external_content_confirmation_required`。它不保证所有命令仍能产生本地答案。
+- `ZHIXING_ALLOW_LIVE_PROVIDER=0` 禁止真实 Provider 请求与桌面版本网络检查；不会自动切换 Provider。本地 mock 路由的受控材料调用仍可运行，E40 已用明确禁外发环境覆盖该边界。
 - CLI `mock` 只用于本地学习流程/协议演示；自然多轮辅导会提示切换真实 Provider。桌面 `demo` 输出固定的离线演示内容，用于体验界面，也不是真实模型。
 - Pi 的 `--offline` 与前两者不同，仍允许本次模型请求。
 
@@ -166,13 +167,13 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 选择真实模型后，CLI 会发送当前主题的受限上下文：资料问答包括检索证据，学习建议包括学习画像与资料名称，教学/答疑/练习包括当天学习卡、受限画像、相关记忆及必要对话。学习助手可查询进度和资料目录，正文检索额外要求本次命令的 `--允许外发`，不会继承上一轮标志。模型生成的动作草案仍须通过 schema 校验及 CLI 授权后执行；包含导入、删除、恢复或模型切换的草案需强确认。用户直接输入“导入资料”已是显式导入操作，不另要求 `--确认`；删除、恢复和模型切换仍要求该标志。
 
-桌面只发送当前请求与最近最多 24 条、累计最多 48,000 字符的历史消息，不导入 CLI 学习资料。桌面单次输入上限为 20,000 字符，回答上限为 64,000 字符，总生成时限为 180 秒；Provider 自身的较短超时仍生效。这些限制目前由代码固定，没有用户可调配额或超时设置。
+桌面发送当前请求、持久目标/约束、受限历史与可选摘要；最多 24 条历史，目标和历史片段约 40,000 字符预算，其他提示另计。勾选“本会话使用学习上下文”后加入当前主题进度、课程与最多 3 条资料片段；取消授权后新请求不再检索本地资料，已发送/写入历史的内容不会被自动抹除。输入最多 20,000 字符、回答最多 64,000 字符，总时限 180 秒；Provider 较短超时仍生效。
 
 ## 本地 OCR 与同步
 
-- OCR：CLI 需要 `tesseract` 和 `pdftoppm` 在 `PATH` 中；本地扫描 PDF 转图片和识别不发送文件到模型。工具不可用时资料保留为 `ocr_required`。桌面当前没有资料导入/OCR 入口。
+- OCR：CLI 需要 `tesseract` 和 `pdftoppm` 在 `PATH` 中；本地扫描 PDF 转图片和识别不发送文件到模型。工具不可用时资料保留为 `ocr_required`。桌面原生导入使用同一受控 importer；OCR 工具仍需在本机可用。
 - 同步：CLI 的 `启动同步服务 [port]` 仅监听 `127.0.0.1`，省略端口或传 `0` 时由系统分配端口；提供 `GET /topics/<topicId>/progress` 和 `GET /topics/<topicId>/events`（SSE）。CLI 的受控 `run()` 成功返回后会调用 `publish()`，推送包含 `topicId`、`command`、`at` 的 `progress` 变更通知；完整进度需再次 GET。它是本机接口，没有云账号、跨设备复制或桌面同步客户端。
-- 同步路由目前只接受字母开头的 topic ID，核心 schema 则允许数字开头；因此 `3dgs` 等有效学习主题的 HTTP/SSE URL 仍返回 404，需后续统一契约。
+- 同步路由与核心 topicId schema 一致，允许 `3dgs` 等数字开头主题；未注册主题仍拒绝。
 - Docker/Colima 不是应用的运行依赖。
 
 ## 测试覆盖变量与环境隔离
@@ -189,3 +190,5 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 桌面 UI smoke 会自行创建临时 Pi 偏好和数据目录，并禁用真实 Provider。`desktop/scripts/check-deepseek.mjs` 默认只检查已有 API 配置状态；只有显式传入 `--live` 才允许其发起短问题请求。桌面渲染代码构建时固定 `NODE_ENV` 为 `production`，它不控制 Provider 选择。检查命令及验证边界见[测试文档](TESTING.md)。
 
 配置依据：[CLI 入口](../src/cli.ts)、[路径策略](../src/paths.ts)、[Pi 适配器](../src/pi-client.ts)、[DeepSeek 适配器](../src/deepseek-client.ts)、[桌面 schema](../desktop/core/contracts.ts)、[桌面主进程](../desktop/electron/main.ts)、[桌面凭据存储](../desktop/core/secrets.ts)。
+
+桌面任务队列、目标摘要、证据文件、运行测试与分模型诊断的限制见 [0.3 指南](agent-upgrade.md)。

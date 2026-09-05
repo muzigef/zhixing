@@ -11,7 +11,7 @@
 
 ## 数据与隐私
 
-- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 发送当前主题受限上下文并标记为用户材料，桌面只发送显式提供的有限会话上下文。
+- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 发送当前主题受限上下文并标记为用户材料，桌面发送有界会话上下文，并仅在本会话明确授权后加入当前主题的受控学习资料。
 - 只允许通过受控 Runtime 从 `inbox/<topicId>/` 显式导入资料；模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`。
 - 不得读取、写入、输出或提交 API Key、token、Cookie、认证文件、`.env`、`auth.json`、`.ssh` 或 `.codex` 内容。
 - 知行应用的真实 Provider 在已配置时默认可用；设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 后 adapter 必须拒绝调用。该开关不影响 Pi/Codex 开发会话。

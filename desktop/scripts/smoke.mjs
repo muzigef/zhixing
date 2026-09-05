@@ -32,6 +32,7 @@ async function launch() {
       ZHIXING_DESKTOP_TEST_DATA: data,
       PI_CODING_AGENT_DIR: piDir,
       ZHIXING_ALLOW_LIVE_PROVIDER: "0",
+      ZHIXING_DESKTOP_LIVE_CHECK: "0",
     },
     timeout: 30_000,
   });

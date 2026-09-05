@@ -51,7 +51,7 @@ npx vitest tests/desktop-service.test.ts
 
 ## 桌面 UI 与安装包验证
 
-`test:ui` 不在根目录 `verify` 内，也不自动执行构建。开发应用回归从仓库根目录运行：
+`test:ui` 不在根目录 `verify` 内，但会自动准备运行时和构建。开发应用回归从仓库根目录运行：
 
 ```bash
 npm run desktop:build
@@ -75,7 +75,7 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.2.0-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.3.0-mac-arm64.dmg
 ```
 
 安装包文件名中的版本来自桌面包，升级后需同步替换。当前配置和已有验收针对 macOS Apple Silicon；Windows NSIS 构建配置不等于 Windows 实机测试通过，Intel Mac 同样尚未验收。
@@ -96,7 +96,7 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 普通自动化测试使用 mock/fixture，不需要真实 API Key、Pi/Codex 登录或用户材料。部分适配器测试把调用开关设为允许以覆盖成功分支，但同时注入内存密钥、假 fetch 或假进程 runner，不会因开关为 `1` 就调用真实服务。CLI `smoke:mock` 始终使用临时根目录和禁止外发开关。
 
-全量测试应按上文运行标准 `npm run verify`，不要把交互开发用的 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 统一添加到整个测试进程后视为等价验证。当前部分 CLI 工作流测试继承父进程环境：全局设为 `0` 时，`tests/cli-workflow.test.ts` 的 E40“学习建议”会被前置材料授权门拦截，报 `external_content_confirmation_required: routed`，即使其临时根使用 mock 路由也如此。材料门在 Provider 调用前检查，不能假设只作用于真实 Provider；这是当前测试环境边界，正常隔离由各测试自己的夹具和环境设置负责。
+全量测试运行标准 `npm run verify`。E40 明确设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0`，证明 mock 学习建议不会被真实请求门禁误拦截；各 Provider 测试自行注入受控的网络或子进程夹具。
 
 真实 Provider 连通检查属于单独环境验收，不能混入普通测试或把用户凭证写进夹具。桌面已有 DeepSeek 短请求的历史证据；Pi 内附运行时和协议测试通过不代表 Codex 登录有效。新密钥保存目前验证了可注入 cipher 的存储抽象及 Electron safeStorage 类型接口，真实系统 safeStorage 的“保存新密钥 → 解密读回”尚无验收记录。
 
@@ -104,8 +104,14 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 当前没有配置 lines、branches、functions、statements 的最低覆盖率，也没有专用 coverage 脚本。质量门以测试行为和失败退出码为准；不要将测试总数解释为覆盖率。
 
-[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-latest`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录 `npm ci --no-audit --no-fund`、`npm run verify` 和根目录生产依赖的 `npm audit --omit=dev --audit-level=high`。
+[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-latest`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录与桌面两套 npm ci、`npm run verify`、`npm --prefix desktop run test:ui` 和根目录生产依赖的 `npm audit --omit=dev --audit-level=high`。
 
-当前 CI **缺少 `npm ci --prefix desktop`**，与 `verify` 已包含桌面类型检查的要求不一致，干净 runner 存在依赖缺口。本地应先按本页安装两套依赖；不能据此声称现有 CI 已覆盖桌面构建、UI、打包或桌面依赖审计，这些步骤都未配置在工作流中。
+CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。当前没有远端 Actions 成功记录，不将工作流配置等同于平台验收。
 
 [`scripts/verify.mjs`](../scripts/verify.mjs) 还扫描源码/文档中的疑似凭证及 focused/skipped 测试，并执行 `git diff --check`。扫描排除依赖、用户 data/db/inbox、编译与发布产物等目录，是有限规则检查，不等于完整秘密检测或安全审计。
+
+## 0.3 回归与人工质量集
+
+`npm run eval:agent` 聚合 `agent-quality-eval`、`desktop-tasks`、`evidence-application`、`desktop-diagnostics`。新增 `smoke-learning.mjs` 验证真实主题/课程/进度、Markdown 和文字 PDF 导入、引用、产物 Review、本地 JavaScript 测试、排队/立即调整/停止/重启恢复、持久目标与主题隔离。与原有 UI smoke 同时在实际安装包运行。
+
+[固定人工用例](agent-quality-cases.json) 用于实际 Pi/DeepSeek 回答质量，当前未执行；自动夹具只证明协议和工作流结果。性能统计按 Provider 分开，样本量与范围见 [升级指南](agent-upgrade.md)。本轮结果见 [Evidence](evidence/agent-upgrade.md)。

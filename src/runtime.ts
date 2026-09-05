@@ -72,17 +72,22 @@ export class LearningRuntime {
     return "已生成当前主题复习计划。";
   }
 
-  async reviewDay(topicId: TopicId, dayId: string, evidence: EvidenceInput): Promise<string> {
+  /** Internal trusted gate. Public interfaces derive these checks from LearningApplication artifacts. */
+  async reviewDay(topicId: TopicId, dayId: string, evidence: EvidenceInput, provenance?: string): Promise<string> {
     const state = await this.notebook.state(topicId, dayId);
     if (state === "未开始") return `请先开始 ${dayId}。`;
     const required = (await this.planLoader.day(this.registry.get(topicId), dayId))?.requiredEvidence ?? await this.planLoader.requiredEvidence(this.registry.get(topicId));
     const verdict = reviewEvidence(evidence, required);
-    await this.notebook.review(topicId, dayId, evidence, verdict);
+    await this.notebook.review(topicId, dayId, evidence, verdict, provenance);
     return `Review：${verdict.outcome}（${verdict.score}/8）\n${verdict.nextAction}`;
   }
 
   private async startDay(topicId: TopicId, dayId: string): Promise<string> {
     const topic = this.registry.get(topicId);
+    if (!/^D[0-9]{2}$/.test(dayId) || Number(dayId.slice(1)) < 1) throw new Error("invalid_day");
+    const course = await this.planLoader.load(topic);
+    const planDay = await this.planLoader.day(topic, dayId);
+    if (course && !planDay) throw new Error("invalid_day");
     for (const prerequisite of topic.prerequisites) {
       for (const requiredDay of prerequisite.requiredDays) {
         if (await this.notebook.state(prerequisite.topicId, requiredDay) !== "完成") {
@@ -97,10 +102,9 @@ export class LearningRuntime {
     }
     const result = await this.notebook.startDay(topicId, dayId);
     await this.sessions.save(topicId, "current", { dayId, updatedAt: new Date().toISOString() });
-    const planDay = await this.planLoader.day(topic, dayId);
     const evidence = planDay?.requiredEvidence.map((item) => ({ implementation: "实现", testOutput: "测试输出", failureCase: "失败案例", reflection: "复盘" })[item]).join("、") ?? "实现、测试输出、失败案例、复盘";
     const schedule = planDay ? (planDay.estimatedMinutes === 240 ? "4 小时安排" : `${planDay.estimatedMinutes} 分钟安排`) : "4 小时安排";
-    return result.created ? `今日目标\n${topicId}/${dayId}${planDay ? `：${planDay.title}` : ""}\n\n${schedule}\n完成实验并提交证据。${planDay?.optional ? "（可选）" : ""}\n\n当日学习卡\n讲解：围绕“${planDay?.title ?? "当前主题核心概念"}”建立可验证理解；先阅读资料，再做一个最小实验。\n任务 1：查询或阅读一份当前主题资料，写下 3 个关键概念。\n任务 2：完成一个最小实现/复现实验，并保留测试输出。\n失败案例：主动记录一个错误输入、失败配置或未达预期结果及原因。\n复盘问题：今天哪个假设被证据支持或推翻？\n\n完成证据\n${evidence}\n\n下一步\n输入“开始任务”领取第一步；完成后输入“检查 ${dayId} --实现 --测试 --失败 --复盘”。` : `已恢复 ${topicId}/${dayId}，输入“开始任务”查看当日学习卡并提交缺失证据。`;
+    return result.created ? `今日目标\n${topicId}/${dayId}${planDay ? `：${planDay.title}` : ""}\n\n${schedule}\n完成实验并提交证据。${planDay?.optional ? "（可选）" : ""}\n\n当日学习卡\n讲解：围绕“${planDay?.title ?? "当前主题核心概念"}”建立可验证理解；先阅读资料，再做一个最小实验。\n任务 1：查询或阅读一份当前主题资料，写下 3 个关键概念。\n任务 2：完成一个最小实现/复现实验，并保留测试输出。\n失败案例：主动记录一个错误输入、失败配置或未达预期结果及原因。\n复盘问题：今天哪个假设被证据支持或推翻？\n\n完成证据\n${evidence}\n\n下一步\n输入“开始任务”领取第一步；提交实际证据后输入“检查 ${dayId}”。` : `已恢复 ${topicId}/${dayId}，输入“开始任务”查看当日学习卡并提交缺失证据。`;
   }
 
   private async progress(topicId: TopicId): Promise<string> {
@@ -118,6 +122,6 @@ export class LearningRuntime {
     const snapshot = await this.sessions.load<{ dayId: string }>(topicId, "current");
     if (!snapshot || await this.notebook.state(topicId, snapshot.dayId) !== "进行中") return "当前没有进行中的学习日；请先使用“开始第 N 天”。";
     const day = await this.planLoader.day(this.registry.get(topicId), snapshot.dayId);
-    return `开始 ${snapshot.dayId}${day ? `：${day.title}` : ""}\n1. 阅读/查询当前主题资料，整理 3 个关键概念。\n2. 做一个最小实验并保留测试输出。\n3. 记录一个失败案例和原因。\n4. 回答复盘问题后使用“检查 ${snapshot.dayId} --实现 --测试 --失败 --复盘”。`;
+    return `开始 ${snapshot.dayId}${day ? `：${day.title}` : ""}\n1. 阅读/查询当前主题资料，整理 3 个关键概念。\n2. 做一个最小实验并保留测试输出。\n3. 记录一个失败案例和原因。\n4. 提交实现、测试报告、失败案例和复盘后使用“检查 ${snapshot.dayId}”。`;
   }
 }

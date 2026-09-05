@@ -10,7 +10,8 @@ await build({
   platform: "node",
   target: "node24",
   format: "esm",
-  external: ["electron"],
+  external: ["electron", "better-sqlite3", "pdfjs-dist/*"],
+  banner: { js: 'import { createRequire as zhixingRequire } from "node:module"; const require = zhixingRequire(import.meta.url);' },
   sourcemap: true,
 });
 await build({
@@ -32,6 +33,11 @@ await fs.copyFile(
   path.join(root, "runtime-AGENTS.md"),
   path.join(root, "build/runtime/AGENTS.md"),
 );
+for (const topic of ["agent-development", "rag", "tool-calling", "interview-project"]) {
+  const destination = path.join(root, "build/runtime/topics", topic);
+  await fs.mkdir(destination, { recursive: true });
+  await fs.copyFile(path.join(root, "../topics", topic, "PLAN.md"), path.join(destination, "PLAN.md"));
+}
 await build({
   entryPoints: [path.join(root, "renderer/index.tsx")],
   outdir: path.join(root, "build/renderer"),

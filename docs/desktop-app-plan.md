@@ -1,3 +1,5 @@
+> 本文件保留 P10 首版设计与当时限制；P11/0.3 已实现共享学习工作区、任务与证据流程，当前契约见 [升级指南](agent-upgrade.md)，最新验收见 [Evidence](evidence/agent-upgrade.md)。
+
 # P10：知行桌面版
 
 ## 第一版范围

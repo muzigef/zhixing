@@ -22,8 +22,9 @@ import { PiCodexClient } from "./pi-client.js";
 import { previewBackup, restoreBackup } from "./backup-service.js";
 import { answerFromEvidence } from "./grounded-answer.js";
 import { readHiddenSecret } from "./hidden-secret-input.js";
-import { type EvidenceInput } from "./reviewer.js";
+import { evidenceKindSchema } from "./evidence-store.js";
 import { LearningRuntime } from "./runtime.js";
+import { LearningApplication } from "./learning-application.js";
 import { assertSupportedNodeVersion } from "./runtime-version.js";
 import { SkillCatalog } from "./skill-catalog.js";
 import { createDefaultTopicRegistry } from "./topics.js";
@@ -41,7 +42,7 @@ import { CurrentTopicStore } from "./current-topic-store.js";
 import { TeachingSessionStore, type TeachingSession } from "./teaching-session-store.js";
 import { LearningContextBuilder } from "./learning-context.js";
 import { authorizeConversationTransition } from "./conversation-policy.js";
-import { createLearningTools, runLearningAgent } from "./learning-agent.js";
+import { runLearningAgent } from "./learning-agent.js";
 import { completeTeachingTurn } from "./teaching-turn.js";
 import { routeConversation } from "./conversation-routing.js";
 import { ResponseStyleStore, parseResponseStyle, responseGuidelines, styleLabels } from "./response-style.js";
@@ -60,6 +61,7 @@ await topicStore.load(registry);
 const runtime = new LearningRuntime(registry, policy);
 let database = new ZhixingDatabase(path.join(root, "zhixing", "db", "zhixing.sqlite"));
 let library = new DocumentLibrary(database, policy);
+let learning = new LearningApplication(root, registry, database, library, runtime);
 const audit = new AuditLogger(policy);
 let workflowLedger = new WorkflowLedger(database);
 const interruptedRuns = workflowLedger.reconcileInterrupted();
@@ -122,6 +124,8 @@ let liveText: TerminalMarkdownWriter | undefined;
 // The persisted provider setting is the user's session-level permission for
 // bounded learning context. Set ZHIXING_ALLOW_LIVE_PROVIDER=0 to disable it.
 const liveProviderConsent = process.env.ZHIXING_ALLOW_LIVE_PROVIDER !== "0";
+// Local mock never sends materials externally; real adapters still enforce the network switch.
+const modelContextAllowed = () => liveProviderConsent || providerRegistry.routedProvider("tutor") === "mock";
 
 /** Keep in-memory context within the same bounds as persisted teaching history. */
 function appendConversation(message: string): void {
@@ -158,6 +162,7 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
     workflowLedger = new WorkflowLedger(database);
     runs = new RunManager(audit, workflowLedger);
     library = new DocumentLibrary(database, policy);
+    learning = new LearningApplication(root, registry, database, library, runtime);
     learningContext = new LearningContextBuilder(learningProfiles, database, library);
     throw error;
   }
@@ -165,6 +170,7 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
   workflowLedger = new WorkflowLedger(database);
   runs = new RunManager(audit, workflowLedger);
   library = new DocumentLibrary(database, policy);
+  learning = new LearningApplication(root, registry, database, library, runtime);
   learningContext = new LearningContextBuilder(learningProfiles, database, library);
 }
 
@@ -204,6 +210,8 @@ async function execute(line: string): Promise<string> {
   if (["/help", "帮助", "help"].includes(command)) return `可以直接提问，例如“解释注意力”“举个例子”“简短一点”或“用代码说明”。
 
 - 开始学习：开始第 1 天
+- 保存产物：提交证据 D01 implementation <实际内容>（另支持 testOutput、failureCase、reflection、testScript）
+- 验收：证据列表 D01 / 检查 D01；运行测试 D01 只执行明确提交的 JavaScript 测试
 - 练习：开始练习 / 来一道题 / 给答案 / 换一道题
 - 回答风格：/style concise（简洁）、balanced（适中）、detailed（详细）
 - 查看当前状态：/status（回答过程中也可用）
@@ -281,7 +289,7 @@ async function execute(line: string): Promise<string> {
   if (modelIntent) return run("model_intent_proposal", activeTopic, async (lifecycle, signal) => {
     const prompt = `将以下学习请求转换为 JSON，不执行任何操作。仅允许 intent=next_step|progress|create_topic|custom_course|unknown；创建主题时提供安全 kebab-case topicId 和 title。请求：${modelIntent}`;
     announceModelWork();
-    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     const json = /\{[\s\S]*\}/.exec(result.text)?.[0];
     try { return formatIntentProposal(intentSchema.parse(JSON.parse(json ?? ""))); } catch { return "模型建议无法通过结构化校验；请使用明确命令。"; }
   });
@@ -294,7 +302,7 @@ async function execute(line: string): Promise<string> {
   const syncPort = /^启动同步服务(?:\s+(\d{1,5}))?$/.exec(command)?.[1];
   if (/^启动同步服务(?:\s+\d{1,5})?$/.test(command)) {
     if (syncServer) return "同步服务已启动。";
-    syncServer = new LocalSyncServer(async (topicId) => runtime.handle("进度", topicId), registry.list().map((topic) => topic.topicId));
+    syncServer = new LocalSyncServer(async (topicId) => learning.handle("进度", topicId), registry.list().map((topic) => topic.topicId));
     const port = await syncServer.listen(syncPort ? Number(syncPort) : 0);
     return `本地同步服务已启动：http://127.0.0.1:${port}/topics/<topicId>/progress（SSE：/events）`;
   }
@@ -302,15 +310,11 @@ async function execute(line: string): Promise<string> {
   if (agentQuestion) return run("learning_agent", activeTopic, async (lifecycle, signal) => {
     const allowMaterials = /\s+--允许外发$/.test(agentQuestion);
     const question = agentQuestion.replace(/\s+--允许外发$/, "").trim();
-    const tools = createLearningTools({
-      progress: (topicId) => runtime.handle("进度", topicId),
-      list: (topicId) => library.list(topicId),
-      search: (topicId, query) => library.search(topicId, query),
-    }, allowMaterials);
+    const tools = learning.tools(allowMaterials);
     announceModelWork();
     const streamed = beginLiveModelText("学习助手（实时）");
     const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
-      topicId: activeTopic, question, style: responseStyle, history: conversation, confirmed: liveProviderConsent, onText,
+      topicId: activeTopic, question, style: responseStyle, history: conversation, confirmed: modelContextAllowed(), onText,
       onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
       onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
     }, signal), signal);
@@ -415,8 +419,8 @@ async function execute(line: string): Promise<string> {
   const readSkill = /^读取技能\s+([\w-]+)$/.exec(command)?.[1];
   if (readSkill) return run("read_skill", activeTopic, () => skills.read(activeTopic, readSkill));
   const importFile = /^导入资料\s+(.+)$/.exec(command)?.[1];
-  if (importFile) return run("import_document", activeTopic, async () => {
-    const result = await importStagedDocument(root, library, importFile);
+  if (importFile) return run("import_document", activeTopic, async (_lifecycle, signal) => {
+    const result = await importStagedDocument(root, library, importFile, signal);
     await selectActiveTopic(result.topicId);
     return `导入结果：${result.status}\n主题：${result.topicId}\n文档：${result.documentId || "—"}\n分块：${result.chunks}${result.reason ? `\n原因：${result.reason}` : ""}`;
   });
@@ -433,14 +437,14 @@ async function execute(line: string): Promise<string> {
   if (command === "主题概览") return run("topic_overview", activeTopic, async () => {
     const [profile, reminder] = await Promise.all([learningProfiles.load(activeTopic), reminders.status(activeTopic)]);
     const documents = library.list(activeTopic);
-    const progress = await runtime.handle("进度", activeTopic);
+    const progress = await learning.handle("进度", activeTopic);
     return `主题：${registry.get(activeTopic).title}\n${progress}\n资料：${documents.length} 份\n画像：${profile ? `${profile.goal}（每天 ${profile.dailyMinutes} 分钟）` : "未设置"}\n提醒：${reminder ? `每天 ${reminder.time}（仅本地计划）` : "未设置"}`;
   });
   const reminder = /^提醒设置\s+([0-2]\d:[0-5]\d)$/.exec(command)?.[1];
   if (reminder) return run("set_reminder", activeTopic, async () => { await reminders.set(activeTopic, reminder); return `已设置本地提醒计划：每天 ${reminder}。当前版本不会启动后台通知；可在“主题概览”查看。 `; });
   if (command === "下一步") return run("next_step", activeTopic, async () => {
     const reminder = await reminders.status(activeTopic);
-    const next = await runtime.handle("继续", activeTopic);
+    const next = await learning.handle("继续", activeTopic);
     return `${next}${reminder ? `\n提醒计划：每天 ${reminder.time}（本地记录，未启动后台通知）。` : "\n提示：可使用“提醒设置 HH:MM”记录学习提醒计划。"}`;
   });
   const coaching = /^学习建议(\s+--允许外发)?$/.exec(command);
@@ -450,7 +454,7 @@ async function execute(line: string): Promise<string> {
     const documents = library.list(activeTopic);
     const prompt = `${responseGuidelines(responseStyle)}\n你是学习教练。基于以下仅含元数据的学习画像和资料清单，给出一个 ${profile.dailyMinutes} 分钟学习会话：一个目标、一个练习、一个失败案例、一个复盘问题。不得声称完成学习日，不得要求读取未提供的资料。\n主题：${activeTopic}\n目标：${profile.goal}\n水平：${profile.level}\n周期：${profile.totalDays} 天\n资料名称：${documents.map((document) => document.name).join("、") || "无"}`;
     announceModelWork();
-    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     return result.text;
   });
   const remember = /^记住\s+(.+?)(\s+--确认)?$/.exec(command);
@@ -519,17 +523,22 @@ async function execute(line: string): Promise<string> {
     const { topicId, question } = resolveTopicQuery(query);
     return formatSearch(topicId, question);
   });
+  const submission = /^提交证据\s+(D\d{2})\s+(implementation|testOutput|failureCase|reflection|testScript)\s+([\s\S]+)$/.exec(command);
+  if (submission) return run("submit_evidence", activeTopic, async () => {
+    const value = await learning.submitEvidence(activeTopic, submission[1]!, evidenceKindSchema.parse(submission[2]), submission[3]!);
+    return `已保存证据：${value.kind}（${value.hash.slice(0, 12)}）`;
+  });
+  const validationDay = /^运行测试\s+(D\d{2})$/.exec(command)?.[1];
+  if (validationDay) return run("validate_evidence", activeTopic, async (_lifecycle, signal) => {
+    const result = await learning.validateEvidence(activeTopic, validationDay, signal);
+    return `本地测试：${result.status}，退出码 ${result.exitCode ?? "无"}\n${result.stdout}\n${result.stderr}`;
+  });
+  const evidenceDay = /^证据列表\s+(D\d{2})$/.exec(command)?.[1];
+  if (evidenceDay) return JSON.stringify(await learning.evidence.list(activeTopic, evidenceDay), null, 2);
   const reviewMatch = /^检查\s+(D\d{2})(.*)$/.exec(command);
-  const reviewDay = reviewMatch?.[1];
-  if (reviewDay && reviewMatch) return run("review_evidence", activeTopic, async () => {
-    const flags = reviewMatch[2] ?? "";
-    const evidence: EvidenceInput = {
-      implementation: flags.includes("--实现"),
-      testOutput: flags.includes("--测试"),
-      failureCase: flags.includes("--失败"),
-      reflection: flags.includes("--复盘"),
-    };
-    return runtime.reviewDay(activeTopic, reviewDay, evidence);
+  if (reviewMatch) return run("review_evidence", activeTopic, async () => {
+    const text = await learning.review(activeTopic, reviewMatch[1]!);
+    return `${text}${reviewMatch[2]?.trim() ? "\n旧版布尔参数不计入证据，请提交实际产物。" : ""}`;
   });
   const startDayCommand = /^开始第\s*\d+\s*天$/.test(command);
   if (startDayCommand) return run("guided_start_day", activeTopic, async (lifecycle, signal) => {
@@ -540,12 +549,12 @@ async function execute(line: string): Promise<string> {
       chat = await chats.save(chat);
       return `已恢复 ${activeTopic}/${teachingSession.dayId} 的教学现场（${teachingSession.stage === "practice" ? "练习" : "答疑"}）。${teachingSession.stage === "practice" ? "可直接继续回答当前练习。" : "可直接提问，或说“开始练习”。"}`;
     }
-    const dayCard = await runtime.handle(command, activeTopic);
+    const dayCard = await learning.handle(command, activeTopic);
     const routed = providerRegistry.routedProvider("tutor") ?? "mock";
     if (routed === "mock" || dayCard.startsWith("不能开始")) return dayCard;
     announceModelWork();
     const streamed = beginLiveModelText("教师讲解（实时）");
-    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt: lessonPrompt(dayCard, responseStyle, await learningContext.build(activeTopic, command)), containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt: lessonPrompt(dayCard, responseStyle, await learningContext.build(activeTopic, command)), containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     teachingSession = await teachingSessions.save(activeTopic, { dayId: /\/(D\d{2})/.exec(dayCard)?.[1], dayCard, stage: "answer_questions", quizRound: 0, transcript: result.text ? [`教师：${result.text}`] : [] });
     return modelReply(result, Boolean(streamed), "可直接提问，或说“开始练习”。");
   });
@@ -556,7 +565,7 @@ async function execute(line: string): Promise<string> {
       chat = await chats.save(chat);
       return `当前教学已在 ${teachingSession.dayId ?? "本日"} 进行中。${teachingSession.stage === "practice" ? "请直接回答当前练习。" : "可直接提问，或说“开始练习”。"}`;
     }
-    const taskCard = await runtime.handle(command, activeTopic);
+    const taskCard = await learning.handle(command, activeTopic);
     const routed = providerRegistry.routedProvider("tutor") ?? "mock";
     if (routed === "mock") return taskCard;
     const profile = await learningProfiles.load(activeTopic);
@@ -564,7 +573,7 @@ async function execute(line: string): Promise<string> {
     const prompt = lessonPrompt(taskCard, responseStyle, `学习者基础：${profile?.level ?? "未知"}；可参考的技能摘要：${enabledSkills}`);
     announceModelWork();
     const streamed = beginLiveModelText("教师讲解（实时）");
-    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+    const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     teachingSession = await teachingSessions.save(activeTopic, { dayId: /开始\s+(D\d{2})/.exec(taskCard)?.[1], dayCard: taskCard, stage: "answer_questions", quizRound: 0, transcript: result.text ? [`教师：${result.text}`] : [] });
     return modelReply(result, Boolean(streamed), "可直接提问，或说“开始练习”。");
   });
@@ -573,7 +582,7 @@ async function execute(line: string): Promise<string> {
   if (localIntent.intent?.intent === "progress") return execute("进度");
   if (localIntent.intent?.intent === "current_topic") return `当前学习主题：${activeTopic}（${registry.get(activeTopic).title}）${teachingSession ? `\n教学阶段：${teachingSession.stage}${teachingSession.dayId ? `（${teachingSession.dayId}）` : ""}` : ""}`;
   // Deterministic learning-flow commands always take precedence over conversational interpretation.
-  const deterministic = forceConversation ? "支持：" : await runtime.handle(command, activeTopic);
+  const deterministic = forceConversation ? "支持：" : await learning.handle(command, activeTopic);
   if (!deterministic.startsWith("支持：")) return run("learning_command", activeTopic, async () => deterministic);
   if (localIntent.candidates.length && !conversationalMode) return `未执行写操作。你可能想使用：\n${localIntent.candidates.map((candidate, index) => `${index + 1}. ${candidate}`).join("\n")}\n模型可用且你允许本次外发时，可使用“理解命令 <请求> --允许外发”生成命令草案。`;
   if (conversationalMode) return run("conversational_guidance", activeTopic, async (lifecycle, signal) => {
@@ -586,24 +595,24 @@ async function execute(line: string): Promise<string> {
       let interpreted = resolveTeachingInput(command, session.stage === "practice" && Boolean(session.currentExercise));
       if (!interpreted) {
         const actionPrompt = `将学习者输入分类为 JSON：{"action":"answer_question|ask_question","target":"current","learnerAnswer":"仅在实际作答时逐字引用用户原文"}。索要答案、提示或讲解绝不是作答；不能扩写用户答案。当前练习=${session.currentExercise?.slice(0, 1500) ?? "无"}；输入=${command}`;
-        const classified = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt: actionPrompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+        const classified = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt: actionPrompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
         interpreted = interpretTeachingInput(classified.text, command);
       }
       if (["start_practice", "skip_question"].includes(interpreted.action.action) && session.quizRound >= 20) return "本日已达到 20 轮练习上限。可以继续讲解或回顾已有题目。";
       const prompt = teachingPrompt(command, interpreted, session, responseStyle, await learningContext.build(activeTopic, command, session), teachingHistory());
       const streamed = beginLiveModelText("知行");
-      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
       teachingSession = await teachingSessions.save(activeTopic, completeTeachingTurn(session, command, interpreted, result));
       return modelReply(result, Boolean(streamed));
     }
     if (route === "answer" && providers.supportsTools("tutor")) {
       const allowMaterials = /\s+--允许外发$/.test(command);
       const question = command.replace(/\s+--允许外发$/, "");
-      const tools = createLearningTools({ progress: (topic) => runtime.handle("进度", topic), list: (topic) => library.list(topic), search: (topic, query) => library.search(topic, query) }, allowMaterials);
+      const tools = learning.tools(allowMaterials);
       const context = await learningContext.build(activeTopic, question);
       const streamed = beginLiveModelText("知行");
       const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
-        topicId: activeTopic, question, style: responseStyle, history: conversation, context, confirmed: liveProviderConsent, onText,
+        topicId: activeTopic, question, style: responseStyle, history: conversation, context, confirmed: modelContextAllowed(), onText,
         onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
         onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
       }, signal), signal);
@@ -612,7 +621,7 @@ async function execute(line: string): Promise<string> {
     if (route === "answer") {
       const prompt = answerPrompt(command, responseStyle, await learningContext.build(activeTopic, command), conversation);
       const streamed = beginLiveModelText("知行");
-      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
       return modelReply(result, Boolean(streamed));
     }
     pendingConversationPlan = undefined;
@@ -620,7 +629,7 @@ async function execute(line: string): Promise<string> {
     const history = [...planningHistory.slice(-6), `用户：${command}`].join("\n");
     const topics = registry.list().map((topic) => `${topic.topicId}:${topic.title}`).join("、");
     const prompt = `你是知行学习 Agent 的对话协调器。只能返回一个 JSON 对象，不能使用 Markdown、Shell 命令或解释。可选格式：{"kind":"clarify","question":"只问一个最关键的问题"}；或 {"kind":"proposal","topicId":"主题ID","summary":"简短摘要","actions":[{"type":"set_learning_profile","goal":"...","level":"...","dailyMinutes":120,"totalDays":84},{"type":"generate_custom_course"}]}。也可在 actions 中使用 {"type":"command","command":"一条规范知行命令"}。允许的规范命令仅包括：主题列表、学习 <主题>、开始第 N 天、开始任务、下一步、进度、全部进度、继续、主题概览、学习画像、资料概览、技能草案列表、复习计划、创建主题、设置学习画像、生成个性化计划、生成定制课程、调整计划、提醒设置、生成/读取技能草案、读取技能、检查 DNN、读源码 DNN、查询资料、启用计划/课程/Skill、导入资料、删除资料、恢复数据库、模型切换。若用户要新主题，proposal 的首个 command 必须是“创建主题 <topicId> <标题>”，并且 topicId 与 proposal.topicId 相同；否则只能使用现有主题。不得使用 npm、bash、curl 或任何未列命令；不得声称已经执行。待执行草案含启用/覆盖、导入、删除、恢复或模型切换时，必须提示用户以“直接运行 --确认”人工授权。现有主题：${topics}。当前主题：${activeTopic}\n对话：\n${history}`;
-    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: liveProviderConsent, allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+    const result = await collectInvocation(providers, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     if (result.partial) return "计划生成未完成，请重试；没有生成新的可执行草案。";
     const json = /\{[\s\S]*\}/.exec(result.text)?.[0];
     try {
@@ -727,6 +736,8 @@ async function formatCourseOverview(topicId: TopicId): Promise<string> {
 
 /** Executes a validated conversational command inside the current audit run (never recursively via execute()). */
 async function executeConversationCommand(command: string): Promise<string> {
+  const reviewDay = /^检查\s+(D\d{2})(?:\s+--(?:实现|测试|失败|复盘))*$/.exec(command)?.[1];
+  if (reviewDay) return learning.review(activeTopic, reviewDay);
   if (command === "主题列表") return registry.list().map((topic) => `${topic.topicId}\t${topic.title}`).join("\n");
   if (command === "模型列表" || command === "模型状态") {
     const health = await Promise.all(providerRegistry.providerIds().map(async (id) => `${id}：${await providers.status(id, new AbortController().signal)}`));
@@ -795,7 +806,7 @@ async function executeConversationCommand(command: string): Promise<string> {
   if (command === "主题概览") {
     const [profile, reminder] = await Promise.all([learningProfiles.load(activeTopic), reminders.status(activeTopic)]);
     const documents = library.list(activeTopic);
-    const progress = await runtime.handle("进度", activeTopic);
+    const progress = await learning.handle("进度", activeTopic);
     return `主题：${registry.get(activeTopic).title}\n${progress}\n资料：${documents.length} 份\n画像：${profile ? `${profile.goal}（每天 ${profile.dailyMinutes} 分钟）` : "未设置"}\n提醒：${reminder ? `每天 ${reminder.time}（仅本地计划）` : "未设置"}`;
   }
   if (command === "技能草案列表") {
@@ -854,7 +865,7 @@ async function executeConversationCommand(command: string): Promise<string> {
     await learningProfiles.save(activeTopic, { goal: naturalProfile[2]!.trim(), level: naturalProfile[3]!.trim(), dailyMinutes: Number(naturalProfile[4]), totalDays: Number(naturalProfile[5]) });
     return `已保存学习画像：${activeTopic}（${naturalProfile[4]} 分钟/天，${naturalProfile[5]} 天）`;
   }
-  const deterministic = await runtime.handle(command, activeTopic);
+  const deterministic = await learning.handle(command, activeTopic);
   if (!deterministic.startsWith("支持：")) return deterministic;
   throw new Error("conversation_action_not_implemented: 请使用明确 CLI 命令执行该草案。");
 }

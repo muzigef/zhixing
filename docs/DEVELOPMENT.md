@@ -13,7 +13,7 @@ npm ci --prefix desktop
 npm run smoke:mock
 ```
 
-根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.2.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
+根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.3.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
 
 CLI 使用 `better-sqlite3` 原生模块，真实 Keychain 集成和 `LocalSandbox` 的 `sandbox-exec` 封装依赖 macOS；本地扫描 PDF OCR 另外需要 `pdftoppm` 与 `tesseract`，普通 Markdown/文字 PDF 和模拟 OCR 测试不要求安装它们。桌面源码开发仍使用上述 Node 环境；安装后的桌面应用内附 Electron Node 和 Pi，不要求用户安装系统 Node/Pi 可执行文件，但 Pi 认证仍需单独配置。平台交付范围见[桌面说明](../desktop/README.md)。
 
@@ -33,7 +33,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run repl
 ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 ```
 
-在设置中选择“离线演示”体验界面。`desktop start` 每次先构建，再启动 Electron；当前没有文件监听或热更新脚本，修改后重新运行。只运行 UI 回归时须先构建：
+在设置中选择“离线演示”体验界面。`desktop start` 每次先准备 Electron/SQLite 运行时并构建，再启动 Electron；当前没有文件监听或热更新脚本，修改后重新运行。UI 回归会自动准备运行时和构建：
 
 ```bash
 npm run desktop:build
@@ -80,9 +80,9 @@ npm run verify
 | `npm --prefix desktop run pack` | 构建后输出当前平台应用目录，不生成安装器 |
 | `npm --prefix desktop run dist:mac` | macOS arm64 DMG/ZIP |
 | `npm --prefix desktop run dist:win` | Windows x64 NSIS；需在 Windows 构建机执行并验收 |
-| `npm --prefix desktop run test:ui` | Playwright 启动真实 Electron；本脚本不自动构建 |
+| `npm --prefix desktop run test:ui` | 自动准备运行时、构建，再执行原有和学习流程两套真实 Electron 回归 |
 
-构建代码见 [`desktop/scripts/build.mjs`](../desktop/scripts/build.mjs)。`build/` 是编译产物，`release/` 是打包产物，二者都位于 `desktop/` 下且不提交。当前 `electronDist` 使用本机 Electron 二进制，不能把 Mac 上打包的结果当作已经过 Windows 验证。签名、公证、自动更新及完整平台验收尚未完成。
+构建代码见 [`desktop/scripts/build.mjs`](../desktop/scripts/build.mjs)。`build/` 是编译产物，`release/` 是打包产物，二者都位于 `desktop/` 下且不提交。当前 `electronDist` 使用本机 Electron 二进制，不能把 Mac 上打包的结果当作已经过 Windows 验证。签名、公证及 Windows/Intel Mac 平台验收尚未完成；版本检查提供公开发布说明，不自动安装更新。
 
 ## 代码风格与模块边界
 
@@ -92,7 +92,7 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 
 - CLI 组合根是 `src/cli.ts`。新增命令同时核对 `action-registry.ts`、`interaction-protocol.ts`、`intent-parser.ts` 的识别与授权规则，以及实际命令处理器；目前旧处理器还没有完全统一到注册表分派。
 - 确定性学习状态留在 `LearningRuntime`；模型意图、回答文本和工具请求不能直接宣告学习完成或绕过用户原文证据校验。
-- 模型协议复用 `src/model.ts` 及 Provider adapter。桌面服务只允许文本事件，没有接入 CLI 学习工具；不要从 renderer 直接访问文件、凭据或网络。
+- 模型协议复用 `src/model.ts` 及 Provider adapter。桌面通过共享 Assistant Runtime 执行有界模型/只读学习工具循环；不要从 renderer 直接访问文件、凭据或网络。
 - 桌面原生能力与 IPC 放在 `desktop/electron/`，可测试的会话/存储逻辑放在 `desktop/core/`，界面与 Markdown 展示放在 `desktop/renderer/`。详见[架构](architecture.md)。
 
 ## 工程约束
@@ -109,4 +109,6 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 
 当前主分支为 `main`，仓库没有规定强制分支命名，也未提供 PR 模板或分支命名检查。建议用能说明改动目的的分支名，并遵循[贡献指南](../CONTRIBUTING.md)：说明问题与最终行为、完成适用验证、同步文档和证据，最后提交供审查。
 
-当前 [`verify` CI](../.github/workflows/verify.yml) 在 `push` 和 `pull_request` 时运行，但只安装根目录依赖，缺少 `npm ci --prefix desktop`；而 `verify` 已要求桌面类型检查。干净 CI 环境存在依赖缺口。本地按本文安装两套依赖后验证；工作流补齐前不能将“有 CI 配置”视为完整的桌面 CI 覆盖。
+当前 [`verify` CI](../.github/workflows/verify.yml) 在 push/PR 安装两套依赖、运行完整 verify 与 Electron UI。`desktop-release.yml` 在手动触发或 v* tag 上构建 macOS/Windows、检查实际包 UI、上传安装器和校验和；tag 创建待发布草稿。远端执行结果需要 Actions 的真实记录，不能由本地通过替代。
+
+新增命令：`npm run eval:agent`；桌面 `prepare:runtime`、`dist:host`、`checksums`。用法和切片契约见 [升级指南](agent-upgrade.md)。

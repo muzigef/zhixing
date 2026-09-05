@@ -108,23 +108,23 @@ export class ZhixingDatabase {
   }
 
   search(topicId: TopicId, query: string): SearchResult[] {
-    const rows = this.db.prepare(`SELECT c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor, bm25(chunks_fts) AS score
+    const rows = this.db.prepare(`SELECT c.id AS chunkId, c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor, bm25(chunks_fts) AS score
       FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.chunk_id JOIN documents d ON d.id = c.document_id
-      WHERE chunks_fts MATCH ? AND chunks_fts.topic_id = ? ORDER BY score LIMIT 8`).all(query, topicId) as Array<{ text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; score: number }>;
-    return rows.map((row) => ({ text: row.text, score: row.score, citation: { topicId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }));
+      WHERE chunks_fts MATCH ? AND chunks_fts.topic_id = ? ORDER BY score LIMIT 8`).all(query, topicId) as Array<{ chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; score: number }>;
+    return rows.map((row) => ({ text: row.text, score: row.score, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }));
   }
 
   hybridSearch(topicId: TopicId, query: string, queryVector: readonly number[]): SearchResult[] {
     const lexical = this.search(topicId, query);
     const lexicalRank = new Map(lexical.map((item, index) => [item.citation.documentId + item.text, 1 / (index + 1)]));
-    const rows = this.db.prepare(`SELECT c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor, e.vector_json AS vectorJson
+    const rows = this.db.prepare(`SELECT c.id AS chunkId, c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor, e.vector_json AS vectorJson
       FROM chunks c JOIN documents d ON d.id = c.document_id LEFT JOIN chunk_embeddings e ON e.chunk_id = c.id
-      WHERE c.topic_id = ? AND d.status IN ('indexed', 'ocr_low_confidence')`).all(topicId) as Array<{ text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; vectorJson: string | null }>;
+      WHERE c.topic_id = ? AND d.status IN ('indexed', 'ocr_low_confidence')`).all(topicId) as Array<{ chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; vectorJson: string | null }>;
     return rows.map((row) => {
       const vector = row.vectorJson ? JSON.parse(row.vectorJson) as number[] : [];
       const semantic = Math.max(0, cosineSimilarity(queryVector, vector));
       const lexicalScore = lexicalRank.get(row.documentId + row.text) ?? 0;
-      return { text: row.text, score: lexicalScore * 0.65 + semantic * 0.35, citation: { topicId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } };
+      return { text: row.text, score: lexicalScore * 0.65 + semantic * 0.35, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } };
     }).filter((item) => item.score > 0).sort((left, right) => right.score - left.score).slice(0, 8);
   }
 

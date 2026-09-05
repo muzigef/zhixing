@@ -14,6 +14,7 @@ import {
 /** Desktop data lives under the OS application-data directory, never the checkout. */
 export class DesktopStore {
   private preferenceWrites: Promise<void> = Promise.resolve();
+  private sessionWrites = new Map<string, Promise<void>>();
   constructor(private readonly root: string) {}
   private sessionPath(id: string): string {
     return path.join(
@@ -37,6 +38,7 @@ export class DesktopStore {
     return session;
   }
   async load(id: string): Promise<ChatSession> {
+    await this.sessionWrites.get(id);
     const session = chatSchema.parse(
       await readJson(this.sessionPath(id), 12_000_000),
     );
@@ -47,7 +49,11 @@ export class DesktopStore {
   }
   async save(session: ChatSession): Promise<void> {
     const checked = chatSchema.parse(session);
-    await atomicJson(this.sessionPath(checked.id), checked, 12_000_000);
+    const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
+      .then(() => atomicJson(this.sessionPath(checked.id), checked, 12_000_000));
+    this.sessionWrites.set(checked.id, pending);
+    try { await pending; }
+    finally { if (this.sessionWrites.get(checked.id) === pending) this.sessionWrites.delete(checked.id); }
   }
   async list(): Promise<SessionSummary[]> {
     let names: string[];
@@ -90,6 +96,13 @@ export class DesktopStore {
         atomicJson(path.join(this.root, "preferences.json"), checked, 16_000),
       );
     await this.preferenceWrites;
+  }
+  async workspace(): Promise<string | undefined> {
+    try { return z.object({ path: z.string().min(1).max(4096) }).parse(await readJson(path.join(this.root, "workspace.json"), 20_000)).path; }
+    catch (error) { if (isMissing(error)) return undefined; throw new Error("workspace_invalid"); }
+  }
+  async saveWorkspace(workspace: string): Promise<void> {
+    await atomicJson(path.join(this.root, "workspace.json"), { path: workspace }, 20_000);
   }
 }
 async function readJson(file: string, maximum: number): Promise<unknown> {

@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行 Agent：结合代码的架构讲解
 
-本文从一次用户输入开始，说明知行如何把自然语言、模型调用、受控执行、持久化状态和审计组合成一个可恢复的学习 Agent。当前有两个入口：CLI 提供完整学习工作流，桌面提供独立的连续对话；桌面尚未接入课程、资料导入或学习进度工具。
+本文从一次用户输入开始，说明知行如何把自然语言、模型调用、受控执行、持久化状态和审计组合成一个可恢复的学习 Agent。当前有两个入口：CLI 提供完整学习工作流，桌面提供连续任务和学习工作区；两端经 LearningApplication 共享课程、资料、进度与证据。
 
 ## 总体链路
 
@@ -99,7 +99,7 @@ if (input.requiresExplicitConfirmation && !(input.explicitlyConfirmed ?? input.u
 讲解 → 答疑 → 用户确认无疑问 → 练习 → 作答/请求答案 → 批改 → 实验与证据 → Review
 ```
 
-实际 `TeachingSessionStore` 的 `stage` schema 是 `answer_questions | practice | reflection`，并保存 `currentExercise`、`learnerAttempts`、`quizRound` 和最近 `transcript`。学习日的完成另由 `LearningRuntime.reviewDay` 与 `reviewEvidence` 判断；当前 CLI 的“检查”用布尔标志声明实现、测试输出、失败案例和复盘证据，不会自动运行测试来验证材料真实性。
+实际 `TeachingSessionStore` 的 `stage` schema 是 `answer_questions | practice | reflection`，并保存 `currentExercise`、`learnerAttempts`、`quizRound` 和最近 `transcript`。学习日的完成另由 `LearningRuntime.reviewDay` 与 `reviewEvidence` 判断；当前 CLI/桌面经 EvidenceStore 重新读取实际产物并验证哈希；布尔标志不计入证据。用户测试报告标为未复跑，另有显式 macOS JS 沙箱测试入口。
 
 ## 5. Tool Harness 是真实执行的能力边界
 
@@ -157,7 +157,7 @@ collectInvocation(providers, {
 
 `beginLiveModelText` 用 `onText` 在 REPL 中输出 Provider 的增量文本。是否真正 token 级流式取决于底层 Provider；应用层不会把一次性返回伪装成流。
 
-Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-codex`，通过受审查启动器运行，无模型工具权限，prompt 经 stdin 传递。认证与刷新由 Pi 自己处理；读到偏好不代表登录成功。DeepSeek 使用 API Key 与 SSE，CLI 从 macOS Keychain 取用 Key。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 会拒绝真实 Provider 请求，并影响 CLI 材料外发门禁；它不自动把失败调用变成本地回答。
+Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-codex`，通过受审查启动器运行，无模型工具权限，prompt 经 stdin 传递。认证与刷新由 Pi 自己处理；读到偏好不代表登录成功。DeepSeek 使用 API Key 与 SSE，CLI 从 macOS Keychain 取用 Key。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 会拒绝真实 Provider 请求，但不阻止本地 mock 路由的材料流程；它不自动把失败调用变成本地回答。
 
 ## 8. 桌面对话走独立的主进程服务
 
@@ -166,8 +166,8 @@ Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-code
 [`desktop/electron/main.ts`](../desktop/electron/main.ts) 检查 IPC 来源窗口、主 frame、URL 和 Zod 命令，再把发送操作交给 `DesktopService`：
 
 1. 校验输入和单一活跃生成约束，固定本次 Provider 客户端。
-2. 组合当前问题和最多 24 条、48,000 字符的历史上下文。
-3. 先保存用户消息和 `running` 回答，再调用选定的文本 Provider。
+2. 组合当前问题和最多 24 条、约 40,000 字符预算的目标和历史摘录，并加入独立约束/摘要及授权学习上下文。
+3. 先保存用户消息和 `running` 回答，再经共享 collectInvocation 执行选定模型及可用的只读学习工具。
 4. 把增量按会话 ID 发给 React，周期保存部分文本。
 5. 正常完成、停止或失败时保存最终状态；重启后未完成的 `running` 消息显示为 `interrupted`。
 
@@ -194,3 +194,5 @@ Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-code
 ## 面试总结
 
 知行的重点不在于“让模型回答得像老师”，而在于让模型出现误判、超时或中断时，系统仍保持正确的权限边界、状态一致性、审计能力与恢复能力。其核心取舍是：让模型提供智能，让代码保持控制权。
+
+0.3 新增路径：`src/learning-application.ts`、`src/assistant-runtime.ts`、`src/evidence-store.ts`；任务队列/摘要位于 `desktop/core/service.ts`。详细数据边界与测试见 [升级指南](agent-upgrade.md)。

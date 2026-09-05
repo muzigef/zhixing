@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { topicIdSchema } from "../../src/contracts.js";
+import { citationSchema, type WorkspaceSummary } from "../../src/learning-contracts.js";
+import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
@@ -23,6 +26,9 @@ export const messageSchema = z.object({
   model: z.string().max(128).optional(),
   durationMs: z.number().nonnegative().optional(),
   firstTokenMs: z.number().nonnegative().optional(),
+  citations: z.array(citationSchema).max(24).optional(),
+  activities: z.array(z.object({ label: z.string().max(120), status: z.enum(["running", "completed", "failed"]), at: z.string().datetime() })).max(100).optional(),
+  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative() }).optional(),
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({
@@ -33,6 +39,17 @@ export const chatSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   messages: z.array(messageSchema).max(1000),
+  topicId: topicIdSchema.optional(),
+  workspaceId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  contextAllowed: z.boolean().optional(),
+  context: z.object({
+    goal: z.string().max(4000), notes: z.string().max(4000),
+    summary: z.string().max(4000).optional(), summaryThroughId: z.string().uuid().optional(),
+    lastAttemptId: z.string().uuid().optional(),
+  }).optional(),
+  pendingRequests: z.array(z.object({ id: z.string().uuid(), text: z.string().min(1).max(20_000), provider: providerSchema, style: styleSchema, enqueuedAt: z.string().datetime() })).max(10).optional(),
+  queuePaused: z.boolean().optional(),
+  queueError: z.string().max(500).optional(),
 });
 export type ChatSession = z.infer<typeof chatSchema>;
 export type SessionSummary = Omit<
@@ -44,6 +61,8 @@ export const sendSchema = z.object({
   text: z.string().trim().min(1).max(20_000),
   provider: providerSchema,
   style: styleSchema,
+  topicId: topicIdSchema.optional(),
+  contextAllowed: z.boolean().optional(),
 });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
@@ -51,6 +70,10 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("new") }),
   z.object({ type: z.literal("load"), sessionId: z.string().uuid() }),
   sendSchema.extend({ type: z.literal("send") }),
+  sendSchema.extend({ type: z.literal("enqueue"), steer: z.boolean().optional() }),
+  z.object({ type: z.literal("resume-queue"), sessionId: z.string().uuid() }),
+  z.object({ type: z.literal("withdraw"), sessionId: z.string().uuid(), requestId: z.string().uuid() }),
+  z.object({ type: z.literal("context"), sessionId: z.string().uuid(), goal: z.string().max(4000), notes: z.string().max(4000) }),
   z.object({ type: z.literal("stop") }),
   z.object({
     type: z.literal("rename"),
@@ -65,6 +88,19 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
     apiKey: z.string().trim().min(8).max(4096),
   }),
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
+  z.object({ type: z.literal("learning-overview"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("learning-action"), topicId: topicIdSchema, command: z.string().regex(/^(开始第\s*\d{1,2}\s*天|开始任务|继续|进度|下一步)$/) }),
+  z.object({ type: z.literal("learning-import"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("learning-cancel") }),
+  z.object({ type: z.literal("learning-source"), topicId: topicIdSchema, citation: citationSchema }),
+  z.object({ type: z.literal("workspace-select") }),
+  z.object({ type: z.literal("diagnostics") }),
+  z.object({ type: z.literal("check-updates") }),
+  z.object({ type: z.literal("evidence-list"), topicId: topicIdSchema, dayId: dayIdSchema }),
+  z.object({ type: z.literal("evidence-submit"), topicId: topicIdSchema, dayId: dayIdSchema, kind: evidenceKindSchema, text: z.string().min(8).max(256_000) }),
+  z.object({ type: z.literal("evidence-file"), topicId: topicIdSchema, dayId: dayIdSchema, kind: evidenceKindSchema }),
+  z.object({ type: z.literal("evidence-validate"), topicId: topicIdSchema, dayId: dayIdSchema }),
+  z.object({ type: z.literal("evidence-review"), topicId: topicIdSchema, dayId: dayIdSchema }),
 ]);
 export type DesktopCommand = z.infer<typeof desktopCommandSchema>;
 export interface ModelStatus {
@@ -81,6 +117,7 @@ export interface ApiStatus {
   message: string;
 }
 export interface BootState {
+  workspace?: WorkspaceSummary;
   api: ApiStatus;
   sessions: SessionSummary[];
   settings: DesktopSettings;

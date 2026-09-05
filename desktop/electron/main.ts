@@ -28,6 +28,9 @@ import {
   type ModelStatus,
 } from "../core/contracts.js";
 import { packagedPiRunner } from "../core/pi-runner.js";
+import { LearningApplication } from "../../src/learning-application.js";
+import { summarizePerformance } from "../core/diagnostics.js";
+import { checkRelease } from "../core/updates.js";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const origin = "zhixing://app";
@@ -49,6 +52,18 @@ let pi: PiCodexClient;
 let secrets: EncryptedDesktopSecrets;
 let deepseekModel = "deepseek-v4-flash";
 let quitting = false;
+let learning: LearningApplication;
+let learningController: AbortController | undefined;
+let learningIdle: Promise<void> = Promise.resolve();
+let finishLearning: (() => void) | undefined;
+function beginLearning(): void { learningController = new AbortController(); learningIdle = new Promise<void>((resolve) => { finishLearning = resolve; }); }
+function endLearning(): void { learningController = undefined; finishLearning?.(); finishLearning = undefined; }
+
+function connectService(store: DesktopStore): void {
+  service = new DesktopService(store, (provider) => provider === "demo" ? new DesktopDemoClient() : provider === "deepseek-api"
+    ? new DeepSeekClient(secrets, (url, options) => net.fetch(url, options), process.env, deepseekModel) : pi, learning);
+  service.subscribe((event) => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
+}
 
 async function modelStatus(): Promise<ModelStatus> {
   try {
@@ -76,6 +91,7 @@ async function boot(): Promise<BootState> {
     status = { configured: false };
   }
   return {
+    workspace: learning.summary(),
     sessions: await service.store.list(),
     settings,
     model: await modelStatus(),
@@ -167,22 +183,10 @@ else {
         ),
       });
       secrets = desktopSecrets(root);
-      service = new DesktopService(new DesktopStore(root), (provider) =>
-        provider === "demo"
-          ? new DesktopDemoClient()
-          : provider === "deepseek-api"
-            ? new DeepSeekClient(
-                secrets,
-                (url, options) => net.fetch(url, options),
-                process.env,
-                deepseekModel,
-              )
-            : pi,
-      );
-      service.subscribe((event) => {
-        if (window && !window.isDestroyed())
-          window.webContents.send("zhixing:event", event);
-      });
+      const store = new DesktopStore(root);
+      deepseekModel = (await store.settings()).deepseekModel;
+      learning = await LearningApplication.open(await store.workspace() ?? path.join(root, "workspace"), resources);
+      connectService(store);
       protocol.handle("zhixing", (request) => {
         const url = new URL(request.url);
         if (url.host !== "app" || request.method !== "GET")
@@ -206,6 +210,77 @@ else {
           const command = desktopCommandSchema.parse(raw);
           let data: unknown;
           switch (command.type) {
+            case "diagnostics": {
+              const sessions = await service.store.list();
+              const recent = await Promise.all(sessions.slice(0, 20).map((session) => service.load(session.id)));
+              data = { version: app.getVersion(), performance: summarizePerformance(recent.flatMap((session) => session.messages).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-200)) };
+              break;
+            }
+            case "check-updates":
+              if (process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("live_provider_disabled");
+              data = await checkRelease(app.getVersion(), (url, options) => net.fetch(url instanceof URL ? url.toString() : url, options));
+              break;
+            case "evidence-list":
+              learning.registry.get(command.topicId);
+              data = await learning.evidence.list(command.topicId, command.dayId);
+              break;
+            case "evidence-submit":
+            case "evidence-file":
+            case "evidence-review":
+            case "evidence-validate": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              beginLearning();
+              try {
+                if (command.type === "evidence-submit") data = await learning.submitEvidence(command.topicId, command.dayId, command.kind, command.text);
+                else if (command.type === "evidence-file") {
+                  const selected = await dialog.showOpenDialog(window, { title: "提交当前学习日的证据", properties: ["openFile"], filters: [{ name: "文本与代码", extensions: ["txt", "md", "log", "js", "mjs", "cjs", "ts", "tsx", "py", "java", "rs", "go", "cpp", "c", "h"] }] });
+                  if (selected.canceled || !selected.filePaths[0]) data = { cancelled: true };
+                  else { learningController!.signal.throwIfAborted(); data = await learning.submitEvidenceFile(command.topicId, command.dayId, command.kind, selected.filePaths[0]); }
+                } else if (command.type === "evidence-review") data = await learning.review(command.topicId, command.dayId);
+                else data = await learning.validateEvidence(command.topicId, command.dayId, learningController!.signal);
+              } finally { endLearning(); }
+              break;
+            }
+            case "learning-overview":
+              data = await learning.overview(command.topicId);
+              break;
+            case "learning-source":
+              data = await learning.source(command.topicId, command.citation);
+              break;
+            case "learning-action":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              beginLearning();
+              try { data = { text: await learning.handle(command.command, command.topicId), overview: await learning.overview(command.topicId) }; }
+              finally { endLearning(); }
+              break;
+            case "learning-cancel":
+              learningController?.abort();
+              data = null;
+              break;
+            case "learning-import": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              const selected = await dialog.showOpenDialog(window, { title: "导入当前主题资料", properties: ["openFile"], filters: [{ name: "学习资料", extensions: ["pdf", "md", "markdown"] }] });
+              if (selected.canceled || !selected.filePaths[0]) { data = { cancelled: true }; break; }
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              beginLearning();
+              try { data = await learning.importSelected(command.topicId, selected.filePaths[0], AbortSignal.any([learningController!.signal, AbortSignal.timeout(120_000)])); }
+              finally { endLearning(); }
+              break;
+            }
+            case "workspace-select": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              const selected = await dialog.showOpenDialog(window, { title: "连接学习工作区（选择 zhixing 项目目录或其父目录）", properties: ["openDirectory"] });
+              if (selected.canceled || !selected.filePaths[0]) { data = await boot(); break; }
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              const selectedRoot = path.basename(selected.filePaths[0]) === "zhixing" ? path.dirname(selected.filePaths[0]) : selected.filePaths[0];
+              const next = await LearningApplication.open(selectedRoot, resources);
+              try { await service.store.saveWorkspace(next.root); }
+              catch (error) { next.close(); throw error; }
+              learning.close(); learning = next;
+              connectService(service.store);
+              data = await boot();
+              break;
+            }
             case "boot":
               data = await boot();
               break;
@@ -216,8 +291,23 @@ else {
               data = await service.load(command.sessionId);
               break;
             case "send":
+              if (learningController) throw new Error("learning_busy");
               deepseekModel = (await service.store.settings()).deepseekModel;
               data = await service.send(command);
+              break;
+            case "enqueue":
+              data = await service.enqueue(command, command.steer ?? false);
+              break;
+            case "withdraw":
+              data = await service.withdraw(command.sessionId, command.requestId);
+              break;
+            case "resume-queue":
+              deepseekModel = (await service.store.settings()).deepseekModel;
+              await service.resumeQueue(command.sessionId);
+              data = null;
+              break;
+            case "context":
+              data = await service.updateContext(command.sessionId, command.goal, command.notes);
               break;
             case "stop":
               service.stop();
@@ -228,6 +318,7 @@ else {
               break;
             case "settings":
               await service.store.saveSettings(command.settings);
+              deepseekModel = command.settings.deepseekModel;
               data = await boot();
               break;
             case "configure-deepseek":
@@ -340,10 +431,11 @@ else {
     if (process.platform !== "darwin") app.quit();
   });
   app.on("before-quit", (event) => {
-    if (quitting || !service?.activeSessionId) return;
+    if (quitting) return;
+    if (!service?.activeSessionId && !learningController) { learning?.close(); return; }
     event.preventDefault();
     quitting = true;
-    service.stop();
-    void service.idle().finally(() => app.quit());
+    service.stop(); learningController?.abort();
+    void Promise.allSettled([service.idle(), learningIdle]).finally(() => { learning?.close(); app.quit(); });
   });
 }

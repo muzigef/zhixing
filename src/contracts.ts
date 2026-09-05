@@ -18,6 +18,7 @@ export interface TopicDefinition {
 }
 
 export interface Citation {
+  readonly chunkId?: string;
   readonly topicId: TopicId;
   readonly documentId: string;
   readonly documentName: string;

@@ -30,6 +30,7 @@ export interface InvocationRequest {
   readonly allowFallback?: boolean;
   readonly tools?: readonly ModelToolDefinition[];
   readonly limits?: Partial<InvocationLimits>;
+  readonly requireDone?: boolean;
 }
 
 /** A partial result is never a successful completion of the requested task. */
@@ -82,6 +83,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       const turnEvents: ModelEvent[] = [];
       const calls: ModelEvent[] = [];
       const iterator = stream[Symbol.asyncIterator]();
+      let completed = false;
       try {
         for (;;) {
           const next = await abortable(() => iterator.next(), signal);
@@ -90,7 +92,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
           const event = next.value;
           events += 1;
           if (events > limits.maxEvents) throw new Error("model_event_limit");
-          if (event.type === "done") break;
+          if (event.type === "done") { completed = true; break; }
           if (event.type === "tool_result") throw new Error("untrusted_tool_result");
           if (event.type === "text_delta") {
             if (typeof event.text !== "string") continue;
@@ -118,6 +120,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
         if (signal.aborted) void iterator.return?.().catch(() => undefined);
         else if (iterator.return) await abortable(() => iterator.return!(), signal);
       }
+      if (request.requireDone && !completed) throw new Error("provider_incomplete");
       const results: ToolResultMessage[] = [];
       // No side effects until the entire provider turn has passed protocol/budget checks.
       for (const call of calls) {

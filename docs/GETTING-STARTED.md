@@ -5,7 +5,7 @@
 
 ## 直接使用桌面安装包
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.2.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。当前已验收的是 macOS Apple Silicon、macOS 13.0 及以上的本地预览版，没有 Apple Developer ID 签名和公证；Windows 仅有构建配置，尚未实机验收。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.3.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。当前已验收的是 macOS Apple Silicon、macOS 13.0 及以上的本地预览版，没有 Apple Developer ID 签名和公证；Windows 已有构建/UI/发布流水线，尚未实机验收。
 
 安装包内附 Electron 和 Pi 运行时，运行应用不需要另外安装 Node.js。`desktop/release/` 被 Git 忽略，克隆仓库不会带上这些产物；从源码运行或构建见下文。更多使用说明见 [桌面版 README](../desktop/README.md)。
 
@@ -156,3 +156,5 @@ npm --prefix desktop run test:ui
 | 扫描 PDF 为 `ocr_required` | 检查 `tesseract` 和 `pdftoppm`，或改用文字 PDF/Markdown。 |
 
 更多问题见 [故障排查](TROUBLESHOOTING.md)。修改代码前继续阅读 [开发指南](DEVELOPMENT.md)、[测试指南](TESTING.md) 和 [架构](architecture.md)。
+
+桌面 0.3 可选择主题并打开“课程与资料”，共用课程、资料、进度和实际证据；支持排队与立即调整。完整步骤见 [升级使用指南](agent-upgrade.md)。

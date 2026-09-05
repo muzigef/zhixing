@@ -4,9 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { LearningApplication } from "../src/learning-application.js";
 
 const exec = promisify(execFile);
 const roots: string[] = [];
+async function submitDay(root: string, day: string) { const app = await LearningApplication.open(root); try { for (const kind of ["implementation", "testOutput", "failureCase", "reflection"] as const) await app.submitEvidence("agent-development", day, kind, `这是 ${kind} 的实际记录，包含观察与具体结果。`); } finally { app.close(); } }
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
 
 describe.sequential("headless CLI workflow", () => {
@@ -29,7 +31,10 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("检查 D01 --实现 --测试")).resolves.toMatchObject({ stdout: expect.stringContaining("repair") });
     await expect(invoke("继续")).resolves.toMatchObject({ stdout: expect.stringContaining("下一步：继续 D01") });
     await expect(invoke("开始任务")).resolves.toMatchObject({ stdout: expect.stringContaining("开始 D01") });
-    await expect(invoke("检查 D01 --实现 --测试 --失败 --复盘")).resolves.toMatchObject({ stdout: expect.stringContaining("advance（8/8）") });
+    await expect(invoke("检查 D01 --实现 --测试 --失败 --复盘")).resolves.toMatchObject({ stdout: expect.stringContaining("repair") });
+    await expect(invoke("提交证据 D01 reflection 今天验证了一个错误输入，下一步将添加边界测试。")).resolves.toMatchObject({ stdout: expect.stringContaining("已保存证据") });
+    await submitDay(root, "D01");
+    await expect(invoke("检查 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("advance（8/8）") });
     await expect(invoke("读源码 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("已解锁") });
   }, 12_000);
 
@@ -51,8 +56,10 @@ describe.sequential("headless CLI workflow", () => {
     const invoke = async (command: string, topic: string) => await exec("npx", ["tsx", "src/cli.ts", command, "--topic", topic], options);
     await expect(invoke("开始第 1 天", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("agent-development/D01") });
     await invoke("开始第 1 天", "agent-development");
+    await submitDay(root, "D01");
     await invoke("检查 D01 --实现 --测试 --失败 --复盘", "agent-development");
     await invoke("开始第 2 天", "agent-development");
+    await submitDay(root, "D02");
     await invoke("检查 D02 --实现 --测试 --失败 --复盘", "agent-development");
     await expect(invoke("开始第 1 天", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag/D01") });
     await expect(invoke("继续", "tool-calling")).resolves.toMatchObject({ stdout: expect.stringContaining("当前主题没有") });
@@ -111,7 +118,7 @@ describe.sequential("headless CLI workflow", () => {
   it("E40：画像、个性化计划、Skill 草案与资料概览无需配置任何模型", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
     const invoke = async (command: string) => await exec("npx", ["tsx", "src/cli.ts", command, "--topic", "rag"], options);
     await expect(invoke("设置学习画像 掌握 RAG 面试 --水平 初学 --每天 45 --周期 14")).resolves.toMatchObject({ stdout: expect.stringContaining("已保存学习画像") });
     const proposed = await invoke("生成个性化计划");

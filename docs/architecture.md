@@ -5,22 +5,24 @@
 
 ## 系统概览与运行入口
 
-知行有两个独立入口：CLI 提供按主题组织的课程、资料、记忆、工具调用和学习进度；Electron 桌面应用提供持续对话、模型切换与本地会话管理。两者复用 `ModelClient`、Pi Codex / DeepSeek 适配器和回答风格规则，但不共享会话存储，也没有自动同步或迁移学习数据。桌面当前不调用 `LearningRuntime`、`ToolHarness` 或 CLI 的 SQLite 数据库。
+知行保留 CLI/REPL 与 Electron 桌面两个入口，复用 LearningApplication、确定性 LearningRuntime、资料库、课程读取与证据 Store。聊天/Provider 偏好分别保存；桌面可显式选择 CLI 工作区，直接共用学习数据，不自动迁移聊天。
 
 ```mermaid
 graph TD
-  CLI[CLI / REPL] --> Runtime[LearningRuntime / 调用控制面]
-  Runtime --> Local[主题文件 / SQLite / 审计]
-  Runtime --> Tools[ToolHarness]
-  Runtime --> Providers[ProviderRuntime]
-  Providers --> Model[ModelClient 适配器]
-  UI[React renderer] --> IPC[preload / 主进程 IPC]
-  IPC --> Desktop[DesktopService]
-  Desktop --> Store[DesktopStore / 系统应用目录]
-  Desktop --> Model
+  CLI[CLI / REPL] --> App[LearningApplication]
+  UI[React renderer] --> IPC[受控 IPC]
+  IPC --> Desktop[DesktopService / 会话任务队列]
+  IPC --> App
+  Desktop --> Assistant[Assistant Runtime / collectInvocation]
+  Assistant --> App
+  App --> Domain[LearningRuntime / TopicPlanLoader]
+  App --> Stores[DocumentLibrary / EvidenceStore / SQLite / 笔记]
+  Assistant --> Tools[当前主题 ToolHarness]
+  Assistant --> Model[Pi Codex / DeepSeek / demo]
+  Desktop --> Chat[DesktopStore / 完整消息与目标摘要]
 ```
 
-图中的 ProviderRuntime 与工具控制面属于 CLI；桌面主进程直接选择模型适配器，使用自己的文本流生命周期。
+模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。Pi 保持空工具列表，DeepSeek 支持受控工具续写。
 
 ### CLI 组合根
 
@@ -49,7 +51,7 @@ CLI / REPL
 - 当前主题保存在 `zhixing/settings/current-topic.local.json`；用户生成主题、学习记录和本地设置均被 `.gitignore` 排除。
 - Day 状态、进度和计划由主题目录中的 Markdown/JSON 文件保存；资料元数据、Chunk、FTS5、嵌入与记忆保存在 `zhixing/db/zhixing.sqlite`。
 - `TeachingSessionStore` 保存当前 Day、阶段、受限转录、当前练习和作答；`LearningContextBuilder` 仅组装当前主题画像、至多三条记忆、资料名称和教学检查点。
-- `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符；请求前保存用户输入，结束或正常中断后保存回答。强制结束可能丢失未保存增量，教学检查点不随旧聊天恢复而回滚。
+- `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符，额外持久保存最初目标；请求前保存用户输入，结束或正常中断后保存回答。强制结束可能丢失未保存增量，教学检查点不随旧聊天恢复而回滚。
 - `WorkflowLedger` 将运行与步骤状态写入 SQLite；启动时会把上次进程遗留的 `running` 运行标记为 `process_interrupted`，不重放任何可能含写入的操作。用户可安全地重新发起操作。
 - CLI 已有手动数据库备份、预览和确认恢复：`备份数据库` 将 SQLite 保存到 `zhixing/db/backups/`；它不包含资料原文件、主题计划、学习笔记或桌面对话。当前没有全局 `profile.md`、`MISTAKES.md`、情节记忆、主题删除、定时自动备份或完整学习数据导出。桌面对话 Markdown 导出是另一项已实现功能。
 
@@ -57,7 +59,7 @@ CLI / REPL
 
 ## CLI 教学闭环
 
-真实 tutor 的单日流程为：`开始第 N 天 → 讲解 → 答疑确认 → 练习/测验 → 实验与证据 Review`。讲解、答疑和练习的检查点在每次成功阶段转换后保存；重启可恢复，但不会恢复未完成的 Provider 请求。练习中的自然语言先被约束为 `start_practice`、`answer_question`、`request_solution`、`ask_question`、`skip_question` 或 `change_plan`。模型分类只提供意图建议：索要答案有确定性优先级；“作答/批改/持久化”必须有可追溯的用户原文证据，未证实的 `answer_question` 会安全降级为答疑，不能触发虚构批改。Day 只有 `检查 DNN --实现 --测试 --失败 --复盘` 达到 reviewer 标准后才会推进。
+真实 tutor 的单日流程为：`开始第 N 天 → 讲解 → 答疑确认 → 练习/测验 → 实验与证据 Review`。讲解、答疑和练习的检查点在每次成功阶段转换后保存；重启可恢复，但不会恢复未完成的 Provider 请求。练习中的自然语言先被约束为 `start_practice`、`answer_question`、`request_solution`、`ask_question`、`skip_question` 或 `change_plan`。模型分类只提供意图建议：索要答案有确定性优先级；“作答/批改/持久化”必须有可追溯的用户原文证据，未证实的 `answer_question` 会安全降级为答疑，不能触发虚构批改。Day 由 `检查 DNN` 验证实际产物的完整性后推进；布尔参数无效。EvidenceStore 保存哈希与来源，用户测试报告标为未复跑，完整性分数不代表掌握程度。
 
 `mock` 不调用真实模型，返回确定性学习卡；真实 Provider 默认在已配置后可用，设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 会阻止调用。
 
@@ -71,7 +73,7 @@ CLI / REPL
 | codex-cli | 仅 CLI；`codex exec --sandbox read-only --ephemeral --json` | CLI 注入 150 秒；类构造默认值为 60 秒 |
 | pi-codex | CLI 使用安全脚本，桌面使用内附 Pi 的等价启动器；均显式指定 Pi 的 Codex 模型与推理强度 | 默认 150 秒 |
 
-CLI 资料问答发送检索证据；学习建议发送画像和资料名称；教学发送当天学习卡与受限主题上下文；自然交互发送当前会话文本。桌面只组装当前对话的受限历史和本次用户输入，不读取 CLI 资料库或跨主题上下文。应用不会自动把凭证、审计原文或其他主题资料加入模型内容；DeepSeek 密钥只用于 API 请求认证。`codex-cli` 在临时目录、只读沙箱内运行，知行只读取 assistant 文本；这不等于 Pi 适配器的运行方式。
+CLI 资料问答发送检索证据；学习建议发送画像和资料名称；教学发送学习卡与受限主题上下文。桌面发送目标、约束、受限历史和可选摘要；勾选会话授权后加入当前主题进度与检索片段。凭据不进入提示词，其他主题资料与审计原文不加入上下文。
 
 `ProviderRuntime` 仅在调用允许 fallback、尚无事件外发且错误属于可回退类别时使用 mock；CLI 教学和自然交互显式关闭静默 fallback。桌面没有自动回退：失败保留状态和部分回答，用户可以点击切换到 DeepSeek 重试。
 
@@ -105,11 +107,11 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
 2. `DesktopService.send` 拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
-3. 服务只接收 `text_delta` 与 `done`，通过 `zhixing:event` 广播 `session`、`delta`、`settled` 事件；事件含会话标识，浏览其他会话不会把流写到错误页面。工具请求会报错，桌面未注册任何学习或文件操作工具。
+3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。DeepSeek 在会话授权时注册只读进度、目录、检索工具；Pi 仍使用文本模式。真实工具结果才能续写；`session`、`delta`、`settled` 事件按会话隔离。
 4. 收到非空文本和明确 `done` 才标记 `completed`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
-5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止活动请求并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
+5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
-桌面 IPC 命令包括 `boot`、`new`、`load`、`send`、`stop`、`rename`、`settings`、`export`、`open-link`、`configure-deepseek`、`copy`。响应统一为 `{ ok: true, data }` 或 `{ ok: false, error }`；错误通过 `publicError` 转成用户可读信息，不直接转发底层异常。接口定义见 `desktop/core/contracts.ts`，不是 HTTP API。
+桌面 IPC 包含会话、enqueue/withdraw/resume-queue/context、learning-*、workspace-select、evidence-*、diagnostics/check-updates 与原有设置/导出/复制命令。响应为 `{ ok: true, data }` 或脱敏错误，完整判别联合见 `desktop/core/contracts.ts`。文件选择由主进程原生对话框产生，renderer 不传任意路径。
 
 ### 历史、草稿与设置
 
@@ -117,7 +119,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 - 会话按更新时间排序，可重命名、重新载入和导出 Markdown。导出由主进程弹出系统保存对话框，仅导出所选桌面对话，不是 CLI 学习数据备份。
 - 草稿按会话保存在 renderer 的 localStorage，`last-session` 保存最后打开的会话；它们不属于会话 JSON，也不会随 Markdown 导出。设置保存串行化，renderer 用修订号避免旧响应覆盖新的选择。
 - 设置包含 Provider、回答风格、显示主题和 DeepSeek 模型；源码默认依次为 `pi-codex`、`adaptive`、`system`、`deepseek-v4-flash`。本机已保存设置可覆盖默认值。
-- 全应用同一时间只生成一个回答，期间可浏览历史和编辑草稿。停止不会清除部分文本；“继续回答”发送新的续写请求，“重试”重新发送对应用户问题。Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
+- 全应用同一时间只生成一个回答，期间可排队最多 10 条、立即调整、撤回待办或浏览历史；停止会暂停队列，重启须手动继续。停止不会清除部分文本；“继续回答”发送新的续写请求，“重试”重新发送对应用户问题。Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
 - Enter 发送、Shift+Enter 换行，中文输入法组合输入不触发发送；只有视图处于底部时自动跟随新内容。Cmd/Ctrl+N 新对话、Cmd/Ctrl+K 搜索、Cmd/Ctrl+, 打开设置。
 
 ### 桌面资源上限
@@ -126,17 +128,17 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 | --- | --- | --- |
 | 单次用户输入 | 20,000 字符 | `desktop/core/contracts.ts` |
 | 单条回答 | 64,000 字符 | `desktop/core/service.ts` |
-| 单次生成 | 最多 20,000 个模型事件，服务总时限 180 秒 | `desktop/core/service.ts` |
+| 单次生成 | 最多 10,000 个模型事件，服务总时限 180 秒 | `src/model-invocation.ts`、`desktop/core/service.ts` |
 | 适配器时限 | DeepSeek 60 秒、Pi 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-client.ts` |
 | 保存的会话 | 最多 1000 条消息；单文件最多 12,000,000 字节 | `desktop/core/contracts.ts`、`desktop/core/store.ts` |
-| 发给模型的历史 | 从最近消息向前收集，最多 24 条且文本累计不超过 48,000 字符；再加本次输入及提示词 | `desktop/core/service.ts` |
+| 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `desktop/core/service.ts` |
 
-历史预算不等于完整显示历史；遇到下一条消息放不下时即停止向前收集，不做摘要或语义压缩。消息达到保存上限后要求新建会话，不自动删除旧消息。以上字符数按 JavaScript 字符串长度计算，不是 token 或字节预算；JSON 文件和 SSE 的字节限制独立生效。
+本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。这些字符限制不是精确 token 预算。
 
 ## 安全与质量
 
 - `PathPolicy` 控制主题路径、导入根以及现存父目录/中间目录/叶子文件符号链接越界；它不代替防并发路径替换的 OS 沙箱；资料和用户本地状态不得提交。
-- CLI 的 DeepSeek API Key 通过 `MacOSKeychainSecretStore` 读写 macOS Keychain。CLI 模型审计记录 Provider、角色、耗时、状态及事件/回合/工具调用计数，不保存 prompt、回答或凭证；桌面没有接入该审计账本，使用自己的消息状态和时间元数据。
+- CLI 的 DeepSeek API Key 通过 `MacOSKeychainSecretStore` 读写 macOS Keychain。CLI 模型审计记录 Provider、角色、耗时、状态及事件/回合/工具调用计数，不保存 prompt、回答或凭证；桌面模型任务写入同一 WorkflowLedger，同时保留消息状态、步骤、引用及时间元数据。
 - 删除资料、写长期记忆和恢复数据库均需命令级确认；恢复会先预校验备份，并在失败时重新打开原数据库。
 - 桌面新 API Key 通过主进程的 `EncryptedDesktopSecrets` 使用 Electron 异步 safeStorage 加密，保存为用户数据目录下的 `deepseek.credential`；加密不可用时拒绝保存，没有明文回退。macOS 可复用现有知行 Keychain 项，优先使用桌面加密文件。配置状态只检查文件/Keychain 元数据，实际请求才读取密钥；设置页不会回填已有密钥，密钥不进入偏好或聊天 JSON。Pi 认证仍由 Pi 独立管理。
 - renderer 启用 sandbox、context isolation、禁用 Node integration，通过受限 preload 使用应用接口；本地 `zhixing://app` 协议只提供打包资源，CSP 禁止 renderer 自行联网，导航、新窗口和权限请求默认拒绝。`open-link` 仅允许不含内嵌账号密码的 HTTP(S) URL，由主进程交给系统浏览器。
@@ -147,6 +149,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 | 抽象 | 职责与源码 |
 | --- | --- |
+| `LearningApplication` / `EvidenceStore` | 两个入口共用学习边界与实际产物校验：`src/learning-application.ts`、`src/evidence-store.ts` |
 | `LearningRuntime` | 确定性课程状态机与 Review 入口：`src/runtime.ts` |
 | `authorizeConversationTransition` / `decideInteraction` | 授权、原文证据与输入分类：`src/conversation-policy.ts`、`src/interaction-protocol.ts` |
 | `ModelClient` / `ContinuableModelClient` | 文本流及可选工具续写协议：`src/model.ts` |
@@ -162,10 +165,10 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 ## 构建与已验证范围
 
-`desktop/scripts/build.mjs` 用 esbuild 分别生成主进程 ESM、preload CJS、renderer 静态资源以及守卫模块。electron-builder 将内附 Pi 依赖展开到 `app.asar.unpacked/node_modules/`，并将 runtime 规则与守卫放入额外资源；桌面不依赖 CLI 的原生 SQLite 模块。
+`desktop/scripts/build.mjs` 用 esbuild 分别生成主进程 ESM、preload CJS、renderer 静态资源以及守卫模块。electron-builder 将内附 Pi 依赖展开到 `app.asar.unpacked/node_modules/`，并将 runtime 规则与守卫放入额外资源；桌面独立安装 SQLite/PDF 依赖；prepare-runtime 先安装项目内 Electron 并探测/重建 Electron ABI，根包 SQLite 保持 Node ABI。只将四个内置课程与运行规则打包，不收集用户主题。
 
-`desktop/package.json` 提供 macOS arm64 DMG/ZIP 和 Windows x64 NSIS 配置。当前实际验收覆盖 macOS Apple Silicon 应用及安装包；Windows 与 Intel Mac 未完成平台验收。应用未完成 Developer ID 签名、公证或自动更新发布。已有记录包括 DeepSeek 一次真实短请求成功，但 Pi 内附运行时/协议验证不能替代 Codex 真实认证验收。详情见 [桌面验收记录](evidence/desktop-app.md)。
+`desktop/package.json` 提供 macOS arm64 DMG/ZIP 和 Windows x64 NSIS 配置。当前实际验收覆盖 macOS Apple Silicon 应用及安装包；Windows 与 Intel Mac 未完成平台验收。已提供 macOS/Windows 构建、实际包 UI 与 draft release 流水线，以及用户主动检查公开新版本；Developer ID 签名、公证和远端执行另行验收。已有记录包括 DeepSeek 一次真实短请求成功，但 Pi 内附运行时/协议验证不能替代 Codex 真实认证验收。详情见 [桌面验收记录](evidence/desktop-app.md)。
 
 ## 后续设计（未实现）
 
-仍需完成：让所有旧命令处理器都经 Action Registry 分派、为其他 Provider 增加知行工具适配、精确 token/费用预算、持久任务的逐步骤幂等恢复和语义压缩。主题删除、完整学习数据导出、定时自动备份、跨设备同步和更多 Provider 仍未实现。桌面课程、资料导入/检索与进度管理也尚未接入；现有桌面对话功能不能视为这些 CLI 工作流已经迁移。
+后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、完整学习备份、跨设备同步。桌面课程/资料/进度/证据与任务上下文已落地；通用 Shell、任意代码编辑、多 Agent、MCP 市场不在本轮范围。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
