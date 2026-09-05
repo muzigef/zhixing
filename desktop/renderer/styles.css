@@ -1355,3 +1355,29 @@ kbd,
 .performance-details p { font-size: 12px; line-height: 1.7; color: var(--secondary); }
 .performance-row { padding: 10px 0; border-top: 1px solid var(--border); }
 .performance-row p { margin: 4px 0; }
+/* Structured task interactions share the chat's existing spacing and colors. */
+.interaction-card, .artifact-card, .comparison-panel { border: 1px solid var(--border, #ddd); border-radius: 12px; padding: 16px; margin: 12px 0; }
+.interaction-card pre, .artifact-card pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+.interaction-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.interaction-card input, .message-editor textarea { width: 100%; padding: 10px; border: 1px solid var(--border, #ddd); border-radius: 8px; color: inherit; background: transparent; }
+.message-editor textarea { min-height: 120px; }
+.interaction-card button, .artifact-card button, .message-editor button, .comparison-panel button, .compare-trigger, .edit-message { padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border, #ddd); background: transparent; color: inherit; cursor: pointer; }
+.edit-message { display: block; margin: 6px 0 0 auto; font-size: 12px; }
+.comparison-panel header { display: flex; align-items: center; justify-content: space-between; }
+.comparison-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.comparison-columns section { min-width: 0; }
+.comparison-columns select { max-width: 100%; }
+.comparison-answer { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 60vh; overflow: auto; margin-top: 12px; }
+.artifact-card small { display: block; overflow-wrap: anywhere; opacity: .65; margin-top: 8px; }
+.assessment-panel { padding: 16px 0; border-top: 1px solid var(--border, #ddd); }
+.assessment-panel fieldset { border: 1px solid var(--border, #ddd); border-radius: 10px; margin: 12px 0; padding: 12px; }
+.assessment-panel fieldset label { display: block; padding: 6px; }
+.assessment-panel textarea { display: block; min-height: 80px; width: 100%; color: inherit; background: transparent; border: 1px solid var(--border, #ddd); border-radius: 8px; }
+.assessment-result { margin-top: 12px; padding: 12px; border-left: 3px solid #71806d; }
+@media (max-width: 720px) { .comparison-columns { grid-template-columns: 1fr; } }
+
+.skill-panel { margin: 24px 0; }
+.skill-panel select { max-width: 100%; padding: 8px; }
+.skill-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow-y: auto; font: inherit; font-size: 13px; line-height: 1.65; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-result { overflow-wrap: anywhere; font-size: 13px; }

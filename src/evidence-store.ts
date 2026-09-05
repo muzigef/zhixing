@@ -19,14 +19,23 @@ const hash = (text: string) => crypto.createHash("sha256").update(text).digest("
 export class EvidenceStore {
   constructor(private readonly paths: PathPolicy) {}
   private file(topic: string, day: string, name: string) { return this.paths.resolveTopicPath(topic, "notes", "evidence", dayIdSchema.parse(day), name); }
-  async submit(topic: string, day: string, kind: EvidenceKind, text: string): Promise<EvidenceArtifact> {
+  async submit(topic: string, day: string, kind: EvidenceKind, text: string, operationId?: string): Promise<EvidenceArtifact> {
     evidenceKindSchema.parse(kind);
     if (text.trim().length < 8 || Buffer.byteLength(text) > 256_000) throw new Error("evidence_size_limit");
     const current = await this.list(topic, day);
+    if (operationId) {
+      z.string().uuid().parse(operationId);
+      const previous = current.artifacts.find((item) => item.id === operationId);
+      if (previous) {
+        if (previous.hash !== hash(text) || previous.kind !== kind || !previous.intact) throw new Error("idempotency_conflict");
+        return previous;
+      }
+    }
     if (current.artifacts.length >= 100) throw new Error("evidence_limit");
-    const value = artifactSchema.parse({ id: crypto.randomUUID(), kind, hash: hash(text), bytes: Buffer.byteLength(text), createdAt: new Date(Math.max(Date.now(), Date.parse(current.artifacts.at(-1)?.createdAt ?? "1970-01-01") + 1)).toISOString() });
+    const value = artifactSchema.parse({ id: operationId ?? crypto.randomUUID(), kind, hash: hash(text), bytes: Buffer.byteLength(text), createdAt: new Date(Math.max(Date.now(), Date.parse(current.artifacts.at(-1)?.createdAt ?? "1970-01-01") + 1)).toISOString() });
     await fs.mkdir(this.file(topic, day, "."), { recursive: true, mode: 0o700 });
-    await fs.writeFile(this.file(topic, day, `${value.id}.txt`), text, { flag: "wx", mode: 0o600 });
+    try { await fs.writeFile(this.file(topic, day, `${value.id}.txt`), text, { flag: "wx", mode: 0o600 }); }
+    catch (error) { if (!operationId || (error as NodeJS.ErrnoException).code !== "EEXIST") throw error; if (await this.readText(topic, day, value.id) !== text) throw new Error("idempotency_conflict"); }
     await fs.writeFile(this.file(topic, day, `${value.id}.json`), JSON.stringify(value), { flag: "wx", mode: 0o600 });
     return { ...value, intact: true };
   }

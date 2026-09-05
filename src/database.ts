@@ -3,6 +3,8 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import type { MemoryInput, SearchResult, TopicId } from "./contracts.js";
 import { cosineSimilarity } from "./embedding.js";
+interface RetrievalRow { chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; }
+function retrievalResult(topicId: string, row: RetrievalRow): SearchResult { return { text: row.text, score: 0, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }; }
 
 export class ZhixingDatabase {
   readonly db: Database.Database;
@@ -12,6 +14,11 @@ export class ZhixingDatabase {
     this.file = file;
     fs.mkdirSync(path.dirname(file), { recursive: true });
     this.db = new Database(file);
+    try {
+      const hasVersions = this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get();
+      const version = hasVersions ? (this.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number }).version : 0;
+      if (version > 4) throw new Error("storage_version_unsupported");
+    } catch (error) { this.db.close(); throw error; }
     this.db.pragma("foreign_keys = ON");
     this.db.pragma("journal_mode = WAL");
     this.migrate();
@@ -65,6 +72,7 @@ export class ZhixingDatabase {
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(1, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(2, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(3, new Date().toISOString());
+    this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(4, new Date().toISOString());
   }
 
   addDocument(id: string, topicId: TopicId, sha256: string, name: string, mimeType: string, status = "indexed"): boolean {
@@ -127,6 +135,20 @@ export class ZhixingDatabase {
       return { text: row.text, score: lexicalScore * 0.65 + semantic * 0.35, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } };
     }).filter((item) => item.score > 0).sort((left, right) => right.score - left.score).slice(0, 8);
   }
+  retrievalCandidates(topicId: TopicId, terms: string[]): SearchResult[] {
+    if (!terms.length) return [];
+    const selected = terms.slice(0, 32);
+    const rows = this.db.prepare(`SELECT c.id AS chunkId, c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor
+      FROM chunks c JOIN documents d ON d.id=c.document_id WHERE c.topic_id=? AND d.status IN ('indexed','ocr_low_confidence')
+      AND (${selected.map(() => "c.text LIKE ? ESCAPE '\\'").join(" OR ")}) ORDER BY c.rowid LIMIT 300`).all(topicId, ...selected.map((term) => `%${term.replace(/[\\%_]/g, "\\$&")}%`)) as RetrievalRow[];
+    return rows.map((row) => retrievalResult(topicId, row));
+  }
+  neighboringChunks(topicId: TopicId, chunkId: string): SearchResult[] {
+    const target = this.db.prepare("SELECT rowid, document_id FROM chunks WHERE topic_id=? AND id=?").get(topicId, chunkId) as { rowid: number; document_id: string } | undefined;
+    if (!target) return [];
+    const rows = ["<", ">"].flatMap((direction) => this.db.prepare(`SELECT c.id AS chunkId, c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor FROM chunks c JOIN documents d ON d.id=c.document_id WHERE c.topic_id=? AND c.document_id=? AND c.rowid ${direction} ? ORDER BY c.rowid ${direction === "<" ? "DESC" : "ASC"} LIMIT 1`).all(topicId, target.document_id, target.rowid) as RetrievalRow[]);
+    return rows.map((row) => retrievalResult(topicId, row));
+  }
 
   writeMemory(id: string, input: MemoryInput): void {
     if (!input.confirmed && input.sourceKind === "user") throw new Error("denied: 用户记忆需要确认");
@@ -156,4 +178,14 @@ export class ZhixingDatabase {
   }
 
   close(): void { this.db.close(); }
+}
+
+/** Read-only preflight also rejects a future schema before restoring data. */
+export function inspectDatabaseSnapshot(file: string): void {
+  const db = new Database(file, { readonly: true, fileMustExist: true });
+  try {
+    const row = db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number };
+    if (row.version > 4) throw new Error("storage_version_unsupported");
+    if (db.pragma("quick_check", { simple: true }) !== "ok") throw new Error("backup_integrity_failed");
+  } finally { db.close(); }
 }

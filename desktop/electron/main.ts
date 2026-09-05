@@ -15,7 +15,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { DeepSeekClient } from "../../src/deepseek-client.js";
 import { desktopSecrets } from "./secrets.js";
 import type { EncryptedDesktopSecrets } from "../core/secrets.js";
-import { PiCodexClient } from "../../src/pi-client.js";
+import { PiApplicationClient } from "../../src/pi-application-client.js";
+import { createWorkspaceBackup, inspectWorkspaceBackup, restoreWorkspaceBackup } from "../core/workspace-backup.js";
 import { DesktopStore } from "../core/store.js";
 import {
   DesktopDemoClient,
@@ -27,7 +28,7 @@ import {
   type BootState,
   type ModelStatus,
 } from "../core/contracts.js";
-import { packagedPiRunner, resolvePackagedPiCli } from "../core/pi-runner.js";
+import { resolvePackagedPiSdk } from "../core/pi-runner.js";
 import { LearningApplication } from "../../src/learning-application.js";
 import { summarizePerformance } from "../core/diagnostics.js";
 import { checkRelease } from "../core/updates.js";
@@ -48,9 +49,10 @@ if (process.env.ZHIXING_DESKTOP_TEST_DATA)
 const lock = app.requestSingleInstanceLock();
 let window: BrowserWindow | null = null;
 let service: DesktopService;
-let pi: PiCodexClient;
+let pi: PiApplicationClient;
 let secrets: EncryptedDesktopSecrets;
 let deepseekModel = "deepseek-v4-flash";
+let semanticModel = "";
 let quitting = false;
 let learning: LearningApplication;
 let learningController: AbortController | undefined;
@@ -60,6 +62,7 @@ function beginLearning(): void { learningController = new AbortController(); lea
 function endLearning(): void { learningController = undefined; finishLearning?.(); finishLearning = undefined; }
 
 function connectService(store: DesktopStore): void {
+  learning.configureSemantic(semanticModel);
   service = new DesktopService(store, (provider) => provider === "demo" ? new DesktopDemoClient() : provider === "deepseek-api"
     ? new DeepSeekClient(secrets, (url, options) => net.fetch(url, options), process.env, deepseekModel) : pi, learning);
   service.subscribe((event) => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
@@ -166,18 +169,16 @@ else {
         path.join(resources, "AGENTS.md"),
         path.join(runtime, "AGENTS.md"),
       );
-      const piCli = await resolvePackagedPiCli(app.getAppPath());
-      pi = new PiCodexClient({
+      pi = new PiApplicationClient({
         projectDir: runtime,
-        runner: packagedPiRunner(
-          process.execPath,
-          piCli,
-          path.join(resources, "zhixing-guard.mjs"),
-        ),
+        executable: process.execPath,
+        worker: path.join(resources, "pi-model-worker.mjs"),
+        sdk: await resolvePackagedPiSdk(app.getAppPath()),
       });
       secrets = desktopSecrets(root);
       const store = new DesktopStore(root);
       deepseekModel = (await store.settings()).deepseekModel;
+      semanticModel = (await store.settings()).semanticModel ?? "";
       learning = await LearningApplication.open(await store.workspace() ?? path.join(root, "workspace"), resources);
       connectService(store);
       protocol.handle("zhixing", (request) => {
@@ -201,6 +202,7 @@ else {
           )
             throw new Error("invalid_sender");
           const command = desktopCommandSchema.parse(raw);
+          if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "rename", "settings", "configure-deepseek", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
             case "diagnostics": {
@@ -237,8 +239,30 @@ else {
             case "learning-overview":
               data = await learning.overview(command.topicId);
               break;
+            case "assessment-start":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              data = await learning.startAssessment(command.topicId, command.dayId);
+              break;
+            case "assessment-submit":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              data = await learning.submitAssessment(command.topicId, command.dayId, command.attemptId, command.answers, command.reflection);
+              break;
             case "learning-source":
               data = await learning.source(command.topicId, command.citation);
+              break;
+            case "skills-list":
+              learning.registry.get(command.topicId);
+              data = (await learning.skills.list(command.topicId)).map(({ name, description, scope }) => ({ name, description, scope }));
+              break;
+            case "skill-read":
+              learning.registry.get(command.topicId);
+              data = await learning.skills.read(command.topicId, command.name);
+              break;
+            case "semantic-index":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              beginLearning();
+              try { data = await learning.indexSemantic(command.topicId, AbortSignal.any([learningController!.signal, AbortSignal.timeout(120_000)])); }
+              finally { endLearning(); }
               break;
             case "learning-action":
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
@@ -260,12 +284,38 @@ else {
               finally { endLearning(); }
               break;
             }
+            case "workspace-backup":
+            case "workspace-restore": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              beginLearning();
+              try {
+                await service.pauseMaintenance();
+                const restoring = command.type === "workspace-restore";
+                const selected = await dialog.showOpenDialog(window, { title: restoring ? "选择知行备份文件夹" : "选择备份保存位置", properties: ["openDirectory", "createDirectory"] });
+                if (selected.canceled || !selected.filePaths[0]) { data = { cancelled: true }; break; }
+                const signal = learningController!.signal;
+                if (!restoring) data = { path: await createWorkspaceBackup(learning, service.store, selected.filePaths[0], app.getVersion(), signal) };
+                else {
+                  const manifest = await inspectWorkspaceBackup(selected.filePaths[0], signal);
+                  const confirmation = await dialog.showMessageBox(window, { type: "question", buttons: ["恢复为新工作区", "取消"], defaultId: 0, cancelId: 1, message: "恢复备份", detail: `来自知行 ${manifest.appVersion}，共 ${manifest.files.length} 个文件。原工作区和会话将保留，恢复的会话将使用新编号。模型密钥及当前偏好保持原样。` });
+                  if (confirmation.response !== 0) { data = { cancelled: true }; break; }
+                  signal.throwIfAborted();
+                  const restored = await restoreWorkspaceBackup(selected.filePaths[0], path.join(service.store.root, "restored-workspaces"), service.store, signal);
+                  const next = await LearningApplication.open(restored.workspace, resources);
+                  try { await service.store.saveWorkspace(next.root); } catch (error) { next.close(); throw error; }
+                  learning.close(); learning = next; connectService(service.store);
+                  data = { ...restored, state: await boot() };
+                }
+              } finally { endLearning(); }
+              break;
+            }
             case "workspace-select": {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               const selected = await dialog.showOpenDialog(window, { title: "连接学习工作区（选择 zhixing 项目目录或其父目录）", properties: ["openDirectory"] });
               if (selected.canceled || !selected.filePaths[0]) { data = await boot(); break; }
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               const selectedRoot = path.basename(selected.filePaths[0]) === "zhixing" ? path.dirname(selected.filePaths[0]) : selected.filePaths[0];
+              await service.pauseMaintenance();
               const next = await LearningApplication.open(selectedRoot, resources);
               try { await service.store.saveWorkspace(next.root); }
               catch (error) { next.close(); throw error; }
@@ -287,6 +337,12 @@ else {
               if (learningController) throw new Error("learning_busy");
               deepseekModel = (await service.store.settings()).deepseekModel;
               data = await service.send(command);
+              break;
+            case "fork":
+              data = await service.fork(command.sessionId, command.messageId, command.edit);
+              break;
+            case "answer":
+              data = await service.answerInteraction(command.sessionId, command.itemId, command.answer, command.scope);
               break;
             case "enqueue":
               data = await service.enqueue(command, command.steer ?? false);
@@ -312,6 +368,8 @@ else {
             case "settings":
               await service.store.saveSettings(command.settings);
               deepseekModel = command.settings.deepseekModel;
+              semanticModel = command.settings.semanticModel ?? "";
+              learning.configureSemantic(semanticModel);
               data = await boot();
               break;
             case "configure-deepseek":

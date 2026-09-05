@@ -77,7 +77,7 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.3.0-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.4.0-mac-arm64.dmg
 ```
 
 安装包文件名中的版本来自桌面包，升级后需同步替换。当前配置和已有验收针对 macOS Apple Silicon；Windows NSIS 构建配置不等于 Windows 实机测试通过，Intel Mac 同样尚未验收。
@@ -118,4 +118,12 @@ CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-re
 
 `npm run eval:agent` 聚合 `agent-quality-eval`、`desktop-tasks`、`evidence-application`、`desktop-diagnostics`。新增 `smoke-learning.mjs` 验证真实主题/课程/进度、Markdown 和文字 PDF 导入、引用、产物 Review、本地 JavaScript 测试、排队/立即调整/停止/重启恢复、持久目标与主题隔离。与原有 UI smoke 同时在实际安装包运行。
 
-[固定人工用例](agent-quality-cases.json) 用于实际 Pi/DeepSeek 回答质量，当前未执行；自动夹具只证明协议和工作流结果。性能统计按 Provider 分开，样本量与范围见 [升级指南](agent-upgrade.md)。本轮结果见 [Evidence](evidence/agent-upgrade.md)。
+[固定人工用例](agent-quality-cases.json) 用于实际 Pi/DeepSeek 回答质量，已执行的原答与复核见 [本轮 Evidence](evidence/agent-next.md)；自动夹具只证明协议和工作流结果。性能统计按 Provider 分开，样本量与范围见 [升级指南](agent-upgrade.md)。本轮结果见 [Evidence](evidence/agent-upgrade.md)。
+
+## 0.4 自动化与真实质量
+
+新增覆盖结构化上下文、Pi SDK 工具桥接、推理/usage、幂等任务、问答/审批/分支、检索隔离、独立课程检查、全量备份与 v1/v2 迁移。第三套 `smoke-interactions.mjs` 验证具体审批、问题回复、分支对比、技能预览和备份恢复，开发与实际包使用同一脚本。测试只使用临时合成数据。
+
+`npm run eval:quality -- --live --output=docs/evidence/agent-quality-latest.json` 在临时合成工作区运行固定 12 题 × 两次独立会话 × 双 Provider；可加 `--provider=deepseek-api` 或 `--case=R02,R08`，用 `--reasoning=balanced` 检查默认思考档位。无 `--live` 为 demo。首个完全不可用的 Provider 停止后续尝试，并明确记录 attempted=false。waiting 代表真实澄清或审批，不能当作连接失败；答案待审并不代表质量通过。相同输入、快速思考，记录原文、interaction、usage、首字与总耗时；复核者身份和理由另存。题目已用于开发回归，不能视为盲测。
+
+远端发布矩阵包含 macos-15、macos-15-intel、windows-2022；手动签名分支缺少配置时失败，实际签名/公证依赖账户，不由 mock 证明。

@@ -15,3 +15,10 @@ it("validates stable release versions, rejects off-site links, and handles no pu
   await expect(checkRelease("0.3.0", response({ tag_name: "v0.4.0", html_url: "https://example.com/evil", draft: false, prerelease: false }))).rejects.toThrow("release_invalid");
   expect(await checkRelease("0.3.0", response({}, 404))).toMatchObject({ available: false });
 });
+it("separates model and reasoning profiles and reports only observed token usage", () => {
+  const base = { role: "assistant" as const, status: "completed" as const, provider: "deepseek-api" as const, text: "private", id: crypto.randomUUID(), createdAt: new Date().toISOString(), durationMs: 2000, firstTokenMs: 100 };
+  const result = summarizePerformance([{ ...base, model: "fixture-a", reasoning: "quick", usage: { inputTokens: 12, outputTokens: 8 } }, { ...base, id: crypto.randomUUID(), model: "fixture-a", reasoning: "deep", firstTokenMs: 400 }]);
+  expect(result[1]?.variants).toHaveLength(2);
+  expect(result[1]?.variants[0]).toMatchObject({ model: "fixture-a", reasoning: "quick", inputTokens: 12, outputTokens: 8 });
+  expect(JSON.stringify(result)).not.toContain("private");
+});

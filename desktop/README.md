@@ -1,13 +1,15 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行桌面版
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.3.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.3 使用指南](../docs/agent-upgrade.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.4.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.3 使用指南](../docs/agent-upgrade.md)。完整项目介绍见 [根 README](../README.md)。
+
+本轮新增能力与数据兼容说明见 [0.4 指南](../docs/agent-0.4.md)：结构化对话、受控任务执行、审批/提问卡、编辑分支与对比、独立检查、桌面技能及完整备份恢复。
 
 ## 安装和使用
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/Zhixing-0.3.0-mac-arm64.dmg`。
+1. 打开本目录下的 `release/Zhixing-0.4.0-mac-arm64.dmg`。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
@@ -115,7 +117,7 @@ npm --prefix desktop run test:ui
 npm --prefix desktop run dist:mac
 ```
 
-该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.3.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
+该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.4.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
 
 验证实际 `.app` 时，在 `desktop/` 内执行：
 
@@ -155,7 +157,7 @@ node desktop/scripts/check-deepseek.mjs --live
 - `renderer/`：React 聊天界面与本地 Markdown / KaTeX 渲染。
 - `scripts/`：构建、UI 验证、图标生成及可选 DeepSeek 连通检查。
 
-复用仓库 `src/pi-client.ts`、`src/deepseek-client.ts`、`responseGuidelines` 的协议校验与对话规则。Pi 禁止模型工具执行，主进程只向 renderer 提供受校验的命令与消息；凭据不会回传到 renderer。
+复用仓库 `src/pi-client.ts`、`src/deepseek-client.ts`、`responseGuidelines` 的协议校验与对话规则。Pi SDK 只生成应用工具请求，执行由受控 ToolHarness 管理；主进程只向 renderer 提供受校验的命令与消息；凭据不会回传到 renderer。
 
 继续阅读 [配置](../docs/CONFIGURATION.md)、[开发](../docs/DEVELOPMENT.md)、[测试](../docs/TESTING.md) 和 [架构](../docs/architecture.md)。
 

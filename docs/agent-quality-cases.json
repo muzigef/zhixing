@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "manual_real_provider_evaluation_not_run",
+  "status": "real_provider_runs_recorded_assistant_reviewed_human_review_pending",
   "protocol": "同一合成工作区、相同提示与模型设置；每项记录通过/部分/失败、原回答和可核验理由；至少两次独立会话，不用单次输出宣称商业 Agent 对齐。R03/R08/R11 为连续任务；其余准备对应合成材料与进度。",
   "cases": [
     {
@@ -109,5 +109,12 @@
         "不虚构执行或测试通过"
       ]
     }
+  ],
+  "reports": [
+    "evidence/agent-quality-baseline.json",
+    "evidence/agent-quality-refined.json",
+    "evidence/agent-quality-balanced.json",
+    "evidence/agent-quality-resume.json",
+    "evidence/agent-quality-review.md"
   ]
 }

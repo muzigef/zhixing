@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 核对日期：2026-09-05，最新维护基于 `9c4c901` 修复 CI 依赖安全告警。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
+> 核对日期：2026-09-06，当前为 0.4.0 Agent 能力优化及本机安装包验收。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
 > 状态：`[x]` 已验证，`[~]` 基础实现/待收口，`[ ]` 未开始。
 > 历史 P0 分解见 [P0 自动执行 Tasklist](docs/p0-tasklist.md)。
 
@@ -101,9 +101,23 @@
 - [x] 本地 verify：64 文件 / 306 测试；专项 eval：4 文件 / 15 测试；两套开发/打包 UI；macOS 0.3.0 DMG 校验。
 - [x] 当前文档、指南、Backlog 和 Evidence 同步；历史验收记录保留。
 
+## P12：本轮 Agent 能力优化
+
+- [x] 真实合成基线、双 Provider 两次回归、原答/usage/耗时与具名复核；无法连接的尝试单独标记。
+- [x] system/用户/助手/观察分离；Pi SDK 与 DeepSeek 同一受控应用工具。
+- [x] 持久步骤和实际操作、幂等保存、完整性核验及失败重试。
+- [x] 思考档位与篇幅分离、后台历史整理、分模型 usage/首字与总耗时。
+- [x] 问题/授权/产物/最终消息、编辑分支、父分支回答比较。
+- [x] 中文同义词/确定性重排/相邻片段、候选与引用分开、可选本机语义索引和版本失效保护。
+- [x] 独立课程检查、错因与 1/3/7 天复习，不以完整性或模型判断代替掌握。
+- [x] 桌面技能、全量备份与新工作区恢复、v1/v2 会话兼容及未来版本保护。
+- [x] 75 文件/336 测试和完整 verify；三套开发/实包 UI；0.4 macOS arm64 安装器与 SHA-256；双生产审计 0 漏洞。
+- [x] 当前文档、执行计划与 Evidence 同步，历史记录保留。
+- [~] 独立人工质量评分、Pi 真实连接、本机语义模型效果、Windows/Intel 实机、签名公证与远端 CI 待对应环境验收。
+
 ## 当前状态
 
-P11 本机可执行开发与 macOS 验收完成，详见 [升级 Evidence](docs/evidence/agent-upgrade.md) 和 [使用指南](docs/agent-upgrade.md)。没有重跑真实 Pi/DeepSeek 请求。Windows/Intel Mac 实机、签名/公证、远端 Actions 与真实模型质量/速度仍需对应环境，不算作已验收。下一步边界见 [Backlog](docs/implementation-backlog.md)。
+本轮授权范围的本机开发与打包验证已完成，见 [顺序执行计划](docs/agent-next-plan.md)、[验收证据](docs/evidence/agent-next.md)与[0.4 使用指南](docs/agent-0.4.md)。真实答案仍有续写重复、冗余提问和归因不精确等残余问题，逐题记录在[质量报告](docs/evidence/agent-quality-review.md)，不能以自动测试通过宣称商业 Agent 质量对齐。MCP/通用编码扩展和外部平台边界见 [Backlog](docs/implementation-backlog.md)。
 
 ## 依赖安全维护
 

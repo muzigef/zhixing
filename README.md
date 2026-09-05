@@ -3,7 +3,7 @@
 
 知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面对话应用，以及管理主题、资料、课程和学习进度的 CLI / REPL。
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.3.0`。两者复用学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.4.0`。两者复用学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 | 入口 | 当前能力 | 默认模型设置 |
 | --- | --- | --- |
@@ -12,11 +12,13 @@
 
 桌面现已接入课程、进度、资料导入与引用、真实产物验收、任务排队与纠正、持久目标及耗时诊断。完整使用步骤见 [0.3 升级指南](docs/agent-upgrade.md)。
 
+本轮新增能力与数据兼容说明见 [0.4 指南](docs/agent-0.4.md)：结构化对话、受控任务执行、审批/提问卡、编辑分支与对比、独立检查、桌面技能及完整备份恢复。
+
 ## 快速开始
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.3.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.4.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
@@ -72,7 +74,7 @@ RAG 课程要求先完成 `agent-development/D01` 和 `D02`；上面的入门示
 - 自然问答与教学：无需先建计划即可提问；支持追问、举例、教学代码、练习、参考答案和有原文依据的作答批改。
 - 连续对话：普通问答按主题自动保存，重启接着聊；支持新对话、恢复旧对话、继续和重试。
 - 回答体验：生成时可继续输入、即时查看状态、停止或调整要求；支持多行粘贴、按主题保存回答风格，以及保留代码和公式的 Markdown 显示。
-- 本地资料库：导入 Markdown/PDF，扫描 PDF 可选本地 OCR；SQLite FTS5 与本地向量混合检索，资料问答要求可定位引用。
+- 本地资料库：导入 Markdown/PDF，扫描 PDF 可选本地 OCR；中文/同义词关键词检索与重排，资料问答要求可定位引用。
 - 多 Provider：`mock`、`deepseek-api`、`codex-cli`、`pi-codex` 可按 tutor/reviewer/lab 角色路由；真实 Provider 支持文本流。
 - 受控 Agent runtime：统一输入分类、模型计划确认、运行账本、脱敏审计；DeepSeek 支持真实多轮工具调用，工具 schema/主题/风险/取消/超时以及总轮次、事件和上下文均受运行时限制。
 
@@ -238,11 +240,11 @@ npm --prefix desktop run build
 npm --prefix desktop run test:ui
 ```
 
-`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行原有和学习流程两套 UI 回归。
+`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行聊天、学习、交互三套 UI 回归。
 
 历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。Pi 模型偏好和内附运行环境的验证不等于 Codex 登录完成，后者仍未通过真实调用验收。这些是已有验证记录，不代表每次阅读本文时重新运行过检查。
 
-本轮完整命令、测试数量和实际 0.3 包验收见 [升级 Evidence](docs/evidence/agent-upgrade.md)。
+当前验证见 [0.4 Evidence](docs/evidence/agent-next.md)；0.3 的历史记录保留用于追溯。
 
 ## 文档
 

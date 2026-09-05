@@ -12,7 +12,7 @@ it("Q01: tool continuation receives actual topic-scoped evidence and returns nav
   const app = await fixture(); let advertised: ModelRequestOptions | undefined; let text = ""; const citations: unknown[] = [];
   const client: ContinuableModelClient = {
     async *stream(_prompt, _signal, options) { advertised = options; yield { type: "tool_call", tool: "search_materials", input: { query: "检索证据" }, callId: "call-1" }; yield { type: "done" }; },
-    async *continue(_prompt, results) { expect(results[0]?.callId).toBe("call-1"); expect(JSON.stringify(results)).toContain("真实来源"); expect(JSON.stringify(results)).not.toContain("agent-development"); yield { type: "text_delta", text: "证据来自 retrieval.md 的引用规则章节。" }; yield { type: "done" }; },
+    async *continue(_prompt, results) { expect(results[0]?.callId).toBe("call-1"); expect(JSON.stringify(results)).toContain("真实来源"); expect(JSON.stringify(results)).not.toContain("agent-development"); yield { type: "text_delta", text: "证据来自 [retrieval.md#anchor=引用规则]。" }; yield { type: "done" }; },
   };
   const result = await runAssistantTask({ runId: crypto.randomUUID(), providerId: "deepseek-api", client, prompt: "解释引用", question: "检索证据", application: app, topicId: "rag", contextAllowed: true, onText: (value) => { text += value; }, onActivity: () => undefined, onCitation: (citation) => citations.push(citation) }, new AbortController().signal);
   expect(advertised?.tools?.map((tool) => tool.name)).toContain("search_materials");

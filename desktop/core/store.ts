@@ -15,7 +15,7 @@ import {
 export class DesktopStore {
   private preferenceWrites: Promise<void> = Promise.resolve();
   private sessionWrites = new Map<string, Promise<void>>();
-  constructor(private readonly root: string) {}
+  constructor(readonly root: string) {}
   private sessionPath(id: string): string {
     return path.join(
       this.root,
@@ -26,7 +26,7 @@ export class DesktopStore {
   async create(): Promise<ChatSession> {
     const now = new Date().toISOString();
     const session: ChatSession = {
-      version: 1,
+      version: 2,
       id: randomUUID(),
       title: "新对话",
       customTitle: false,
@@ -43,14 +43,27 @@ export class DesktopStore {
       await readJson(this.sessionPath(id), 12_000_000),
     );
     if (session.id !== id) throw new Error("session_invalid");
+    session.version = 2;
     for (const message of session.messages)
       if (message.status === "running") message.status = "interrupted";
     return session;
   }
   async save(session: ChatSession): Promise<void> {
-    const checked = chatSchema.parse(session);
+    const checked = chatSchema.parse({ ...session, version: 2 });
+    chatSchema.parse(session);
     const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
-      .then(() => atomicJson(this.sessionPath(checked.id), checked, 12_000_000));
+      .then(async () => {
+        const file = this.sessionPath(checked.id);
+        try {
+          const old = await readJson(file, 12_000_000) as { version?: number };
+          if (old.version !== 1 && old.version !== 2) throw new Error("storage_version_unsupported");
+          if (old.version === 1) {
+            await assertNotLinked(`${file}.v1.bak`);
+            try { await fs.copyFile(file, `${file}.v1.bak`, constants.COPYFILE_EXCL); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+          }
+        } catch (error) { if (!isMissing(error)) throw error; }
+        await atomicJson(file, checked, 12_000_000);
+      });
     this.sessionWrites.set(checked.id, pending);
     try { await pending; }
     finally { if (this.sessionWrites.get(checked.id) === pending) this.sessionWrites.delete(checked.id); }
@@ -97,6 +110,7 @@ export class DesktopStore {
       );
     await this.preferenceWrites;
   }
+  async flush(): Promise<void> { await this.preferenceWrites; await Promise.all(this.sessionWrites.values()); }
   async workspace(): Promise<string | undefined> {
     try { return z.object({ path: z.string().min(1).max(4096) }).parse(await readJson(path.join(this.root, "workspace.json"), 20_000)).path; }
     catch (error) { if (isMissing(error)) return undefined; throw new Error("workspace_invalid"); }

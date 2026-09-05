@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { LearningOverview, WorkspaceSummary } from "../../src/learning-contracts.js";
 import type { BootState, DesktopCommand } from "../core/contracts.js";
+import { SkillPanel } from "./skill-panel.js";
 import { EvidencePanel } from "./evidence-panel.js";
+import { AssessmentPanel } from "./assessment-panel.js";
 
 async function request<T>(command: DesktopCommand): Promise<T> {
   const result = await window.zhixing.invoke(command);
@@ -63,8 +65,11 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
           <button disabled={busy || taskBusy} onClick={() => void action(`开始第 ${Number(day.id.slice(1))} 天`)}>{state === "未开始" ? "开始学习" : "查看学习卡"}</button></div>;
       })}</div>
       {!overview.course.length && <p>这个主题还没有可展示的课程。可以通过 CLI 创建或完善课程。</p>}
+      <SkillPanel key={`skills-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onDiscuss={onDiscuss} />
       <EvidencePanel key={topicId} topicId={topicId} days={overview.days} disabled={busy || taskBusy} onReview={refresh} />
+      <AssessmentPanel key={`checks-${topicId}`} topicId={topicId} days={overview.days} results={overview.assessments ?? []} disabled={busy || taskBusy} refresh={refresh} />
       <div className="learning-section-heading"><h3>学习资料 · {overview.materials.length}</h3><button disabled={busy || taskBusy} onClick={() => void importFile()}>导入 PDF / Markdown</button></div>
+      <button disabled={busy || taskBusy || !overview.materials.length} onClick={() => { setBusy(true); setError(""); void request<{ indexed: number }>({ type: "semantic-index", topicId }).then((value) => setResult(`已建立 ${value.indexed} 个片段的本机语义索引。`)).catch((problem) => setError(problem.message)).finally(() => setBusy(false)); }}>构建本机语义索引</button>
       {overview.materials.length ? <ul className="material-list">{overview.materials.map((item) => <li key={item.id}><span>{item.name}</span><small>{({ indexed: "可检索", ocr_low_confidence: "需核对 OCR", ocr_required: "待 OCR", parse_failed: "解析失败", rejected: "未导入" } as Record<string, string>)[item.status] ?? item.status}</small></li>)}</ul> : <p className="learning-empty">导入你希望参考的资料，开启会话授权后，知行会检索并提供原文出处。</p>}
       {busy && <p role="status">正在处理… <button onClick={() => void request({ type: "learning-cancel" })}>取消当前操作</button></p>}
       {result && <div className="learning-result" role="status">{result}</div>}

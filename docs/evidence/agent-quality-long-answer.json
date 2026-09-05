@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-05T15:36:38.922Z",
+  "results": [
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "R02",
+      "prompt": "我是初学者，逐步推导线性回归的梯度。",
+      "criteria": [
+        "规范 Markdown/LaTeX",
+        "解释变量与偏导含义",
+        "推导步骤连贯"
+      ],
+      "status": "completed",
+      "text": "我来帮你逐步推导线性回归的梯度。让我从最基础的概念开始。\n\n## 目标设定\n\n我们一步步推导**线性回归中损失函数对参数的梯度**。虽然推导本身不复杂，但我会把每一步都拆开讲清楚。\n\n## 第 1 步：先建立模型\n\n假设只有一个特征 $x$，线性回归的预测模型是：\n\n$$\n\\hat{y} = wx + b\n$$\n\n读法：预测值 $\\hat{y}$（读作\"y hat\"）等于权重 $w$ 乘以特征 $x$，再加上偏置 $b$。\n\n- $w$：权重（斜率），**这是我们想学到的参数**\n- $b$：偏置（截距），也是我们要学的参数\n- $x$：输入特征\n- $\\hat{y}$：模型预测值\n\n> 为了推导更清晰，我先把问题简化成**单特征**的情况。理解了单特征，多特征的道理是一样的（只是把标量换成向量）。\n\n## 第 2 步：定义损失函数\n\n对于带标签的真实值 $y$，我们常用**均方误差**的一个样本版本（也叫平方损失）：\n\n$$\nL(w, b) = \\frac{1}{2}(y - \\hat{y})^2 = \\frac{1}{2}(y - (wx + b))^2\n$$\n\n读法：损失 $L$ 是真实值 $y$ 和预测值 $\\hat{y}$ 之差的平方，再乘以 $\\frac{1}{2}$。\n\n这个 $\\frac{1}{2}$ 是**为了方便求导**——因为平方求导会出现一个 2，正好和 $\\frac{1}{2}$ 抵消掉。\n\n让我先确认我们当前的进度，然后继续。当前主题尚无进行中的学习记录，我会把这次推导完整讲解清楚。继续。\n\n## 第 3 步：什么是\"梯度\"（先建立直觉）\n\n**梯度**就是损失函数对每个参数的偏导数所组成的向量。\n\n我们有两个参数 $w$ 和 $b$，所以梯度是一个二维向量：\n\n$$\n\\nabla L = \\left( \\frac{\\partial L}{\\partial w}, \\ \\frac{\\partial L}{\\partial b} \\right)\n$$\n\n它的含义：**告诉我们在当前参数下，往哪个方向调整权重能让损失降得最快**。\n\n所以我们核心要做两件事：\n\n1. 求 $\\frac{\\partial L}{\\partial w}$（损失对权重的偏导）\n2. 求 $\\frac{\\partial L}{\\partial b}$（损失对偏置的偏导）\n\n## 第 4 步：用链式法则分解\n\n回顾一下我们的损失：\n\n$$\nL = \\frac{1}{2}(y - \\hat{y})^2, \\quad 其中 \\ \\ \\hat{y} = wx + b\n$$\n\n损失 $L$ 通过中间变量 $\\hat{y}$ 依赖 $w$ 和 $b$。根据**链式法则**（chain rule）：\n\n$$\n\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial w}\n$$\n\n意思就是：**误差先从\"预测值\"传回\"损失\"，再从\"参数\"传到\"预测值\"**，两段偏导相乘。\n\n### 第 4a 步：求 $\\frac{\\partial L}{\\partial \\hat{y}}$\n\n$$\nL = \\frac{1}{2}(y - \\hat{y})^2\n$$\n\n把 $y - \\hat{y}$ 看作一个整体，令 $u = y - \\hat{y}$，则 $L = \\frac{1}{2}u^2$。\n\n- 对 $u$ 求导：$\\frac{d}{du}(\\frac{1}{2}u^2) = u$\n- 再乘上 $\\frac{du}{d\\hat{y}} = \\frac{d}{d\\hat{y}}(y - \\hat{y}) = -1$（因为 $y$ 是常数，对 $\\hat{y}$ 求导得 $-1$）\n\n所以：\n\n$$\n\\boxed{\\frac{\\partial L}{\\partial \\hat{y}} = u \\cdot (-1) = -(y - \\hat{y}) = \\hat{y} - y}\n$$\n\n### 第 4b 步：求 $\\frac{\\partial \\hat{y}}{\\partial w}$ 和 $\\frac{\\partial \\hat{y}}{\\partial b}$\n\n因为 $\\hat{y} = wx + b$：\n\n- 对 $w$ 求偏导，$x$ 和 $b$ 都当常数：$\\frac{\\partial \\hat{y}}{\\partial w} = x$\n- 对 $b$ 求偏导，$w$ 和 $x$ 都当常数：$\\frac{\\partial \\hat{y}}{\\partial b} = 1$\n\n## 第 5 步：合起来得到梯度\n\n把上面结果代入链式法则：\n\n$$\n\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial w}\n= (\\hat{y} - y) \\cdot x\n$$\n\n$$\n\\frac{\\partial L}{\\partial b} = \\frac{\\partial L}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial b}\n= (\\hat{y} - y) \\cdot 1 = \\hat{y} - y\n$$\n\n所以梯度为：\n\n$$\n\\boxed{\n\\nabla L = \\Big( (\\hat{y} - y) \\, x, \\ \\ \\hat{y} - y \\Big)\n}\n$$\n\n**读法**：梯度第一个分量是\"预测误差 $(\\hat{y}-y)$ 乘以输入 $x$\"，第二个分量就是预测误差本身。\n\n## 第 6 步：直观理解梯度下降怎么用\n\n得到梯度后，参数更新规则为（$\\alpha$ 是学习率）：\n\n$$\nw \\leftarrow w - \\alpha \\cdot \\frac{\\partial L}{\\partial w}\n$$\n\n$$\nb \\leftarrow b - \\alpha \\cdot \\frac{\\partial L}{\\partial b}\n$$\n\n直观理解：如果预测值 $\\hat{y}$ 大于真实值 $y$（即 $(\\hat{y}-y) > 0$），说明当前预测偏高。此时 $\\frac{\\partial L}{\\partial w} = (\\hat{y}-y)x$ 若 $x>0$ 则为正，减去它会让 $w$ 变小，从而压低预测——**误差越大，调整的步子越大**。\n\n## 扩展到多个特征\n\n如果输入有 $n$ 个特征，模型为：\n\n$$\n\\hat{y} = w_1 x_1 + w_2 x_2 + \\dots + w_n x_n + b\n$$\n\n推导完全相同，只是每个权重对应一条梯度分量：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w_j} = (\\hat{y} - y) \\, x_j, \\quad j = 1, 2, \\dots, n\n}\n$$\n\n即：**每个权重的梯度 = 预测误差 × 对应的那个特征值**。权重矩阵形式就是误差向量与特征矩阵的乘积（这里不展开）。\n\n---\n\n这就是完整推导过程。整条逻辑链是：\n\n**损失函数 → 对预测值求偏导（得误差）→ 对每个参数求偏导 → 用链式法则相乘 → 得到梯度 → 沿负梯度更新**\n\n如果你想，我可以再给你一个**具体数值例子**（比如某个 $x, y, w, b$ 代入算一遍梯度），或者用 Python 写个小代码演示。你想往哪一步深入？",
+      "durationMs": 12088,
+      "firstTokenMs": 427,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "R02",
+      "prompt": "我是初学者，逐步推导线性回归的梯度。",
+      "criteria": [
+        "规范 Markdown/LaTeX",
+        "解释变量与偏导含义",
+        "推导步骤连贯"
+      ],
+      "status": "completed",
+      "text": "好的，我们来一起从零开始推导线性回归的梯度。我从最简单的情形开始，逐步展开。\n\n## 第一步：定义模型\n\n假设我们有 $m$ 个训练样本，每个样本有一个特征 $x^{(i)}$ 和一个标签 $y^{(i)}$。\n\n线性回归模型假设输出是输入的线性组合：\n\n$$\n\\hat{y}^{(i)} = w x^{(i)} + b\n$$\n\n其中：\n- $w$ 是权重（斜率）\n- $b$ 是偏置（截距）\n- $\\hat{y}^{(i)}$ 是模型对第 $i$ 个样本的预测值\n\n为了推导更清晰，我们常把 $b$ 吸收进 $w$ 里（称为增广特征），但这里我们先用这个显式形式。\n\n---\n\n## 第二步：定义损失（误差）函数\n\n我们要衡量预测值 $\\hat{y}^{(i)}$ 与真实值 $y^{(i)}$ 的差距。最常用的是**均方误差**（MSE）：\n\n$$\nJ(w, b) = \\frac{1}{2m} \\sum_{i=1}^{m} \\left( \\hat{y}^{(i)} - y^{(i)} \\right)^2\n$$\n\n代入 $\\hat{y}^{(i)} = w x^{(i)} + b$：\n\n$$\nJ(w, b) = \\frac{1}{2m} \\sum_{i=1}^{m} \\left( w x^{(i)} + b - y^{(i)} \\right)^2\n$$\n\n> 分子上的平方衡量误差大小；分母的 $2m$ 只是为了**求导后方便消掉 2**（稍后你会看到），$m$ 是取平均。我们目标是让 $J$ 尽量小，即误差总和尽量小。\n\n---\n\n## 第三步：对 $w$ 求偏导\n\n把 $J$ 看成 $w$ 的函数，其他量（$x, y, b$）视为常数。用**链式法则**：外层是“平方”，内层是 $\\left( w x^{(i)} + b - y^{(i)} \\right)$。\n\n对每一项：\n\n$$\n\\frac{\\partial}{\\partial w} \\left[ \\frac{1}{2} \\left( w x^{(i)} + b - y^{(i)} \\right)^2 \\right]\n$$\n\n链式法则分两步：\n1. 对平方求导：$\\frac{1}{2} \\cdot 2 \\left( w x^{(i)} + b - y^{(i)} \\right)$，前面的 $\\frac{1}{2}$ 和 $2$ 恰好**约掉**；\n2. 再乘内层对 $w$ 的导数：$\\frac{\\partial}{\\partial w}\\left( w x^{(i)} + b - y^{(i)} \\right) = x^{(i)}$。\n\n所以单样本贡献是：\n\n$$\n\\left( w x^{(i)} + b - y^{(i)} \\right) \\cdot x^{(i)}\n$$\n\n对所有 $m$ 个样本求和并除以 $m$：\n\n$$\n\\boxed{\\frac{\\partial J}{\\partial w} = \\frac{1}{m} \\sum_{i=1}^{m} \\left( w x^{(i)} + b - y^{(i)} \\right) x^{(i)}}\n$$\n\n---\n\n## 第四步：对 $b$ 求偏导\n\n同样的链式法则，只是内层对 $b$ 求导结果是 $1$（因为 $b$ 是线性项系数为 1）：\n\n$$\n\\frac{\\partial}{\\partial b}\\left( w x^{(i)} + b - y^{(i)} \\right) = 1\n$$\n\n所以：\n\n$$\n\\boxed{\\frac{\\partial J}{\\partial b} = \\frac{1}{m} \\sum_{i=1}^{m} \\left( w x^{(i)} + b - y^{(i)} \\right)}\n$$\n\n---\n\n## 第五步：梯度下降更新\n\n“梯度”就是这两个偏导数组成的向量，它指出了 $J$ **上升最快**的方向。我们要下降，所以取负方向：\n\n$$\nw \\leftarrow w - \\alpha \\frac{\\partial J}{\\partial w}, \\qquad b \\leftarrow b - \\alpha \\frac{\\partial J}{\\partial b}\n$$\n\n其中 $\\alpha$ 是学习率（步长）。\n\n> 直观理解：偏导 $\\frac{\\partial J}{\\partial w}$ 表示“$w$ 变一点点，$J$ 变多少”。如果误差为正且 $x>0$，说明 $w$ 该减小，梯度为正、更新就减去它，让 $w$ 变小。\n\n---\n\n## 对应代码结构\n\n把这些公式转成循环，大致是这样：\n\n```python\n# 伪代码：每步对全部样本更新一次（批量梯度下降）\nfor epoch in range(num_epochs):\n    grad_w = 0.0\n    grad_b = 0.0\n    for i in range(m):                      # 遍历每个样本\n        pred = w * x[i] + b                 # 预测值 ŷ\n        error = pred - y[i]                 # ŷ - y\n        grad_w += error * x[i]              # 累加 误差·x\n        grad_b += error                     # 累加 误差·1\n    grad_w /= m                             # 除以样本数\n    grad_b /= m\n    w -= alpha * grad_w                     # 参数更新\n    b -= alpha * grad_b\n```\n\n---\n\n到这里，你已经完成了单变量线性回归梯度的完整推导。要不要我下一步做这些之一：\n\n1. 把 $b$ 吸收进 $w$，用**向量/矩阵形式**重写一遍（为多变量做准备）；\n2. 扩展到多个特征（多元线性回归）的梯度；\n3. 用一个小数值例子，代入几个样本实际算一遍梯度验证。",
+      "durationMs": 8448,
+      "firstTokenMs": 1092,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # 功能与验收（当前实现）
 
-> 核对日期：2026-09-05，桌面 0.3.0 升级。本文区分 CLI 学习 Agent 与桌面学习应用；历史阶段验收见 [证据索引](evidence/README.md)。
+> 核对日期：2026-09-06，桌面 0.4.0 升级。本文区分 CLI 学习 Agent 与桌面学习应用；历史阶段验收见 [证据索引](evidence/README.md)。
 
 ## CLI 当前功能
 
@@ -51,4 +51,6 @@ CLI 真实 Provider 使用当前主题的必要信息：资料问答发送检索
 
 完整注册表分派、其他 Provider 的结构化工具续写、精确 token/费用预算、Claude 或本地 HTTP Provider、DOCX 导入、主题删除、云同步和独立浏览器 Web 产品仍未实现。桌面已经有 UI，但不具备通用编码 Agent 的任意文件编辑、Shell、多 Agent 或任务自动执行能力。Pi Codex 最近真实认证未通过；Windows/Intel Mac、签名/公证也未完成验收。
 
-本轮本地回归与真实安装包验证见 [0.3 Evidence](evidence/agent-upgrade.md)；12 项真实回答人工评测尚未运行，见 [评测集](agent-quality-cases.json)。
+本轮本地回归、实包与 12 项真实回答结果见 [0.4 Evidence](evidence/agent-next.md)；旧记录是历史基线。
+
+0.4 已增加结构化角色、双 Provider 应用工具、幂等恢复、推理档位/usage、审批/提问卡、编辑分支与比较、中文同义词与可选语义索引、独立课程检查、桌面技能及全量备份迁移。能力范围和外部验收见 [0.4 指南](agent-0.4.md)。

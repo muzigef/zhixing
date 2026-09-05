@@ -8,6 +8,7 @@ import { HashEmbeddingModel, type EmbeddingModel } from "./embedding.js";
 import { TesseractOcrEngine, type OcrEngine } from "./ocr.js";
 import { abortable } from "./abortable.js";
 import { setImmediate as yieldToLoop } from "node:timers/promises";
+import { expandQuery, rankEvidence } from "./retrieval-query.js";
 
 // 250 MB accommodates the approved local PDF exception while keeping import memory bounded.
 const MAX_FILE_BYTES = 250 * 1024 * 1024;
@@ -131,8 +132,8 @@ export class DocumentLibrary {
   }
 
   search(topicId: TopicId, query: string): SearchResult[] {
-    const normalized = normalizeFtsQuery(query);
-    return normalized ? this.database.hybridSearch(topicId, normalized, this.embedding.embed(query)) : [];
+    const terms = expandQuery(query);
+    return rankEvidence(this.database.retrievalCandidates(topicId, terms), terms);
   }
 
   list(topicId: TopicId): Array<{ id: string; name: string; status: string; createdAt: string }> { return this.database.listDocuments(topicId); }
@@ -201,7 +202,6 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
-function normalizeFtsQuery(query: string): string { return query.trim().split(/\s+/).map((term) => `"${term.replaceAll('"', "")}"`).join(" OR "); }
 
 function isAbort(error: unknown, signal?: AbortSignal): boolean {
   return signal?.aborted === true || error instanceof Error && error.name === "AbortError";

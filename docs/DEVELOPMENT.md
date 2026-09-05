@@ -13,7 +13,7 @@ npm ci --prefix desktop
 npm run smoke:mock
 ```
 
-根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.3.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
+根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.4.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
 
 CLI 使用 `better-sqlite3` 原生模块，真实 Keychain 集成和 `LocalSandbox` 的 `sandbox-exec` 封装依赖 macOS；本地扫描 PDF OCR 另外需要 `pdftoppm` 与 `tesseract`，普通 Markdown/文字 PDF 和模拟 OCR 测试不要求安装它们。桌面源码开发仍使用上述 Node 环境；安装后的桌面应用内附 Electron Node 和 Pi，不要求用户安装系统 Node/Pi 可执行文件，但 Pi 认证仍需单独配置。平台交付范围见[桌面说明](../desktop/README.md)。
 
@@ -112,3 +112,5 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 当前 [`verify` CI](../.github/workflows/verify.yml) 在 push/PR 安装两套依赖、运行完整 verify 与 Electron UI。`desktop-release.yml` 在手动触发或 v* tag 上构建 macOS/Windows、检查实际包 UI、上传安装器和校验和；tag 创建待发布草稿。远端执行结果需要 Actions 的真实记录，不能由本地通过替代。
 
 新增命令：`npm run eval:agent`；桌面 `prepare:runtime`、`dist:host`、`checksums`。用法和切片契约见 [升级指南](agent-upgrade.md)。
+
+0.4 的技能、问答/授权事件、执行数据、语义索引及迁移扩展见 [0.4 指南](agent-0.4.md)。运行完整回归与三套 UI；使用 `npm run eval:quality -- --live` 才执行临时合成数据的真实质量检查，不能将该命令混入普通 CI。

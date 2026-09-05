@@ -25,6 +25,11 @@ export class ToolHarness {
     if (this.#tools.has(tool.name)) throw new Error(`duplicate_tool: ${tool.name}`);
     this.#tools.set(tool.name, tool as ToolDefinition<unknown, unknown>);
   }
+  preview(name: string, input: unknown, topicId: TopicId): { risk: ToolRisk; input: unknown } {
+    const tool = this.#tools.get(name); if (!tool) throw new Error("tool_not_allowed");
+    if (input && typeof input === "object" && "topicId" in input && input.topicId !== topicId) throw new Error("cross_topic_denied");
+    return { risk: tool.risk, input: tool.input.parse(input) };
+  }
   async execute(name: string, rawInput: unknown, context: ToolExecutionContext): Promise<ToolResult> {
     const tool = this.#tools.get(name); const started = Date.now();
     if (!tool) return { tool: name, ok: false, errorCode: "tool_not_allowed", durationMs: Date.now() - started };

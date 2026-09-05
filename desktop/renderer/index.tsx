@@ -1,3 +1,5 @@
+import { displayMath } from "../../src/display-math.js";
+import { BackupPanel } from "./backup-panel.js";
 import { DiagnosticsPanel } from "./diagnostics-panel.js";
 import {
   StrictMode,
@@ -140,6 +142,7 @@ function IconButton({
     </button>
   );
 }
+import { InteractionCards, UserMessageEditor, CompareAnswers } from "./interaction-cards.js";
 function App() {
   const [boot, setBoot] = useState<BootState>();
   const [session, setSession] = useState<ChatSession | null>(null);
@@ -157,6 +160,8 @@ function App() {
   const [elapsed, setElapsed] = useState(0);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [contextAllowed, setContextAllowed] = useState(false);
+  const [execution, setExecution] = useState<"read" | "once" | "session">("read");
+  const [comparison, setComparison] = useState<ChatMessage[] | null>(null);
   const [learningOpen, setLearningOpen] = useState(false);
   const [source, setSource] = useState<LearningSource>();
   const [contextOpen, setContextOpen] = useState(false);
@@ -198,6 +203,7 @@ function App() {
       setSession(value);
       setSelectedTopic(value.topicId ?? "");
       setContextAllowed(value.contextAllowed ?? false);
+      setExecution(value.executionAllowed ? "session" : "read");
       setDraft(drafts.current[id] ?? "");
       setError("");
       setMenuOpen(false);
@@ -327,13 +333,14 @@ function App() {
     text = draftRef.current,
     providerOverride?: DesktopSettings["provider"],
     steer = false,
+    resumeTaskId?: string,
   ) {
     if (!text.trim() || sending) return;
     if (activeId) {
       if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
       setSending(true); setDraft("");
       try {
-        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, steer });
+        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, steer });
         notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
       } catch (problem) { setError(messageOf(problem)); setDraft((previous) => previous || text); }
       finally { setSending(false); }
@@ -368,8 +375,12 @@ function App() {
         text,
         provider: providerOverride ?? settings.provider,
         style: settings.style,
+        reasoning: settings.reasoning,
+        execution,
+        resumeTaskId,
         ...(selectedTopic ? { topicId: selectedTopic, contextAllowed } : {}),
       });
+      if (execution === "once") setExecution("read");
     } catch (problem) {
       setError(messageOf(problem));
       setActiveId(null);
@@ -378,6 +389,16 @@ function App() {
       setSending(false);
       input.current?.focus();
     }
+  }
+  async function forkConversation(message: ChatMessage, text?: string) {
+    if (!session || activeId || sending) return;
+    setSending(true); setError("");
+    try {
+      const fork = await invoke<ChatSession>({ type: "fork", sessionId: session.id, messageId: message.id, edit: text !== undefined });
+      await select(fork.id);
+      if (text !== undefined) await invoke({ type: "send", sessionId: fork.id, text, provider: settings.provider, style: settings.style, reasoning: settings.reasoning });
+    } catch (problem) { setError(messageOf(problem)); }
+    finally { setSending(false); }
   }
   async function saveSettings(value: DesktopSettings) {
     const revision = ++settingsRevision.current;
@@ -556,6 +577,7 @@ function App() {
           }}><option value="">自由对话</option>{boot.workspace.topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}</select></label>
           <button onClick={() => setLearningOpen(true)}><BookOpen size={14} />课程与资料</button>
           {selectedTopic && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId} onChange={(event) => setContextAllowed(event.target.checked)} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
+          {selectedTopic && contextAllowed && <label className="context-permission">学习操作<select aria-label="学习操作权限" value={execution} disabled={!!activeId} onChange={(event) => setExecution(event.target.value as typeof execution)}><option value="read">仅查看</option><option value="once">本轮允许保存产物与测试</option><option value="session">本会话允许保存产物与测试</option></select></label>}
         </div>}
         {error && (
           <div className="error-banner" role="alert">
@@ -612,6 +634,8 @@ function App() {
             </section>
           ) : (
             <div className="messages" aria-label="对话内容">
+              <button className="compare-trigger" disabled={!!activeId} onClick={() => { if (session?.parent) void invoke<ChatSession>({ type: "load", sessionId: session.parent.sessionId }).then((parent) => setComparison([...new Map([...parent.messages, ...session.messages].map((item) => [item.id, item])).values()])).catch((problem) => setError(messageOf(problem))); else setComparison(session?.messages ?? []); }}>对比回答</button>
+              {comparison && <CompareAnswers messages={comparison} onClose={() => setComparison(null)} />}
               {session?.messages.map((message, index) => (
                 <Message
                   key={message.id}
@@ -627,11 +651,14 @@ function App() {
                       session.messages
                         .slice(0, index)
                         .reverse()
-                        .find((item) => item.role === "user")?.text ?? "请继续",
+                        .find((item) => item.role === "user")?.text ?? "请继续", undefined, false, message.taskId,
                     )
                   }
+                  onFork={() => void forkConversation(message)}
+                  onEdit={(text) => void forkConversation(message, text)}
+                  onAnswer={(id, answer, scope) => { setSending(true); void invoke({ type: "answer", sessionId: session.id, itemId: id, answer, scope }).catch((problem) => setError(messageOf(problem))).finally(() => setSending(false)); }}
                   onContinue={() =>
-                    void send("请从刚才停止的地方继续，避免重复已讲过的内容。")
+                    void send("请从刚才停止的地方继续，避免重复已讲过的内容。", undefined, false, message.taskId)
                   }
                   onSwitch={() => {
                     void saveSettings({
@@ -645,6 +672,7 @@ function App() {
                           .find((item) => item.role === "user")?.text ??
                           "请继续",
                         "deepseek-api",
+                        false, message.taskId,
                       ),
                     );
                   }}
@@ -757,6 +785,7 @@ function App() {
                   ))}
                 </select>
               </label>
+              <label className="style-picker"><span className="sr-only">思考强度</span><select aria-label="思考强度" value={settings.reasoning ?? "balanced"} onChange={(event) => void saveSettings({ ...settings, reasoning: event.target.value as DesktopSettings["reasoning"] })}><option value="quick">快速</option><option value="balanced">均衡</option><option value="deep">深入思考</option></select></label>
               <div className="composer-spacer" />
               {isCurrentRunning && <>
                 <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send()}>排队</button>
@@ -812,6 +841,8 @@ function App() {
       )}
       {settingsOpen && (
         <SettingsDialog
+          busy={!!activeId}
+          onRestored={(state) => { setBoot(state); newChat(); setSelectedTopic(""); setContextAllowed(false); }}
           settings={settings}
           model={boot?.model}
           api={boot?.api}
@@ -870,6 +901,9 @@ const Message = memo(
     canSend,
     onOpenLink,
     onSource,
+    onFork,
+    onEdit,
+    onAnswer,
   }: {
     message: ChatMessage;
     elapsed: number;
@@ -880,11 +914,14 @@ const Message = memo(
     canSend: boolean;
     onOpenLink: (url: string) => void;
     onSource: (citation: Citation) => void;
+    onFork: () => void;
+    onEdit: (text: string) => void;
+    onAnswer: (id: string, answer: string, scope?: "once" | "session") => void;
   }) {
     if (message.role === "user")
       return (
         <article className="message user-message">
-          <div className="user-bubble">{message.text}</div>
+          <UserMessageEditor message={message} disabled={!canSend} onSend={onEdit} />
         </article>
       );
     return (
@@ -903,6 +940,9 @@ const Message = memo(
           )}
         </div>
         {!!message.activities?.length && <details className="task-activities"><summary>任务进展 · {message.activities.length} 项活动</summary><ul>{message.activities.map((activity, index) => <li key={index}>{activity.status === "completed" ? "✓" : activity.status === "failed" ? "!" : "…"} {activity.label}</li>)}</ul></details>}
+        {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}
+        {message.status === "waiting" && <p role="status">等待你的回复，任务和已完成结果已保存。</p>}
+        {message.timings?.taskCompleted === false && <p>执行计划仍有未完成步骤。</p>}
         <div className="markdown">
           <Markdown
             remarkPlugins={[remarkGfm, remarkMath]}
@@ -930,10 +970,11 @@ const Message = memo(
               ),
             }}
           >
-            {message.text}
+            {displayMath(message.text)}
           </Markdown>
         </div>
-        {!!message.citations?.length && <div className="source-list" aria-label="资料来源">{message.citations.map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{index + 1}. {citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</div>}
+        {!!message.citations?.length && <div className="source-list" aria-label="已引用资料">{message.citations.map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{index + 1}. {citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</div>}
+        {!!message.retrievedCitations?.length && <details className="source-list" aria-label="检索候选资料"><summary>检索到的资料 · 不表示回答已引用</summary>{message.retrievedCitations.filter((citation) => !message.citations?.some((used) => used.chunkId === citation.chunkId)).map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</details>}
         {message.status === "running" && (
           <div className="generation-status" role="status">
             <span className="typing-dots">
@@ -953,6 +994,7 @@ const Message = memo(
         )}
         {message.status !== "running" && (
           <div className="message-actions">
+            <button disabled={!canSend} onClick={onFork}>从这里分支</button>
             <IconButton
               label="复制回答"
               disabled={!message.text}
@@ -1070,6 +1112,7 @@ function Modal({
   );
 }
 function SettingsDialog({
+  busy, onRestored,
   settings,
   model,
   api,
@@ -1078,6 +1121,8 @@ function SettingsDialog({
   onSave,
   onRefresh,
 }: {
+  busy: boolean;
+  onRestored: (state: BootState) => void;
   settings: DesktopSettings;
   model?: BootState["model"];
   api?: BootState["api"];
@@ -1255,6 +1300,7 @@ function SettingsDialog({
       </div>
       <div className="setting-section">
         <h3>偏好</h3>
+        <label className="setting-row"><span><strong>本机语义检索</strong><small>填写已安装的 Ollama 嵌入模型（如 bge-m3），再到课程与资料构建索引。留空使用关键词与同义词。</small></span><input aria-label="Ollama 嵌入模型" defaultValue={settings.semanticModel ?? ""} placeholder="未启用" onBlur={(event) => { const value = event.target.value.trim(); if (/^(?:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127})?$/.test(value)) void onSave({ ...settings, semanticModel: value }); }} /></label>
         <label className="setting-row">
           <span>
             <strong>回答风格</strong>
@@ -1298,6 +1344,7 @@ function SettingsDialog({
           </select>
         </label>
       </div>
+      <BackupPanel disabled={busy} onRestored={onRestored} />
       <DiagnosticsPanel />
       <div className="settings-footer">
         <Brand />

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import type { TopicId } from "./contracts.js";
 import { ZhixingDatabase } from "./database.js";
 
-export type WorkflowStatus = "running" | "completed" | "failed" | "cancelled";
+export type WorkflowStatus = "running" | "completed" | "failed" | "cancelled" | "waiting";
 export interface WorkflowRunSummary { readonly runId: string; readonly actionId: string; readonly status: WorkflowStatus; readonly startedAt: string; readonly finishedAt: string | null; readonly errorCode: string | null; }
 
 /** Durable, privacy-safe workflow state. Command text is hashed, never stored. */

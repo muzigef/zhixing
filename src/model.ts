@@ -1,12 +1,15 @@
 export type ModelRole = "tutor" | "reviewer" | "lab";
+export type ReasoningProfile = "quick" | "balanced" | "deep";
+export interface ModelUsage { inputTokens: number; outputTokens: number; cacheReadTokens?: number; reasoningTokens?: number; model?: string; startupMs?: number; }
+export interface ModelMessage { readonly role: "system" | "user" | "assistant" | "observation"; readonly content: string; }
 
-export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_result" | "done"; readonly text?: string; readonly tool?: string; readonly input?: unknown; readonly result?: unknown; readonly callId?: string; }
+export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_result" | "provider_state" | "usage" | "done"; readonly text?: string; readonly tool?: string; readonly input?: unknown; readonly result?: unknown; readonly callId?: string; readonly usage?: ModelUsage; }
 /** Public tool schema advertised to providers; execution remains in ToolHarness. */
 export interface ModelToolDefinition { readonly name: string; readonly description: string; readonly inputSchema: Readonly<Record<string, unknown>>; }
 /** Complete prior turns are owned by the invocation, never shared by provider instances. */
 export interface ModelTurn { readonly events: readonly ModelEvent[]; readonly toolResults: readonly ToolResultMessage[]; }
 /** Per-request context required for protocol-correct, isolated tool continuation. */
-export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; }
+export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; readonly messages?: readonly ModelMessage[]; readonly reasoning?: ReasoningProfile; }
 export interface ModelClient { stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
 export interface ToolResultMessage { readonly tool: string; readonly result: unknown; readonly callId?: string; }
 /** Optional capability: a provider can continue an agent turn after controlled tool results. */

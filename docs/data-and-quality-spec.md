@@ -1,6 +1,6 @@
 # 数据、记忆与质量契约
 
-> 核对日期：2026-09-05，桌面 0.3.0 升级代码。第 1–6 节以 CLI 数据为主，第 7 节说明桌面会话和共享学习数据。源码中的实际校验优先于设计目标。
+> 核对日期：2026-09-06，桌面 0.4.0 升级代码。第 1–6 节以 CLI 数据为主，第 7 节说明桌面会话和共享学习数据。源码中的实际校验优先于设计目标。
 
 ## 1. Topic Plan Schema
 
@@ -75,7 +75,7 @@ Session snapshot 和审计日志仍以文件保存；数据库只保存需要检
 
 资料检索与普通记忆查询作用于选定 `topicId`。`全局查询记忆 <问题>` 显式跨主题并显示来源；资料没有对应全局检索入口。学习画像由每主题 `LearningProfileStore` 保存，与数据库中的 `profile` 记忆枚举不同；当前没有全局 `learning-notes/profile.md` 或自动汇总跨主题薄弱项。
 
-当前支持软删除记忆、预览并确认删除资料；资料删除清理本地副本、Chunk、FTS、embedding 和 citation。数据库没有单独 pages 表。CLI 没有主题删除、自动每日备份、migration 前自动备份或学习数据整体导出；手动数据库备份不包含全部笔记和资料副本，恢复必须确认。桌面支持单会话 Markdown 导出。
+当前支持软删除记忆、预览并确认删除资料；资料删除清理本地副本、Chunk、FTS、embedding 和 citation。数据库没有单独 pages 表。CLI 没有主题删除、自动每日备份、migration 前自动备份或学习数据整体导出；手动数据库备份不包含全部笔记和资料副本，恢复必须确认。桌面支持单会话 Markdown 导出及独立完整工作区/会话备份。
 
 ## 6. 质量、预算与隐私
 
@@ -96,7 +96,7 @@ Provider 有调用超时与大小限制；每个 OCR 子进程有 30 秒上限�
 | 会话 | 最多 1,000 条消息；JSON 文件读写上限 12,000,000 字节，满额要求新建会话 |
 | 模型历史 | 最多 24 条；目标与历史片段约 40,000 字符预算；当前请求、约束、摘要和授权学习资料另计，裁剪不删除显示历史 |
 | 运行 | 应用全局仅一个生成；最多 10,000 个事件、64,000 字符回答、180 秒总限时，Provider 更短超时仍生效 |
-| 状态 | `running`、`completed`、`interrupted`、`failed`；保留部分回答，收到合法完成事件且有文本才视为完成 |
+| 状态 | `running`、`completed`、`interrupted`、`failed`、`waiting`；保留部分回答，收到合法完成事件且有文本才视为完成 |
 | 恢复 | 生成中约每 750 ms 尝试保存快照，重启将遗留 running 显示为 interrupted；不自动重放请求 |
 | 凭据 | `deepseek.credential` 只存系统加密结果；已有 Key 不回传 renderer，状态仅提供配置元数据 |
 
@@ -113,4 +113,10 @@ Provider 有调用超时与大小限制；每个 OCR 子进程有 30 秒上限�
 
 EvidenceStore 在 `learning-notes/topics/<topicId>/evidence/<DNN>/` 保存带哈希的追加式文本和元数据；检查重新验证实际字节，旧布尔参数无效。用户提交的测试报告标为未复跑；macOS 固定 JS 测试运行器的结果与实现/脚本哈希绑定。Review 只评估计划要求的完整性，来源写入 Day 日志；状态仅在显式 Review 时更新。详细限制见 [升级指南](agent-upgrade.md)。
 
-消息保存 contextMs/modelMs/compactionMs、firstTokenMs/durationMs 与回合/工具数。诊断只返回数字，按 Provider 分组，不导出正文；最近 20 段会话、最多 200 条消息，成功回答计算 P50/P95。精确 token/费用和真实模型质量评测尚未验收。
+消息保存 contextMs/modelMs/compactionMs、firstTokenMs/durationMs 与回合/工具数。诊断只返回数字，按 Provider 分组，不导出正文；最近 20 段会话、最多 200 条消息，成功回答计算 P50/P95。Provider 可报告 Token 用量，未配置费用预算；真实质量结果见本轮 Evidence。
+
+## 0.4 数据追加
+
+会话 v2 增加 taskId、items（progress/final/question/approval/artifact）、usage、reasoning、retrievedCitations 和分支关系；原 v1 首次保存前备份，不接受未来版本。SQLite v4 兼容已有数据，执行任务/操作、独立课程作答与可选语义向量分别由对应 Store 建表。`assistant_operations` 最多 64 项/任务，计划最多 12 步；正文与工具结果保留在本地执行数据中，全量备份包含这些用户数据。
+
+`semantic_embeddings`按模型 digest、chunk id、content hash 隔离。引用 marker 命中与检索候选分开，不等于事实核实。独立检查的成功、证据完整性和测试成功互不替代；复习为 1/3/7 天。备份 v1 清单逐文件保存 path/bytes/SHA-256，拒绝越界、符号链接、大小超限与未来数据库版本，恢复不覆盖原工作区。见 [0.4 指南](agent-0.4.md)。

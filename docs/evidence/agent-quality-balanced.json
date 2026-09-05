@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-05T16:54:47.323Z",
+  "results": [
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "R02",
+      "prompt": "我是初学者，逐步推导线性回归的梯度。",
+      "criteria": [
+        "规范 Markdown/LaTeX",
+        "解释变量与偏导含义",
+        "推导步骤连贯"
+      ],
+      "status": "completed",
+      "text": "好的，我们从最简单的单变量线性回归开始，一步步推出梯度。后面你可以把单变量推广到多变量。\n\n## 1. 问题设定\n\n假设我们有一组数据 $(x_1, y_1), (x_2, y_2), \\dots, (x_n, y_n)$，想用一条直线拟合：\n\n$$\n\\hat{y}_i = w x_i + b\n$$\n\n其中 $w$ 是斜率（权重），$b$ 是截距，$\\hat{y}_i$ 是模型对第 $i$ 个样本的预测值。\n\n## 2. 损失函数\n\n我们用均方误差（MSE）衡量预测好坏，目标是最小化它：\n\n$$\nL(w, b) = \\frac{1}{n} \\sum_{i=1}^{n} \\left( \\hat{y}_i - y_i \\right)^2\n= \\frac{1}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right)^2\n$$\n\n读法：$L$ 是所有样本“预测值减真实值”的平方的平均值。平方让正负误差不抵消，且大误差惩罚更重。\n\n## 3. 什么叫“对 $w$ 求梯度”\n\n梯度就是损失函数对每个参数求偏导数。偏导数回答一个问题：**当某个参数增大一点点时，损失是变大还是变小、变多少**。我们沿着损失下降最快的方向更新参数，就是梯度下降。\n\n先做一次变量替换，让推导清爽。记第 $i$ 个样本的残差：\n\n$$\ne_i = w x_i + b - y_i\n$$\n\n那么损失写成 $L = \\frac{1}{n}\\sum_i e_i^2$。用**链式法则**：先对外层 $e_i^2$ 求导，再乘以内层 $e_i$ 对参数的偏导。\n\n## 4. 对权重 $w$ 求偏导\n\n外层：$\\frac{\\partial}{\\partial e_i}\\left(e_i^2\\right) = 2 e_i$。\n内层：$e_i = w x_i + b - y_i$，对 $w$ 求导时把 $x_i$ 看成系数，其余项是常数，所以 $\\frac{\\partial e_i}{\\partial w} = x_i$。\n\n链式法则把两者相乘：\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\frac{1}{n} \\sum_{i=1}^{n} 2 e_i \\cdot x_i\n= \\frac{2}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right) x_i\n$$\n\n注意求和号里的 $2/n$ 是常数，可以直接提到前面。\n\n## 5. 对截距 $b$ 求偏导\n\n同样用链式法则。内层 $e_i$ 对 $b$ 求导：$b$ 的系数是 $1$，其余是常数，所以 $\\frac{\\partial e_i}{\\partial b} = 1$。\n\n$$\n\\frac{\\partial L}{\\partial b}\n= \\frac{1}{n} \\sum_{i=1}^{n} 2 e_i \\cdot 1\n= \\frac{2}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right)\n$$\n\n## 6. 梯度下降更新\n\n有了两个偏导，就可以更新参数。学习率 $\\alpha$（读作 alpha）控制每次迈的步子大小：\n\n$$\nw \\leftarrow w - \\alpha \\cdot \\frac{\\partial L}{\\partial w}\n$$\n\n$$\nb \\leftarrow b - \\alpha \\cdot \\frac{\\partial L}{\\partial b}\n$$\n\n读法：新权重 $=$ 旧权重 $-$ 学习率 $\\times$ 梯度。因为梯度指向损失上升最快的方向，所以减去它就走下坡路。\n\n## 7. 一个数值小例子（自己心算验证）\n\n取三个点：$(1,2),\\ (2,3),\\ (3,5)$，初始 $w=0,\\ b=0$，学习率 $\\alpha=0.01$。\n\n先算各 $e_i$：此时 $\\hat y_i=0$，所以 $e_1=-2,\\ e_2=-3,\\ e_3=-5$。\n\n**对 $w$：**\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\frac{2}{3}\\left[(-2)(1) + (-3)(2) + (-5)(3)\\right]\n= \\frac{2}{3}(-23) \\approx -15.33\n$$\n\n**对 $b$：**\n\n$$\n\\frac{\\partial L}{\\partial b}\n= \\frac{2}{3}\\left[(-2)+(-3)+(-5)\\right]\n= \\frac{2}{3}(-10) \\approx -6.67\n$$\n\n一次更新：\n\n$$\nw \\leftarrow 0 - 0.01 \\times (-15.33) = 0.153\n$$\n\n$$\nb \\leftarrow 0 - 0.01 \\times (-6.67) = 0.067\n$$\n\n梯度为负说明“增大参数会让损失减小”，所以 $w,b$ 都往正方向走，直线开始上翘去贴合那三个上升的点——方向是对的。\n\n---\n\n如果想继续，我可以帮你**把上面的结果写成几行 Python 代码跑一轮梯度下降**，让你亲眼看到损失一步步变小。要我接着做吗？",
+      "items": [
+        {
+          "id": "1e40c681-7fe1-46a3-9b25-b32ce5d235da",
+          "kind": "final",
+          "text": "好的，我们从最简单的单变量线性回归开始，一步步推出梯度。后面你可以把单变量推广到多变量。\n\n## 1. 问题设定\n\n假设我们有一组数据 $(x_1, y_1), (x_2, y_2), \\dots, (x_n, y_n)$，想用一条直线拟合：\n\n$$\n\\hat{y}_i = w x_i + b\n$$\n\n其中 $w$ 是斜率（权重），$b$ 是截距，$\\hat{y}_i$ 是模型对第 $i$ 个样本的预测值。\n\n## 2. 损失函数\n\n我们用均方误差（MSE）衡量预测好坏，目标是最小化它：\n\n$$\nL(w, b) = \\frac{1}{n} \\sum_{i=1}^{n} \\left( \\hat{y}_i - y_i \\right)^2\n= \\frac{1}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right)^2\n$$\n\n读法：$L$ 是所有样本“预测值减真实值”的平方的平均值。平方让正负误差不抵消，且大误差惩罚更重。\n\n## 3. 什么叫“对 $w$ 求梯度”\n\n梯度就是损失函数对每个参数求偏导数。偏导数回答一个问题：**当某个参数增大一点点时，损失是变大还是变小、变多少**。我们沿着损失下降最快的方向更新参数，就是梯度下降。\n\n先做一次变量替换，让推导清爽。记第 $i$ 个样本的残差：\n\n$$\ne_i = w x_i + b - y_i\n$$\n\n那么损失写成 $L = \\frac{1}{n}\\sum_i e_i^2$。用**链式法则**：先对外层 $e_i^2$ 求导，再乘以内层 $e_i$ 对参数的偏导。\n\n## 4. 对权重 $w$ 求偏导\n\n外层：$\\frac{\\partial}{\\partial e_i}\\left(e_i^2\\right) = 2 e_i$。\n内层：$e_i = w x_i + b - y_i$，对 $w$ 求导时把 $x_i$ 看成系数，其余项是常数，所以 $\\frac{\\partial e_i}{\\partial w} = x_i$。\n\n链式法则把两者相乘：\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\frac{1}{n} \\sum_{i=1}^{n} 2 e_i \\cdot x_i\n= \\frac{2}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right) x_i\n$$\n\n注意求和号里的 $2/n$ 是常数，可以直接提到前面。\n\n## 5. 对截距 $b$ 求偏导\n\n同样用链式法则。内层 $e_i$ 对 $b$ 求导：$b$ 的系数是 $1$，其余是常数，所以 $\\frac{\\partial e_i}{\\partial b} = 1$。\n\n$$\n\\frac{\\partial L}{\\partial b}\n= \\frac{1}{n} \\sum_{i=1}^{n} 2 e_i \\cdot 1\n= \\frac{2}{n} \\sum_{i=1}^{n} \\left( w x_i + b - y_i \\right)\n$$\n\n## 6. 梯度下降更新\n\n有了两个偏导，就可以更新参数。学习率 $\\alpha$（读作 alpha）控制每次迈的步子大小：\n\n$$\nw \\leftarrow w - \\alpha \\cdot \\frac{\\partial L}{\\partial w}\n$$\n\n$$\nb \\leftarrow b - \\alpha \\cdot \\frac{\\partial L}{\\partial b}\n$$\n\n读法：新权重 $=$ 旧权重 $-$ 学习率 $\\times$ 梯度。因为梯度指向损失上升最快的方向，所以减去它就走下坡路。\n\n## 7. 一个数值小例子（自己心算验证）\n\n取三个点：$(1,2),\\ (2,3),\\ (3,5)$，初始 $w=0,\\ b=0$，学习率 $\\alpha=0.01$。\n\n先算各 $e_i$：此时 $\\hat y_i=0$，所以 $e_1=-2,\\ e_2=-3,\\ e_3=-5$。\n\n**对 $w$：**\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\frac{2}{3}\\left[(-2)(1) + (-3)(2) + (-5)(3)\\right]\n= \\frac{2}{3}(-23) \\approx -15.33\n$$\n\n**对 $b$：**\n\n$$\n\\frac{\\partial L}{\\partial b}\n= \\frac{2}{3}\\left[(-2)+(-3)+(-5)\\right]\n= \\frac{2}{3}(-10) \\approx -6.67\n$$\n\n一次更新：\n\n$$\nw \\leftarrow 0 - 0.01 \\times (-15.33) = 0.153\n$$\n\n$$\nb \\leftarrow 0 - 0.01 \\times (-6.67) = 0.067\n$$\n\n梯度为负说明“增大参数会让损失减小”，所以 $w,b$ 都往正方向走，直线开始上翘去贴合那三个上升的点——方向是对的。\n\n---\n\n如果想继续，我可以帮你**把上面的结果写成几行 Python 代码跑一轮梯度下降**，让你亲眼看到损失一步步变小。要我接着做吗？"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1842,
+        "outputTokens": 1270,
+        "cacheReadTokens": 1792,
+        "reasoningTokens": 80,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 8816,
+      "firstTokenMs": 1418,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "R08",
+      "prompt": "继续上次被打断的回答。",
+      "criteria": [
+        "保留用户目标",
+        "不把中断当完成",
+        "避免整段机械重复"
+      ],
+      "status": "completed",
+      "text": "好，我把三个步骤完整讲清楚。\n\n## 1. 检索（Retrieval）\n\n从外部知识库中，把与用户问题相关的文档片段找出来。\n\n- **输入**：用户的查询。\n- **做法**：先把查询和库中所有片段都做**向量化**（embedding），转成高维向量；再计算查询向量与每个片段向量的**相似度****（如余弦相似度），取 Top-K（如前 5~10 个）最相近的片段。\n- **输出**：一批候选片段，通常连同它们的原文来源一起返回。\n\n关键点：检索追求**召回率**，宁可多取一些，也别漏掉真正相关的段落。\n\n## 2. 重排（Reranking）\n\n因为第一步用向量相似度，只能大致匹配语义，候选里常混有噪声或排序不准。重排就是对这批候选做更精细的二次打分。\n\n- **做法**：用一个更强的**重排模型**（cross-encoder 类型），把查询和每个候选**拼在一起**输入模型，逐对打分。这与检索时的\"查询、片段各自编码再比较\"不同，模型能看到两者词与词之间的交互，判断更准。\n- **输出**：按精排分数重新排序后的 Top-K（通常会再截断到更少，如 3 条）。\n- **作用**：剔除无关或重复片段，把最相关的放在最前面，避免后面生成阶段被噪声误导。\n\n简单说：检索负责**筛**，重排负责**精排**。\n\n## 3. 生成（Generation）\n\n把重排后的相关片段与用户问题组装成提示词，交给大语言模型（LLM）作答。\n\n- **做法**：拼接一个提示词，大致结构是\"基于以下资料回答问题：{片段} + 问题：{查询}\"，并常附带约束，如\"只依据资料回答，资料里没有就明确说不知道\"。\n- **输出**：模型据此生成的最终回答。\n- **关键点**：因为片段来自真实资料，模型可以**引用出处**，也减少了凭空编造（幻觉）。若检索结果本身为空或质量差，模型应被引导如实承认，而不是硬编。\n\n---\n\n用一个例子串起来：问\"什么是 RAG？\"\n- **检索**：向量搜索抓回关于 RAG 的 8 篇片段；\n- **重排**：精排后保留最相关的 3 篇，剔除介绍 Agent 的杂音；\n- **生成**：把 3 篇内容与问题拼给 LLM，产出带出处的解释。\n\n整个过程的价值在于：**模型本身的知识是有限的，而外部资料补足了知识，并让回答可溯源。** 如果还有想深入的地方（比如向量化的细节、重排模型的原理），告诉我即可。",
+      "items": [
+        {
+          "id": "08f0717a-4da1-4798-9541-5bcb88bfd997",
+          "kind": "final",
+          "text": "好，我把三个步骤完整讲清楚。\n\n## 1. 检索（Retrieval）\n\n从外部知识库中，把与用户问题相关的文档片段找出来。\n\n- **输入**：用户的查询。\n- **做法**：先把查询和库中所有片段都做**向量化**（embedding），转成高维向量；再计算查询向量与每个片段向量的**相似度****（如余弦相似度），取 Top-K（如前 5~10 个）最相近的片段。\n- **输出**：一批候选片段，通常连同它们的原文来源一起返回。\n\n关键点：检索追求**召回率**，宁可多取一些，也别漏掉真正相关的段落。\n\n## 2. 重排（Reranking）\n\n因为第一步用向量相似度，只能大致匹配语义，候选里常混有噪声或排序不准。重排就是对这批候选做更精细的二次打分。\n\n- **做法**：用一个更强的**重排模型**（cross-encoder 类型），把查询和每个候选**拼在一起**输入模型，逐对打分。这与检索时的\"查询、片段各自编码再比较\"不同，模型能看到两者词与词之间的交互，判断更准。\n- **输出**：按精排分数重新排序后的 Top-K（通常会再截断到更少，如 3 条）。\n- **作用**：剔除无关或重复片段，把最相关的放在最前面，避免后面生成阶段被噪声误导。\n\n简单说：检索负责**筛**，重排负责**精排**。\n\n## 3. 生成（Generation）\n\n把重排后的相关片段与用户问题组装成提示词，交给大语言模型（LLM）作答。\n\n- **做法**：拼接一个提示词，大致结构是\"基于以下资料回答问题：{片段} + 问题：{查询}\"，并常附带约束，如\"只依据资料回答，资料里没有就明确说不知道\"。\n- **输出**：模型据此生成的最终回答。\n- **关键点**：因为片段来自真实资料，模型可以**引用出处**，也减少了凭空编造（幻觉）。若检索结果本身为空或质量差，模型应被引导如实承认，而不是硬编。\n\n---\n\n用一个例子串起来：问\"什么是 RAG？\"\n- **检索**：向量搜索抓回关于 RAG 的 8 篇片段；\n- **重排**：精排后保留最相关的 3 篇，剔除介绍 Agent 的杂音；\n- **生成**：把 3 篇内容与问题拼给 LLM，产出带出处的解释。\n\n整个过程的价值在于：**模型本身的知识是有限的，而外部资料补足了知识，并让回答可溯源。** 如果还有想深入的地方（比如向量化的细节、重排模型的原理），告诉我即可。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1883,
+        "outputTokens": 794,
+        "cacheReadTokens": 1792,
+        "reasoningTokens": 197,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 7902,
+      "firstTokenMs": 2278,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "R12",
+      "prompt": "用最少步骤帮我把今天的实验做完。",
+      "criteria": [
+        "结合已有状态推进",
+        "必要时只问关键缺项",
+        "不虚构执行或测试通过"
+      ],
+      "status": "waiting",
+      "text": "",
+      "items": [
+        {
+          "id": "815756c5-c69e-4a66-b15c-ae3f19d6a434",
+          "kind": "progress",
+          "text": "我需要先确认一下目标，避免做错方向。\n\n当前状态梳理：\n- 本主题 `rag`（课程 D01「本地资料导入与引用」）尚未开始，它的前置条件是 `agent-development/D01` 和 `agent-development/D02`，必须先完成并通过 Review 才能进入本主题。\n- 目前 `task_status` 里没有任何已建立的分步计划，也没有具体实验产物。\n- 本主题仅有 `retrieval.md` 一份资料，且我的检索里看不到 `agent-development` 主题的资料内容，无法凭空推断它的实验要求。\n\n所以我还缺一个关键信息来确定「今天的实验」具体指什么、交付物是什么。"
+        },
+        {
+          "id": "3d8d0dec-e46d-430f-a4b3-7b80f5c37563",
+          "status": "pending",
+          "kind": "question",
+          "title": "你说的「今天的实验」具体指哪一个？我据此建立最少的执行步骤。",
+          "options": [
+            "做 agent-development/D01（先打通前置，再进入 rag）",
+            "直接开始本主题 rag D01「本地资料导入与引用」",
+            "我先把今天实验的具体要求和输入给你"
+          ]
+        }
+      ],
+      "usage": {
+        "inputTokens": 11198,
+        "outputTokens": 2606,
+        "cacheReadTokens": 9856,
+        "reasoningTokens": 2107,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 20326,
+      "firstTokenMs": 18430,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "R02",
+      "prompt": "我是初学者，逐步推导线性回归的梯度。",
+      "criteria": [
+        "规范 Markdown/LaTeX",
+        "解释变量与偏导含义",
+        "推导步骤连贯"
+      ],
+      "status": "completed",
+      "text": "直接开讲，我们从零开始一步步把梯度推出来。\n\n## 1. 先定好模型和损失\n\n假设我们有一个特征 $x$ 和一个标签 $y$。线性回归的预测是\n\n$$\n\\hat y = w x + b\n$$\n\n- $w$ 是**权重**（斜率），$b$ 是**偏置**（截距），这俩是我们要学习的参数。\n- 读法：$\\hat y$（念“y-hat”）表示预测值。\n\n我们希望预测 $\\hat y$ 尽量接近真实 $y$。用一个数来衡量差距，常用**均方误差（MSE）**。为了后面求导方便，通常在前面加个 $\\frac{1}{2}$（不影响最优点位置），写成：\n\n$$\nL = \\frac{1}{2}(y - \\hat y)^2\n$$\n\n这是**单个样本**的损失。展开代入 $\\hat y = wx+b$：\n\n$$\nL = \\frac12\\big(y - (wx + b)\\big)^2\n$$\n\n读法：误差 $e = y - \\hat y$ 的平方的一半。\n\n## 2. 链式法则：我们要对谁求导\n\n梯度下降想找让 $L$ 最小的 $w$ 和 $b$，办法是算 $L$ 对 $w$、对 $b$ 的偏导数，然后朝反方向走。\n\n先把 $L$ 看成**复合函数**：外层是平方，内层是 $e = y - wx - b$。用链式法则拆开：\n\n$$\n\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial e} \\cdot \\frac{\\partial e}{\\partial w}\n$$\n\n逐段算：\n\n- 外层：$L = \\frac12 e^2$，所以 $\\dfrac{\\partial L}{\\partial e} = e$（$\\frac12$ 和指数 2 抵消）。\n- 内层：$e = y - wx - b$，对 $w$ 求导，$y$、$b$ 是常数，剩下 $-x$，所以 $\\dfrac{\\partial e}{\\partial w} = -x$。\n\n乘起来：\n\n$$\n\\frac{\\partial L}{\\partial w} = e \\cdot (-x) = -(y - \\hat y)\\, x\n$$\n\n同理对 $b$：\n\n$$\n\\frac{\\partial L}{\\partial b} = e \\cdot \\frac{\\partial e}{\\partial b} = e \\cdot (-1) = -(y - \\hat y)\n$$\n\n因为 $e$ 对 $b$ 求导，$y, wx$ 与 $b$ 无关，只有 $-b$ 求导得 $-1$。\n\n## 3. 拿到单个样本的梯度\n\n整理一下，令**残差** $\\delta = y - \\hat y$，则：\n\n$$\n\\frac{\\partial L}{\\partial w} = -\\,\\delta\\, x,\\qquad\n\\frac{\\partial L}{\\partial b} = -\\,\\delta\n$$\n\n含义：误差越大（$y$ 比预测大得多），$\\delta>0$，则 $\\partial L/\\partial w$ 越负——说明增大 $w$ 能降低损失。\n\n## 4. 推广到多个样本\n\n现实里有 $m$ 个样本 $\\{(x_i, y_i)\\}$。总损失取平均：\n\n$$\nL = \\frac{1}{m}\\sum_{i=1}^{m} \\frac12\\big(y_i - (w x_i + b)\\big)^2\n$$\n\n对每个参数求导，因为求导能穿过求和（线性），结果就是每个样本梯度的平均：\n\n$$\n\\frac{\\partial L}{\\partial w} = -\\frac{1}{m}\\sum_{i=1}^{m} (y_i - \\hat y_i)\\, x_i,\n\\qquad\n\\frac{\\partial L}{\\partial b} = -\\frac{1}{m}\\sum_{i=1}^{m}(y_i - \\hat y_i)\n$$\n\n## 5. 梯度下降更新\n\n得到梯度后，让参数沿着**负梯度**方向更新一步，步长叫学习率 $\\eta$：\n\n$$\nw \\leftarrow w - \\eta\\,\\frac{\\partial L}{\\partial w},\n\\qquad\nb \\leftarrow b - \\eta\\,\\frac{\\partial L}{\\partial b}\n$$\n\n代入负梯度（负负得正）就写成常见的：\n\n$$\nw \\leftarrow w + \\eta\\cdot\\frac{1}{m}\\sum_i (y_i-\\hat y_i)\\,x_i,\\qquad\nb \\leftarrow b + \\eta\\cdot\\frac{1}{m}\\sum_i (y_i-\\hat y_i)\n$$\n\n---\n\n**小结这一整条链**：误差 $\\to$ 求导（链式法则）$\\to$ 单样本梯度 $\\to$ 平均成批量梯度 $\\to$ 负梯度更新。那个 $\\frac12$ 之所以放进去，就是为了让平方求导后的 2 被消掉，公式更干净。\n\n想不想顺着这条链，再推一步到**向量/矩阵写法**（把 $w$ 和偏置合并成一个 $\\theta$）？那个能直接对应到代码实现，也是你以后看资料里常见的形式。",
+      "items": [
+        {
+          "id": "03423173-8811-49a9-92e8-e32a40e783d6",
+          "kind": "final",
+          "text": "直接开讲，我们从零开始一步步把梯度推出来。\n\n## 1. 先定好模型和损失\n\n假设我们有一个特征 $x$ 和一个标签 $y$。线性回归的预测是\n\n$$\n\\hat y = w x + b\n$$\n\n- $w$ 是**权重**（斜率），$b$ 是**偏置**（截距），这俩是我们要学习的参数。\n- 读法：$\\hat y$（念“y-hat”）表示预测值。\n\n我们希望预测 $\\hat y$ 尽量接近真实 $y$。用一个数来衡量差距，常用**均方误差（MSE）**。为了后面求导方便，通常在前面加个 $\\frac{1}{2}$（不影响最优点位置），写成：\n\n$$\nL = \\frac{1}{2}(y - \\hat y)^2\n$$\n\n这是**单个样本**的损失。展开代入 $\\hat y = wx+b$：\n\n$$\nL = \\frac12\\big(y - (wx + b)\\big)^2\n$$\n\n读法：误差 $e = y - \\hat y$ 的平方的一半。\n\n## 2. 链式法则：我们要对谁求导\n\n梯度下降想找让 $L$ 最小的 $w$ 和 $b$，办法是算 $L$ 对 $w$、对 $b$ 的偏导数，然后朝反方向走。\n\n先把 $L$ 看成**复合函数**：外层是平方，内层是 $e = y - wx - b$。用链式法则拆开：\n\n$$\n\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial e} \\cdot \\frac{\\partial e}{\\partial w}\n$$\n\n逐段算：\n\n- 外层：$L = \\frac12 e^2$，所以 $\\dfrac{\\partial L}{\\partial e} = e$（$\\frac12$ 和指数 2 抵消）。\n- 内层：$e = y - wx - b$，对 $w$ 求导，$y$、$b$ 是常数，剩下 $-x$，所以 $\\dfrac{\\partial e}{\\partial w} = -x$。\n\n乘起来：\n\n$$\n\\frac{\\partial L}{\\partial w} = e \\cdot (-x) = -(y - \\hat y)\\, x\n$$\n\n同理对 $b$：\n\n$$\n\\frac{\\partial L}{\\partial b} = e \\cdot \\frac{\\partial e}{\\partial b} = e \\cdot (-1) = -(y - \\hat y)\n$$\n\n因为 $e$ 对 $b$ 求导，$y, wx$ 与 $b$ 无关，只有 $-b$ 求导得 $-1$。\n\n## 3. 拿到单个样本的梯度\n\n整理一下，令**残差** $\\delta = y - \\hat y$，则：\n\n$$\n\\frac{\\partial L}{\\partial w} = -\\,\\delta\\, x,\\qquad\n\\frac{\\partial L}{\\partial b} = -\\,\\delta\n$$\n\n含义：误差越大（$y$ 比预测大得多），$\\delta>0$，则 $\\partial L/\\partial w$ 越负——说明增大 $w$ 能降低损失。\n\n## 4. 推广到多个样本\n\n现实里有 $m$ 个样本 $\\{(x_i, y_i)\\}$。总损失取平均：\n\n$$\nL = \\frac{1}{m}\\sum_{i=1}^{m} \\frac12\\big(y_i - (w x_i + b)\\big)^2\n$$\n\n对每个参数求导，因为求导能穿过求和（线性），结果就是每个样本梯度的平均：\n\n$$\n\\frac{\\partial L}{\\partial w} = -\\frac{1}{m}\\sum_{i=1}^{m} (y_i - \\hat y_i)\\, x_i,\n\\qquad\n\\frac{\\partial L}{\\partial b} = -\\frac{1}{m}\\sum_{i=1}^{m}(y_i - \\hat y_i)\n$$\n\n## 5. 梯度下降更新\n\n得到梯度后，让参数沿着**负梯度**方向更新一步，步长叫学习率 $\\eta$：\n\n$$\nw \\leftarrow w - \\eta\\,\\frac{\\partial L}{\\partial w},\n\\qquad\nb \\leftarrow b - \\eta\\,\\frac{\\partial L}{\\partial b}\n$$\n\n代入负梯度（负负得正）就写成常见的：\n\n$$\nw \\leftarrow w + \\eta\\cdot\\frac{1}{m}\\sum_i (y_i-\\hat y_i)\\,x_i,\\qquad\nb \\leftarrow b + \\eta\\cdot\\frac{1}{m}\\sum_i (y_i-\\hat y_i)\n$$\n\n---\n\n**小结这一整条链**：误差 $\\to$ 求导（链式法则）$\\to$ 单样本梯度 $\\to$ 平均成批量梯度 $\\to$ 负梯度更新。那个 $\\frac12$ 之所以放进去，就是为了让平方求导后的 2 被消掉，公式更干净。\n\n想不想顺着这条链，再推一步到**向量/矩阵写法**（把 $w$ 和偏置合并成一个 $\\theta$）？那个能直接对应到代码实现，也是你以后看资料里常见的形式。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 4046,
+        "outputTokens": 1298,
+        "cacheReadTokens": 3584,
+        "reasoningTokens": 134,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 9680,
+      "firstTokenMs": 2356,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "R08",
+      "prompt": "继续上次被打断的回答。",
+      "criteria": [
+        "保留用户目标",
+        "不把中断当完成",
+        "避免整段机械重复"
+      ],
+      "status": "completed",
+      "text": "好的，接续上次被打断的地方，把 RAG 的检索、重排、生成三步讲完整。\n\n## 1. 检索（Retrieval）\n\n目标是从知识库里找出与问题最相关的候选片段。核心操作是**把文本变成向量**再算相似度：\n\n- 先把文档切成小块（chunk），每块用嵌入模型转成向量；\n- 用户问题也转成同一空间里的向量；\n- 用余弦相似度等度量，找出最接近的若干块（比如 Top-20）。\n\n这里的\"相似\"是语义相似，靠向量方向接近来判断。这一步速度快、召回广，但会夹带一些不太相关的噪音，所以需要下一步精筛。\n\n## 2. 重排（Reranking）\n\n目标是在检索结果上做**更精确的二次排序**，把最相关的排到前面、剔除噪音。\n\n检索阶段用的是粗粒度向量相似度；重排阶段通常换更强的交叉编码器，把**问题与候选文本拼在一起**送入模型，逐条打一个相关性分数，再按分数重新排序，最后只留 Top-3 或 Top-5。\n\n## 3. 生成（Generation）\n\n目标是把筛选后的证据交给大模型，让它**基于证据作答**而不是凭空编。\n\n做法是把检索到的文本放进提示词的上下文里，比如：\n\n```\n依据以下资料回答问题：\n[资料1] ...\n[资料2] ...\n\n问题：xxx\n回答：\n```\n\n模型在此基础上生成答案。因为上下文被限定在证据内，能明显降低幻觉，并便于在回答末尾标注来源。\n\n## 小结\n\n三步各有分工：\n\n- **检索**负责快而全地找候选（召回）；\n- **重排**负责准而精地筛相关（精排）；\n- **生成**负责用有限证据组织可引证的答案。\n\n一句话记忆：**先广撒网找候选，再精挑细选留最相关，最后让模型照着资料说话。**\n\n如果你愿意，我可以结合一个具体例子（比如\"产品文档问答\"）把每一步的输入输出演示一遍。",
+      "items": [
+        {
+          "id": "8c9aa251-8fae-4d41-91fc-4c188c91c962",
+          "kind": "final",
+          "text": "好的，接续上次被打断的地方，把 RAG 的检索、重排、生成三步讲完整。\n\n## 1. 检索（Retrieval）\n\n目标是从知识库里找出与问题最相关的候选片段。核心操作是**把文本变成向量**再算相似度：\n\n- 先把文档切成小块（chunk），每块用嵌入模型转成向量；\n- 用户问题也转成同一空间里的向量；\n- 用余弦相似度等度量，找出最接近的若干块（比如 Top-20）。\n\n这里的\"相似\"是语义相似，靠向量方向接近来判断。这一步速度快、召回广，但会夹带一些不太相关的噪音，所以需要下一步精筛。\n\n## 2. 重排（Reranking）\n\n目标是在检索结果上做**更精确的二次排序**，把最相关的排到前面、剔除噪音。\n\n检索阶段用的是粗粒度向量相似度；重排阶段通常换更强的交叉编码器，把**问题与候选文本拼在一起**送入模型，逐条打一个相关性分数，再按分数重新排序，最后只留 Top-3 或 Top-5。\n\n## 3. 生成（Generation）\n\n目标是把筛选后的证据交给大模型，让它**基于证据作答**而不是凭空编。\n\n做法是把检索到的文本放进提示词的上下文里，比如：\n\n```\n依据以下资料回答问题：\n[资料1] ...\n[资料2] ...\n\n问题：xxx\n回答：\n```\n\n模型在此基础上生成答案。因为上下文被限定在证据内，能明显降低幻觉，并便于在回答末尾标注来源。\n\n## 小结\n\n三步各有分工：\n\n- **检索**负责快而全地找候选（召回）；\n- **重排**负责准而精地筛相关（精排）；\n- **生成**负责用有限证据组织可引证的答案。\n\n一句话记忆：**先广撒网找候选，再精挑细选留最相关，最后让模型照着资料说话。**\n\n如果你愿意，我可以结合一个具体例子（比如\"产品文档问答\"）把每一步的输入输出演示一遍。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1883,
+        "outputTokens": 628,
+        "cacheReadTokens": 1792,
+        "reasoningTokens": 194,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 5958,
+      "firstTokenMs": 1919,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "R12",
+      "prompt": "用最少步骤帮我把今天的实验做完。",
+      "criteria": [
+        "结合已有状态推进",
+        "必要时只问关键缺项",
+        "不虚构执行或测试通过"
+      ],
+      "status": "waiting",
+      "text": "",
+      "items": [
+        {
+          "id": "e688af4b-85d3-4e20-ae9c-595f5febf8be",
+          "kind": "progress",
+          "text": "我先查一下当前任务、学习进度和可用资料，确认今天该做什么以及卡在哪。"
+        },
+        {
+          "id": "3ba8c5a1-4d52-42c9-b240-6b2c6be71360",
+          "kind": "progress",
+          "text": "我先确认一下工作流和资料内容，看看今天这个实验（RAG D01）该交付什么。"
+        },
+        {
+          "id": "46b02e75-b2d8-4c55-8ef5-1133aec90505",
+          "kind": "progress",
+          "text": "我先理清了当前状态，发现一个需要确认的点，问清楚再动手，避免做错方向：\n\n- **当前主题（RAG）**：尚未开始；课程 D01「本地资料导入与引用」要求交付产物（implementation + testOutput + failureCase），预期约 120 分钟。\n- **前置阻塞**：系统提示必须先完成另一主题 `agent-development/D01` 并通过 Review，D02 也列为阻塞，之后才能开始 RAG。\n- 我这边能操作的实验工具、资料（retrieval.md）都属于 **RAG 主题**，没有 agent-development 主题的实验上下文与资料。\n\n所以“今天的实验”具体指哪一个，直接决定步骤。"
+        },
+        {
+          "id": "196a8153-24f8-4e00-a893-21e641caa3ac",
+          "status": "pending",
+          "kind": "question",
+          "title": "你说的“今天的实验”是指哪一个？",
+          "options": [
+            "RAG D01「本地资料导入与引用」（当前主题）",
+            "前置的 agent-development D01（先解除阻塞）",
+            "两者都要，先清阻塞再做 RAG"
+          ]
+        }
+      ],
+      "usage": {
+        "inputTokens": 8134,
+        "outputTokens": 2030,
+        "cacheReadTokens": 7040,
+        "reasoningTokens": 1546,
+        "startupMs": 0
+      },
+      "reasoning": "balanced",
+      "durationMs": 16384,
+      "firstTokenMs": 982,
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    }
+  ]
+}

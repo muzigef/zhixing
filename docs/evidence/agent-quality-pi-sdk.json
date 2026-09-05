@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-05T16:07:13.850Z",
+  "results": [
+    {
+      "provider": "pi-codex",
+      "repetition": 1,
+      "id": "R01",
+      "prompt": "用两段话解释 RAG 与微调的区别，给出一个适用场景。",
+      "criteria": [
+        "直接比较而不启动课程",
+        "概念准确",
+        "遵守两段限制"
+      ],
+      "status": "failed",
+      "text": "",
+      "error": "操作未完成。请重试；若是模型连接问题，请检查所选模型的配置和网络。",
+      "durationMs": 1837,
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "unavailable"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 2,
+      "id": "R01",
+      "prompt": "用两段话解释 RAG 与微调的区别，给出一个适用场景。",
+      "criteria": [
+        "直接比较而不启动课程",
+        "概念准确",
+        "遵守两段限制"
+      ],
+      "status": "failed",
+      "text": "",
+      "error": "操作未完成。请重试；若是模型连接问题，请检查所选模型的配置和网络。",
+      "durationMs": 1837,
+      "model": "gpt-5.6-terra",
+      "attempted": false,
+      "review": "unavailable"
+    }
+  ]
+}

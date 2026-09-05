@@ -7,6 +7,7 @@
 | 记录 | 范围与适用性 |
 | --- | --- |
 | [依赖安全修复](dependency-security.md) | PDF.js 与内附 Pi 依赖升级、官方 CLI 入口、两套生产依赖审计及回归结果 |
+| [0.4 Agent 能力优化](agent-next.md) | 结构化上下文、执行恢复、交互/检索/检查、备份迁移与真实质量结果 |
 | [0.3 学习任务升级](agent-upgrade.md) | 共享学习服务、任务/上下文、真实产物、本地验证、306 个测试、开发/实包 UI 与 0.3 DMG；外部验收单列 |
 | [文档同步](documentation-sync.md) | 此前按代码核对全部项目文档、修正事实与链接、记录现存缺口 |
 | [P10 桌面应用](desktop-app.md) | macOS arm64 本地 `.app`/DMG/ZIP、281 个测试、开发与打包应用 UI、DeepSeek 最小真实请求；Pi 认证与 Windows 未通过真实验收 |

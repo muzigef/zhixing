@@ -22,7 +22,7 @@ graph TD
   Desktop --> Chat[DesktopStore / 完整消息与目标摘要]
 ```
 
-模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。Pi 保持空工具列表，DeepSeek 支持受控工具续写。
+模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。桌面 Pi SDK 与 DeepSeek 均支持受控应用工具续写；课程状态仍由实际证据和程序控制。
 
 ### CLI 组合根
 
@@ -36,7 +36,7 @@ CLI / REPL
   -> ConversationSessionStore（按主题的新对话、历史与恢复）
   -> TopicRegistry + TopicStore（内置或用户创建的本地主题）
   -> LearningRuntime（Day gate、进度、Review）
-  -> DocumentLibrary + ZhixingDatabase（PDF/Markdown、FTS5、HashEmbedding、记忆）
+  -> DocumentLibrary + ZhixingDatabase（PDF/Markdown、关键词/同义词重排、记忆）
   -> ProviderRuntime（mock / DeepSeek / Codex CLI / Pi Codex）
   -> ActionRegistry / InteractionProtocol（输入分类与命令元数据）
   -> RunManager + WorkflowLedger（取消、单前台任务、SQLite 运行/步骤账本）
@@ -53,7 +53,7 @@ CLI / REPL
 - `TeachingSessionStore` 保存当前 Day、阶段、受限转录、当前练习和作答；`LearningContextBuilder` 仅组装当前主题画像、至多三条记忆、资料名称和教学检查点。
 - `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符，额外持久保存最初目标；请求前保存用户输入，结束或正常中断后保存回答。强制结束可能丢失未保存增量，教学检查点不随旧聊天恢复而回滚。
 - `WorkflowLedger` 将运行与步骤状态写入 SQLite；启动时会把上次进程遗留的 `running` 运行标记为 `process_interrupted`，不重放任何可能含写入的操作。用户可安全地重新发起操作。
-- CLI 已有手动数据库备份、预览和确认恢复：`备份数据库` 将 SQLite 保存到 `zhixing/db/backups/`；它不包含资料原文件、主题计划、学习笔记或桌面对话。当前没有全局 `profile.md`、`MISTAKES.md`、情节记忆、主题删除、定时自动备份或完整学习数据导出。桌面对话 Markdown 导出是另一项已实现功能。
+- CLI 已有手动数据库备份、预览和确认恢复：`备份数据库` 将 SQLite 保存到 `zhixing/db/backups/`；它不包含资料原文件、主题计划、学习笔记或桌面对话。当前没有全局 `profile.md`、`MISTAKES.md`、情节记忆、主题删除或定时自动备份。桌面另有完整工作区/会话备份恢复和单会话 Markdown 导出。
 
 `LocalSyncServer` 由 CLI 的 `启动同步服务 [端口]` 显式启动，仅监听 `127.0.0.1`，提供按主题限定的 `GET /topics/<topicId>/progress` 与 `GET /topics/<topicId>/events`。后者是 SSE 事件流，CLI 操作完成后发布进度变更通知；没有远程身份认证、跨设备复制或云端存储，桌面也未连接该服务。实现见 `src/sync-server.ts` 与 `src/cli.ts`。
 
@@ -69,9 +69,9 @@ CLI / REPL
 | --- | --- | --- |
 | mock | CLI 本地 `MockModelClient`，也用于确定性验证 | 立即返回 |
 | demo | 桌面 `DesktopDemoClient`，明确标注离线演示 | 本地分片输出 |
-| deepseek-api | CLI 与桌面复用 `DeepSeekClient`；密钥来源由各入口注入 | 60 秒；SSE 单帧 64 KiB、整响应 256 KiB |
+| deepseek-api | CLI 与桌面复用 `DeepSeekClient`；密钥来源由各入口注入 | 60 秒；SSE 单帧 64 KiB、整响应 8 MiB |
 | codex-cli | 仅 CLI；`codex exec --sandbox read-only --ephemeral --json` | CLI 注入 150 秒；类构造默认值为 60 秒 |
-| pi-codex | CLI 使用安全脚本，桌面使用内附 Pi 的等价启动器；均显式指定 Pi 的 Codex 模型与推理强度 | 默认 150 秒 |
+| pi-codex | CLI 使用安全脚本，桌面使用仅模型能力的 Pi SDK worker；均显式指定 Pi 的 Codex 模型与推理强度 | 默认 150 秒 |
 
 CLI 资料问答发送检索证据；学习建议发送画像和资料名称；教学发送学习卡与受限主题上下文。桌面发送目标、约束、受限历史和可选摘要；勾选会话授权后加入当前主题进度与检索片段。凭据不进入提示词，其他主题资料与审计原文不加入上下文。
 
@@ -79,9 +79,9 @@ CLI 资料问答发送检索证据；学习建议发送画像和资料名称；�
 
 `PiCodexClient` 只读取 Pi 设置中的非敏感模型偏好，显式要求 `openai-codex`、模型名与推理强度，避免默认模型不可用时改用其他 Provider。全局设置来自 `PI_CODING_AGENT_DIR/settings.json` 或默认 Pi agent 目录，调用工作目录的 `.pi/settings.json` 可覆盖对应偏好。认证和 token 刷新由 Pi 自身处理；读到模型偏好不代表登录有效。
 
-CLI 使用 `scripts/pi-safe.sh`。桌面 `packagedPiRunner` 将该请求改为 Electron 自带 Node 运行时执行内附 Pi CLI（`ELECTRON_RUN_AS_NODE=1`），无需系统 Node/Pi 可执行文件；保留 `--no-extensions`、显式加载的同一工具守卫、`--no-tools --tools ""` 等限制，prompt 从 stdin 传入。桌面的 Pi 工作目录是独立用户数据下的 `runtime/`，使用打包的 `desktop/runtime-AGENTS.md`，不是开发仓库根目录。Pi `--offline` 配置不替代应用的禁止外发开关：`ZHIXING_ALLOW_LIVE_PROVIDER=0` 仍由真实适配器强制执行。
+CLI 使用 `scripts/pi-safe.sh`。旧桌面 CLI 兼容检查中的 `packagedPiRunner` 将该请求改为 Electron 自带 Node 运行时执行内附 Pi CLI（`ELECTRON_RUN_AS_NODE=1`），无需系统 Node/Pi 可执行文件；保留 `--no-extensions`、显式加载的同一工具守卫、`--no-tools --tools ""` 等限制，prompt 从 stdin 传入。桌面的 Pi 工作目录是独立用户数据下的 `runtime/`，使用打包的 `desktop/runtime-AGENTS.md`，不是开发仓库根目录。Pi `--offline` 配置不替代应用的禁止外发开关：`ZHIXING_ALLOW_LIVE_PROVIDER=0` 仍由真实适配器强制执行。
 
-Pi JSON 的 assistant `text_delta` 映射为知行文本事件；适配器验证返回模型一致性、最终 assistant 的 `stop` 状态、`agent_end` 及进程成功退出，并拒绝工具事件。单纯退出码 0 不等于完成。源码见 `src/pi-client.ts` 与 `desktop/core/pi-runner.ts`。
+CLI Pi JSON 的 assistant `text_delta` 映射为知行文本事件；适配器验证返回模型一致性、最终 assistant 的 `stop` 状态、`agent_end` 及进程成功退出，并拒绝工具事件。单纯退出码 0 不等于完成。源码见 `src/pi-client.ts` 与 `desktop/core/pi-runner.ts`。
 
 ## CLI 控制面、事件与工具
 
@@ -93,11 +93,11 @@ DeepSeek 实现 `ContinuableModelClient`：工具 schema、分片参数、assist
 
 REPL 持续读输入，普通消息串行执行，状态与取消即时响应，显式调整可抢占文本生成。短段落定时刷新；正在编辑输入时暂存新增显示。隐藏输入独占来源，不将其缓存重放进聊天。该界面仍是行式终端，未实现完整 TUI。
 
-默认预算为 6 个模型回合、32 次工具请求、10,000 个事件、64,000 字符总文本、128,000 字符上下文估算和 180 秒总时限。超过预算明确停止；这不是 tokenizer 精确计数，也不是费用预算。SSE 按 UTF-8 字节限制单帧 64 KiB、整响应 256 KiB，支持 CRLF 和跨块分片；`[DONE]` 立即关闭读取，断流、坏帧和截断输出不报成功。取消约束覆盖取密钥、HTTP、流读取、工具 dispatch 和下一模型轮。
+默认预算为 6 个模型回合、32 次工具请求、10,000 个事件、64,000 字符总文本、128,000 字符上下文估算和 180 秒总时限。超过预算明确停止；这不是 tokenizer 精确计数，也不是费用预算。SSE 按 UTF-8 字节限制单帧 64 KiB、整响应 8 MiB，支持 CRLF 和跨块分片；`[DONE]` 立即关闭读取，断流、坏帧和截断输出不报成功。取消约束覆盖取密钥、HTTP、流读取、工具 dispatch 和下一模型轮。
 
 教学转移由 `completeTeachingTurn` 在模型成功返回后计算。索要答案、批改和澄清不会覆盖原练习；新出题才增加轮次，仍保留原有 20 轮上限。部分回答可保留为未完成转录，但不推进阶段或写入学习者作答。转录保存前有明确截断标记；切换主题时清除旧主题的内存对话和待确认草案。
 
-这些预算属于 CLI 的 `collectInvocation`，不等于桌面服务的预算。当前没有精确 token/费用计量、语义上下文压缩、通用并行调度、自动网络重试、Claude/本地 HTTP Provider、DOCX 导入或云同步；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
+这些预算属于 CLI 的 `collectInvocation`，不等于桌面服务的预算。当前没有费用预算或通用并行调度、自动网络重试、Claude/本地 HTTP Provider、DOCX 导入或云同步；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
 
 ## 桌面对话链路
 
@@ -107,7 +107,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
 2. `DesktopService.send` 拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
-3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。DeepSeek 在会话授权时注册只读进度、目录、检索工具；Pi 仍使用文本模式。真实工具结果才能续写；`session`、`delta`、`settled` 事件按会话隔离。
+3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK 与 DeepSeek 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`delta`、`settled` 事件按会话隔离。
 4. 收到非空文本和明确 `done` 才标记 `completed`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
 5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
@@ -172,3 +172,9 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 ## 后续设计（未实现）
 
 后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、完整学习备份、跨设备同步。桌面课程/资料/进度/证据与任务上下文已落地；通用 Shell、任意代码编辑、多 Agent、MCP 市场不在本轮范围。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
+
+## 0.4 的新增结构
+
+`ModelMessage` 保留真实角色，应用材料使用 observation；`provider_state` 仅在单次工具续写中保留，不存入可见历史。Pi 使用 `PiApplicationClient → pi-model-worker → ModelRuntime.streamSimple`，没有 Pi 原生工具或 AgentSession，工具由 ToolHarness 执行。CLI Pi 保留旧文本协议。
+
+`TaskExecutionStore` 保存步骤、实际操作结果及幂等键；`assistant-interactions` 将问题、批准、产物、progress/final 类型化。后台压缩可取消，首字路径不等待压缩。SemanticIndex 为可选 loopback Ollama 索引；AssessmentStore 单独保存作答和复习。全量备份经路径/哈希/数据库预检恢复到新目录，会话版本兼容保留旧文件。详细边界见 [0.4 指南](agent-0.4.md)。

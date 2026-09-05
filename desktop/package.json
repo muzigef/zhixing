@@ -1,6 +1,6 @@
 {
   "name": "zhixing-desktop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "知行 · 让学习成为连续的对话",
   "author": "Zhixing",
   "license": "UNLICENSED",
@@ -14,7 +14,7 @@
     "pack": "npm run prepare:runtime && npm run build && electron-builder --dir --publish never",
     "dist:mac": "npm run prepare:runtime && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
     "dist:win": "npm run prepare:runtime && npm run build && electron-builder --win nsis --x64 --publish never",
-    "test:ui": "node scripts/smoke.mjs && node scripts/smoke-learning.mjs",
+    "test:ui": "node scripts/smoke.mjs && node scripts/smoke-learning.mjs && node scripts/smoke-interactions.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
     "dist:host": "node scripts/dist.mjs",
     "checksums": "node scripts/checksums.mjs",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.85.0",
+    "@earendil-works/pi-server": "0.85.0",
     "better-sqlite3": "^12.11.1",
     "pdfjs-dist": "6.2.108"
   },

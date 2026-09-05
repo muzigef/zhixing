@@ -1,6 +1,11 @@
 name: desktop-release
 on:
   workflow_dispatch:
+    inputs:
+      sign_macos:
+        description: Sign and notarize macOS builds using configured repository secrets
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 permissions:
@@ -10,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, windows-2022]
+        os: [macos-15, macos-15-intel, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +41,12 @@ jobs:
       - run: npm --prefix desktop run dist:host
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          ZHIXING_SIGN_MACOS: ${{ inputs.sign_macos && runner.os == 'macOS' && '1' || '0' }}
+          CSC_LINK: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
       - name: Verify packaged application
         shell: bash
         run: |
@@ -46,6 +57,14 @@ jobs:
           fi
           test -f "$executable"
           ZHIXING_DESKTOP_EXECUTABLE="$executable" npm --prefix desktop run test:ui
+      - name: Verify signing and notarization
+        if: inputs.sign_macos && runner.os == 'macOS'
+        shell: bash
+        run: |
+          application="$(find desktop/release -name '知行.app' -type d -print -quit)"
+          codesign --verify --deep --strict "$application"
+          xcrun stapler validate "$application"
+          spctl --assess --type execute "$application"
       - run: npm --prefix desktop run checksums
       - uses: actions/upload-artifact@v4
         with:

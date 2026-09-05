@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { topicIdSchema } from "./contracts.js";
 import type { TopicPlanDay } from "./plan-loader.js";
+import type { AssessmentResult } from "./learning-assessment.js";
 
 export const citationSchema = z.object({
   topicId: topicIdSchema,
@@ -18,6 +19,7 @@ export interface LearningOverview {
   course: readonly TopicPlanDay[];
   days: { dayId: string; state: "未开始" | "进行中" | "完成" }[];
   materials: { id: string; name: string; status: string; createdAt: string }[];
+  assessments?: AssessmentResult[];
 }
 export interface WorkspaceSummary {
   id: string;

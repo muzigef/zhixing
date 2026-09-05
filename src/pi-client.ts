@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
-import type { ModelClient, ModelEvent } from "./model.js";
+import type { ModelClient, ModelEvent, ModelRequestOptions } from "./model.js";
 import { assertLiveProviderAllowed } from "./provider-policy.js";
 
 const projectDirectory = fileURLToPath(new URL("..", import.meta.url));
@@ -48,7 +48,7 @@ export class PiCodexClient implements ModelClient {
     this.timeoutMs = options.timeoutMs ?? 150_000;
   }
   selection(): Promise<PiModelSelection> { return readPiModelSelection(this.projectDir, this.environment); }
-  async *stream(prompt: string, parent: AbortSignal): AsyncIterable<ModelEvent> {
+  async *stream(prompt: string, parent: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent> {
     assertLiveProviderAllowed(this.environment); parent.throwIfAborted();
     const timeout = AbortSignal.timeout(this.timeoutMs);
     const signal = AbortSignal.any([parent, timeout]);
@@ -60,6 +60,10 @@ export class PiCodexClient implements ModelClient {
         input: `请处理以下知行对话请求：\n\n${prompt}`,
         environment: { ...this.environment, PI_TELEMETRY: "0", PI_SKIP_VERSION_CHECK: "1", PI_OFFLINE: "1" },
       };
+      if (options?.messages?.length) {
+        request.args[request.args.indexOf("--system-prompt") + 1] = options.messages.filter((message) => message.role === "system").map((message) => message.content).join("\n\n");
+        request.input = JSON.stringify(options.messages.filter((message) => message.role !== "system"));
+      }
       const parser = new PiJsonStream(selection);
       const decoder = new StringDecoder("utf8");
       let pending = ""; let bytes = 0; let exited = false;

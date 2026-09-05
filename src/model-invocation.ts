@@ -1,4 +1,4 @@
-import type { ModelEvent, ModelRole, ModelToolDefinition, ModelTurn, ToolResultMessage } from "./model.js";
+import type { ModelEvent, ModelMessage, ModelRole, ModelToolDefinition, ModelTurn, ModelUsage, ReasoningProfile, ToolResultMessage } from "./model.js";
 import { assertExternalContentAllowed } from "./external-content-gate.js";
 import { ProviderRuntime } from "./provider-runtime.js";
 import { createModelAudit, type ModelAuditRecord } from "./model-audit.js";
@@ -19,6 +19,11 @@ const DEFAULT_LIMITS: InvocationLimits = { maxTurns: 6, maxToolCalls: 32, maxEve
 export interface InvocationRequest {
   readonly role: ModelRole;
   readonly prompt: string;
+  readonly messages?: readonly ModelMessage[];
+  readonly reasoning?: ReasoningProfile;
+  readonly onUsage?: (usage: ModelUsage) => void;
+  readonly onTurn?: (text: string, kind: "progress" | "final") => void;
+  readonly shouldPause?: () => boolean;
   readonly providerId: string;
   readonly containsUserMaterials: boolean;
   readonly confirmed: boolean;
@@ -35,6 +40,8 @@ export interface InvocationRequest {
 
 /** A partial result is never a successful completion of the requested task. */
 export interface InvocationResult {
+  readonly waiting?: boolean;
+  readonly finalText?: string;
   readonly text: string;
   readonly events: number;
   readonly providerId: string;
@@ -61,9 +68,10 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
   const callIds = new Set<string>();
   let turns = 0;
   let toolCalls = 0;
-  let contextChars = request.prompt.length + JSON.stringify(request.tools ?? []).length;
+  let contextChars = (request.messages ? JSON.stringify(request.messages).length : request.prompt.length) + JSON.stringify(request.tools ?? []).length;
   let stopReason: string | undefined;
   let failure: unknown;
+  let waiting = false; let finalText = "";
   const loop = new AgentLoop(limits.maxTurns);
   try {
     for (;;) {
@@ -72,7 +80,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       if (turns >= limits.maxTurns) throw new Error("max_turns");
       if (contextChars > limits.maxContextChars) throw new Error("model_input_limit");
       const previous = history.at(-1);
-      const options = { tools: request.tools, history };
+      const options = { tools: request.tools, history, messages: request.messages, reasoning: request.reasoning };
       const stream = previous
         ? providers.continue(request.role, request.prompt, previous.toolResults, signal, (id) => { actualProviderId = id; }, options)
         : providers.stream(request.role, request.prompt, signal, (id) => { actualProviderId = id; }, request.allowFallback ?? true, options);
@@ -100,6 +108,11 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
             text += event.text;
             contextChars += event.text.length;
             request.onText?.(event.text, actualProviderId);
+          } else if (event.type === "usage") {
+            if (event.usage) request.onUsage?.(event.usage);
+          } else if (event.type === "provider_state") {
+            // Opaque provider continuation state is invocation-local, never visible text or audit.
+            contextChars += JSON.stringify(event.result ?? null).length;
           } else if (event.type === "tool_call") {
             if (!request.onToolCall) throw new Error("tool_dispatcher_required");
             if (!event.tool) throw new Error("provider_protocol_error");
@@ -121,6 +134,9 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
         else if (iterator.return) await abortable(() => iterator.return!(), signal);
       }
       if (request.requireDone && !completed) throw new Error("provider_incomplete");
+      const turnText = turnEvents.filter((event) => event.type === "text_delta").map((event) => event.text ?? "").join("");
+      if (!calls.length) finalText = turnText;
+      request.onTurn?.(turnText, calls.length ? "progress" : "final");
       const results: ToolResultMessage[] = [];
       // No side effects until the entire provider turn has passed protocol/budget checks.
       for (const call of calls) {
@@ -144,7 +160,9 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
         toolResults.push(message);
         results.push(message);
         request.onToolResult?.(message.tool, message.result);
+        if (request.shouldPause?.()) { waiting = true; break; }
       }
+      if (waiting) break;
       if (!results.length) break;
       history.push({ events: turnEvents, toolResults: results });
     }
@@ -160,5 +178,5 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
   } finally { clearTimeout(timer); }
   await request.onAudit?.(createModelAudit(actualProviderId, request.role, startedAt, parent.aborted ? "cancelled" : failure || stopReason ? "error" : "success", { events, turns, toolCalls }));
   if (failure) throw failure;
-  return { text, events, providerId: actualProviderId, toolResults, ...(stopReason ? { partial: true, stopReason } : {}) };
+  return { text, finalText, waiting, events, providerId: actualProviderId, toolResults, ...(stopReason ? { partial: true, stopReason } : {}) };
 }

@@ -88,10 +88,23 @@ it("keeps full history while compacting old turns and preserves explicit constra
   session.context = { goal: "最终交付检索对比", notes: "必须使用可验证引用" };
   for (let i = 0; i < 20; i++) session.messages.push({ id: crypto.randomUUID(), role: i % 2 ? "assistant" : "user", text: `历史 ${i}`, status: "completed", createdAt: new Date().toISOString() });
   await store.save(session); await service.send(request); await service.idle();
+  await service.idleMaintenance();
   const saved = await store.load(session.id);
   expect(saved.messages).toHaveLength(22); expect(saved.context?.summary).toContain("尚待验证");
-  expect(prompts).toHaveLength(2); expect(prompts[1]).toContain("必须使用可验证引用"); expect(prompts[1]).toContain("最终交付");
-  expect(prompts[1]).not.toContain('历史 0"'); expect(prompts[1]).toContain("历史 19");
+  expect(prompts).toHaveLength(2); expect(prompts[0]).toContain("必须使用可验证引用"); expect(prompts[0]).toContain("最终交付");
+  expect(prompts[0]).toContain("历史 19"); expect(prompts[1]).toMatch(/^请整理/);
+});
+it("finishes the visible answer before a slow background compaction and cancels maintenance on the next turn", async () => {
+  let started!: () => void; const compacting = new Promise<void>((resolve) => { started = resolve; });
+  const client: ModelClient = { async *stream(prompt, signal) {
+    if (prompt.startsWith("请整理")) { started(); await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })); signal.throwIfAborted(); }
+    yield { type: "text_delta", text: "即时回答" }; yield { type: "done" };
+  } };
+  const { service, store, session, request } = await fixture(client);
+  for (let i = 0; i < 20; i++) session.messages.push({ id: crypto.randomUUID(), role: i % 2 ? "assistant" : "user", text: `旧消息 ${i}`, status: "completed", createdAt: new Date().toISOString() });
+  await store.save(session); await service.send(request); await service.idle(); await compacting;
+  expect((await store.load(session.id)).messages.at(-1)?.status).toBe("completed");
+  expect(service.activeSessionId).toBeNull(); service.stop(); await service.idleMaintenance();
 });
 it("pauses after an incomplete provider stream and allows withdrawing pending input", async () => {
   const provider = controlledClient(); const { store, service, session, request } = await fixture(provider.client);

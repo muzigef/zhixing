@@ -32,6 +32,11 @@ try {
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();
   await page.getByRole("button", { name: "开始学习", exact: true }).first().click();
   await page.locator(".course-row").first().getByText(/进行中/).waitFor();
+  await page.getByRole("button", { name: "开始独立检查", exact: true }).click();
+  await page.getByRole("radio", { name: "尚未验证", exact: true }).check();
+  await page.getByRole("radio", { name: "Runtime 的主题和权限规则", exact: true }).check();
+  await page.getByRole("button", { name: "提交知识检查", exact: true }).click();
+  await page.locator(".assessment-result").getByText(/本次检查通过/).waitFor();
   await running.app.evaluate(({ dialog }, selected) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selected] });
   }, fixture);
@@ -55,8 +60,9 @@ try {
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("textbox", { name: "发送给知行" }).fill("请根据资料解释可验证的检索证据。");
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
-  await page.locator(".source-list button").first().waitFor();
+  await page.locator(".source-list button").first().waitFor({ state: "attached" });
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  await page.getByLabel("检索候选资料").first().locator("summary").click();
   await page.locator(".source-list button").first().click();
   await page.getByText("不能把用户声明当成测试通过。", { exact: false }).waitFor();
   await page.getByRole("button", { name: "关闭", exact: true }).click();
@@ -88,7 +94,7 @@ try {
   await page.getByRole("button", { name: "立即调整", exact: true }).click();
   await page.locator(".user-message").getByText("纠正：改用数据库例子", { exact: true }).waitFor();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
-  await page.locator(".source-list button").first().waitFor();
+  await page.locator(".source-list button").first().waitFor({ state: "attached" });
   assert.equal(await page.getByRole("combobox", { name: "学习主题", exact: true }).inputValue(), "agent-development");
   assert.equal(await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).isChecked(), true);
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();

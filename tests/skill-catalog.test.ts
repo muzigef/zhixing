@@ -40,11 +40,18 @@ describe("skill catalog", () => {
     const file = path.join(directory, "skills", "rag", "stable", "SKILL.md");
     await fs.writeFile(file, "invalid", "utf8");
     await expect(catalog.list("rag")).resolves.toEqual([expect.objectContaining({ name: "stable" })]);
+    await expect(catalog.read("rag", "stable")).resolves.toContain("# Steps");
   });
 
   it("坏 frontmatter 失败关闭", async () => {
     const directory = await root();
     await skill(directory, "rag", "bad", "");
     await expect(new SkillCatalog(directory).list("rag")).rejects.toThrow("skill_schema_invalid");
+  });
+  it("rejects linked roots and out-of-topic requests before reading skill bodies", async () => {
+    const directory = await root(); const outside = await root(); await skill(outside, "shared", "private");
+    await fs.mkdir(path.join(directory, "skills")); await fs.symlink(path.join(outside, "skills/shared"), path.join(directory, "skills/shared"), "dir");
+    await expect(new SkillCatalog(directory).list("rag")).rejects.toThrow();
+    await expect(new SkillCatalog(directory).list("../shared")).rejects.toThrow();
   });
 });

@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 await fs.mkdir(path.join(root, "build/runtime"), { recursive: true });
+await build({ entryPoints: [path.join(root, "electron/pi-model-worker.ts")], outfile: path.join(root, "build/runtime/pi-model-worker.mjs"), bundle: true, platform: "node", target: "node24", format: "esm" });
 await build({
   entryPoints: [path.join(root, "electron/main.ts")],
   outfile: path.join(root, "build/main.mjs"),
@@ -38,6 +39,7 @@ for (const topic of ["agent-development", "rag", "tool-calling", "interview-proj
   await fs.mkdir(destination, { recursive: true });
   await fs.copyFile(path.join(root, "../topics", topic, "PLAN.md"), path.join(destination, "PLAN.md"));
 }
+for (const scope of ["shared", "rag", "tool-calling", "interview-project"]) await fs.cp(path.join(root, "../skills", scope), path.join(root, "build/runtime/skills", scope), { recursive: true, force: true });
 await build({
   entryPoints: [path.join(root, "renderer/index.tsx")],
   outdir: path.join(root, "build/renderer"),

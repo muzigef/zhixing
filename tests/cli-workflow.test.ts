@@ -97,7 +97,7 @@ describe.sequential("headless CLI workflow", () => {
     const backup = await invoke("备份数据库");
     const file = /数据库备份完成：([^\n]+)/.exec(backup.stdout)?.[1];
     expect(file).toBeDefined();
-    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=3") });
+    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=4") });
     await expect(invoke(`恢复数据库 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("需要明确确认") });
     await expect(invoke(`恢复数据库 ${file} --确认`)).resolves.toMatchObject({ stdout: expect.stringContaining("数据库恢复完成") });
   });
