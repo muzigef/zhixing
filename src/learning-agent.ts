@@ -8,7 +8,7 @@ import { responseGuidelines, type ResponseStyle } from "./response-style.js";
 
 /** Controlled stores expose only current-topic learning data, never arbitrary paths. */
 export interface LearningAgentSources {
-  readonly progress: (topicId: TopicId) => Promise<string>;
+  readonly progress: (topicId: TopicId) => Promise<string | { topicId: string; activeDay: string | null; state: string; prerequisiteBlockers: string[] }>;
   readonly list: (topicId: TopicId) => readonly { name: string; status: string }[];
   readonly search: (topicId: TopicId, query: string, signal?: AbortSignal) => readonly SearchResult[] | Promise<readonly SearchResult[]>;
 }

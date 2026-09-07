@@ -3,6 +3,7 @@ import { topicIdSchema } from "../../src/contracts.js";
 import { citationSchema, type WorkspaceSummary } from "../../src/learning-contracts.js";
 import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
 import { assistantItemSchema } from "../../src/assistant-interactions.js";
+import { modelTimingSchema } from "../../src/model-telemetry.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
@@ -34,10 +35,11 @@ export const messageSchema = z.object({
   taskId: z.string().uuid().optional(),
   durationMs: z.number().nonnegative().optional(),
   firstTokenMs: z.number().nonnegative().optional(),
+  modelTimings: z.array(modelTimingSchema).max(6).optional(),
   citations: z.array(citationSchema).max(24).optional(),
   retrievedCitations: z.array(citationSchema).max(24).optional(),
   activities: z.array(z.object({ label: z.string().max(120), status: z.enum(["running", "completed", "failed"]), at: z.string().datetime() })).max(100).optional(),
-  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative(), taskCompleted: z.boolean().optional() }).optional(),
+  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), toolMs: z.number().nonnegative().optional(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative(), taskCompleted: z.boolean().optional() }).optional(),
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({

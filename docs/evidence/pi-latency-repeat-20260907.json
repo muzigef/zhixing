@@ -1,0 +1,1782 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-07T02:42:36.967Z",
+  "node": "v24.8.0",
+  "results": [
+    {
+      "id": "text-balanced-auto",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "auto",
+      "repetition": 1,
+      "start": 1788748956989,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 5850,
+      "firstTokenMs": 2535,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 5848,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 529
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788748956992,
+          "events": [
+            {
+              "at": 1788748959524,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788748959609,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 529
+              }
+            },
+            {
+              "at": 1788748959609,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748962839,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748957018,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748957565,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748958428,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748958429,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748958955,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748959061,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748959155,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748959521,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748959522,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788748959606,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748959607,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748962821,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748962821,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2905,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "text-quick-auto",
+      "tool": false,
+      "reasoning": "quick",
+      "transport": "auto",
+      "repetition": 1,
+      "start": 1788748962843,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 6839,
+      "firstTokenMs": 3277,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 6839,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 500
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788748962845,
+          "events": [
+            {
+              "at": 1788748966121,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788748966413,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 500
+              }
+            },
+            {
+              "at": 1788748966414,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748969682,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748962943,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748963461,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748964257,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748964258,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748964711,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748964772,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748964881,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748966115,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748966120,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788748966410,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748966412,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748969659,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748969660,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2899,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-auto",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "auto",
+      "repetition": 1,
+      "start": 1788748969688,
+      "status": "completed",
+      "text": "当前学习日：rag；状态：尚未开始。",
+      "durationMs": 13202,
+      "firstTokenMs": 9669,
+      "timings": {
+        "contextMs": 15,
+        "modelMs": 13187,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 964
+      },
+      "tools": [
+        {
+          "at": 1788748976524,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788748976524,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788748969706,
+          "events": [
+            {
+              "at": 1788748973294,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788748973295,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 471
+              }
+            },
+            {
+              "at": 1788748973295,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748976523,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748969735,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748970222,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748971419,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748971419,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748971883,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748971960,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748972040,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748973005,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748973073,
+              "type": "response.function_call_arguments.delta"
+            },
+            {
+              "at": 1788748973258,
+              "type": "response.function_call_arguments.done"
+            },
+            {
+              "at": 1788748973291,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748973293,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748976506,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748976507,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5424,
+          "toolCount": 10
+        },
+        {
+          "start": 1788748976524,
+          "events": [
+            {
+              "at": 1788748979359,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788748979656,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 493
+              }
+            },
+            {
+              "at": 1788748979656,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748982891,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748976550,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748977059,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748977967,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748977968,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748978346,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748978478,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748978588,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748979346,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748979357,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788748979653,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748979654,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748982867,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748982868,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6607,
+          "toolCount": 10
+        }
+      ]
+    },
+    {
+      "id": "tool-quick-auto",
+      "tool": true,
+      "reasoning": "quick",
+      "transport": "auto",
+      "repetition": 1,
+      "start": 1788748982897,
+      "status": "completed",
+      "text": "当前学习日为 rag，状态：尚未开始。",
+      "durationMs": 12948,
+      "firstTokenMs": 9475,
+      "timings": {
+        "contextMs": 3,
+        "modelMs": 12944,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 958
+      },
+      "tools": [
+        {
+          "at": 1788748989495,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788748989496,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788748982903,
+          "events": [
+            {
+              "at": 1788748986264,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788748986265,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 465
+              }
+            },
+            {
+              "at": 1788748986265,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748989495,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748982935,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748983416,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748984292,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748984293,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748984683,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748984771,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748984872,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748986137,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748986154,
+              "type": "response.function_call_arguments.delta"
+            },
+            {
+              "at": 1788748986218,
+              "type": "response.function_call_arguments.done"
+            },
+            {
+              "at": 1788748986262,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748986263,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748989478,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748989479,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5418,
+          "toolCount": 10
+        },
+        {
+          "start": 1788748989496,
+          "events": [
+            {
+              "at": 1788748992374,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788748992625,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 493
+              }
+            },
+            {
+              "at": 1788748992625,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748995846,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748989521,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748990031,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788748990950,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788748990951,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788748991370,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788748991442,
+              "type": "response.created"
+            },
+            {
+              "at": 1788748991528,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788748992372,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788748992373,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788748992622,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788748992623,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788748995830,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788748995831,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6601,
+          "toolCount": 10
+        }
+      ]
+    },
+    {
+      "id": "text-balanced-sse",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 1,
+      "start": 1788748995849,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 2547,
+      "firstTokenMs": 2057,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 2547,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 503
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788748995850,
+          "events": [
+            {
+              "at": 1788748997906,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788748998044,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 503
+              }
+            },
+            {
+              "at": 1788748998044,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788748998396,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748995875,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748996394,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788748997555,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788748998374,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2905,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-sse",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 1,
+      "start": 1788748998399,
+      "status": "completed",
+      "text": "当前学习主题为 rag，状态：尚未开始。",
+      "durationMs": 7622,
+      "firstTokenMs": 6979,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 7621,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 1016
+      },
+      "tools": [
+        {
+          "at": 1788749002630,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788749002630,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788748998402,
+          "events": [
+            {
+              "at": 1788749002297,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788749002297,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 519
+              }
+            },
+            {
+              "at": 1788749002297,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749002629,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788748998435,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788748998970,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788749000352,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788749002614,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5424,
+          "toolCount": 10
+        },
+        {
+          "start": 1788749002631,
+          "events": [
+            {
+              "at": 1788749005379,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749005672,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 497
+              }
+            },
+            {
+              "at": 1788749005672,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749006021,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749002719,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749003233,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788749004951,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788749006002,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6607,
+          "toolCount": 10
+        }
+      ]
+    },
+    {
+      "id": "text-balanced-auto",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "auto",
+      "repetition": 2,
+      "start": 1788749006024,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 6080,
+      "firstTokenMs": 2764,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 6080,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 499
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788749006025,
+          "events": [
+            {
+              "at": 1788749008788,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749008877,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 499
+              }
+            },
+            {
+              "at": 1788749008877,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749012104,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749006051,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749006567,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749007527,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749007528,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749007950,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749008047,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749008127,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749008771,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749008787,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788749008874,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749008875,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749012087,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749012088,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2905,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "text-quick-auto",
+      "tool": false,
+      "reasoning": "quick",
+      "transport": "auto",
+      "repetition": 2,
+      "start": 1788749012106,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 6637,
+      "firstTokenMs": 3310,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 6637,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 499
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788749012108,
+          "events": [
+            {
+              "at": 1788749015417,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749015509,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 499
+              }
+            },
+            {
+              "at": 1788749015509,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749018743,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749012132,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749012649,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749013465,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749013466,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749013952,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749014029,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749014112,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749015399,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749015416,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788749015506,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749015507,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749018725,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749018726,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2899,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-auto",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "auto",
+      "repetition": 2,
+      "start": 1788749018746,
+      "status": "completed",
+      "text": "当前学习日为 rag，状态：尚未开始。",
+      "durationMs": 24581,
+      "firstTokenMs": 21108,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 24580,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 996
+      },
+      "tools": [
+        {
+          "at": 1788749025096,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788749025096,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788749018749,
+          "events": [
+            {
+              "at": 1788749021846,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788749021846,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 498
+              }
+            },
+            {
+              "at": 1788749021846,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749025095,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749018777,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749019292,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749020153,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749020153,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749020732,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749020810,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749020891,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749021733,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749021749,
+              "type": "response.function_call_arguments.delta"
+            },
+            {
+              "at": 1788749021810,
+              "type": "response.function_call_arguments.done"
+            },
+            {
+              "at": 1788749021842,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749021845,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749025077,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749025077,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5424,
+          "toolCount": 10
+        },
+        {
+          "start": 1788749025096,
+          "events": [
+            {
+              "at": 1788749039854,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749040100,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 498
+              }
+            },
+            {
+              "at": 1788749040100,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749043324,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749025132,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749025646,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749026529,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749026529,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749027061,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749027176,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749027262,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749039850,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749039854,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788749040096,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749040098,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749043306,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749043307,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6607,
+          "toolCount": 10
+        }
+      ]
+    },
+    {
+      "id": "tool-quick-auto",
+      "tool": true,
+      "reasoning": "quick",
+      "transport": "auto",
+      "repetition": 2,
+      "start": 1788749043338,
+      "status": "completed",
+      "text": "当前学习主题为 rag，状态：尚未开始。",
+      "durationMs": 33617,
+      "firstTokenMs": 29823,
+      "timings": {
+        "contextMs": 6,
+        "modelMs": 33610,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 966
+      },
+      "tools": [
+        {
+          "at": 1788749049888,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788749049889,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788749043351,
+          "events": [
+            {
+              "at": 1788749046665,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788749046665,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 502
+              }
+            },
+            {
+              "at": 1788749046665,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749049888,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749043386,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749043905,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749044831,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749044832,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749045227,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749045298,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749045368,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749046534,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749046549,
+              "type": "response.function_call_arguments.delta"
+            },
+            {
+              "at": 1788749046633,
+              "type": "response.function_call_arguments.done"
+            },
+            {
+              "at": 1788749046661,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749046663,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749049866,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749049867,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5418,
+          "toolCount": 10
+        },
+        {
+          "start": 1788749049889,
+          "events": [
+            {
+              "at": 1788749073162,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749073713,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 464
+              }
+            },
+            {
+              "at": 1788749073713,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749076956,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749049924,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749050404,
+              "type": "ws_connect_start"
+            },
+            {
+              "at": 1788749051244,
+              "type": "ws_open"
+            },
+            {
+              "at": 1788749051244,
+              "type": "ws_send"
+            },
+            {
+              "at": 1788749051628,
+              "type": "ws_first_frame"
+            },
+            {
+              "at": 1788749051903,
+              "type": "response.created"
+            },
+            {
+              "at": 1788749052003,
+              "type": "response.in_progress"
+            },
+            {
+              "at": 1788749073158,
+              "type": "response.output_item.added"
+            },
+            {
+              "at": 1788749073161,
+              "type": "response.output_text.delta"
+            },
+            {
+              "at": 1788749073710,
+              "type": "response.completed"
+            },
+            {
+              "at": 1788749073712,
+              "type": "ws_close_requested"
+            },
+            {
+              "at": 1788749076930,
+              "type": "ws_closed"
+            },
+            {
+              "at": 1788749076931,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6601,
+          "toolCount": 10
+        }
+      ]
+    },
+    {
+      "id": "text-balanced-sse",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 2,
+      "start": 1788749076961,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 3388,
+      "firstTokenMs": 2864,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 3388,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "usage": {
+        "inputTokens": 906,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 901
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788749076964,
+          "events": [
+            {
+              "at": 1788749079827,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749080000,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 906,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 901
+              }
+            },
+            {
+              "at": 1788749080000,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749080350,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749076999,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749077920,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788749079317,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788749080333,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 2905,
+          "toolCount": 1
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-sse",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 2,
+      "start": 1788749080354,
+      "status": "completed",
+      "text": "当前学习主题为 rag，状态：尚未开始。",
+      "durationMs": 7409,
+      "firstTokenMs": 6575,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 7406,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "usage": {
+        "inputTokens": 2958,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 971
+      },
+      "tools": [
+        {
+          "at": 1788749083457,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788749083457,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788749080357,
+          "events": [
+            {
+              "at": 1788749083095,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788749083095,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1455,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 502
+              }
+            },
+            {
+              "at": 1788749083095,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749083456,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749080478,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749080997,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788749082370,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788749083441,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5424,
+          "toolCount": 10
+        },
+        {
+          "start": 1788749083461,
+          "events": [
+            {
+              "at": 1788749086929,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788749087423,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1503,
+                "outputTokens": 16,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 469
+              }
+            },
+            {
+              "at": 1788749087423,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788749087762,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788749083584,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788749084072,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788749086297,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788749087747,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 6607,
+          "toolCount": 10
+        }
+      ]
+    }
+  ],
+  "workerSha256": "2f8010e01dda5d104ea445608a4d304f9a405d73b231a9c8038aa2cafbe69ad3",
+  "selection": {
+    "provider": "openai-codex",
+    "model": "gpt-5.6-terra",
+    "thinking": "medium"
+  }
+}

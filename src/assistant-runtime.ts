@@ -1,4 +1,5 @@
 import type { Citation } from "./contracts.js";
+import { modelPhaseLabels, type ModelTiming } from "./model-telemetry.js";
 import { citationSchema } from "./learning-contracts.js";
 import type { LearningApplication } from "./learning-application.js";
 import { isContinuableModelClient, type ModelClient, type ModelMessage, type ModelUsage, type ReasoningProfile } from "./model.js";
@@ -27,6 +28,7 @@ export async function runAssistantTask(options: {
   messages?: readonly ModelMessage[];
   taskId?: string; allowWrites?: boolean;
   reasoning?: ReasoningProfile; onUsage?: (usage: ModelUsage) => void;
+  onTiming?: (timing: ModelTiming) => void;
   onItem?: (item: AssistantItem) => void;
   onInteraction?: (item: PendingInteraction) => Promise<void>;
   onTurn?: (text: string, kind: "progress" | "final") => void;
@@ -48,6 +50,7 @@ export async function runAssistantTask(options: {
   let contextMs = 0;
   let trace: ModelAuditRecord | undefined;
   let toolSequence = 0;
+  let toolMs = 0;
   const candidates = new Map<string, Citation>();
   const candidate = (citation: Citation) => { const key = JSON.stringify(citation); if (!candidates.has(key) && candidates.size < 24) { candidates.set(key, citation); options.onCandidate?.(citation); } };
   const taskId = options.taskId ?? options.runId;
@@ -78,6 +81,8 @@ export async function runAssistantTask(options: {
     const result = await collectInvocation(providerRuntime(options.providerId, options.client), {
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
+      onTiming: options.onTiming,
+      onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
       onTurn: options.onTurn, shouldPause: () => waiting,
       containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true,
       tools: tools?.definitions,
@@ -93,7 +98,9 @@ export async function runAssistantTask(options: {
           waiting = true; activity(key, "等待你授权这项操作", "completed");
           return { ok: false, errorCode: "approval_required" };
         }
-        const result = await tools!.harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, maxRisk: options.allowWrites ? "write" : "read" });
+        activity("model", "模型请求已完成", "completed");
+        const toolStarted = Date.now();
+        const result = await tools!.harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, maxRisk: options.allowWrites ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
           options.onItem?.({ id: randomUUID(), kind: "artifact", artifactId: artifact.id, dayId: value.dayId, artifactKind: value.kind, text: value.text });
@@ -111,10 +118,12 @@ export async function runAssistantTask(options: {
     if (!result.waiting && (result.partial || !(result.finalText ?? result.text).trim())) throw new Error(result.stopReason ?? "provider_incomplete");
     for (const citation of candidates.values()) if ((result.finalText ?? result.text).includes(citationMarker(citation))) options.onCitation(citation);
     activity("answer", result.waiting ? "等待你的回复" : "回答已完成", "completed");
+    activity("model", result.waiting ? "等待你的回复" : "模型请求已完成", "completed");
     ledger?.finish(options.runId, result.waiting ? "waiting" : "completed");
     const task = tasks?.snapshot(taskId, options.topicId!);
-    return { contextMs, modelMs: Date.now() - started - contextMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
+    return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
   } catch (error) {
+    activity("model", signal.aborted ? "模型请求已停止" : "模型请求未完成", "failed");
     activity("answer", signal.aborted ? "任务已停止" : "本轮未完成", "failed");
     ledger?.finish(options.runId, signal.aborted ? "cancelled" : "failed", signal.aborted ? "cancelled" : "assistant_failed");
     throw error;

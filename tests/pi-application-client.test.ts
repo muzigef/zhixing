@@ -15,7 +15,7 @@ it("bridges native structured tool turns through stdin without enabling any nati
     const client = new PiApplicationClient({ projectDir: root, executable: "node", worker: "worker.mjs", sdk: "sdk.js", environment: { PI_CODING_AGENT_DIR: root }, runner });
     const events: ModelEvent[] = [];
     for await (const event of client.stream("问", new AbortController().signal, { messages: [{ role: "system", content: "规则" }, { role: "user", content: "问" }], tools: [{ name: "learning_progress", description: "进度", inputSchema: { type: "object" } }] })) events.push(event);
-    expect(events.map((event) => event.type)).toEqual(["tool_call", "provider_state", "done"]);
+    expect(events.map((event) => event.type)).toEqual(["progress", "tool_call", "provider_state", "done"]);
     expect(requests[0]?.args).toEqual(["worker.mjs", "sdk.js"]);
     const payload = JSON.parse(requests[0]!.input);
     expect(payload.options.messages[0].role).toBe("system");

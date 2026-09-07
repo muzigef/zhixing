@@ -3,7 +3,7 @@
 
 知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面对话应用，以及管理主题、资料、课程和学习进度的 CLI / REPL。
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.4.0`。两者复用学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.4.1`。两者复用学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 | 入口 | 当前能力 | 默认模型设置 |
 | --- | --- | --- |
@@ -18,7 +18,7 @@
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.4.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.4.1-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
@@ -181,7 +181,7 @@ Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录�
 - CLI 的调用工作目录是代码仓库，通过 `scripts/pi-safe.sh` 启动系统 `pi`，因此需另行安装 Pi 并使 `pi` 和 `bash` 可用；根包 `npm ci` 不会安装 Pi。
 - 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.85.0`，不会自动读取源码仓库的 `.pi/settings.json`。
 
-两种 Pi 接入都使用 JSON 文本流、临时会话、同一工具守卫和空工具列表。CLI 的普通问答、教学、计划生成和资料问答由知行自身流程处理；Pi 的文件与命令工具不开放给模型。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
+CLI Pi 使用受守卫限制的文本入口和空原生工具列表；桌面使用公共 SDK 模型 worker，模型请求的应用工具统一经 ToolHarness 执行，Pi 的原生文件与命令工具不开放。0.4.1 桌面默认 SSE，并记录逐轮请求和收尾耗时，见 [延迟修复记录](docs/evidence/pi-latency-fix-20260907.md)。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
 
 设置进程环境变量 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。CLI 发送当前任务的受限主题上下文；桌面发送本轮输入、目标、约束、受限历史及可选摘要；只有授权会话才增加当前主题学习上下文。Provider 所需凭据仅用于认证，不拼入模型提示词；审计原文和其他主题资料不加入上下文。资料正文的额外授权规则见 [配置说明](docs/CONFIGURATION.md)。
 
@@ -242,7 +242,7 @@ npm --prefix desktop run test:ui
 
 `verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行聊天、学习、交互三套 UI 回归。
 
-历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。Pi 模型偏好和内附运行环境的验证不等于 Codex 登录完成，后者仍未通过真实调用验收。这些是已有验证记录，不代表每次阅读本文时重新运行过检查。
+历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。该时点 Pi 未通过真实调用；2026-09-07 已完成[登录后验证](docs/evidence/pi-availability-20260907.md)，后续性能修复见上方记录。这些是各次执行证据，不代表每次阅读本文时重新运行过检查。
 
 当前验证见 [0.4 Evidence](docs/evidence/agent-next.md)；0.3 的历史记录保留用于追溯。
 

@@ -982,7 +982,7 @@ const Message = memo(
               <i />
               <i />
             </span>
-            {message.text ? "正在回答" : "正在思考"}
+            {message.activities?.findLast((activity) => activity.status === "running")?.label ?? (message.text ? "正在回答" : "准备回答")}
             <span>{elapsed} 秒</span>
           </div>
         )}

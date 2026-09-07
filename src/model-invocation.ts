@@ -4,6 +4,7 @@ import { ProviderRuntime } from "./provider-runtime.js";
 import { createModelAudit, type ModelAuditRecord } from "./model-audit.js";
 import { AgentLoop } from "./agent-loop.js";
 import { abortable } from "./abortable.js";
+import type { ModelPhase, ModelTiming } from "./model-telemetry.js";
 
 /** Runtime-enforced resource bounds; these values never come from model output. */
 export interface InvocationLimits {
@@ -22,6 +23,8 @@ export interface InvocationRequest {
   readonly messages?: readonly ModelMessage[];
   readonly reasoning?: ReasoningProfile;
   readonly onUsage?: (usage: ModelUsage) => void;
+  readonly onProgress?: (phase: ModelPhase) => void;
+  readonly onTiming?: (timing: ModelTiming) => void;
   readonly onTurn?: (text: string, kind: "progress" | "final") => void;
   readonly shouldPause?: () => boolean;
   readonly providerId: string;
@@ -102,6 +105,8 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
           if (events > limits.maxEvents) throw new Error("model_event_limit");
           if (event.type === "done") { completed = true; break; }
           if (event.type === "tool_result") throw new Error("untrusted_tool_result");
+          if (event.type === "progress") { if (event.phase) request.onProgress?.(event.phase); continue; }
+          if (event.type === "timing") { if (event.timing) request.onTiming?.(event.timing); continue; }
           if (event.type === "text_delta") {
             if (typeof event.text !== "string") continue;
             if (text.length + event.text.length > limits.maxOutputChars) throw new Error("model_output_limit");

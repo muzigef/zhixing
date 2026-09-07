@@ -91,8 +91,19 @@ export class LearningApplication {
     return this.runtime.handle(command, topicId);
   }
   tools(allowMaterials: boolean, options?: ApplicationToolOptions) {
-    const base = createLearningTools({ progress: (topic) => this.handle("进度", topic), list: (topic) => { this.registry.get(topic); return this.library.list(topic); }, search: (topic, query, signal) => this.search(topic, query, signal) }, allowMaterials);
+    const base = createLearningTools({ progress: (topic) => this.progressSnapshot(topic), list: (topic) => { this.registry.get(topic); return this.library.list(topic); }, search: (topic, query, signal) => this.search(topic, query, signal) }, allowMaterials);
     return options ? applicationTools(this, base, options) : base;
+  }
+  async progressSnapshot(topicId: string) {
+    const topic = this.registry.get(topicId);
+    const notebook = new LearningNotebook(this.paths);
+    const days = await notebook.list(topicId);
+    const activeDay = days.find((day) => day.state === "进行中")?.dayId ?? null;
+    const prerequisiteBlockers: string[] = [];
+    for (const prerequisite of topic.prerequisites) for (const dayId of prerequisite.requiredDays) {
+      if (await notebook.state(prerequisite.topicId, dayId) !== "完成") prerequisiteBlockers.push(`${prerequisite.topicId}/${dayId}`);
+    }
+    return { topicId, activeDay, state: activeDay ? "进行中" : days.length ? "暂无进行中的学习日" : "尚未开始", prerequisiteBlockers };
   }
   private async assertStarted(topicId: string, dayId: string) {
     this.registry.get(topicId); dayIdSchema.parse(dayId);

@@ -31,7 +31,7 @@ process.stdin.on('end', () => {
 `, { mode: 0o755 });
   const env = { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1", PI_CODING_AGENT_DIR: agent, PATH: `${bin}${path.delimiter}${process.env.PATH}`, FIXTURE_PI_MODE: mode, NO_COLOR: "1" };
   const args = ["--import", "tsx", "src/cli.ts"];
-  return { root, env, args, requests: async () => JSON.parse(await fs.readFile(requests, "utf8")) as Array<{ argv: string[]; input: string }>, invoke: (command: string) => exec(process.execPath, [...args, command], { cwd: process.cwd(), env }) };
+  return { root, env, args, requests: async () => JSON.parse(await fs.readFile(requests, "utf8")) as Array<{ argv: string[]; input: string }>, invoke: (command: string) => exec(process.execPath, [...args, command], { cwd: process.cwd(), env, timeout: 4_000 }) };
 }
 describe("Pi provider through the actual safe launcher and CLI", () => {
   it("requires confirmation, persists the route and sends a natural question using Pi preferences", async () => {
@@ -47,13 +47,13 @@ describe("Pi provider through the actual safe launcher and CLI", () => {
     expect(request?.input).toContain("解释查询向量");
     const routes = JSON.parse(await fs.readFile(path.join(fixture.root, "zhixing", "settings", "model-routing.local.json"), "utf8"));
     expect(routes.routes).toEqual({ tutor: "pi-codex", reviewer: "mock", lab: "mock" });
-  });
+  }, 15_000); // Three real CLI processes, each bounded to 4s, plus filesystem setup under suite load.
   it("marks zero-exit provider failures incomplete and never exposes Pi error payloads", async () => {
     const fixture = await setup("error"); await fixture.invoke("模型切换 tutor pi-codex --确认");
     const result: unknown = await fixture.invoke("解释查询向量").catch((error: unknown) => error);
     expect(result).toMatchObject({ code: 1, stderr: expect.stringContaining("本轮未完成") });
     expect(result).toMatchObject({ stderr: expect.not.stringContaining("fixture-private-error-detail") });
-  });
+  }, 10_000);
   it("cancels a stalled Pi process and answers another turn in the same REPL", async () => {
     const fixture = await setup("stall"); await fixture.invoke("模型切换 tutor pi-codex --确认");
     const output = await new Promise<string>((resolve, reject) => {
@@ -70,5 +70,5 @@ describe("Pi provider through the actual safe launcher and CLI", () => {
     expect(output).toContain("Pi 模型回答");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
     expect(requests[1]!.input).toContain("没有换行的部分解释");
-  });
+  }, 14_000); // 4s setup command + the existing 8s REPL cancellation deadline.
 });

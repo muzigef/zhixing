@@ -1,9 +1,10 @@
+import type { ModelPhase, ModelTiming } from "./model-telemetry.js";
 export type ModelRole = "tutor" | "reviewer" | "lab";
 export type ReasoningProfile = "quick" | "balanced" | "deep";
 export interface ModelUsage { inputTokens: number; outputTokens: number; cacheReadTokens?: number; reasoningTokens?: number; model?: string; startupMs?: number; }
 export interface ModelMessage { readonly role: "system" | "user" | "assistant" | "observation"; readonly content: string; }
 
-export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_result" | "provider_state" | "usage" | "done"; readonly text?: string; readonly tool?: string; readonly input?: unknown; readonly result?: unknown; readonly callId?: string; readonly usage?: ModelUsage; }
+export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_result" | "provider_state" | "usage" | "done" | "progress" | "timing"; readonly phase?: ModelPhase; readonly timing?: ModelTiming; readonly text?: string; readonly tool?: string; readonly input?: unknown; readonly result?: unknown; readonly callId?: string; readonly usage?: ModelUsage; }
 /** Public tool schema advertised to providers; execution remains in ToolHarness. */
 export interface ModelToolDefinition { readonly name: string; readonly description: string; readonly inputSchema: Readonly<Record<string, unknown>>; }
 /** Complete prior turns are owned by the invocation, never shared by provider instances. */

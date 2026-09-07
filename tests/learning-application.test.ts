@@ -20,6 +20,15 @@ afterEach(async () => {
 });
 
 describe("shared learning application", () => {
+  it("returns structured progress without inventing a day when prerequisites block starting", async () => {
+    const { app } = await fixture();
+    await app.handle("开始第 1 天", "rag");
+    const result = await app.tools(true).harness.execute("learning_progress", {}, { topicId: "rag", signal: new AbortController().signal, maxRisk: "read" });
+    expect(result).toMatchObject({ ok: true, output: { topicId: "rag", activeDay: null, state: "尚未开始", prerequisiteBlockers: ["agent-development/D01", "agent-development/D02"] } });
+    await app.handle("开始第 1 天", "agent-development");
+    expect(await app.progressSnapshot("agent-development")).toMatchObject({ topicId: "agent-development", activeDay: "D01", state: "进行中", prerequisiteBlockers: [] });
+    await expect(app.progressSnapshot("../../outside")).rejects.toThrow();
+  });
   it("shows the same course and progress to desktop and CLI without copying user history", async () => {
     const { root, app } = await fixture();
     const overview = await app.overview("agent-development");

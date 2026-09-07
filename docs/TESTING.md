@@ -77,7 +77,7 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.4.0-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.4.1-mac-arm64.dmg
 ```
 
 安装包文件名中的版本来自桌面包，升级后需同步替换。当前配置和已有验收针对 macOS Apple Silicon；Windows NSIS 构建配置不等于 Windows 实机测试通过，Intel Mac 同样尚未验收。
@@ -123,6 +123,19 @@ CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-re
 ## 0.4 自动化与真实质量
 
 新增覆盖结构化上下文、Pi SDK 工具桥接、推理/usage、幂等任务、问答/审批/分支、检索隔离、独立课程检查、全量备份与 v1/v2 迁移。第三套 `smoke-interactions.mjs` 验证具体审批、问题回复、分支对比、技能预览和备份恢复，开发与实际包使用同一脚本。测试只使用临时合成数据。
+
+## 0.4.1 延迟回归
+
+`tests/pi-latency.test.ts` 验证 SSE 默认值、显式 auto 对照、真实 worker/假公共 SDK、阶段及时间记录、协议失败时工具不执行、取消和超时。进度工具另覆盖未开始/前置阻塞与进行中状态。
+
+真实性能复测使用已有 Pi 登录，只发送临时合成问题；必须显式传入 `--live`，新结果写入独立文件：
+
+```bash
+npm --prefix desktop run build
+node_modules/.bin/tsx scripts/profile-pi-latency.ts --live --repetitions=3 --cases=text-balanced-sse,tool-balanced-sse --output=/tmp/zhixing-latency-new.json
+```
+
+脚本现通过正式 adapter 参数选择传输，不修改 worker 副本。历史对照及其旧脚本方法保留在 [原因分析](evidence/pi-latency-analysis-20260907.md)。本轮完成情况见 [修复记录](evidence/pi-latency-fix-20260907.md)。
 
 `npm run eval:quality -- --live --output=docs/evidence/agent-quality-latest.json` 在临时合成工作区运行固定 12 题 × 两次独立会话 × 双 Provider；可加 `--provider=deepseek-api` 或 `--case=R02,R08`，用 `--reasoning=balanced` 检查默认思考档位。无 `--live` 为 demo。首个完全不可用的 Provider 停止后续尝试，并明确记录 attempted=false。waiting 代表真实澄清或审批，不能当作连接失败；答案待审并不代表质量通过。相同输入、快速思考，记录原文、interaction、usage、首字与总耗时；复核者身份和理由另存。题目已用于开发回归，不能视为盲测。
 

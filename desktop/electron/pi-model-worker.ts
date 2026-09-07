@@ -2,9 +2,11 @@ import { pathToFileURL } from "node:url";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { ModelEvent, ModelRequestOptions } from "../../src/model.js";
 import type { PiModelSelection } from "../../src/pi-client.js";
+import { piTransportSchema, type ModelPhase, type workerTimingSchema } from "../../src/model-telemetry.js";
+import type { z } from "zod";
 
 type Context = Parameters<ModelRuntime["streamSimple"]>[1];
-const emit = (event: ModelEvent | { type: "error"; code: string }) => process.stdout.write(JSON.stringify(event) + "\n");
+const emit = (event: ModelEvent | { type: "timing"; timing: z.infer<typeof workerTimingSchema> } | { type: "error"; code: string }) => process.stdout.write(JSON.stringify(event) + "\n");
 const signal = AbortSignal.timeout(145_000);
 const started = Date.now();
 try {
@@ -15,7 +17,8 @@ try {
     if (process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("live_provider_disabled");
     let input = "";
     for await (const bytes of process.stdin) { input += bytes; if (input.length > 300_000) throw new Error("provider_output_limit"); }
-    const request = JSON.parse(input) as { version: number; selection: PiModelSelection; prompt: string; options?: ModelRequestOptions };
+    const request = JSON.parse(input) as { version: number; selection: PiModelSelection; prompt: string; options?: ModelRequestOptions; transport?: "sse" | "auto" };
+    const transport = piTransportSchema.parse(request.transport ?? "sse");
     if (request.version !== 1 || request.selection.provider !== "openai-codex") throw new Error("provider_model_mismatch");
     const runtime = await Runtime.create({ allowModelNetwork: false, signal });
     const model = runtime.getModel(request.selection.provider, request.selection.model);
@@ -36,14 +39,23 @@ try {
     // No AgentSession or native tools exist in this worker. Tool definitions are data only.
     const context: Context = { systemPrompt: base.filter((message) => message.role === "system").map((message) => message.content).join("\n\n"), messages, tools: request.options?.tools?.map((tool) => ({ name: tool.name, description: tool.description, parameters: tool.inputSchema as NonNullable<Context["tools"]>[number]["parameters"] })) };
     let size = 0; let done = false;
+    const phases = new Set<ModelPhase>();
+    const phase = (value: ModelPhase) => { if (!phases.has(value)) { phases.add(value); emit({ type: "progress", phase: value }); } };
+    const requestedAt = Date.now();
+    let firstEventMs: number | undefined; let firstTextMs: number | undefined;
+    phase("requesting");
     const reasoning = request.selection.thinking === "off" ? undefined : request.selection.thinking as NonNullable<Parameters<ModelRuntime["streamSimple"]>[2]>["reasoning"];
-    for await (const event of runtime.streamSimple(model, context, { signal, reasoning, maxTokens: 16_384 })) {
-      if (event.type === "text_delta") { size += event.delta.length; if (size > 64_000) throw new Error("provider_output_limit"); emit({ type: "text_delta", text: event.delta }); }
+    for await (const event of runtime.streamSimple(model, context, { signal, reasoning, maxTokens: 16_384, transport })) {
+      firstEventMs ??= Date.now() - requestedAt;
+      if (event.type === "start") phase("waiting");
+      if (event.type === "toolcall_start") phase("tool_preparing");
+      if (event.type === "text_delta") { firstTextMs ??= Date.now() - requestedAt; phase("responding"); size += event.delta.length; if (size > 64_000) throw new Error("provider_output_limit"); emit({ type: "text_delta", text: event.delta }); }
       if (event.type === "error") throw new Error("provider_unavailable");
       if (event.type === "done") {
         if (!["stop", "toolUse"].includes(event.reason)) throw new Error("provider_incomplete");
         if (event.message.provider !== model.provider || event.message.model !== model.id) throw new Error("provider_model_mismatch");
         if (JSON.stringify(event.message).length > 256_000) throw new Error("provider_output_limit");
+        phase("finishing");
         for (const part of event.message.content) if (part.type === "toolCall") emit({ type: "tool_call", tool: part.name, input: part.arguments, callId: part.id });
         emit({ type: "provider_state", result: event.message });
         const usage = event.message.usage;
@@ -52,6 +64,7 @@ try {
       }
     }
     if (!done) throw new Error("provider_incomplete");
+    emit({ type: "timing", timing: { transport, startupMs, requestMs: Date.now() - requestedAt, firstEventMs, firstTextMs } });
     emit({ type: "done" });
   }
 } catch (error) {

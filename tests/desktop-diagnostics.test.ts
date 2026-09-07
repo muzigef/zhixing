@@ -22,3 +22,13 @@ it("separates model and reasoning profiles and reports only observed token usage
   expect(result[1]?.variants[0]).toMatchObject({ model: "fixture-a", reasoning: "quick", inputTokens: 12, outputTokens: 8 });
   expect(JSON.stringify(result)).not.toContain("private");
 });
+
+it("separates transport variants and reports numeric per-turn timings without private text", () => {
+  const message = { role: "assistant" as const, status: "completed" as const, provider: "pi-codex" as const, model: "fixture", reasoning: "balanced" as const, text: "private prompt", id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+  const timing = { transport: "sse" as const, startupMs: 10, requestMs: 100, processTailMs: 5, totalMs: 120, selectionMs: 1, firstEventMs: 20 };
+  const result = summarizePerformance([{ ...message, modelTimings: [timing] }, { ...message, modelTimings: [{ ...timing, transport: "auto", processTailMs: 3000 }] }])[0]!;
+  expect(result.variants).toHaveLength(2);
+  expect(result.variants[0]).toMatchObject({ transport: "sse", measuredTurns: 1, requestP50: 100, processTailP50: 5 });
+  expect(result.variants[1]).toMatchObject({ transport: "auto", processTailP50: 3000 });
+  expect(JSON.stringify(result)).not.toContain("private prompt");
+});

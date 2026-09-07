@@ -1,0 +1,250 @@
+{
+  "syntheticOnly": true,
+  "startedAt": "2026-09-07T03:48:42.287Z",
+  "packaged": true,
+  "results": [
+    {
+      "id": "text",
+      "text": "4",
+      "status": "completed",
+      "durationMs": 3809,
+      "firstTokenMs": 2788,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 3809,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 875,
+          "requestMs": 2530,
+          "firstEventMs": 1352,
+          "firstTextMs": 1838,
+          "selectionMs": 1,
+          "totalMs": 3808,
+          "processTailMs": 328
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ]
+    },
+    {
+      "id": "tool",
+      "text": "当前学习日为 D01，状态为进行中。",
+      "status": "completed",
+      "durationMs": 6966,
+      "firstTokenMs": 6267,
+      "timings": {
+        "contextMs": 8,
+        "modelMs": 6957,
+        "toolMs": 1,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 705,
+          "requestMs": 2653,
+          "firstEventMs": 1446,
+          "selectionMs": 1,
+          "totalMs": 3756,
+          "processTailMs": 345
+        },
+        {
+          "transport": "sse",
+          "startupMs": 779,
+          "requestMs": 2024,
+          "firstEventMs": 1307,
+          "firstTextMs": 1662,
+          "selectionMs": 1,
+          "totalMs": 3198,
+          "processTailMs": 336
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "模型正在准备工具调用",
+        "正在完成本轮回答",
+        "查看学习进度",
+        "模型请求已完成",
+        "正在回答",
+        "回答已完成"
+      ]
+    },
+    {
+      "id": "context",
+      "text": "你当前学到 D01「Agent 契约与状态边界」，状态为进行中。",
+      "status": "completed",
+      "durationMs": 7259,
+      "firstTokenMs": 6433,
+      "timings": {
+        "contextMs": 4,
+        "modelMs": 7255,
+        "toolMs": 2,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 636,
+          "requestMs": 2931,
+          "firstEventMs": 1519,
+          "selectionMs": 1,
+          "totalMs": 3968,
+          "processTailMs": 346
+        },
+        {
+          "transport": "sse",
+          "startupMs": 737,
+          "requestMs": 2131,
+          "firstEventMs": 1226,
+          "firstTextMs": 1649,
+          "selectionMs": 1,
+          "totalMs": 3285,
+          "processTailMs": 343
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "模型正在准备工具调用",
+        "正在完成本轮回答",
+        "查看学习进度",
+        "模型请求已完成",
+        "正在回答",
+        "回答已完成"
+      ]
+    },
+    {
+      "id": "R01",
+      "text": "RAG（检索增强生成）是在回答问题时，先从外部知识库、文档或数据库中检索相关内容，再把这些内容交给模型生成答案。它不改变模型本身的参数，优点是知识可以随时更新、答案较容易追溯来源，适合依赖最新或私有资料的任务。微调则是用特定数据继续训练模型，让模型参数发生变化，从而更稳定地学习某种表达风格、任务流程或领域能力；但更新知识通常需要重新训练，成本也更高。\n\n例如，企业内部的制度、产品手册经常更新时，适合使用 RAG：员工提问“今年的报销标准是什么？”系统检索最新制度文档后回答。若目标是让客服模型始终遵循固定的沟通语气、工单分类格式和处理步骤，则更适合微调；实际系统中也常将两者结合使用。",
+      "status": "completed",
+      "durationMs": 7038,
+      "firstTokenMs": 2804,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 7038,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 715,
+          "requestMs": 5918,
+          "firstEventMs": 1257,
+          "firstTextMs": 2035,
+          "selectionMs": 1,
+          "totalMs": 7038,
+          "processTailMs": 350
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ]
+    },
+    {
+      "id": "cancel",
+      "text": "",
+      "status": "interrupted",
+      "durationMs": 745,
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "模型请求已停止",
+        "任务已停止"
+      ]
+    }
+  ],
+  "version": "0.4.1",
+  "model": {
+    "configured": true,
+    "provider": "pi-codex",
+    "model": "gpt-5.6-terra",
+    "thinking": "medium",
+    "message": "已读取 Pi 模型配置；登录状态将在发送时检查。"
+  },
+  "diagnostics": {
+    "version": "0.4.1",
+    "performance": [
+      {
+        "provider": "pi-codex",
+        "variants": [
+          {
+            "model": "gpt-5.6-terra",
+            "reasoning": "balanced",
+            "transport": "sse",
+            "samples": 4,
+            "firstTokenP50": 2804,
+            "inputTokens": 8171,
+            "outputTokens": 315,
+            "cacheReadTokens": 0,
+            "startupP50": 715,
+            "measuredTurns": 6,
+            "requestP50": 2530,
+            "firstEventP50": 1307,
+            "processTailP50": 343
+          }
+        ],
+        "completed": 4,
+        "failed": 0,
+        "interrupted": 1,
+        "firstTokenP50": 2804,
+        "firstTokenP95": 6433,
+        "durationP50": 6966,
+        "contextP50": 0,
+        "modelP50": 6957,
+        "compactionP50": 0
+      },
+      {
+        "provider": "deepseek-api",
+        "variants": [],
+        "completed": 0,
+        "failed": 0,
+        "interrupted": 0
+      },
+      {
+        "provider": "demo",
+        "variants": [],
+        "completed": 0,
+        "failed": 0,
+        "interrupted": 0
+      }
+    ]
+  }
+}

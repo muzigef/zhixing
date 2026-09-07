@@ -2,9 +2,12 @@ import { StringDecoder } from "node:string_decoder";
 import { z } from "zod";
 import { PiCodexClient, runPiProcess, type PiProcessRunner } from "./pi-client.js";
 import { assertLiveProviderAllowed } from "./provider-policy.js";
+import { modelPhaseSchema, piTransportSchema, workerTimingSchema } from "./model-telemetry.js";
 import type { ContinuableModelClient, ModelEvent, ModelRequestOptions, ToolResultMessage } from "./model.js";
 
 const eventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("progress"), phase: modelPhaseSchema }).strict(),
+  z.object({ type: z.literal("timing"), timing: workerTimingSchema }).strict(),
   z.object({ type: z.literal("text_delta"), text: z.string().max(64_000) }).strict(),
   z.object({ type: z.literal("tool_call"), tool: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/), callId: z.string().min(1).max(200), input: z.unknown() }).strict(),
   z.object({ type: z.literal("provider_state"), result: z.unknown() }).strict(),
@@ -12,7 +15,7 @@ const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("usage"), usage: z.object({ inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), cacheReadTokens: z.number().int().nonnegative().optional(), reasoningTokens: z.number().int().nonnegative().optional(), model: z.string().max(128).optional(), startupMs: z.number().nonnegative().optional() }).strict() }).strict(),
   z.object({ type: z.literal("error"), code: z.enum(["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "provider_unavailable", "live_provider_disabled"]) }).strict(),
 ]);
-export interface PiApplicationOptions { projectDir: string; executable: string; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; }
+export interface PiApplicationOptions { projectDir: string; executable: string; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; }
 
 /** One provider turn per isolated process. The SDK generates calls; only our ToolHarness executes them. */
 export class PiApplicationClient extends PiCodexClient implements ContinuableModelClient {
@@ -22,26 +25,38 @@ export class PiApplicationClient extends PiCodexClient implements ContinuableMod
     yield* this.stream(prompt, signal, options);
   }
   override async *stream(prompt: string, parent: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent> {
+    const started = Date.now();
     const environment = this.bridge.environment ?? process.env;
     assertLiveProviderAllowed(environment); parent.throwIfAborted();
+    const selectedTransport = piTransportSchema.safeParse(this.bridge.transport ?? environment.ZHIXING_PI_TRANSPORT ?? "sse");
+    if (!selectedTransport.success) throw new Error("provider_transport_invalid");
+    const transport = selectedTransport.data;
     const timeout = AbortSignal.timeout(this.bridge.timeoutMs ?? 150_000);
     const signal = AbortSignal.any([parent, timeout]);
     const decoder = new StringDecoder("utf8");
     let pending = ""; let bytes = 0; let complete = false; let exited = false;
+    let doneAt: number | undefined;
+    let timing: z.infer<typeof workerTimingSchema> | undefined;
     const accept = (line: string): ModelEvent | undefined => {
       if (!line.trim()) return;
       if (complete) throw new Error("provider_protocol_error");
       let event: z.infer<typeof eventSchema>;
       try { event = eventSchema.parse(JSON.parse(line)); } catch { throw new Error("provider_protocol_error"); }
       if (event.type === "error") throw new Error(event.code);
-      if (event.type === "done") { complete = true; return; }
+      if (event.type === "timing") {
+        if (timing || event.timing.transport !== transport) throw new Error("provider_protocol_error");
+        timing = event.timing; return;
+      }
+      if (event.type === "done") { complete = true; doneAt = Date.now(); return; }
       return event;
     };
     try {
+      yield { type: "progress", phase: "initializing" };
       const selection = await this.selection(); signal.throwIfAborted();
+      const selectionMs = Date.now() - started;
       if (options?.reasoning === "quick") selection.thinking = "low";
       if (options?.reasoning === "deep") selection.thinking = "high";
-      const input = JSON.stringify({ version: 1, selection, prompt, options });
+      const input = JSON.stringify({ version: 1, selection, prompt, options, transport });
       if (input.length > 300_000) throw new Error("model_input_limit");
       for await (const event of (this.bridge.runner ?? runPiProcess)({ command: this.bridge.executable, args: [this.bridge.worker, this.bridge.sdk], cwd: this.bridge.projectDir, input, environment: { ...environment, PI_TELEMETRY: "0", PI_OFFLINE: "1", PI_SKIP_VERSION_CHECK: "1", ELECTRON_RUN_AS_NODE: "1" } }, signal)) {
         signal.throwIfAborted();
@@ -60,6 +75,7 @@ export class PiApplicationClient extends PiCodexClient implements ContinuableMod
         if (pending.length > 512_000) throw new Error("provider_output_limit");
       }
       if (!complete || !exited) throw new Error("provider_incomplete");
+      if (timing) yield { type: "timing", timing: { ...timing, selectionMs, totalMs: Date.now() - started, processTailMs: Date.now() - doneAt! } };
       yield { type: "done" };
     } catch (error) {
       if (parent.aborted) throw new DOMException("cancelled", "AbortError");

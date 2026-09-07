@@ -15,6 +15,7 @@ CLI 和源码开发要求 Node.js `24.8.x`，CLI 启动时会检查版本。已�
 | `ZHIXING_ALLOW_LIVE_PROVIDER` | 否 | 未设置，允许真实 Provider 调用 | CLI 和桌面都识别；只有字符串 `0` 会禁止真实 Provider 请求。它不会配置账号、修改保存的路由，或自动选择 mock/demo。 |
 | `ZHIXING_DEEPSEEK_MODEL` | 否 | `deepseek-v4-flash` | CLI 的 DeepSeek 模型名，在创建适配器时读取。桌面显式传入 `preferences.json` 中的 `deepseekModel`，因此桌面模型选择不受此变量覆盖。 |
 | `PI_CODING_AGENT_DIR` | 否 | `~/.pi/agent` | CLI 和桌面所读取的 Pi 全局配置目录；知行仅解析其中的 `settings.json` 模型偏好。 |
+| `ZHIXING_PI_TRANSPORT` | 否 | `sse` | 桌面 Pi SDK 的传输策略，可设为 `auto` 做兼容性对照；无效值拒绝请求。不会修改 Pi 偏好、模型或思考强度，不作用于 CLI Pi。 |
 | `NO_COLOR` | 否 | 未设置 | CLI 中只要存在就关闭终端颜色，包括空字符串；不改变桌面主题。 |
 | `TERM` | 否 | 继承终端环境 | CLI 在值为 `dumb` 或输出不是 TTY 时关闭颜色。 |
 | `PATH` | 否 | 继承进程环境 | CLI 用它寻找 `pi`、`codex`、macOS `security` 和可选 OCR 工具。桌面内附 Pi 的执行路径不依赖全局 `pi`。 |
@@ -147,9 +148,11 @@ CLI 的 `projectDir` 是知行源码仓库目录，不随 `ZHIXING_ROOT` 更改�
 
 设置文件必须是 JSON 对象且不超过 256,000 字节；缺失文件可以由另一层补齐字段，非法 JSON 或无效字段会报配置错误。配置变更前已经开始的请求保持原选择。
 
-CLI 通过 `scripts/pi-safe.sh` 启动系统 `pi`。桌面内附 Pi `0.80.7`，使用 Electron 自带运行时和等价的无 shell 启动器，保留工具守卫和空工具列表。两者传入 `--print --mode json --no-session --offline --no-tools --tools ''`，并关闭技能、模板与主题加载。请求正文走 stdin，不进入 argv，也不被当作 `@file` 参数。Pi 子进程会设置 `PI_TELEMETRY=0`、`PI_SKIP_VERSION_CHECK=1`、`PI_OFFLINE=1`；桌面启动器另设置 `ELECTRON_RUN_AS_NODE=1`，这些是内部启动参数，不是应用的用户偏好。
+CLI 通过 `scripts/pi-safe.sh` 启动系统 `pi`，传入 `--print --mode json --no-session --offline --no-tools --tools ''` 并关闭技能、模板与主题加载。桌面内附 Pi `0.85.0`，使用 Electron 自带运行时启动仅模型公共 SDK worker；模型可以请求应用声明的工具，实际执行统一经过 ToolHarness，未开放 Pi 原生文件或 shell 工具。请求正文走 stdin，不进入 argv，也不被当作 `@file` 参数。Pi 子进程设置 `PI_TELEMETRY=0`、`PI_SKIP_VERSION_CHECK=1`、`PI_OFFLINE=1`，桌面另设置 `ELECTRON_RUN_AS_NODE=1`。
 
-Pi 的 `--offline` 用于禁止启动时的更新等网络活动，**不禁止本次模型请求**；禁止真实调用仍需 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。适配器输出文本增量、忽略推理流和累计快照，并校验模型身份、结束原因及进程退出码。单次上限 150 秒；取消会终止子进程。它不提供知行的多轮工具续写，也不复用 Pi RPC 常驻进程，历史由知行自己的会话 Store 保存。
+Pi 的离线模型发现设置**不禁止本次模型请求**；禁止真实调用仍需 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。适配器输出文本增量，校验模型身份、结束原因及进程退出码；单次上限 150 秒，取消会终止子进程。桌面支持受控工具续答，CLI Pi 为文本模式。两者目前每轮启动独立进程，历史由知行管理。
+
+0.4.1 桌面默认明确使用 SSE，避免短生命周期 WebSocket 的关闭等待。设置中的诊断按模型、思考强度和传输策略显示逐轮 SDK 准备、请求至首事件、请求至完成及完成后收尾；聊天另存 `modelTimings`。请求耗时包含认证、网络和远端处理，不能解释为纯模型推理时间。未知阶段不填 0。`auto` 仅用于对照或兼容性排查，不保证实际使用 WebSocket。
 
 Pi 的认证和刷新由 Pi 处理，知行不读取认证文件。若提示登录失效，可在有系统 Pi 的开发环境运行 `./scripts/pi-safe.sh`，在 Pi 中执行 `/login` 并选择 OpenAI Codex，完成后重试。桌面没有内置登录向导。“已读取 Pi 模型配置”仅代表上述字段有效，不代表登录已经成功。
 
