@@ -20,6 +20,7 @@ import { applicationTools, type ApplicationToolOptions } from "./application-too
 import { OllamaEmbedding, SemanticIndex, fuseEvidence } from "./semantic-retrieval.js";
 import { citationMarker } from "./citation-marker.js";
 import { AssessmentStore } from "./learning-assessment.js";
+import { LearningOutcomeStore } from "./learning-outcomes.js";
 import { SkillCatalog } from "./skill-catalog.js";
 
 /** Shared application boundary. Both interfaces use the same domain and persistence formats. */
@@ -27,6 +28,7 @@ export class LearningApplication {
   readonly paths: PathPolicy;
   readonly evidence: EvidenceStore;
   readonly assessments: AssessmentStore;
+  readonly outcomes: LearningOutcomeStore;
   readonly skills: SkillCatalog;
   private semanticModel = "";
   configureSemantic(model: string) { this.semanticModel = model; }
@@ -42,6 +44,7 @@ export class LearningApplication {
     this.paths = new PathPolicy(root);
     this.evidence = new EvidenceStore(this.paths);
     this.assessments = new AssessmentStore(this.database);
+    this.outcomes = new LearningOutcomeStore(this.database);
     this.skills = new SkillCatalog(path.join(root, "zhixing"));
   }
 

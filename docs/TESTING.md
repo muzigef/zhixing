@@ -1,6 +1,24 @@
 <!-- generated-by: gsd-doc-writer -->
 # 测试与验证
 
+## 学习效果验证专项
+
+教学验证的程序回归、真实接入与真实学习效果分别记录，见[使用与评估协议](learning-outcomes.md)及[本轮证据](evidence/learning-outcomes-20260907.md)。
+
+```bash
+npx vitest run tests/learning-outcomes.test.ts tests/desktop-outcomes.test.ts tests/outcome-report.test.ts tests/workspace-backup.test.ts
+npm --prefix desktop run test:ui
+npm run eval:learning -- export-a.json export-b.json --output=summary.json
+```
+
+UI 命令包含原有三套 smoke 和新增 `smoke-outcomes.mjs`，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
+
+```bash
+npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learning-outcomes-live-latest.json
+```
+
+该脚本只完成两种方式各一轮真实模型回答和学后阶段切换，不制造真实学习者或延迟学习效果。人工解释复核和真实 3 天学习仍需实际参与者完成。
+
 ## 框架与准备
 
 根目录使用 Vitest（声明版本 `^3.0.0`，实际解析版本由 `package-lock.json` 锁定），桌面 UI 使用 Playwright（声明 `^1.55.0`）的 Electron API。仓库没有独立 Vitest 配置、全局测试 setup 或覆盖率阈值配置。

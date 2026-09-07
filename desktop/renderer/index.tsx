@@ -576,9 +576,10 @@ function App() {
             setSelectedTopic(event.target.value); setContextAllowed(false);
           }}><option value="">自由对话</option>{boot.workspace.topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}</select></label>
           <button onClick={() => setLearningOpen(true)}><BookOpen size={14} />课程与资料</button>
-          {selectedTopic && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId} onChange={(event) => setContextAllowed(event.target.checked)} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
+          {selectedTopic && !session?.study && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId} onChange={(event) => setContextAllowed(event.target.checked)} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
           {selectedTopic && contextAllowed && <label className="context-permission">学习操作<select aria-label="学习操作权限" value={execution} disabled={!!activeId} onChange={(event) => setExecution(event.target.value as typeof execution)}><option value="read">仅查看</option><option value="once">本轮允许保存产物与测试</option><option value="session">本会话允许保存产物与测试</option></select></label>}
         </div>}
+        {session?.study && <div className="study-banner">学习验证 · {session.study.mode === "zhixing" ? "知行引导教学" : "同模型直接聊天"} · 完成后打开「课程与资料」进行学后检查。</div>}
         {error && (
           <div className="error-banner" role="alert">
             <CircleHelp size={16} />
@@ -878,7 +879,10 @@ function App() {
         />
       )}
       {learningOpen && boot?.workspace && <Modal title="课程与资料" className="learning-modal" onClose={() => setLearningOpen(false)}>
-        <LearningPanel workspace={boot.workspace} topicId={selectedTopic} busy={!!activeId} onWorkspace={(value) => { setBoot(value); newChat(); setSelectedTopic(""); setContextAllowed(false); }} onDiscuss={(text) => { setLearningOpen(false); setDraft(text); input.current?.focus(); }} />
+        <LearningPanel workspace={boot.workspace} topicId={selectedTopic} busy={!!activeId} onLesson={(value) => {
+          updateSession(value); setLearningOpen(false);
+          void select(value.id).then(() => { if (!value.messages.length) setDraft("请帮助我学习本次目标，先从核心概念开始。"); });
+        }} onWorkspace={(value) => { setBoot(value); newChat(); setSelectedTopic(""); setContextAllowed(false); }} onDiscuss={(text) => { setLearningOpen(false); setDraft(text); input.current?.focus(); }} />
       </Modal>}
       {source && <Modal title={`资料来源 · ${source.citation.documentName}`} className="learning-modal" onClose={() => setSource(undefined)}>
         <p>{source.citation.pageNumber ? `第 ${source.citation.pageNumber} 页` : source.citation.anchor ?? "文档开头"}</p><pre className="source-excerpt">{source.text}</pre>{source.truncated && <p>当前展示部分原文，可用更具体的问题继续检索。</p>}

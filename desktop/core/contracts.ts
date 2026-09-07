@@ -4,6 +4,7 @@ import { citationSchema, type WorkspaceSummary } from "../../src/learning-contra
 import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
 import { assistantItemSchema } from "../../src/assistant-interactions.js";
 import { modelTimingSchema } from "../../src/model-telemetry.js";
+import { outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema } from "../../src/outcome-contracts.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
@@ -29,6 +30,7 @@ export const messageSchema = z.object({
   createdAt: z.string().datetime(),
   error: z.string().max(500).optional(),
   provider: providerSchema.optional(),
+  style: styleSchema.optional(),
   model: z.string().max(128).optional(),
   reasoning: reasoningSchema.optional(),
   usage: z.object({ inputTokens: z.number().nonnegative(), outputTokens: z.number().nonnegative(), cacheReadTokens: z.number().nonnegative().optional(), reasoningTokens: z.number().nonnegative().optional(), startupMs: z.number().nonnegative().optional() }).optional(),
@@ -52,6 +54,7 @@ export const chatSchema = z.object({
   messages: z.array(messageSchema).max(1000),
   topicId: topicIdSchema.optional(),
   workspaceId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  study: z.object({ id: z.string().uuid(), mode: outcomeModeSchema }).optional(),
   contextAllowed: z.boolean().optional(),
   executionAllowed: z.boolean().optional(),
   parent: z.object({ sessionId: z.string().uuid(), messageId: z.string().uuid().optional() }).optional(),
@@ -107,6 +110,14 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
   z.object({ type: z.literal("learning-overview"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("outcome-list"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("outcome-export"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("outcome-start"), topicId: topicIdSchema, mode: outcomeModeSchema }),
+  z.object({ type: z.literal("outcome-submit"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, submission: outcomeSubmissionSchema }),
+  z.object({ type: z.literal("outcome-lesson"), topicId: topicIdSchema, id: z.string().uuid() }),
+  z.object({ type: z.literal("outcome-finish-lesson"), topicId: topicIdSchema, id: z.string().uuid() }),
+  z.object({ type: z.literal("outcome-retention"), topicId: topicIdSchema, id: z.string().uuid() }),
+  z.object({ type: z.literal("outcome-abandon"), topicId: topicIdSchema, id: z.string().uuid() }),
   z.object({ type: z.literal("semantic-index"), topicId: topicIdSchema }),
   z.object({ type: z.literal("skills-list"), topicId: topicIdSchema }),
   z.object({ type: z.literal("skill-read"), topicId: topicIdSchema, name: z.string().min(1).max(100) }),

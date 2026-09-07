@@ -30,6 +30,7 @@ import {
 } from "../core/contracts.js";
 import { resolvePackagedPiSdk } from "../core/pi-runner.js";
 import { LearningApplication } from "../../src/learning-application.js";
+import { summarizeOutcomes } from "../../src/learning-outcomes.js";
 import { summarizePerformance } from "../core/diagnostics.js";
 import { checkRelease } from "../core/updates.js";
 
@@ -243,6 +244,40 @@ else {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               data = await learning.startAssessment(command.topicId, command.dayId);
               break;
+            case "outcome-list": {
+              learning.registry.get(command.topicId);
+              const trials = learning.outcomes.list(command.topicId);
+              data = { trials, report: summarizeOutcomes(trials) };
+              break;
+            }
+            case "outcome-export": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId);
+              const trials = learning.outcomes.list(command.topicId);
+              const report = { version: 1, exportedAt: new Date().toISOString(), topicId: command.topicId, assignment: "learner_selected", trials, summary: summarizeOutcomes(trials) };
+              const selected = await dialog.showSaveDialog(window, { title: "导出本地学习验证（包含你的作答）", defaultPath: `zhixing-outcomes-${command.topicId}.json`, filters: [{ name: "JSON", extensions: ["json"] }] });
+              if (!selected.canceled && selected.filePath) await fs.writeFile(selected.filePath, JSON.stringify(report, null, 2), { encoding: "utf8", mode: 0o600 });
+              data = { cancelled: selected.canceled };
+              break;
+            }
+            case "outcome-start":
+            case "outcome-submit":
+            case "outcome-lesson":
+            case "outcome-finish-lesson":
+            case "outcome-retention":
+            case "outcome-abandon": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId); beginLearning();
+              try {
+                if (command.type === "outcome-start") data = learning.outcomes.start(command.topicId, command.mode);
+                else if (command.type === "outcome-submit") data = learning.outcomes.submit(command.topicId, command.id, command.phase, command.submission);
+                else if (command.type === "outcome-lesson") data = await service.openOutcomeLesson(command.topicId, command.id);
+                else if (command.type === "outcome-finish-lesson") data = await service.finishOutcomeLesson(command.topicId, command.id);
+                else if (command.type === "outcome-retention") data = learning.outcomes.openRetention(command.topicId, command.id);
+                else data = learning.outcomes.abandon(command.topicId, command.id);
+              } finally { endLearning(); }
+              break;
+            }
             case "assessment-submit":
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               data = await learning.submitAssessment(command.topicId, command.dayId, command.attemptId, command.answers, command.reflection);

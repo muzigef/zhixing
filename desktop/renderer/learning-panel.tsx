@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import type { LearningOverview, WorkspaceSummary } from "../../src/learning-contracts.js";
-import type { BootState, DesktopCommand } from "../core/contracts.js";
+import type { BootState, ChatSession, DesktopCommand } from "../core/contracts.js";
 import { SkillPanel } from "./skill-panel.js";
 import { EvidencePanel } from "./evidence-panel.js";
 import { AssessmentPanel } from "./assessment-panel.js";
+import { OutcomePanel } from "./outcome-panel.js";
 
 async function request<T>(command: DesktopCommand): Promise<T> {
   const result = await window.zhixing.invoke(command);
@@ -11,12 +12,13 @@ async function request<T>(command: DesktopCommand): Promise<T> {
   return result.data as T;
 }
 
-export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace, onDiscuss }: {
+export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace, onDiscuss, onLesson }: {
   workspace: WorkspaceSummary;
   topicId: string;
   busy: boolean;
   onWorkspace: (state: BootState) => void;
   onDiscuss: (text: string) => void;
+  onLesson: (session: ChatSession) => void;
 }) {
   const [overview, setOverview] = useState<LearningOverview>();
   const [busy, setBusy] = useState(false);
@@ -57,6 +59,7 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
     {!topicId && <p>请先在顶部选择一个学习主题。</p>}
     {error && <p className="message-error" role="alert">{error}</p>}
     {overview && <>
+      <OutcomePanel key={`outcomes-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onLesson={onLesson} />
       <div className="learning-section-heading"><h3>{overview.title}</h3><button onClick={() => void refresh().catch((problem) => setError(problem.message))}>刷新进度</button></div>
       <p className="learning-next">{overview.next}</p>
       <div className="course-list">{overview.course.map((day) => {

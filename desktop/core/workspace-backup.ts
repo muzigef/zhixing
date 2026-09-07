@@ -4,7 +4,8 @@ import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { z } from "zod";
-import { inspectDatabaseSnapshot } from "../../src/database.js";
+import { inspectDatabaseSnapshot, ZhixingDatabase } from "../../src/database.js";
+import { LearningOutcomeStore } from "../../src/learning-outcomes.js";
 import type { LearningApplication } from "../../src/learning-application.js";
 import { PathPolicy } from "../../src/paths.js";
 import { DesktopStore } from "./store.js";
@@ -84,7 +85,7 @@ export async function inspectWorkspaceBackup(directory: string, signal: AbortSig
 /** Non-destructive restore: new workspace, remapped conversation IDs, no inherited execution grants. */
 export async function restoreWorkspaceBackup(directory: string, parent: string, store: DesktopStore, signal: AbortSignal): Promise<{ workspace: string; sessions: number }> {
   const manifest = await inspectWorkspaceBackup(directory, signal);
-  await fs.mkdir(parent, { recursive: true, mode: 0o700 }); const workspace = await fs.mkdtemp(path.join(parent, "workspace-"));
+  await fs.mkdir(parent, { recursive: true, mode: 0o700 }); const workspace = await fs.realpath(await fs.mkdtemp(path.join(parent, "workspace-")));
   try {
     for (const item of manifest.files.filter((item) => item.path.startsWith("workspace/"))) {
       const destination = safe(workspace, item.path.slice(10)); await copy(safe(directory, item.path), destination, signal);
@@ -105,6 +106,8 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
       for (const message of chat.messages) if (message.status === "running") message.status = "interrupted";
       await store.save(chat);
     }
+    const database = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
+    try { new LearningOutcomeStore(database).remapSessions(ids); } finally { database.close(); }
     return { workspace, sessions: chats.length };
   } catch (error) {
     // Keep partially restored data for inspection; never delete conversations already imported.

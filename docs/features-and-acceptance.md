@@ -1,5 +1,7 @@
 # 功能与验收（当前实现）
 
+2026-09-07 源码补充：[学习效果验证](learning-outcomes.md)已接入桌面。验证入口为 `tests/learning-outcomes.test.ts`、`tests/desktop-outcomes.test.ts`、`tests/outcome-report.test.ts`、`tests/workspace-backup.test.ts` 及 `desktop/scripts/smoke-outcomes.mjs`。现有安装器尚未更新，本轮实际运行证据见[教学验证记录](evidence/learning-outcomes-20260907.md)。
+
 > 核对日期：2026-09-06，桌面 0.4.0 升级。本文区分 CLI 学习 Agent 与桌面学习应用；历史阶段验收见 [证据索引](evidence/README.md)。
 
 ## CLI 当前功能

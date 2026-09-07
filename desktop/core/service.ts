@@ -13,6 +13,7 @@ import {
   type SendRequest,
 } from "./contracts.js";
 import { DesktopStore } from "./store.js";
+import { outcomeBank } from "../../src/outcome-bank.js";
 
 export class DesktopService {
   private listeners = new Set<(event: DesktopEvent) => void>();
@@ -47,6 +48,45 @@ export class DesktopService {
   }
   create(): Promise<ChatSession> {
     return this.store.create();
+  }
+  async openOutcomeLesson(topicId: string, id: string): Promise<ChatSession> {
+    if (this.activeSessionId) throw new Error("run_active");
+    if (!this.learning) throw new Error("workspace_unavailable");
+    this.learning.registry.get(topicId);
+    const trial = this.learning.outcomes.get(topicId, id);
+    if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
+    this.starting = true; this.startingSessionId = id;
+    try {
+      if (trial.sessionId) {
+        const session = await this.load(trial.sessionId);
+        if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode) throw new Error("outcome_session_mismatch");
+        return session;
+      }
+      const session = await this.create();
+      session.study = { id, mode: trial.mode }; session.topicId = topicId;
+      session.workspaceId = this.learning.summary().id;
+      session.contextAllowed = false; session.executionAllowed = false;
+      session.title = `${trial.title} · ${trial.mode === "zhixing" ? "引导教学" : "直接聊天"}`; session.customTitle = true;
+      await this.store.save(session);
+      this.learning.outcomes.attachSession(topicId, id, session.id);
+      return session;
+    } finally { this.starting = false; this.startingSessionId = null; }
+  }
+  async finishOutcomeLesson(topicId: string, id: string) {
+    if (this.activeSessionId) throw new Error("run_active");
+    if (!this.learning) throw new Error("workspace_unavailable");
+    const trial = this.learning.outcomes.get(topicId, id);
+    if (!trial.sessionId) throw new Error("outcome_lesson_incomplete");
+    const session = await this.load(trial.sessionId);
+    if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode) throw new Error("outcome_session_mismatch");
+    if (session.pendingRequests?.length || session.messages.at(-1)?.status !== "completed") throw new Error("outcome_lesson_incomplete");
+    const messages = session.messages.filter(m => m.role === "assistant");
+    return this.learning.outcomes.finishLesson(topicId, id, { sessionId: session.id,
+      conditions: messages.map(m => ({ provider: m.provider ?? "unknown", model: m.model, reasoning: m.reasoning ?? "unknown", style: m.style ?? "unknown" })),
+      completedTurns: messages.filter(m => m.status === "completed" && m.text.trim()).length,
+      failedTurns: messages.filter(m => m.status !== "completed").length,
+      durationMs: messages.reduce((total, m) => total + (m.durationMs ?? 0), 0),
+    });
   }
   load(id: string): Promise<ChatSession> {
     return this.active?.session.id === id
@@ -119,6 +159,13 @@ export class DesktopService {
     try {
       const client = this.client(request.provider);
       const session = await this.store.load(request.sessionId);
+      if (session.study) {
+        if (!this.learning || !session.topicId || session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
+        const trial = this.learning.outcomes.get(session.topicId, session.study.id);
+        if (trial.sessionId !== session.id || trial.mode !== session.study.mode) throw new Error("outcome_session_mismatch");
+        if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
+        request.contextAllowed = false; request.execution = "read";
+      }
       if (fromQueue && (this.drainingSession?.queuePaused || generation !== this.stopGeneration)) throw new Error("queue_paused");
       session.pendingRequests ??= [];
       if (queuedRequestId) session.pendingRequests = session.pendingRequests.filter((item) => item.id !== queuedRequestId);
@@ -156,6 +203,7 @@ export class DesktopService {
         status: "running",
         createdAt: now,
         provider: request.provider,
+        style: request.style,
         reasoning: request.reasoning,
         taskId: request.resumeTaskId ?? randomUUID(),
       });
@@ -292,7 +340,7 @@ export class DesktopService {
         reasoning: request.reasoning,
         onTiming: (timing) => { (message.modelTimings ??= []).push(timing); },
         onItem: (item) => { (message.items ??= []).push(item); this.emit({ type: "session", session }); },
-        onInteraction: async (item) => { (message.items ??= []).push(item); await this.store.save(session); this.emit({ type: "session", session }); },
+        onInteraction: session.study ? undefined : async (item) => { (message.items ??= []).push(item); await this.store.save(session); this.emit({ type: "session", session }); },
         onTurn: (text, kind) => {
           if (text) (message.items ??= []).push({ id: randomUUID(), kind, text });
           message.text = kind === "final" ? text : "";
@@ -304,7 +352,7 @@ export class DesktopService {
           const sumKnown = (before: number | undefined, current: number | undefined) => current === undefined || previous && before === undefined ? undefined : (before ?? 0) + current;
           message.usage = { inputTokens: (previous?.inputTokens ?? 0) + usage.inputTokens, outputTokens: (previous?.outputTokens ?? 0) + usage.outputTokens, cacheReadTokens: sumKnown(previous?.cacheReadTokens, usage.cacheReadTokens), reasoningTokens: sumKnown(previous?.reasoningTokens, usage.reasoningTokens), startupMs: sumKnown(previous?.startupMs, usage.startupMs) };
         },
-        application: this.learning, topicId: session.topicId, contextAllowed: session.contextAllowed ?? false,
+        application: session.study ? undefined : this.learning, topicId: session.study ? undefined : session.topicId, contextAllowed: session.contextAllowed ?? false,
         onText: (text) => {
           if (message.firstTokenMs === undefined && text) message.firstTokenMs = Date.now() - started;
           message.text += text;
@@ -351,7 +399,7 @@ export class DesktopService {
       this.active = null;
       this.emit({ type: "session", session });
       this.emit({ type: "settled", sessionId: session.id });
-      if (mayDrain && message.status === "completed" && !session.pendingRequests?.length) {
+      if (mayDrain && !session.study && message.status === "completed" && !session.pendingRequests?.length) {
         const background = new AbortController(); this.maintenanceController = background;
         const snapshot = structuredClone(session); const compactStarted = Date.now();
         this.maintenance = this.compact(snapshot, client, request.provider, background.signal).then(async () => {
@@ -371,6 +419,17 @@ function buildPrompt(session: ChatSession, request: SendRequest): string {
   return buildMessages(session, request).map((message) => `${message.role}: ${message.content}`).join("\n\n");
 }
 export function buildMessages(session: ChatSession, request: SendRequest): ModelMessage[] {
+  if (session.study) {
+    const goal = outcomeBank[session.topicId ?? ""]?.goal;
+    if (!goal) throw new Error("outcome_not_available");
+    const history = selectConversationContext(session.messages).history;
+    return [
+      { role: "system", content: `你是一位中文学习助手。准确回答问题，不虚构执行或学习成果。\n${responseGuidelines(request.style)}${session.study.mode === "zhixing" ? "\n先用简短讲解和具体例子建立概念，再给一个新的应用情境请学习者自己判断。只根据学习者实际输入反馈，发现错误时给适量提示让对方再次解释。用户要求直接答案时可以提供，但不能把自己的答案记作学习者掌握。根据当前对话中的误解调整下一步，不机械重复提问。" : ""}` },
+      { role: "user", content: `本次学习目标：${goal}` },
+      ...history.filter(m => m.role === "user" || m.role === "assistant").map((m): ModelMessage => ({ role: m.role as "user" | "assistant", content: m.status === "completed" ? m.content : `[未完成回答]\n${m.content}` })),
+      { role: "user", content: request.text },
+    ];
+  }
   const through = session.messages.findIndex((item) => item.id === session.context?.summaryThroughId);
   const context = selectConversationContext(through >= 0 ? session.messages.slice(through + 1) : session.messages);
   return [
@@ -422,6 +481,15 @@ export function publicError(error: unknown): string {
     semantic_index_limit: "本次索引达到 5000 个片段的上限，已建立的索引已保留。",
     assessment_not_available: "这一天尚未配置独立知识检查；可以继续提交实验和复盘证据。",
     assessment_already_submitted: "这次检查已经提交，请开始一次新检查。",
+    outcome_not_available: "这个主题暂未配置学习效果检查。当前支持 Agent 开发和 RAG。",
+    outcome_not_found: "没有找到这次学习验证，请连接原工作区。",
+    outcome_active: "这个主题已有进行中的验证，请继续或保留记录后结束本次验证。",
+    outcome_stage_invalid: "这次验证已进入下一阶段，请刷新课程面板。学习对话在检查阶段暂停。",
+    outcome_already_submitted: "这份作答已保存，不能修改为另一份结果。",
+    outcome_review_not_due: "延迟复习尚未到期，请在学后检查满 3 天后回来。",
+    outcome_session_mismatch: "学习对话与验证记录不匹配，请从课程面板进入原对话。",
+    outcome_lesson_incomplete: "请先在本次学习对话中完成至少一轮回答，并处理或撤回待发送消息。",
+    outcome_limit: "这个主题已保存 50 次验证记录，暂不再创建新记录。",
   };
   if (learningErrors[code]) return learningErrors[code];
   if (code.includes("deepseek-api 未配置"))
