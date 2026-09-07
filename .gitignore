@@ -20,3 +20,6 @@ learning-notes/
 desktop/build/
 desktop/release/
 desktop/test-results/
+
+# CLI canonical agent conversations are private local application state.
+/agent/

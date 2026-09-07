@@ -5,21 +5,24 @@
 
 ## 系统概览与运行入口
 
-知行保留 CLI/REPL 与 Electron 桌面两个入口，复用 LearningApplication、确定性 LearningRuntime、资料库、课程读取与证据 Store。聊天/Provider 偏好分别保存；桌面可显式选择 CLI 工作区，直接共用学习数据，不自动迁移聊天。
+知行保留 CLI/REPL 与 Electron 桌面两个入口，复用 AgentService、AgentSessionStore、执行检查点、LearningApplication、确定性 LearningRuntime、资料库、课程读取与证据 Store。聊天/Provider 偏好分别保存；桌面可显式选择 CLI 工作区，直接共用学习数据，不自动迁移聊天。
 
 ```mermaid
 graph TD
-  CLI[CLI / REPL] --> App[LearningApplication]
+  CLI[CLI / REPL] --> Adapter[CliAgentTransport]
+  Adapter --> Agent[AgentService]
+  CLI --> App[LearningApplication]
   UI[React renderer] --> IPC[受控 IPC]
-  IPC --> Desktop[DesktopService / 会话任务队列]
+  IPC --> Agent
   IPC --> App
-  Desktop --> Assistant[Assistant Runtime / collectInvocation]
+  Agent --> Assistant[Assistant Runtime / collectInvocation]
   Assistant --> App
   App --> Domain[LearningRuntime / TopicPlanLoader]
   App --> Stores[DocumentLibrary / EvidenceStore / SQLite / 笔记]
   Assistant --> Tools[当前主题 ToolHarness]
   Assistant --> Model[Pi Codex / DeepSeek / demo]
-  Desktop --> Chat[DesktopStore / 完整消息与目标摘要]
+  Agent --> Chat[AgentSessionStore / 会话快照]
+  Assistant --> Journal[AgentExecutionStore / 执行检查点]
 ```
 
 模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。桌面 Pi SDK 与 DeepSeek 均支持受控应用工具续写；课程状态仍由实际证据和程序控制。
@@ -27,6 +30,8 @@ graph TD
 ### CLI 组合根
 
 `src/cli.ts` 是当前组合根：它初始化主题、数据库、资料库、Provider、课程、提醒和 REPL/headless 命令。`LearningRuntime` 负责确定性 Day 状态机、前置条件、进度、计划与证据 Review；模型只用于讲解、答疑、自然语言草案和资料问答，不能直接改变完成状态。
+
+普通聊天、教学回答及工具任务先经 `CliAgentTransport` 调用共享 `AgentService`；`/agent` 与 `/answer` 提供应用任务和持久交互入口。普通对话的生成中排队、纠正和恢复由该服务处理；REPL 继续负责本地命令编排。
 
 每轮输入先通过 `interaction-protocol.ts` 编译为四类受类型约束的控制决策：确定性命令、待执行计划确认、教学输入或自然输入。确定性命令不需要模型解释；模糊管理请求只能生成校验后的草案；教学输入再进入教学动作协议。内容模型不能直接执行写操作或改变状态。
 
@@ -51,7 +56,7 @@ CLI / REPL
 - 当前主题保存在 `zhixing/settings/current-topic.local.json`；用户生成主题、学习记录和本地设置均被 `.gitignore` 排除。
 - Day 状态、进度和计划由主题目录中的 Markdown/JSON 文件保存；资料元数据、Chunk、FTS5、嵌入与记忆保存在 `zhixing/db/zhixing.sqlite`。
 - `TeachingSessionStore` 保存当前 Day、阶段、受限转录、当前练习和作答；`LearningContextBuilder` 仅组装当前主题画像、至多三条记忆、资料名称和教学检查点。
-- `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符，额外持久保存最初目标；请求前保存用户输入，结束或正常中断后保存回答。强制结束可能丢失未保存增量，教学检查点不随旧聊天恢复而回滚。
+- `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符，额外持久保存最初目标；作为兼容历史投影；完整消息由 `AgentSessionStore` 存于 `zhixing/agent/conversations/`。请求前保存当前会话指针与用户输入，重启从完整快照恢复投影。强制结束可能丢失约 750 ms 内的未保存增量，教学检查点不随旧聊天恢复而回滚。
 - `WorkflowLedger` 将运行与步骤状态写入 SQLite；启动时会把上次进程遗留的 `running` 运行标记为 `process_interrupted`，不重放任何可能含写入的操作。用户可安全地重新发起操作。
 - CLI 已有手动数据库备份、预览和确认恢复：`备份数据库` 将 SQLite 保存到 `zhixing/db/backups/`；它不包含资料原文件、主题计划、学习笔记或桌面对话。当前没有全局 `profile.md`、`MISTAKES.md`、情节记忆、主题删除或定时自动备份。桌面另有完整工作区/会话备份恢复和单会话 Markdown 导出。
 
@@ -59,7 +64,7 @@ CLI / REPL
 
 ## CLI 教学闭环
 
-真实 tutor 的单日流程为：`开始第 N 天 → 讲解 → 答疑确认 → 练习/测验 → 实验与证据 Review`。讲解、答疑和练习的检查点在每次成功阶段转换后保存；重启可恢复，但不会恢复未完成的 Provider 请求。练习中的自然语言先被约束为 `start_practice`、`answer_question`、`request_solution`、`ask_question`、`skip_question` 或 `change_plan`。模型分类只提供意图建议：索要答案有确定性优先级；“作答/批改/持久化”必须有可追溯的用户原文证据，未证实的 `answer_question` 会安全降级为答疑，不能触发虚构批改。Day 由 `检查 DNN` 验证实际产物的完整性后推进；布尔参数无效。EvidenceStore 保存哈希与来源，用户测试报告标为未复跑，完整性分数不代表掌握程度。
+真实 tutor 的单日流程为：`开始第 N 天 → 讲解 → 答疑确认 → 练习/测验 → 实验与证据 Review`。讲解、答疑和练习的检查点在每次成功阶段转换后保存；重启可恢复，并从共享执行检查点发起后续 Provider 请求；无法恢复原网络连接。练习中的自然语言先被约束为 `start_practice`、`answer_question`、`request_solution`、`ask_question`、`skip_question` 或 `change_plan`。模型分类只提供意图建议：索要答案有确定性优先级；“作答/批改/持久化”必须有可追溯的用户原文证据，未证实的 `answer_question` 会安全降级为答疑，不能触发虚构批改。Day 由 `检查 DNN` 验证实际产物的完整性后推进；布尔参数无效。EvidenceStore 保存哈希与来源，用户测试报告标为未复跑，完整性分数不代表掌握程度。
 
 `mock` 不调用真实模型，返回确定性学习卡；真实 Provider 默认在已配置后可用，设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 会阻止调用。
 
@@ -106,9 +111,9 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 一次发送按以下顺序执行：
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
-2. `DesktopService.send` 拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
+2. `DesktopService` 兼容导出实际使用 `AgentService.send`，以会话租约拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
 3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK 与 DeepSeek 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`delta`、`settled` 事件按会话隔离。
-4. 收到非空文本和明确 `done` 才标记 `completed`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
+4. 收到非空文本和明确 `done`，且应用计划已完成才标记 `completed`；提前结束会有界继续或返回 `blocked`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
 5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
 桌面 IPC 包含会话、enqueue/withdraw/resume-queue/context、learning-*、workspace-select、evidence-*、diagnostics/check-updates 与原有设置/导出/复制命令。响应为 `{ ok: true, data }` 或脱敏错误，完整判别联合见 `desktop/core/contracts.ts`。文件选择由主进程原生对话框产生，renderer 不传任意路径。
@@ -119,7 +124,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 - 会话按更新时间排序，可重命名、重新载入和导出 Markdown。导出由主进程弹出系统保存对话框，仅导出所选桌面对话，不是 CLI 学习数据备份。
 - 草稿按会话保存在 renderer 的 localStorage，`last-session` 保存最后打开的会话；它们不属于会话 JSON，也不会随 Markdown 导出。设置保存串行化，renderer 用修订号避免旧响应覆盖新的选择。
 - 设置包含 Provider、回答风格、显示主题和 DeepSeek 模型；源码默认依次为 `pi-codex`、`adaptive`、`system`、`deepseek-v4-flash`。本机已保存设置可覆盖默认值。
-- 全应用同一时间只生成一个回答，期间可排队最多 10 条、立即调整、撤回待办或浏览历史；停止会暂停队列，重启须手动继续。停止不会清除部分文本；“继续回答”发送新的续写请求，“重试”重新发送对应用户问题。Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
+- 全应用同一时间只生成一个回答，期间可排队最多 10 条、立即调整、撤回待办或浏览历史；停止会暂停队列，重启须手动继续。停止不会清除部分文本；“继续回答”和失败重试保留原 taskId，从检查点续接；Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
 - Enter 发送、Shift+Enter 换行，中文输入法组合输入不触发发送；只有视图处于底部时自动跟随新内容。Cmd/Ctrl+N 新对话、Cmd/Ctrl+K 搜索、Cmd/Ctrl+, 打开设置。
 
 ### 桌面资源上限
@@ -127,11 +132,11 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 | 项目 | 当前限制 | 代码位置 |
 | --- | --- | --- |
 | 单次用户输入 | 20,000 字符 | `desktop/core/contracts.ts` |
-| 单条回答 | 64,000 字符 | `desktop/core/service.ts` |
-| 单次生成 | 最多 10,000 个模型事件，服务总时限 180 秒 | `src/model-invocation.ts`、`desktop/core/service.ts` |
+| 单条回答 | 64,000 字符 | `src/agent-service.ts` |
+| 单次生成 | 最多 10,000 个模型事件，服务总时限 180 秒 | `src/model-invocation.ts`、`src/agent-service.ts` |
 | 适配器时限 | DeepSeek 60 秒、Pi 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-client.ts` |
-| 保存的会话 | 最多 1000 条消息；单文件最多 12,000,000 字节 | `desktop/core/contracts.ts`、`desktop/core/store.ts` |
-| 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `desktop/core/service.ts` |
+| 保存的会话 | 最多 1000 条消息；单文件最多 12,000,000 字节 | `src/agent-session-contracts.ts`、`src/agent-session-store.ts` |
+| 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `src/agent-service.ts` |
 
 本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。这些字符限制不是精确 token 预算。
 
@@ -156,7 +161,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 | `ProviderRuntime` / `collectInvocation` | CLI 路由、回退、模型/工具回合与预算：`src/provider-runtime.ts`、`src/model-invocation.ts` |
 | `ToolHarness` | 当前主题受控工具注册与执行：`src/tool-harness.ts` |
 | `ZhixingDatabase` / `WorkflowLedger` | 资料检索、记忆及持久运行账本：`src/database.ts`、`src/workflow-ledger.ts` |
-| `DesktopService` | 单一活动生成、流式事件、停止与导出：`desktop/core/service.ts` |
+| `DesktopService` | 单一活动生成、流式事件、停止与导出：`src/agent-service.ts` |
 | `DesktopStore` | 桌面会话与偏好存储：`desktop/core/store.ts` |
 | `DesktopBridge` | renderer 到主进程的受限接口：`desktop/core/contracts.ts`、`desktop/electron/preload.ts` |
 | `EncryptedDesktopSecrets` | 可注入系统加密与旧 Keychain 来源：`desktop/core/secrets.ts`、`desktop/electron/secrets.ts` |
@@ -178,3 +183,5 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 `ModelMessage` 保留真实角色，应用材料使用 observation；`provider_state` 仅在单次工具续写中保留，不存入可见历史。Pi 使用 `PiApplicationClient → pi-model-worker → ModelRuntime.streamSimple`，没有 Pi 原生工具或 AgentSession，工具由 ToolHarness 执行。CLI Pi 保留旧文本协议。
 
 `TaskExecutionStore` 保存步骤、实际操作结果及幂等键；`assistant-interactions` 将问题、批准、产物、progress/final 类型化。后台压缩可取消，首字路径不等待压缩。SemanticIndex 为可选 loopback Ollama 索引；AssessmentStore 单独保存作答和复习。全量备份经路径/哈希/数据库预检恢复到新目录，会话版本兼容保留旧文件。详细边界见 [0.4 指南](agent-0.4.md)。
+
+共享服务的原生工具恢复、双层租约、循环进展与备份权限规则见 [Agent 内核](agent-kernel.md)。新协议与旧版交互卡的兼容分开处理，不将摘要或模型文字作为工具结果。

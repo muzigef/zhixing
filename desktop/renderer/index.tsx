@@ -340,7 +340,8 @@ function App() {
       if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
       setSending(true); setDraft("");
       try {
-        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, steer });
+        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, contextAllowed } : {}), steer });
+        if (execution === "once") setExecution("read");
         notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
       } catch (problem) { setError(messageOf(problem)); setDraft((previous) => previous || text); }
       finally { setSending(false); }
@@ -1006,7 +1007,7 @@ const Message = memo(
             >
               <Copy size={14} />
             </IconButton>
-            {(message.status === "failed" ||
+            {(message.status === "failed" || message.status === "blocked" ||
               message.status === "interrupted") && (
               <button disabled={!canSend} onClick={onRetry}>
                 <RefreshCw size={13} />

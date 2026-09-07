@@ -6,13 +6,30 @@ import { TaskExecutionStore, operationArtifactId, taskPlanSchema } from "./task-
 import type { ModelToolDefinition } from "./model.js";
 
 export interface ApplicationToolOptions { taskId: string; allowWrites: boolean; }
+/** Completion is tied to owned artifact bytes and the exact implementation/test hashes that passed. */
+export async function verifiedTaskSnapshot(app: LearningApplication, tasks: TaskExecutionStore, taskId: string, topic: string, signal?: AbortSignal) {
+  const snapshots = new Map<string, Awaited<ReturnType<typeof app.evidence.list>>>();
+  return tasks.verify(taskId, topic, async operation => {
+    const input = operation.input as { dayId?: string; kind?: string };
+    const result = operation.result as { id?: string; implementationHash?: string; testHash?: string; status?: string; exitCode?: number } | null;
+    if (!input.dayId || !result) return false;
+    let snapshot = snapshots.get(input.dayId);
+    if (!snapshot) { snapshot = await app.evidence.list(topic, input.dayId); snapshots.set(input.dayId, snapshot); }
+    if (operation.tool === "save_artifact") return snapshot.artifacts.some(item => item.id === result.id && item.kind === input.kind && item.intact);
+    const implementation = snapshot.artifacts.findLast(item => item.kind === "implementation");
+    const test = snapshot.artifacts.findLast(item => item.kind === "testScript");
+    return operation.tool === "run_experiment" && result.status === "completed" && result.exitCode === 0
+      && implementation?.intact === true && test?.intact === true && implementation.hash === result.implementationHash && test.hash === result.testHash
+      && (!snapshot.validation || snapshot.validation.status === "completed" && snapshot.validation.exitCode === 0);
+  }, signal);
+}
 /** Capability is supplied by the application. Model arguments cannot grant themselves access. */
 export function applicationTools(app: LearningApplication, base: LearningTools, options: ApplicationToolOptions): LearningTools {
   const definitions: ModelToolDefinition[] = [...base.definitions]; const harness = base.harness;
   const tasks = new TaskExecutionStore(app.database);
   const task = (topic: string) => { tasks.begin(options.taskId, topic, "当前学习任务"); return tasks; };
   definitions.push({ name: "task_status", description: "查看当前任务的持久步骤、真实结果及未完成事项。重启或重试先查询，不重复保存已完成产物。", inputSchema: { type: "object", properties: {}, additionalProperties: false } });
-  harness.register({ name: "task_status", risk: "read", input: z.object({}).strict(), timeoutMs: 5000, idempotent: true, execute: async (_input, context) => task(context.topicId).snapshot(options.taskId, context.topicId) });
+  harness.register({ name: "task_status", risk: "read", input: z.object({}).strict(), timeoutMs: 5000, idempotent: true, execute: async (_input, context) => verifiedTaskSnapshot(app, task(context.topicId), options.taskId, context.topicId, context.signal) });
   definitions.push({ name: "plan_task", description: "为需要执行的学习任务建立简短步骤和完成标准，状态由真实操作更新，不因模型声明而完成。", inputSchema: { type: "object", properties: { steps: { type: "array", minItems: 1, maxItems: 12, items: { type: "object", properties: { id: { type: "string" }, title: { type: "string" }, doneWhen: { type: "string", enum: ["artifact_saved", "tests_passed"] }, kind: { type: "string", enum: evidenceKindSchema.options } }, required: ["id", "title", "doneWhen"], additionalProperties: false } } }, required: ["steps"], additionalProperties: false } });
   harness.register({ name: "plan_task", risk: "read", input: z.object({ steps: taskPlanSchema }).strict(), timeoutMs: 5000, idempotent: true, execute: async ({ steps }, context) => task(context.topicId).plan(options.taskId, context.topicId, steps) });
   const stepId = z.string().regex(/^[a-z0-9_-]{1,40}$/).optional();

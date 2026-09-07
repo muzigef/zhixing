@@ -158,3 +158,21 @@ node_modules/.bin/tsx scripts/profile-pi-latency.ts --live --repetitions=3 --cas
 `npm run eval:quality -- --live --output=docs/evidence/agent-quality-latest.json` 在临时合成工作区运行固定 12 题 × 两次独立会话 × 双 Provider；可加 `--provider=deepseek-api` 或 `--case=R02,R08`，用 `--reasoning=balanced` 检查默认思考档位。无 `--live` 为 demo。首个完全不可用的 Provider 停止后续尝试，并明确记录 attempted=false。waiting 代表真实澄清或审批，不能当作连接失败；答案待审并不代表质量通过。相同输入、快速思考，记录原文、interaction、usage、首字与总耗时；复核者身份和理由另存。题目已用于开发回归，不能视为盲测。
 
 远端发布矩阵包含 macos-15、macos-15-intel、windows-2022；手动签名分支缺少配置时失败，实际签名/公证依赖账户，不由 mock 证明。
+
+## 三项 Agent P0 回归
+
+`npm run verify` 覆盖共享服务、真实 CLI 的恢复/审批、执行检查点、跨入口租约、三处进程 SIGKILL、拒绝与重复审批、双 Provider 原生工具格式、完成检查、修复重测及备份授权。
+
+深入回归另含跨实例会话修改与摘要竞争、队列执行交接、已保存回复后的继续入口、不同任务相同 callId 的隔离、计划步骤删除/条件降级拦截，以及实现变更后的旧测试结果失效。见[再次复核记录](evidence/p0-reaudit-20260907.md)。
+
+后续契约检查覆盖排队权限跨重启保留、CLI 应用任务续接的调用方取消、持久纠正只取消旧批次、结果未知时拒绝不安全重放、测试通过后的真实进展识别，以及同批次内修复后重测。见[契约核查记录](evidence/p0-contract-audit-20260907.md)。
+
+最新恢复边界回归增加事件订阅异常隔离、纠正后再次恢复的防循环判断、恢复工具与上下文预算、完成检查取消/超时，以及晚到核验不能覆盖新计划。运行 `npx vitest run tests/agent-service.test.ts tests/agent-recovery-boundaries.test.ts tests/task-execution.test.ts`；完整验收为 86 文件 / 419 测试、原专项 8/8、四组 Electron UI，见[最新核查记录](evidence/p0-recovery-audit-20260907.md)。本轮未重新连接真实 Provider。
+
+```bash
+node --import tsx scripts/audit-agent-p0.ts
+npm --prefix desktop run test:ui
+node --import tsx scripts/verify-p0-live.ts --live --output=/tmp/zhixing-p0-live.json
+```
+
+专项脚本的八项失败会返回非零退出码。真实验收需先构建桌面 worker，仅经已配置 Provider 发送临时合成代码，验证审批后新服务续接及实际产物数量；普通质量门不依赖联网。结果见 [本轮 Evidence](evidence/p0-development-20260907.md)。

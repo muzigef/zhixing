@@ -74,6 +74,10 @@ try {
   await page.getByLabel("待发送消息", { exact: true }).getByText("待办：补充数据库例子", { exact: true }).waitFor();
   await page.getByRole("button", { name: "停止生成", exact: true }).click();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  const queued = await page.evaluate(async () => (await window.zhixing.invoke({ type: "load", sessionId: localStorage.getItem("last-session") })).data);
+  assert.equal(queued.pendingRequests[0].execution, "read");
+  assert.equal(queued.pendingRequests[0].contextAllowed, true);
+  assert.equal(queued.pendingRequests[0].topicId, "agent-development");
   const captures = path.join(os.tmpdir(), "zhixing-desktop-preview"); await fs.mkdir(captures, { recursive: true });
   await page.screenshot({ path: path.join(captures, "learning-conversation.png"), animations: "disabled" });
   await running.app.close(); running = await launch(); page = running.page;
@@ -94,6 +98,9 @@ try {
   await page.getByRole("button", { name: "立即调整", exact: true }).click();
   await page.locator(".user-message").getByText("纠正：改用数据库例子", { exact: true }).waitFor();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  const steered = await page.evaluate(async () => (await window.zhixing.invoke({ type: "load", sessionId: localStorage.getItem("last-session") })).data);
+  assert.ok(steered.messages.at(-1).steerId);
+  assert.equal(steered.messages.at(-1).taskId, steered.messages.at(-3).taskId);
   await page.locator(".source-list button").first().waitFor({ state: "attached" });
   assert.equal(await page.getByRole("combobox", { name: "学习主题", exact: true }).inputValue(), "agent-development");
   assert.equal(await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).isChecked(), true);

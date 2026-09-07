@@ -66,6 +66,31 @@ try {
   assert.ok(restored.sessions.some((item) => item.title.endsWith("· 恢复")));
   const restoredEvidence = await page.evaluate(async () => (await window.zhixing.invoke({ type: "evidence-list", topicId: "agent-development", dayId: "D01" })).data);
   assert.equal(restoredEvidence.artifacts.length, 1);
+  // Presentation regression: blocked tasks offer an explicit retry with the same identity.
+  const blocked = await page.evaluate(async () => (await window.zhixing.invoke({ type: "new" })).data);
+  const blockedTaskId = randomUUID();
+  blocked.messages = [{ id: randomUUID(), role: "user", text: "继续合成任务", status: "completed", createdAt: now }, { id: randomUUID(), role: "assistant", text: "任务尚未完成：合成阻塞。", status: "blocked", provider: "demo", taskId: blockedTaskId, createdAt: now }];
+  await fs.writeFile(path.join(data, "conversations", `${blocked.id}.json`), JSON.stringify(blocked));
+  await page.evaluate(id => localStorage.setItem("last-session", id), blocked.id); await page.reload();
+  await page.getByText("任务尚未完成：合成阻塞。", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "重试", exact: true }).click();
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  const retried = await page.evaluate(async id => (await window.zhixing.invoke({ type: "load", sessionId: id })).data, blocked.id);
+  assert.equal(retried.messages.at(-1).taskId, blockedTaskId);
+  assert.equal(retried.messages.at(-1).status, "completed");
+  // A persisted reply without a subsequent run must still expose a continuation action.
+  const answered = await page.evaluate(async () => (await window.zhixing.invoke({ type: "new" })).data);
+  const answeredTaskId = randomUUID();
+  answered.messages = [{ id: randomUUID(), role: "user", text: "继续合成问答", status: "completed", createdAt: now }, { id: randomUUID(), role: "assistant", text: "", status: "waiting", provider: "demo", taskId: answeredTaskId, createdAt: now, items: [{ id: randomUUID(), kind: "question", title: "合成选择", options: [], status: "answered", answer: "数组" }] }];
+  await fs.writeFile(path.join(data, "conversations", `${answered.id}.json`), JSON.stringify(answered));
+  await page.evaluate(id => localStorage.setItem("last-session", id), answered.id); await page.reload();
+  await page.getByRole("button", { name: "继续回答", exact: true }).click();
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  const continued = await page.evaluate(async id => (await window.zhixing.invoke({ type: "load", sessionId: id })).data, answered.id);
+  assert.equal(continued.messages.at(-1).taskId, answeredTaskId);
+  assert.equal(continued.messages.at(-1).status, "completed");
   assert.deepEqual(errors, []);
-  console.log("Interactions UI passed: concrete approval, exact-once artifact, question reply, edit-and-fork, reset permissions and comparison with the parent conversation, skill preview, full backup and non-destructive restore.");
+  console.log("Interactions UI passed: concrete approval, exact-once artifact, question reply, edit-and-fork, reset permissions and comparison with the parent conversation, skill preview, full backup, non-destructive restore, blocked-task retry identity, and recovery after a persisted reply.");
 } finally { await app?.close(); await fs.rm(data, { recursive: true, force: true }); }

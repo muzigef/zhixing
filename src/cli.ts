@@ -1,3 +1,6 @@
+import { providerRuntime } from "./assistant-runtime.js";
+import { CliAgentTransport } from "./cli-agent-transport.js";
+import { providerSchema } from "./agent-session-contracts.js";
 import crypto from "node:crypto";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -10,7 +13,7 @@ import { ZhixingDatabase } from "./database.js";
 import { importStagedDocument } from "./import-command.js";
 import { DocumentLibrary } from "./library.js";
 import { PathPolicy } from "./paths.js";
-import { MockModelClient } from "./model.js";
+import { isContinuableModelClient, MockModelClient } from "./model.js";
 import { ProviderRegistry } from "./provider-registry.js";
 import { ProviderRuntime } from "./provider-runtime.js";
 import { ModelRoutingStore } from "./model-routing-store.js";
@@ -42,7 +45,7 @@ import { CurrentTopicStore } from "./current-topic-store.js";
 import { TeachingSessionStore, type TeachingSession } from "./teaching-session-store.js";
 import { LearningContextBuilder } from "./learning-context.js";
 import { authorizeConversationTransition } from "./conversation-policy.js";
-import { runLearningAgent } from "./learning-agent.js";
+import { learningAgentRequest } from "./learning-agent.js";
 import { completeTeachingTurn } from "./teaching-turn.js";
 import { routeConversation } from "./conversation-routing.js";
 import { ResponseStyleStore, parseResponseStyle, responseGuidelines, styleLabels } from "./response-style.js";
@@ -109,6 +112,22 @@ let responseStyle = await responseStyles.load(activeTopic);
 const chats = new ConversationSessionStore(policy);
 let chat = await chats.current(activeTopic) ?? emptyConversation(activeTopic, teachingSession ? "lesson" : "chat");
 conversation.push(...conversationHistory(chat));
+let cliAgent = createCliAgent();
+chat = await cliAgent.recover(chat);
+conversation.splice(0, conversation.length, ...conversationHistory(chat));
+function createCliAgent(): CliAgentTransport {
+  return new CliAgentTransport(root, learning, provider => providerRegistry.client(provider) ?? mockProvider, async (session, request) => {
+    const history = session.messages.slice(0, -2).map(message => `${message.role === "user" ? "用户" : "助手"}：${message.text}`).slice(-10);
+    const allowMaterials = /\s+--允许外发$/.test(request.text);
+    const question = request.text.replace(/\s+--允许外发$/, "");
+    const context = await learningContext.build(activeTopic, question);
+    const client = providerRegistry.client(request.provider) ?? mockProvider;
+    const invocation = isContinuableModelClient(client)
+      ? learningAgentRequest(learning.tools(allowMaterials), { topicId: activeTopic, question, style: request.style, history, context, confirmed: modelContextAllowed() })
+      : { role: "tutor" as const, providerId: "routed", prompt: answerPrompt(question, request.style, context, history), containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false };
+    return { runtime: providerRuntime(request.provider, client), request: { ...invocation, materialContext: true, onText: text => { liveText?.write(text); } } };
+  }, text => { if (replMode) { if (liveText) liveText.write(text); else writeLive(text); } });
+}
 let replying = false;
 let responseStartedAt = 0;
 let replInput: ReplInput | undefined;
@@ -148,11 +167,12 @@ async function selectActiveTopic(topicId: TopicId): Promise<void> {
   activeTopic = topicId;
   teachingSession = restored;
   responseStyle = restoredStyle;
-  chat = restoredChat;
+  chat = await cliAgent.recover(restoredChat);
   conversation.splice(0, conversation.length, ...conversationHistory(chat));
 }
 
 async function restoreDatabaseSafely(file: string): Promise<void> {
+  await cliAgent.service.pauseMaintenance();
   await previewBackup(file);
   database.close();
   try {
@@ -164,6 +184,7 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
     library = new DocumentLibrary(database, policy);
     learning = new LearningApplication(root, registry, database, library, runtime);
     learningContext = new LearningContextBuilder(learningProfiles, database, library);
+    cliAgent = createCliAgent();
     throw error;
   }
   database = new ZhixingDatabase(path.join(root, "zhixing", "db", "zhixing.sqlite"));
@@ -172,12 +193,35 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
   library = new DocumentLibrary(database, policy);
   learning = new LearningApplication(root, registry, database, library, runtime);
   learningContext = new LearningContextBuilder(learningProfiles, database, library);
+  cliAgent = createCliAgent();
 }
 
 async function execute(line: string): Promise<string> {
   let command = line.trim();
   if (!command) return "";
   if (command.length > 8_000) return "这条消息太长，请拆成几条发送（每条最多 8,000 字符）。";
+  if (["/queue", "/queue resume", "/queue clear"].includes(command)) {
+    await cliAgent.ensure(chat);
+    if (command === "/queue resume") { await cliAgent.service.resumeQueue(chat.id); await cliAgent.service.idle(); chat = await chats.save(await cliAgent.projection(chat)); conversation.splice(0, conversation.length, ...conversationHistory(chat)); }
+    if (command === "/queue clear") for (const item of (await cliAgent.service.load(chat.id)).pendingRequests ?? []) await cliAgent.service.withdraw(chat.id, item.id);
+    const state = await cliAgent.service.load(chat.id);
+    return `待发送 ${state.pendingRequests?.length ?? 0} 条${state.queuePaused ? "（已暂停，/queue resume 继续）" : ""}\n${state.pendingRequests?.map(item => item.text).join("\n") ?? ""}`;
+  }
+  if (command.startsWith("/agent ") || command.startsWith("/answer ")) {
+    if (!providers.supportsTools("tutor")) throw new Error("provider_tools_unsupported");
+    chat = await chats.save(chat);
+    await cliAgent.ensure(chat);
+    const answer = /^\/answer\s+([0-9a-f-]{36})\s+([\s\S]+)$/.exec(command);
+    if (answer) await cliAgent.service.answerInteraction(chat.id, answer[1]!, answer[2]!);
+    else if (command.startsWith("/agent ")) await cliAgent.service.send({ sessionId: chat.id, text: command, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle, topicId: activeTopic, contextAllowed: /\s+--允许外发$/.test(command) });
+    else return "用法：/answer <卡片 ID> allow|deny|回答内容";
+    await cliAgent.service.idle();
+    const session = await cliAgent.service.load(chat.id); const message = session.messages.at(-1)!;
+    chat = await chats.save(await cliAgent.projection(chat)); conversation.splice(0, conversation.length, ...conversationHistory(chat));
+    const cards = session.messages.flatMap(entry => entry.items ?? []).filter(item => (item.kind === "question" || item.kind === "approval") && item.status === "pending").map(item => `${"title" in item ? item.title : ""}\n/answer ${item.id} ${item.kind === "approval" ? "allow 或 deny" : "你的回答"}`);
+    return [replMode ? "" : message.text, message.error, ...cards].filter(Boolean).join("\n\n");
+  }
+
   if (["/new", "新对话", "重新聊一个话题"].includes(command)) return run("conversation_new", activeTopic, async () => {
     chat = await chats.save(emptyConversation(activeTopic)); conversation.length = 0;
     pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
@@ -190,7 +234,7 @@ async function execute(line: string): Promise<string> {
       return recent.length ? `最近对话：\n${recent.map((item) => `- ${item.title}\n  /resume ${item.id}`).join("\n")}\n\n复制对应 /resume 命令恢复。` : "当前主题还没有保存的对话。";
     }
     if (!/^[0-9a-f-]{36}$/.test(resume[1])) return "会话编号无效。用 /resume 查看当前主题的对话。";
-    chat = await chats.save(await chats.load(activeTopic, resume[1]));
+    chat = await chats.save(await cliAgent.recover(await chats.load(activeTopic, resume[1])));
     conversation.splice(0, conversation.length, ...conversationHistory(chat));
     pendingConversationPlan = undefined; awaitingPlanDetails = false; planningHistory.length = 0;
     return `已恢复对话：${chat.turns[0]?.user.slice(0, 60) ?? "新对话"}。可以直接接着说。`;
@@ -200,6 +244,7 @@ async function execute(line: string): Promise<string> {
   if (["/retry", "重试", "再试一次"].includes(command)) {
     const previous = chat.turns.at(-1);
     if (!previous) return "还没有可重试的问题。可以直接输入。";
+    await cliAgent.resumeLast(chat);
     command = `重新回答上一个请求：${previous.user}`;
     forceConversation = true;
   }
@@ -218,7 +263,8 @@ async function execute(line: string): Promise<string> {
 - 停止或调整当前回答：停止 / 等等，换个例子 / /steer 新要求
 - 会话：/new 开启新对话，/resume 找回旧对话，继续 / 重试
 - 多行输入：/paste 后粘贴，单独 /send 发送；也可用反斜杠换行
-- 排队：/queue 查看，/queue clear 撤回未处理消息
+- 排队：/queue 查看，/queue clear 撤回，/queue resume 继续持久队列
+- 应用任务：/agent <任务> --允许外发；/answer <卡片 ID> allow|deny|回答内容
 - 调整计划：直接描述需求；确认草案后执行
 - 取消草案：/cancel-plan
 - 退出：退出 或 /exit
@@ -310,14 +356,15 @@ async function execute(line: string): Promise<string> {
   if (agentQuestion) return run("learning_agent", activeTopic, async (lifecycle, signal) => {
     const allowMaterials = /\s+--允许外发$/.test(agentQuestion);
     const question = agentQuestion.replace(/\s+--允许外发$/, "").trim();
+    if (!providers.supportsTools("tutor")) throw new Error("provider_tools_unsupported");
     const tools = learning.tools(allowMaterials);
     announceModelWork();
     const streamed = beginLiveModelText("学习助手（实时）");
-    const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
-      topicId: activeTopic, question, style: responseStyle, history: conversation, confirmed: modelContextAllowed(), onText,
+    const result = await collectReply(command, learningAgentRequest(tools, {
+      topicId: activeTopic, question, style: responseStyle, history: conversation, confirmed: modelContextAllowed(), onText: streamed,
       onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
       onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
-    }, signal), signal);
+    }), signal);
     return modelReply(result, Boolean(streamed));
   });
   const topicSelection = /^学习\s+(.+)$/.exec(command)?.[1]?.trim();
@@ -611,11 +658,11 @@ async function execute(line: string): Promise<string> {
       const tools = learning.tools(allowMaterials);
       const context = await learningContext.build(activeTopic, question);
       const streamed = beginLiveModelText("知行");
-      const result = await recordReply(command, streamed, (onText) => runLearningAgent(providers, tools, {
-        topicId: activeTopic, question, style: responseStyle, history: conversation, context, confirmed: modelContextAllowed(), onText,
+      const result = await collectReply(command, learningAgentRequest(tools, {
+        topicId: activeTopic, question, style: responseStyle, history: conversation, context, confirmed: modelContextAllowed(), onText: streamed,
         onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record),
         onTool: async (name, phase) => { showToolActivity(name, phase); await lifecycle.tool(name, phase); },
-      }, signal), signal);
+      }), signal);
       return modelReply(result, Boolean(streamed));
     }
     if (route === "answer") {
@@ -668,29 +715,19 @@ function showToolActivity(name: string, phase: "started" | "finished" | "failed"
 
 function statusSummary(state?: ReplSnapshot): string {
   const working = state?.running || replying;
-  return `当前主题：${registry.get(activeTopic).title}（${activeTopic}）\n${working ? `${replying ? "正在回答" : "正在处理"} · ${activity} · ${Math.max(0, Math.floor((Date.now() - responseStartedAt) / 1000))} 秒` : "可以继续提问"} · 排队 ${state?.queued ?? 0} 条\n回答风格：${styleLabels[responseStyle]}${chat.mode === "lesson" && teachingSession ? `\n教学：${teachingSession.dayId ?? "当前任务"} · ${teachingSession.stage === "practice" ? "练习" : "答疑"}` : ""}${pendingConversationPlan ? "\n有待执行草案，可说“就按这个来”或“取消草案”。" : ""}`;
+  return `当前主题：${registry.get(activeTopic).title}（${activeTopic}）\n${working ? `${replying ? "正在回答" : "正在处理"} · ${activity} · ${Math.max(0, Math.floor((Date.now() - responseStartedAt) / 1000))} 秒` : "可以继续提问"} · 排队 ${(state?.queued ?? 0) + cliAgent.queued} 条\n回答风格：${styleLabels[responseStyle]}${chat.mode === "lesson" && teachingSession ? `\n教学：${teachingSession.dayId ?? "当前任务"} · ${teachingSession.stage === "practice" ? "练习" : "答疑"}` : ""}${pendingConversationPlan ? "\n有待执行草案，可说“就按这个来”或“取消草案”。" : ""}`;
 }
 
 async function collectReply(userInput: string, request: InvocationRequest, signal: AbortSignal): Promise<InvocationResult> {
-  return recordReply(userInput, request.onText, (onText) => collectInvocation(providers, { ...request, onText }, signal), signal);
-}
-
-/** Save the real user turn before requesting text, then keep partial text on interruption. */
-async function recordReply(userInput: string, display: InvocationRequest["onText"], produce: (onText: NonNullable<InvocationRequest["onText"]>) => Promise<InvocationResult>, signal: AbortSignal): Promise<InvocationResult> {
-  chat = await chats.save({ ...chat, turns: [...chat.turns, { user: userInput, assistant: "", status: "running" }] });
-  const turn = chat.turns.at(-1)!;
+  chat = await chats.save(chat);
   replying = true; responseStartedAt = Date.now(); activity = "思考中";
   try {
-    const result = await produce((text, providerId) => { activity = "正在生成"; turn.assistant += text; display?.(text, providerId); });
-    turn.assistant = result.text;
-    turn.status = result.partial ? "incomplete" : "completed";
-    return result;
-  } catch (error) {
-    turn.status = signal.aborted || error instanceof Error && error.name === "AbortError" ? "interrupted" : "failed";
-    throw error;
+    return await cliAgent.invoke(chat, { text: userInput, provider: providerSchema.parse(providerRegistry.routedProvider(request.role) ?? "mock"), style: responseStyle, contextAllowed: request.confirmed }, {
+      runtime: providers, signal, request: { ...request, materialContext: request.containsUserMaterials, onText: (text, providerId) => { activity = "正在生成"; request.onText?.(text, providerId); } },
+    });
   } finally {
     replying = false;
-    chat = await chats.save(chat);
+    chat = await chats.save(await cliAgent.projection(chat));
     conversation.splice(0, conversation.length, ...conversationHistory(chat));
   }
 }
@@ -905,7 +942,7 @@ async function run(command: string, topicId: TopicId, action: (lifecycle: import
 
 let releaseShutdown: (() => void) | undefined;
 const shutdown = new Promise<void>((resolve) => { releaseShutdown = resolve; });
-process.on("SIGINT", () => { void runs.cancel(); releaseShutdown?.(); });
+process.on("SIGINT", () => { cliAgent.interrupt(); void runs.cancel(); releaseShutdown?.(); });
 process.on("SIGTERM", () => { void runs.cancel(); releaseShutdown?.(); });
 
 function presentError(error: unknown): string {
@@ -943,7 +980,7 @@ try {
         printOutput(await execute(line));
       },
       canSteer: () => replying,
-      interrupt: () => runs.cancel(),
+      interrupt: async (steer) => { cliAgent.interrupt(steer); await runs.cancel(); },
       status: (state) => { liveText?.flush(); stdout.write("\n"); printOutput(statusSummary(state)); },
       notice: (text) => { if (stdout.isTTY) process.stderr.write(`\n${text}\n`); },
       error: (error) => console.error(presentError(error)),
@@ -955,10 +992,22 @@ try {
       }
     };
     reader.on("SIGINT", () => { composer.cancel(); reader.write(null, { ctrl: true, name: "u" }); replOutput?.endInput(); void queue.interrupt(); if (!queue.snapshot().running) { stdout.write("\n"); reader.prompt(); } });
+    const submissions = new Set<Promise<unknown>>();
     reader.on("line", (line) => {
       replOutput?.endInput();
       const input = composer.accept(line);
-      if (input.kind === "message") queue.submit(input.text);
+      if (input.kind === "message") {
+        const steering = /^\/steer\s+([\s\S]+)$/.exec(input.text)?.[1] ?? /^(?:等等|等一下|不对|停一下)[，,:：]\s*([\s\S]+)$/.exec(input.text)?.[1];
+        const text = steering ?? input.text;
+        const local = /^(?:\/|退出$|exit$|quit$|停止$|停一下$|暂停回答$|当前状态$|学习 |开始|进度$|下一步$|模型|取消草案$)/.test(text);
+        if (cliAgent.service.activeSessionId === chat.id && input.text === "/queue clear") {
+          const pending = execute(input.text).then(printOutput).catch(error => console.error(presentError(error)));
+          submissions.add(pending); void pending.finally(() => submissions.delete(pending)); queue.submit(input.text);
+        } else if (cliAgent.service.activeSessionId === chat.id && chat.mode === "chat" && !local) {
+          const pending = cliAgent.service.enqueue({ sessionId: chat.id, text, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle }, Boolean(steering)).catch(error => console.error(presentError(error)));
+          submissions.add(pending); void pending.finally(() => submissions.delete(pending));
+        } else queue.submit(input.text);
+      }
       else if (stdout.isTTY) { if (input.hint) printOutput(input.hint); reader.setPrompt("… "); reader.prompt(); }
       reader.setPrompt("› ");
     });
@@ -968,7 +1017,9 @@ try {
     }
     await new Promise<void>((resolve, reject) => { reader.once("close", resolve); reader.once("error", reject); });
     replOutput?.endInput();
+    await Promise.all(submissions);
     await queue.drain();
+    await cliAgent.service.idle();
     reader.close();
   }
 } catch (error) {
@@ -977,5 +1028,6 @@ try {
 } finally {
   replInput?.close();
   await syncServer?.close();
+  await cliAgent.service.pauseMaintenance();
   database.close();
 }

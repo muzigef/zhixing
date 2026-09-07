@@ -12,6 +12,7 @@ export interface ToolDefinition<I, O> {
 }
 export interface ToolExecutionContext {
   readonly topicId: TopicId;
+  readonly callId?: string;
   readonly signal: AbortSignal;
   /** The control plane supplies the maximum capability for this run. */
   readonly maxRisk?: ToolRisk;
@@ -25,6 +26,7 @@ export class ToolHarness {
     if (this.#tools.has(tool.name)) throw new Error(`duplicate_tool: ${tool.name}`);
     this.#tools.set(tool.name, tool as ToolDefinition<unknown, unknown>);
   }
+  isReplaySafe(name: string): boolean { return this.#tools.get(name)?.idempotent === true; }
   preview(name: string, input: unknown, topicId: TopicId): { risk: ToolRisk; input: unknown } {
     const tool = this.#tools.get(name); if (!tool) throw new Error("tool_not_allowed");
     if (input && typeof input === "object" && "topicId" in input && input.topicId !== topicId) throw new Error("cross_topic_denied");

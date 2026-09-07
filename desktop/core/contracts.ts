@@ -2,8 +2,6 @@ import { z } from "zod";
 import { topicIdSchema } from "../../src/contracts.js";
 import { citationSchema, type WorkspaceSummary } from "../../src/learning-contracts.js";
 import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
-import { assistantItemSchema } from "../../src/assistant-interactions.js";
-import { modelTimingSchema } from "../../src/model-telemetry.js";
 import { outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema } from "../../src/outcome-contracts.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
@@ -21,68 +19,10 @@ export const settingsSchema = z.object({
     .default("deepseek-v4-flash"),
 });
 export type DesktopSettings = z.infer<typeof settingsSchema>;
-export const messageSchema = z.object({
-  id: z.string().uuid(),
-  role: z.enum(["user", "assistant"]),
-  text: z.string().max(64_000),
-  status: z.enum(["running", "completed", "interrupted", "failed", "waiting"]),
-  items: z.array(assistantItemSchema).max(100).optional(),
-  createdAt: z.string().datetime(),
-  error: z.string().max(500).optional(),
-  provider: providerSchema.optional(),
-  style: styleSchema.optional(),
-  model: z.string().max(128).optional(),
-  reasoning: reasoningSchema.optional(),
-  usage: z.object({ inputTokens: z.number().nonnegative(), outputTokens: z.number().nonnegative(), cacheReadTokens: z.number().nonnegative().optional(), reasoningTokens: z.number().nonnegative().optional(), startupMs: z.number().nonnegative().optional() }).optional(),
-  taskId: z.string().uuid().optional(),
-  durationMs: z.number().nonnegative().optional(),
-  firstTokenMs: z.number().nonnegative().optional(),
-  modelTimings: z.array(modelTimingSchema).max(6).optional(),
-  citations: z.array(citationSchema).max(24).optional(),
-  retrievedCitations: z.array(citationSchema).max(24).optional(),
-  activities: z.array(z.object({ label: z.string().max(120), status: z.enum(["running", "completed", "failed"]), at: z.string().datetime() })).max(100).optional(),
-  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), toolMs: z.number().nonnegative().optional(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative(), taskCompleted: z.boolean().optional() }).optional(),
-});
-export type ChatMessage = z.infer<typeof messageSchema>;
-export const chatSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2)]),
-  id: z.string().uuid(),
-  title: z.string().min(1).max(80),
-  customTitle: z.boolean().default(false),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  messages: z.array(messageSchema).max(1000),
-  topicId: topicIdSchema.optional(),
-  workspaceId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  study: z.object({ id: z.string().uuid(), mode: outcomeModeSchema }).optional(),
-  contextAllowed: z.boolean().optional(),
-  executionAllowed: z.boolean().optional(),
-  parent: z.object({ sessionId: z.string().uuid(), messageId: z.string().uuid().optional() }).optional(),
-  context: z.object({
-    goal: z.string().max(4000), notes: z.string().max(4000),
-    summary: z.string().max(4000).optional(), summaryThroughId: z.string().uuid().optional(),
-    lastAttemptId: z.string().uuid().optional(),
-  }).optional(),
-  pendingRequests: z.array(z.object({ id: z.string().uuid(), text: z.string().min(1).max(20_000), provider: providerSchema, style: styleSchema, reasoning: reasoningSchema.optional(), enqueuedAt: z.string().datetime() })).max(10).optional(),
-  queuePaused: z.boolean().optional(),
-  queueError: z.string().max(500).optional(),
-});
-export type ChatSession = z.infer<typeof chatSchema>;
-export type SessionSummary = Omit<
-  ChatSession,
-  "version" | "messages" | "customTitle"
->;
-export const sendSchema = z.object({
-  sessionId: z.string().uuid(),
-  text: z.string().trim().min(1).max(20_000),
-  provider: providerSchema,
-  style: styleSchema,
-  reasoning: reasoningSchema.optional(),
-  topicId: topicIdSchema.optional(),
-  contextAllowed: z.boolean().optional(),
-  execution: z.enum(["read", "once", "session"]).optional(),
-  resumeTaskId: z.string().uuid().optional(),
-});
+export { messageSchema, chatSchema } from "../../src/agent-session-contracts.js";
+export type { ChatMessage, ChatSession, SessionSummary, AgentEvent as DesktopEvent } from "../../src/agent-session-contracts.js";
+import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent } from "../../src/agent-session-contracts.js";
+export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("boot") }),
@@ -160,10 +100,6 @@ export interface BootState {
   model: ModelStatus;
   activeSessionId: string | null;
 }
-export type DesktopEvent =
-  | { type: "session"; session: ChatSession }
-  | { type: "delta"; sessionId: string; messageId: string; text: string }
-  | { type: "settled"; sessionId: string };
 export type DesktopResult =
   { ok: true; data: unknown } | { ok: false; error: string };
 export interface DesktopBridge {

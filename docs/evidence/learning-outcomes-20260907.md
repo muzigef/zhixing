@@ -62,3 +62,9 @@ npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learnin
 - 本轮真实请求只使用 Pi；DeepSeek 使用既有共享通道与 UI/自动回归，未重跑 DeepSeek 真实教学请求。
 - 未重新构建安装包或验收 Windows/Intel/签名/公证/远端 CI。当前源码可通过 `npm run desktop` 体验。
 - 下一步由真实学习者使用、复核解释并校准题卷；不凭测试数量宣布教学效果提高。
+
+## README 定位补充
+
+后续按用户要求将设计理念和通用 Agent 差异整理到[根 README](../../README.md)：明确学习者独立运用知识的目标、六项设计原则、任务交付与学习验收的区别，以及当前实现与后续目标的边界。此项仅更新文档。
+
+本次已核对当前实现说明和 README 本地链接；`npm run verify` 退出 0，79 个文件 / 359 个测试及完整质量门通过，日志为 `/tmp/zhixing-readme-philosophy-verify.log`。没有重跑 Electron UI、真实模型或安装包验收。

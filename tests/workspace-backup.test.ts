@@ -44,3 +44,27 @@ it("rejects linked source data instead of following it outside the workspace", a
     await expect(createWorkspaceBackup(app, new DesktopStore(path.join(root, "desktop")), path.join(root, "exports"), "0.4.0", new AbortController().signal)).rejects.toThrow("backup_link_denied");
   } finally { app.close(); await fs.rm(root, { recursive: true, force: true }); }
 });
+it("includes CLI execution sessions and restores pending approvals with grants cleared", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-backup-journal-")); const app = await LearningApplication.open(path.join(root, "workspace"), process.cwd());
+  try {
+    const { AgentExecutionStore } = await import("../src/agent-execution-store.js");
+    const desktop = new DesktopStore(path.join(root, "desktop"));
+    const cli = new DesktopStore(path.join(app.root, "zhixing/agent")); const source = await cli.create();
+    source.topicId = "agent-development"; source.workspaceId = app.summary().id; source.contextAllowed = true; source.executionAllowed = true;
+    const taskId = crypto.randomUUID(); const callId = "backup-call";
+    source.messages.push({ id: crypto.randomUUID(), role: "assistant", text: "", status: "waiting", createdAt: new Date().toISOString(), taskId, items: [{ id: crypto.randomUUID(), callId, kind: "approval", tool: "save_artifact", title: "保存合成产物", input: { dayId: "D01", kind: "implementation", text: "export const answer = 42;" }, status: "answered", answer: "allow" }] });
+    await cli.save(source);
+    const journal = new AgentExecutionStore(app.database, { taskId, sessionId: source.id, topicId: source.topicId }); const release = journal.claim();
+    journal.save({ version: 1, status: "waiting", prompt: "合成备份任务", containsMaterials: true, history: [], decisions: { [callId]: { answer: "allow", scope: "once" } }, pending: { events: [{ type: "tool_call", tool: "save_artifact", callId, input: {} }], toolResults: [], phase: "waiting", next: 0 } }, "fixture"); release();
+    const backup = await createWorkspaceBackup(app, desktop, path.join(root, "exports"), "0.4.1", new AbortController().signal);
+    const restored = await restoreWorkspaceBackup(backup, path.join(root, "copies"), desktop, new AbortController().signal);
+    const copy = await LearningApplication.open(restored.workspace, process.cwd());
+    try {
+      const session = await new DesktopStore(path.join(restored.workspace, "zhixing/agent")).load(source.id);
+      expect(session.executionAllowed).toBe(false); expect(session.contextAllowed).toBe(false); expect(session.workspaceId).toBe(copy.summary().id);
+      expect(session.messages[0]?.items?.[0]).toMatchObject({ status: "pending" });
+      const checkpoint = new AgentExecutionStore(copy.database, { taskId, sessionId: source.id, topicId: source.topicId }).read();
+      expect(checkpoint?.decisions).toEqual({}); expect(checkpoint?.status).toBe("interrupted");
+    } finally { copy.close(); }
+  } finally { app.close(); await fs.rm(root, { recursive: true, force: true }); }
+});

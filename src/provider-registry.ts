@@ -26,6 +26,8 @@ export class ProviderRegistry {
 
   routedProvider(role: ModelRole): string | undefined { return this.#routing.get(role); }
 
+  client(providerId: string): ModelClient | undefined { return this.#providers.get(providerId)?.client; }
+
   resolve(role: ModelRole): ModelClient | undefined {
     const providerId = this.#routing.get(role);
     return providerId ? this.#providers.get(providerId)?.client : undefined;

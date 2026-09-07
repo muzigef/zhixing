@@ -8,11 +8,18 @@ export interface ModelEvent { readonly type: "text_delta" | "tool_call" | "tool_
 /** Public tool schema advertised to providers; execution remains in ToolHarness. */
 export interface ModelToolDefinition { readonly name: string; readonly description: string; readonly inputSchema: Readonly<Record<string, unknown>>; }
 /** Complete prior turns are owned by the invocation, never shared by provider instances. */
-export interface ModelTurn { readonly events: readonly ModelEvent[]; readonly toolResults: readonly ToolResultMessage[]; }
+export interface ModelTurn { readonly events: readonly ModelEvent[]; readonly toolResults: readonly ToolResultMessage[]; readonly feedback?: string; readonly toolState?: string; }
 /** Per-request context required for protocol-correct, isolated tool continuation. */
 export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; readonly messages?: readonly ModelMessage[]; readonly reasoning?: ReasoningProfile; }
 export interface ModelClient { stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
-export interface ToolResultMessage { readonly tool: string; readonly result: unknown; readonly callId?: string; }
+export interface ToolResultMessage {
+  readonly tool: string;
+  readonly result: unknown;
+  readonly callId?: string;
+  readonly toolState?: string;
+  /** Runtime-owned cancellation metadata, never inferred from a tool's output. */
+  readonly dispatch?: "not_started" | "unknown";
+}
 /** Optional capability: a provider can continue an agent turn after controlled tool results. */
 export interface ContinuableModelClient extends ModelClient {
   continue(prompt: string, toolResults: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>;

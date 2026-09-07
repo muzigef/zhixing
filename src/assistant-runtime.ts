@@ -8,9 +8,11 @@ import type { ModelAuditRecord } from "./model-audit.js";
 import { ProviderRegistry } from "./provider-registry.js";
 import { ProviderRuntime } from "./provider-runtime.js";
 import { WorkflowLedger } from "./workflow-ledger.js";
+import { AgentExecutionStore } from "./agent-execution-store.js";
 import { TaskExecutionStore } from "./task-execution.js";
+import { verifiedTaskSnapshot } from "./application-tools.js";
 import { randomUUID } from "node:crypto";
-import { addQuestionTool, type AssistantItem, type PendingInteraction } from "./assistant-interactions.js";
+import { addQuestionTool, interactionId, type AssistantItem, type PendingInteraction } from "./assistant-interactions.js";
 import { ToolHarness } from "./tool-harness.js";
 import { citationMarker } from "./citation-marker.js";
 
@@ -26,7 +28,7 @@ export function providerRuntime(providerId: string, client: ModelClient): Provid
 export async function runAssistantTask(options: {
   runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
   messages?: readonly ModelMessage[];
-  taskId?: string; allowWrites?: boolean;
+  taskId?: string; sessionId?: string; resumeInput?: string; steerId?: string; allowWrites?: boolean;
   reasoning?: ReasoningProfile; onUsage?: (usage: ModelUsage) => void;
   onTiming?: (timing: ModelTiming) => void;
   onItem?: (item: AssistantItem) => void;
@@ -54,11 +56,17 @@ export async function runAssistantTask(options: {
   const candidates = new Map<string, Citation>();
   const candidate = (citation: Citation) => { const key = JSON.stringify(citation); if (!candidates.has(key) && candidates.size < 24) { candidates.set(key, citation); options.onCandidate?.(citation); } };
   const taskId = options.taskId ?? options.runId;
+  const execution = options.application ? new AgentExecutionStore(options.application.database, { taskId, sessionId: options.sessionId ?? taskId, topicId: options.topicId ?? "general-chat" }) : undefined;
   const tasks = options.application && options.topicId && options.contextAllowed ? new TaskExecutionStore(options.application.database) : undefined;
   tasks?.begin(taskId, options.topicId!, options.question);
   let tools = options.application && options.topicId && options.contextAllowed && isContinuableModelClient(options.client) ? options.application.tools(true, { taskId, allowWrites: options.allowWrites ?? false }) : undefined;
   let waiting = false;
-  if (options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { await options.onInteraction!(item); waiting = true; });
+  const pause = (callId?: string) => {
+    waiting = true;
+    const checkpoint = execution?.read();
+    if (checkpoint?.pending) { checkpoint.pending.phase = "waiting"; checkpoint.status = "waiting"; execution!.save(checkpoint, "interaction_requested", callId); }
+  };
+  if (options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { pause(item.callId); await options.onInteraction!({ ...item, id: interactionId(taskId, item.callId) }); });
   try {
     if (options.application && options.topicId) {
       activity("context", options.contextAllowed ? "读取学习进度并检索当前主题资料" : "检查本会话的学习上下文授权", "running");
@@ -79,28 +87,41 @@ export async function runAssistantTask(options: {
     contextMs = Date.now() - started;
     activity("answer", "组织回答", "running");
     const result = await collectInvocation(providerRuntime(options.providerId, options.client), {
+      execution, resumeInput: options.resumeInput, steerId: options.steerId, materialContext: options.contextAllowed,
+      canReplayTool: (name) => tools?.harness.isReplaySafe(name) ?? false,
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
       onTiming: options.onTiming,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
       onTurn: options.onTurn, shouldPause: () => waiting,
+      toolState: () => tasks?.snapshot(taskId, options.topicId!).operations.filter(item => item.status === "completed").map(item => item.key).sort().join(":") ?? "",
+      completionCheck: async (signal) => {
+        const snapshot = tasks ? await verifiedTaskSnapshot(options.application!, tasks, taskId, options.topicId!, signal) : undefined;
+        const pending = snapshot?.plan.filter(step => !step.completed);
+        return pending?.length ? pending.map(step => step.title).join("、") : undefined;
+      },
       containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true,
       tools: tools?.definitions,
       onText: options.onText,
       onAudit: (value) => { trace = value; },
-      onToolCall: tools ? async (name, input, toolSignal) => {
+      onToolCall: tools ? async (name, input, toolSignal, callId) => {
+        const decision = callId ? execution?.read()?.decisions[callId] : undefined;
+        if (name === "ask_user" && decision) return { ok: true, output: { answer: decision.answer } };
+        if (["save_artifact", "run_experiment"].includes(name) && decision?.answer === "deny") return { ok: false, errorCode: "tool_policy_denied" };
         const labels: Record<string, string> = { learning_progress: "查看学习进度", list_materials: "查看资料目录", search_materials: "检索资料", task_status: "恢复任务进度", plan_task: "整理执行步骤", save_artifact: "保存学习产物", run_experiment: "运行实验测试" };
         const key = `tool-${++toolSequence}`;
         activity(key, labels[name] ?? "执行学习查询", "running");
-        if (["save_artifact", "run_experiment"].includes(name) && !options.allowWrites && options.onInteraction) {
+        if (["save_artifact", "run_experiment"].includes(name) && !options.allowWrites && decision?.answer !== "allow" && options.onInteraction) {
           const preview = tools!.harness.preview(name, input, options.topicId!);
-          await options.onInteraction({ id: randomUUID(), kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : "运行当前实现与测试", tool: name as "save_artifact" | "run_experiment", input: preview.input as Record<string, unknown>, status: "pending" });
+          pause(callId);
+          await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : "运行当前实现与测试", tool: name as "save_artifact" | "run_experiment", input: preview.input as Record<string, unknown>, status: "pending" });
           waiting = true; activity(key, "等待你授权这项操作", "completed");
           return { ok: false, errorCode: "approval_required" };
         }
         activity("model", "模型请求已完成", "completed");
         const toolStarted = Date.now();
-        const result = await tools!.harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, maxRisk: options.allowWrites ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
+        const harness = decision?.answer === "allow" && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
+        const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: options.allowWrites || decision?.answer === "allow" ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
           options.onItem?.({ id: randomUUID(), kind: "artifact", artifactId: artifact.id, dayId: value.dayId, artifactKind: value.kind, text: value.text });
@@ -119,9 +140,9 @@ export async function runAssistantTask(options: {
     for (const citation of candidates.values()) if ((result.finalText ?? result.text).includes(citationMarker(citation))) options.onCitation(citation);
     activity("answer", result.waiting ? "等待你的回复" : "回答已完成", "completed");
     activity("model", result.waiting ? "等待你的回复" : "模型请求已完成", "completed");
-    ledger?.finish(options.runId, result.waiting ? "waiting" : "completed");
+    ledger?.finish(options.runId, result.waiting ? "waiting" : result.blocked ? "failed" : "completed", result.blocked ? "task_incomplete" : undefined);
     const task = tasks?.snapshot(taskId, options.topicId!);
-    return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
+    return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(result.blocked ? { blocked: true } : {}), ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
   } catch (error) {
     activity("model", signal.aborted ? "模型请求已停止" : "模型请求未完成", "failed");
     activity("answer", signal.aborted ? "任务已停止" : "本轮未完成", "failed");

@@ -5,16 +5,16 @@ import { expect, it } from "vitest";
 import { DesktopStore } from "../desktop/core/store.js";
 import { ZhixingDatabase } from "../src/database.js";
 
-it("reads v1 without rewriting it, preserves the original on save, and rejects future chat versions", async () => {
+it.each([1, 2])("reads v%s without rewriting it, backs it up when saving v3, and rejects future versions", async (version) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-migration-"));
   try {
     const store = new DesktopStore(root); const chat = await store.create();
     const file = path.join(root, "conversations", `${chat.id}.json`);
-    const original = JSON.stringify({ ...chat, version: 1 }); await fs.writeFile(file, original);
-    const loaded = await store.load(chat.id); expect(loaded.version).toBe(2);
+    const original = JSON.stringify({ ...chat, version }); await fs.writeFile(file, original);
+    const loaded = await store.load(chat.id); expect(loaded.version).toBe(3);
     expect(await fs.readFile(file, "utf8")).toBe(original);
-    await store.save(loaded); expect(await fs.readFile(`${file}.v1.bak`, "utf8")).toBe(original);
-    expect(JSON.parse(await fs.readFile(file, "utf8")).version).toBe(2);
+    await store.save(loaded); expect(await fs.readFile(`${file}.v${version}.bak`, "utf8")).toBe(original);
+    expect(JSON.parse(await fs.readFile(file, "utf8")).version).toBe(3);
     await fs.writeFile(file, JSON.stringify({ ...chat, version: 99 }));
     await expect(store.load(chat.id)).rejects.toThrow();
     await expect(store.save(loaded)).rejects.toThrow("storage_version_unsupported");

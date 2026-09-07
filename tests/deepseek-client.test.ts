@@ -85,3 +85,18 @@ describe("DeepSeek client", () => {
     await expect(collect(client)).rejects.toThrow("provider_unavailable: deepseek-api 请求或读取失败");
   });
 });
+
+it("restores native DeepSeek tool messages and application feedback without synthesizing user results", async () => {
+  const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "fixture-value");
+  const client = new DeepSeekClient(secrets, async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    expect(body.messages[1]).toMatchObject({ role: "assistant", tool_calls: [{ id: "original-call", type: "function", function: { name: "save_artifact", arguments: '{"value":1}' } }] });
+    expect(body.messages[2]).toMatchObject({ role: "tool", tool_call_id: "original-call", content: expect.stringContaining("tool_policy_denied") });
+    expect(body.messages[3]).toEqual({ role: "user", content: "继续其他部分" });
+    return new Response(JSON.stringify({ choices: [{ message: { content: "恢复成功" }, finish_reason: "stop" }] }));
+  }, { ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
+  const results = [{ tool: "save_artifact", callId: "original-call", result: { ok: false, errorCode: "tool_policy_denied" } }];
+  const events = [];
+  for await (const event of client.continue("原始任务", results, new AbortController().signal, { history: [{ events: [{ type: "tool_call", tool: "save_artifact", input: { value: 1 }, callId: "original-call" }], toolResults: results, feedback: "继续其他部分" }] })) events.push(event);
+  expect(events.at(-1)?.type).toBe("done");
+});

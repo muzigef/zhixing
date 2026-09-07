@@ -5,6 +5,35 @@ import { expect, it } from "vitest";
 import { LearningApplication } from "../src/learning-application.js";
 import { TaskExecutionStore } from "../src/task-execution.js";
 
+it.each(["extended plan", "new completion", "cancelled check"])("does not let an old verification overwrite %s", async change => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-task-verify-race-"));
+  const app = await LearningApplication.open(root, process.cwd());
+  let release!: () => void; const gate = new Promise<boolean>(resolve => { release = () => resolve(false); });
+  let ready!: () => void; const checking = new Promise<void>(resolve => { ready = resolve; });
+  const controller = new AbortController();
+  try {
+    const tasks = new TaskExecutionStore(app.database); const id = crypto.randomUUID(); const topic = "rag";
+    tasks.begin(id, topic, "合成验证竞态");
+    const first = { id: "first", title: "初始步骤", doneWhen: "artifact_saved" as const, kind: "implementation" as const };
+    tasks.plan(id, topic, [first]);
+    await tasks.execute(id, topic, "save_artifact", { stepId: "first", kind: "implementation", text: "old" }, async () => ({ id: "old" }));
+    const pending = tasks.verify(id, topic, async () => { ready(); return gate; }, controller.signal);
+    await checking;
+    if (change === "extended plan") tasks.plan(id, topic, [{ ...first, title: "保留新标题" }, { id: "second", title: "后续验收", doneWhen: "tests_passed" }]);
+    if (change === "new completion") await tasks.execute(id, topic, "save_artifact", { stepId: "first", kind: "implementation", text: "new" }, async () => ({ id: "new" }));
+    const current = tasks.snapshot(id, topic).plan;
+    if (change === "cancelled check") controller.abort(new Error("cancelled verification"));
+    release();
+    if (change === "cancelled check") await expect(pending).rejects.toThrow("cancelled verification");
+    else await pending;
+    const plan = tasks.snapshot(id, topic).plan;
+    if (change === "extended plan") {
+      expect(plan.map(step => step.title)).toEqual(["保留新标题", "后续验收"]);
+      expect(plan[0]?.completed).toBe(false);
+    } else expect(plan).toEqual(current);
+  } finally { release(); app.close(); await fs.rm(root, { recursive: true, force: true }); }
+});
+
 it("persists a completed operation across reopen, keeps topic isolation and retries failed steps", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-task-execution-"));
   let app = await LearningApplication.open(root, process.cwd());

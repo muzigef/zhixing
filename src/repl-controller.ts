@@ -1,7 +1,7 @@
 export interface ReplSnapshot { running: boolean; queued: number; }
 interface ReplHooks {
   execute: (text: string) => Promise<void>;
-  interrupt: () => Promise<unknown>;
+  interrupt: (steer?: boolean) => Promise<unknown>;
   canSteer?: () => boolean;
   status?: (state: ReplSnapshot) => void;
   notice?: (text: string) => void;
@@ -35,7 +35,7 @@ export class ReplController {
     void this.process();
   }
   async interrupt(notify = true): Promise<void> {
-    try { await this.hooks.interrupt(); if (notify && !this.running) this.hooks.notice?.("当前没有正在生成的回答。"); }
+    try { await this.hooks.interrupt(!notify); if (notify && !this.running) this.hooks.notice?.("当前没有正在生成的回答。"); }
     catch (error) { this.hooks.error?.(error); }
   }
   drain(): Promise<void> { return this.running ? new Promise((resolve) => this.waiters.push(resolve)) : Promise.resolve(); }

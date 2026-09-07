@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-07T09:24:54.453Z",
+  "syntheticOnly": true,
+  "results": [
+    {
+      "provider": "pi-codex",
+      "passed": true,
+      "durationMs": 9065,
+      "streams": 1,
+      "continuations": 1,
+      "restoredTurns": 1,
+      "nativeResults": 1,
+      "artifacts": 1,
+      "sameTask": true,
+      "model": "gpt-5.6-terra",
+      "privateStatePersisted": false
+    },
+    {
+      "provider": "deepseek-api",
+      "passed": true,
+      "durationMs": 1971,
+      "streams": 1,
+      "continuations": 1,
+      "restoredTurns": 1,
+      "nativeResults": 1,
+      "artifacts": 1,
+      "sameTask": true,
+      "model": "deepseek-v4-flash",
+      "privateStatePersisted": false
+    }
+  ]
+}

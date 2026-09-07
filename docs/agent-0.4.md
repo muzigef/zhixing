@@ -46,7 +46,7 @@ system、用户与助手历史、当前请求分别传输。目标、摘要、�
 
 “从备份恢复”先验证清单、路径、逐文件 SHA-256 和数据库版本，再展示文件数确认。恢复到新工作区，会话使用新编号，原工作区和会话保留。当前模型密钥与偏好不覆盖；备份中的 preferences.json 作为存档保留。只将属于已备份工作区的会话绑定到恢复目录，其他工作区的历史保持原关联；写入/资料授权均重置，队列暂停，不自动发模型请求。失败时保留新目录中的未完成副本以便检查，不删除原始数据。
 
-会话 schema 升到 v2；读取 v1 不立即改写，在首次保存前保留 `.json.v1.bak`。数据库采用追加迁移标记 v4，拒绝高于支持版本的数据，不做降级。完整工作区备份与 CLI 原有“仅数据库备份”是不同入口。
+0.4 历史版本使用 v2 会话；2026-09-07 内核源码更新为 v3。读取 v1/v2 不立即改写，首次保存前分别保留 `.json.v1.bak` / `.json.v2.bak`，旧版本不会静默改写 v3。数据库采用追加迁移标记 v4，拒绝高于支持版本的数据，不做降级。完整工作区备份与 CLI 原有“仅数据库备份”是不同入口。
 
 ## 构建、分发与验证范围
 
@@ -55,3 +55,5 @@ system、用户与助手历史、当前请求分别传输。目标、摘要、�
 发布工作流覆盖 macOS arm64、Intel Mac、Windows x64，均配置实际包 UI 验证。Intel 标签采用 GitHub 的 `macos-15-intel`，见[官方 runner 列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)。本机验证不能替代其他平台或远端 CI 结果。
 
 手动触发发布流程时可选择 `sign_macos`。需先配置仓库 Secret：`MAC_CSC_LINK`、`MAC_CSC_KEY_PASSWORD`、`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`。缺少必要配置会失败；启用后强制签名并校验公证票据。凭据只交给构建器，不写进源码或产物清单，规则参考 [electron-builder 签名与公证](https://www.electron.build/v26/docs/features/code-signing/notarization/)。当前本地包未获得 Developer ID 签名和 Apple 公证。
+
+最新的共享会话服务、原生执行检查点和修复重测规则见 [Agent 内核](agent-kernel.md)，未包含在既有安装包中。

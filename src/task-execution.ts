@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { ZhixingDatabase } from "./database.js";
 
 export const taskPlanSchema = z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), title: z.string().min(1).max(120), doneWhen: z.enum(["artifact_saved", "tests_passed"]), kind: z.enum(["implementation", "testScript", "testOutput", "failureCase", "reflection"]).optional() }).strict()).min(1).max(12);
-export type TaskPlanStep = z.infer<typeof taskPlanSchema>[number] & { completed: boolean };
+const storedPlanSchema = z.array(taskPlanSchema.element.extend({ completed: z.boolean(), operationKey: z.string().regex(/^[a-f0-9]{64}$/).optional() })).max(12);
+export type TaskPlanStep = z.infer<typeof storedPlanSchema>[number];
 export const operationKey = (tool: string, input: unknown) => crypto.createHash("sha256").update(`${tool}:${JSON.stringify(input, (_key, value) => value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value)}`).digest("hex");
 export function operationArtifactId(key: string): string { return `${key.slice(0, 8)}-${key.slice(8, 12)}-4${key.slice(13, 16)}-a${key.slice(17, 20)}-${key.slice(20, 32)}`; }
 const active = new WeakMap<ZhixingDatabase, Map<string, Promise<unknown>>>();
@@ -23,7 +24,7 @@ export class TaskExecutionStore {
     const row = this.database.db.prepare("SELECT topic, goal, plan FROM assistant_tasks WHERE id = ?").get(id) as { topic: string; goal: string; plan: string } | undefined;
     if (!row) throw new Error("task_not_found");
     if (row.topic !== topic) throw new Error("cross_topic_denied");
-    const plan = JSON.parse(row.plan) as TaskPlanStep[];
+    const plan = storedPlanSchema.parse(JSON.parse(row.plan));
     const operations = this.database.db.prepare("SELECT key, tool, status, result, input FROM assistant_operations WHERE task_id = ? ORDER BY updated_at").all(id) as { key: string; tool: string; status: string; result: string | null; input: string }[];
     return { id, goal: row.goal, plan, completed: plan.length > 0 && plan.every((step) => step.completed), operations: operations.map((item) => ({ ...item, input: JSON.parse(item.input) as unknown, result: item.result ? JSON.parse(item.result) as unknown : null })) };
   }
@@ -31,9 +32,34 @@ export class TaskExecutionStore {
     const previous = this.snapshot(id, topic).plan;
     const steps = taskPlanSchema.parse(raw);
     if (new Set(steps.map((step) => step.id)).size !== steps.length) throw new Error("task_plan_invalid");
-    const plan = steps.map((step) => ({ ...step, completed: previous.some((old) => old.id === step.id && old.doneWhen === step.doneWhen && old.kind === step.kind && old.completed) }));
+    // The model may clarify/reorder/add steps, but cannot silently remove or lower an accepted requirement.
+    if (previous.some(old => !steps.some(step => step.id === old.id && step.doneWhen === old.doneWhen && step.kind === old.kind))) throw new Error("task_plan_requirement_changed");
+    const plan = steps.map((step) => { const old = previous.find(item => item.id === step.id); return { ...step, completed: old?.completed ?? false, ...(old?.operationKey ? { operationKey: old.operationKey } : {}) }; });
     this.database.db.prepare("UPDATE assistant_tasks SET plan = ? WHERE id = ?").run(JSON.stringify(plan), id);
     return plan;
+  }
+  async verify(id: string, topic: string, isCurrent: (operation: ReturnType<TaskExecutionStore["snapshot"]>["operations"][number]) => Promise<boolean>, signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    const snapshot = this.snapshot(id, topic); const invalid = new Map<string, string | undefined>();
+    for (const step of snapshot.plan.filter(item => item.completed)) {
+      signal?.throwIfAborted();
+      const operation = step.operationKey
+        ? snapshot.operations.find(item => item.key === step.operationKey)
+        : snapshot.operations.findLast(item => (item.input as { stepId?: string })?.stepId === step.id && item.status === "completed");
+      if (!operation || operation.status !== "completed" || !await isCurrent(operation)) invalid.set(step.id, step.operationKey);
+    }
+    signal?.throwIfAborted();
+    // Async artifact reads may outlive a cancelled turn. Merge only unchanged bindings into fresh state.
+    return this.database.db.transaction(() => {
+      const current = this.snapshot(id, topic); let changed = false;
+      for (const step of current.plan) {
+        if (step.completed && invalid.has(step.id) && step.operationKey === invalid.get(step.id)) {
+          step.completed = false; step.operationKey = undefined; changed = true;
+        }
+      }
+      if (changed) this.database.db.prepare("UPDATE assistant_tasks SET plan = ? WHERE id = ?").run(JSON.stringify(current.plan), id);
+      return this.snapshot(id, topic);
+    })();
   }
   async execute(id: string, topic: string, tool: string, input: unknown, action: (key: string) => Promise<unknown>, validateCached?: (result: unknown) => Promise<void>): Promise<unknown> {
     const snapshot = this.snapshot(id, topic);
@@ -65,7 +91,10 @@ export class TaskExecutionStore {
     if (!step) return;
     const validation = result as { status?: string; exitCode?: number };
     if (step.doneWhen === "artifact_saved" && tool === "save_artifact" && (!step.kind || step.kind === data.kind)
-      || step.doneWhen === "tests_passed" && tool === "run_experiment" && validation.status === "completed" && validation.exitCode === 0) step.completed = true;
+      || step.doneWhen === "tests_passed" && tool === "run_experiment" && validation.status === "completed" && validation.exitCode === 0) {
+      step.completed = true;
+      step.operationKey = operationKey(tool, Object.fromEntries(Object.entries(input as Record<string, unknown>).filter(([key]) => key !== "stepId")));
+    }
     this.database.db.prepare("UPDATE assistant_tasks SET plan = ? WHERE id = ?").run(JSON.stringify(plan), id);
   }
 }

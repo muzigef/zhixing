@@ -12,8 +12,8 @@ export class LoopGuard {
     return this.#turns > this.maxTurns ? "max_turns" : undefined;
   }
 
-  recordToolCall(name: string, input: unknown): LoopStopReason | undefined {
-    const key = `${name}:${JSON.stringify(input, (_key, value: unknown) => {
+  recordToolCall(name: string, input: unknown, state = ""): LoopStopReason | undefined {
+    const key = `${state}:${name}:${JSON.stringify(input, (_key, value: unknown) => {
       // Object key order is not part of a tool's meaning; array order is.
       if (value && typeof value === "object" && !Array.isArray(value)) return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
       return value;

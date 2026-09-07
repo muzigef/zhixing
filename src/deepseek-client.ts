@@ -170,13 +170,14 @@ function wireHistory(prompt: string, options?: ModelRequestOptions): WireMessage
       return { id: call.callId, type: "function", function: { name: call.tool, arguments: JSON.stringify(call.input ?? {}) } };
     });
     const state = turn.events.find((event) => event.type === "provider_state")?.result as { deepseekReasoning?: string } | undefined;
-    messages.push({ role: "assistant", content: turn.events.filter((event) => event.type === "text_delta").map((event) => event.text ?? "").join("") || null, tool_calls: tools,
+    messages.push({ role: "assistant", content: turn.events.filter((event) => event.type === "text_delta").map((event) => event.text ?? "").join("") || null, ...(tools.length ? { tool_calls: tools } : {}),
       ...(options?.reasoning && options.reasoning !== "quick" ? { reasoning_content: state?.deepseekReasoning ?? "" } : {}) });
     for (const call of calls) {
       const result = turn.toolResults.find((item) => item.callId === call.callId && item.tool === call.tool);
       if (!result) throw new Error("provider_protocol_error: missing tool result");
       messages.push({ role: "tool", tool_call_id: call.callId, content: JSON.stringify(result.result ?? null) });
     }
+    if (turn.feedback) messages.push({ role: "user", content: turn.feedback });
   }
   return messages;
 }

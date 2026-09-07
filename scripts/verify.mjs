@@ -44,7 +44,7 @@ function collect(directory) {
   const ignored = new Set(["node_modules", "data", "db", "inbox", "coverage", ".git", "build", "release", "test-results"]);
   const files = [];
   for (const entry of readdirSync(directory)) {
-    if (ignored.has(entry)) continue;
+    if (ignored.has(entry) || directory === root && entry === "agent") continue;
     const full = join(directory, entry);
     if (statSync(full).isDirectory()) files.push(...collect(full));
     else files.push(full);

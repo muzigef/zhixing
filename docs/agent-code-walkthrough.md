@@ -1,19 +1,19 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行 Agent：结合代码的架构讲解
 
-本文从一次用户输入开始，说明知行如何把自然语言、模型调用、受控执行、持久化状态和审计组合成一个可恢复的学习 Agent。当前有两个入口：CLI 提供完整学习工作流，桌面提供连续任务和学习工作区；两端经 LearningApplication 共享课程、资料、进度与证据。
+本文从一次用户输入开始，说明知行如何把自然语言、模型调用、受控执行、持久化状态和审计组合成一个可恢复的学习 Agent。当前有两个入口：CLI 提供完整学习工作流，桌面提供连续任务和学习工作区；两端经 AgentService 共享会话运行、工具检查点、审批、纠正与恢复，经 LearningApplication 共享课程、资料、进度与证据。
 
 ## 总体链路
 
 ```text
 CLI 输入 → REPL 队列与控制命令 → cli.ts
   ├─ 确定性命令 → 授权检查 → 学习 Runtime / Store
-  ├─ 普通问答 → 文本 Provider / 只读学习工具循环
+  ├─ 普通问答 → CliAgentTransport → AgentService → 模型/工具循环
   ├─ 教学输入 → 用户作答核对 → 教学检查点
   └─ 计划请求 → JSON 草案 → 用户确认 → 白名单命令
 
 桌面输入 → React → preload → 主进程 IPC 校验
-  → DesktopService → Pi Codex / DeepSeek / demo
+  → DesktopService（AgentService 兼容导出）→ Pi Codex / DeepSeek / demo
   → 文本事件 → React 渲染 + 独立 JSON 会话
 ```
 
@@ -21,7 +21,7 @@ CLI 输入 → REPL 队列与控制命令 → cli.ts
 
 ## 1. CLI 入口负责接入与编排
 
-入口是 [`src/cli.ts`](../src/cli.ts)。它同时组装 Provider、Store、数据库、受控命令处理和自然对话，仍是一个较大的编排文件。`src/repl-controller.ts` 负责输入排队、停止和中途调整，`src/repl-input.ts` 管理多行输入与终端显示，`src/conversation-routing.ts` 再将自然语言分到普通回答、教学或计划。
+入口是 [`src/cli.ts`](../src/cli.ts)。它同时组装 Provider、Store、数据库、受控命令处理和自然对话，仍是一个较大的编排文件。`src/agent-service.ts` 负责模型任务生命周期与持久队列，`src/repl-controller.ts` 保留本地命令排队与终端控制，`src/repl-input.ts` 管理多行输入与终端显示，`src/conversation-routing.ts` 再将自然语言分到普通回答、教学或计划。
 
 `src/interaction-protocol.ts` 中的 `decideInteraction` 返回受类型约束的 `InteractionDecision`。以下为分支的简化说明，不是可直接运行的源码：
 
@@ -196,3 +196,7 @@ Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-code
 知行的重点不在于“让模型回答得像老师”，而在于让模型出现误判、超时或中断时，系统仍保持正确的权限边界、状态一致性、审计能力与恢复能力。其核心取舍是：让模型提供智能，让代码保持控制权。
 
 0.3 新增路径：`src/learning-application.ts`、`src/assistant-runtime.ts`、`src/evidence-store.ts`；任务队列/摘要位于 `desktop/core/service.ts`。详细数据边界与测试见 [升级指南](agent-upgrade.md)。
+
+## 共享内核的最新入口
+
+阅读 `agent-service.ts` 的 send/invoke/generate，再读 `model-invocation.ts` 的检查点和工具游标、`agent-execution-store.ts` 的租约与授权决定。`task-execution.ts` 继续负责实际操作去重，`learning-agent-profile.ts` 负责教学提示词。具体恢复边界和限制见 [Agent 内核](agent-kernel.md)。

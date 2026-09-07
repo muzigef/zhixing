@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { TeachingSessionStore } from "../src/teaching-session-store.js";
 import { ConversationSessionStore } from "../src/conversation-session.js";
+import { AgentSessionStore } from "../src/agent-session-store.js";
+import { ZhixingDatabase } from "../src/database.js";
 import { PathPolicy } from "../src/paths.js";
 
 const exec = promisify(execFile);
@@ -59,6 +61,13 @@ globalThis.fetch = async (_url, init) => {
     }),
     requests: async () => JSON.parse(await fs.readFile(requestsFile, "utf8")) as Array<{ messages: Array<{ content: string }> }>,
     invoke: (command: string, topic = "agent-development") => exec(process.execPath, [...args, command, "--topic", topic], options),
+    crashAfterText: () => new Promise<void>((resolve, reject) => {
+      const child = spawn(process.execPath, [...args, "--repl"], { ...options, stdio: ["pipe", "pipe", "pipe"] });
+      let output = ""; const timer = setTimeout(() => { child.kill(); reject(new Error("fixture_crash_timeout")); }, 5000);
+      child.stdout.on("data", chunk => { output += String(chunk); if (output.includes("崩溃前的片段")) child.kill("SIGKILL"); });
+      child.once("close", (_code, signal) => { clearTimeout(timer); if (signal === "SIGKILL") resolve(); else reject(new Error("fixture_not_killed")); });
+      child.stdin.write("解释查询向量\n");
+    }),
     interruptedRepl: () => new Promise<string>((resolve, reject) => {
       const child = spawn(process.execPath, [...args, "--repl"], { ...options, stdio: ["pipe", "pipe", "pipe"] });
       let output = ""; let errors = ""; let cancelled = false; let resumed = false;
@@ -231,7 +240,14 @@ describe("natural interaction through the actual CLI", () => {
     expect(output).toContain("换成生活例子解释");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
     expect(requests[1]!.messages[0]!.content).toContain("查询向量的未完成解释");
-    expect(requests[1]!.messages[0]!.content).toContain("用户：解释查询向量");
+    expect(requests[1]!.messages[0]!.content).toContain("解释查询向量");
+    const projected = (await fixture.chats.current("agent-development"))!;
+    const shared = await new AgentSessionStore(path.join(fixture.root, "zhixing", "agent")).load(projected.id);
+    expect(shared.messages[1]?.taskId).toBe(shared.messages[3]?.taskId);
+    const database = new ZhixingDatabase(path.join(fixture.root, "zhixing", "db", "zhixing.sqlite"));
+    try { expect(database.db.prepare("SELECT COUNT(*) AS count FROM agent_executions").get()).toEqual({ count: 1 }); }
+    finally { database.close(); }
+
     expect((await fixture.chats.current("agent-development"))?.turns[0]?.status).toBe("interrupted");
   });
   it("stops immediately with a natural stop request, without another provider call", async () => {
@@ -254,4 +270,15 @@ describe("natural interaction through the actual CLI", () => {
     expect(await fixture.requests()).toHaveLength(1);
   });
 
+});
+
+it("restores a first CLI task after SIGKILL even before the legacy history projection was finalized", async () => {
+  const fixture = await setup(false, [{ text: "崩溃前的片段", stall: true }, "从原任务接着解释。"]);
+  await fixture.crashAfterText();
+  const current = await fixture.chats.current("agent-development"); expect(current).toBeDefined();
+  const store = new AgentSessionStore(path.join(fixture.root, "zhixing/agent"));
+  const taskId = (await store.load(current!.id)).messages.at(-1)?.taskId;
+  expect((await fixture.invoke("继续")).stdout).toContain("从原任务接着解释");
+  expect((await store.load(current!.id)).messages.at(-1)?.taskId).toBe(taskId);
+  expect(JSON.stringify((await fixture.requests())[1])).toContain("崩溃前的片段");
 });

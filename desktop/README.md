@@ -168,3 +168,7 @@ node desktop/scripts/check-deepseek.mjs --live
 选择主题并打开“课程与资料”管理学习日、资料和真实证据；模型使用学习上下文需勾选本会话授权。运行时支持排队、立即调整、停止后暂停队列与重启后手动恢复。具体操作及 CLI 等价命令见 [升级指南](../docs/agent-upgrade.md)。
 
 `npm run prepare:runtime` 检查项目内 Electron 二进制和 SQLite ABI；`start`、`pack`、`dist:mac`、`dist:win` 与 `test:ui` 会自动调用。`npm run dist:host` 构建本机平台/架构，`npm run checksums` 生成安装器 SHA-256。GitHub Actions 的 `desktop-release` 工作流构建 macOS/Windows，验证实际应用并上传产物；tag 构建创建待发布草稿。远端执行、Windows 实机及签名/公证的真实结果单独验收。
+
+## 当前源码的 Agent 内核更新
+
+桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v3，v1/v2 首次保存前保留原文件备份。旧安装包不包含这些改动；使用源码启动可验证新行为。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。

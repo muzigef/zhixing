@@ -1,3 +1,4 @@
+import { AgentExecutionStore } from "../../src/agent-execution-store.js";
 import fs from "node:fs/promises";
 import { createWriteStream, constants } from "node:fs";
 import { pipeline } from "node:stream/promises";
@@ -14,7 +15,7 @@ import { chatSchema } from "./contracts.js";
 const manifestSchema = z.object({ format: z.literal("zhixing-workspace-backup"), version: z.literal(1), appVersion: z.string().max(40), createdAt: z.string().datetime(), workspaceId: z.string().regex(/^[a-f0-9]{64}$/), files: z.array(z.object({ path: z.string().min(1).max(4096), bytes: z.number().int().nonnegative().max(2_000_000_000), sha256: z.string().regex(/^[a-f0-9]{64}$/) })).max(20000) });
 type Manifest = z.infer<typeof manifestSchema>;
 const privateName = /^(?:\.env(?:\..*)?|auth\.json|.*\.credential|credentials?(?:\..*)?|tokens?(?:\..*)?)$/i;
-const workspaceRoots = ["zhixing/data", "zhixing/topics", "zhixing/skills", "zhixing/settings", "zhixing/inbox", "learning-notes"];
+const workspaceRoots = ["zhixing/agent/conversations", "zhixing/data", "zhixing/topics", "zhixing/skills", "zhixing/settings", "zhixing/inbox", "learning-notes"];
 function allowed(relative: string): boolean {
   const parts = relative.split("/");
   if (path.isAbsolute(relative) || relative.includes("\\") || parts.some((part) => !part || part === "." || part === ".." || privateName.test(part))) return false;
@@ -96,18 +97,32 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
       if (item.bytes > 12_000_000) throw new Error("backup_size_limit");
       chats.push(chatSchema.parse(JSON.parse(await fs.readFile(safe(directory, item.path), "utf8"))));
     }
-    const ids = new Map(chats.map((chat) => [chat.id, crypto.randomUUID()]));
+    const cliStore = new DesktopStore(path.join(workspace, "zhixing", "agent"));
+    const cliChats = await Promise.all((await cliStore.list()).map(item => cliStore.load(item.id)));
+    const ids = new Map<string, string>(chats.map((chat) => [chat.id, crypto.randomUUID()]));
+    for (const chat of cliChats) ids.set(chat.id, chat.id);
     const workspaceId = crypto.createHash("sha256").update(path.resolve(workspace)).digest("hex");
-    for (const chat of chats) {
+    for (const chat of [...chats, ...cliChats]) {
+      const originalId = chat.id;
       signal.throwIfAborted(); chat.id = ids.get(chat.id)!; chat.title = `${chat.title.slice(0, 68)} · 恢复`;
       chat.executionAllowed = false; chat.contextAllowed = false; chat.pendingRequests = []; chat.queuePaused = true;
       if (chat.topicId && chat.workspaceId === manifest.workspaceId) chat.workspaceId = workspaceId;
       chat.parent = chat.parent && ids.has(chat.parent.sessionId) ? { ...chat.parent, sessionId: ids.get(chat.parent.sessionId)! } : undefined;
       for (const message of chat.messages) if (message.status === "running") message.status = "interrupted";
-      await store.save(chat);
+      const journalDatabase = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
+      try {
+        for (const message of chat.messages) if (message.taskId) {
+          const checkpoint = new AgentExecutionStore(journalDatabase, { taskId: message.taskId, sessionId: originalId, topicId: chat.topicId ?? "general-chat" }).read();
+          const pending = checkpoint?.pending;
+          const callId = pending?.phase === "waiting" ? pending.events.filter(event => event.type === "tool_call")[pending.next]?.callId : undefined;
+          for (const item of message.items ?? []) if ((item.kind === "approval" || item.kind === "question") && item.callId === callId && callId) { item.status = "pending"; item.answer = undefined; }
+        }
+      } finally { journalDatabase.close(); }
+      await (cliChats.includes(chat) ? cliStore : store).save(chat);
     }
     const database = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
-    try { new LearningOutcomeStore(database).remapSessions(ids); } finally { database.close(); }
+    try { new LearningOutcomeStore(database).remapSessions(ids);
+      AgentExecutionStore.remapSessions(database, ids); } finally { database.close(); }
     return { workspace, sessions: chats.length };
   } catch (error) {
     // Keep partially restored data for inspection; never delete conversations already imported.
