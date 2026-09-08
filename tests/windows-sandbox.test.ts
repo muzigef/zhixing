@@ -18,7 +18,7 @@ if (process.platform === "win32") {
     try {
       const code = `console.error('probe:start');const fs=require('node:fs'),net=require('node:net'),cp=require('node:child_process');console.error('probe:modules');
 let read=false,write=false;try{fs.readFileSync(${JSON.stringify(secret)});read=true}catch{}console.error('probe:read');try{fs.writeFileSync(${JSON.stringify(outside)},'escape');write=true}catch{}console.error('probe:write');
-const child=cp.spawnSync(process.execPath,['-e','console.log(123)'],{windowsHide:true,timeout:750});console.error('probe:child');fs.writeFileSync('ok.txt','owned');console.error('probe:owned');
+const child=cp.spawnSync(process.execPath,['-e','console.log(123)'],{windowsHide:true,timeout:750,stdio:'inherit'});console.error('probe:child');fs.writeFileSync('ok.txt','owned');console.error('probe:owned');
 const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('connect',()=>{connected=true;socket.destroy()});socket.on('error',()=>{});setTimeout(()=>{socket.destroy();console.log(JSON.stringify({read,write,child:child.status===0,childError:child.error?.code,connected,owned:fs.readFileSync('ok.txt','utf8')}))},300);`;
       const result = await new LocalSandbox().run(process.execPath, ["-e", code], { allowedCommands: [process.execPath], timeoutMs: 5000 });
       expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });

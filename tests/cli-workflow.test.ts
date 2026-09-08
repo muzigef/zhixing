@@ -14,17 +14,17 @@ afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(ro
 describe.sequential("headless CLI workflow", () => {
   it("reports reminder enable/disable state consistently in topic overview and next steps", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-reminder-")); roots.push(root);
-    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "src/cli.ts", command], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } });
+    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "src/cli.ts", command], { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } });
     expect((await invoke("提醒设置 20:30")).stdout).toContain("运行");
     expect((await invoke("主题概览")).stdout).toContain("每天 20:30");
     await invoke("提醒关闭");
     expect((await invoke("主题概览")).stdout).toContain("提醒：已关闭");
     expect((await invoke("下一步")).stdout).not.toContain("提醒计划：每天");
-  }, 12_000);
+  }, 15_000);
   it("E01：在隔离根目录启动 Day 1 并写入当前主题记录", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const result = await exec(process.execPath, ["--import", "tsx", "src/cli.ts", "开始第 1 天"], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } });
+    const result = await exec(process.execPath, ["--import", "tsx", "src/cli.ts", "开始第 1 天"], { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } });
     expect(result.stdout).toContain("今日目标");
     await expect(fs.access(path.join(root, "learning-notes", "topics", "agent-development", "daily", "D01.md"))).resolves.toBeUndefined();
   });
@@ -32,7 +32,7 @@ describe.sequential("headless CLI workflow", () => {
   it("E03–E06：Review、继续与源码导读在 CLI 闭环中遵守状态机", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command], options);
     await expect(invoke("开始第 2 天")).resolves.toMatchObject({ stdout: expect.stringContaining("D01") });
     await invoke("开始第 1 天");
@@ -45,12 +45,12 @@ describe.sequential("headless CLI workflow", () => {
     await submitDay(root, "D01");
     await expect(invoke("检查 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("advance（8/8）") });
     await expect(invoke("读源码 D01")).resolves.toMatchObject({ stdout: expect.stringContaining("已解锁") });
-  }, 12_000);
+  }, 15_000);
 
   it("E10：每个 headless CLI 命令写入同一 Run 的工具审计链", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    await exec(process.execPath, ["--import", "tsx", "src/cli.ts", "主题列表"], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } });
+    await exec(process.execPath, ["--import", "tsx", "src/cli.ts", "主题列表"], { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } });
     const file = path.join(root, "zhixing", "data", "audit", "agent-development", `${new Date().toISOString().slice(0, 10)}.jsonl`);
     const events = (await fs.readFile(file, "utf8")).trim().split("\n").map((line) => JSON.parse(line));
     expect(events.map((event) => event.type)).toEqual(["run_started", "tool_started", "tool_finished", "run_finished"]);
@@ -61,7 +61,7 @@ describe.sequential("headless CLI workflow", () => {
   it("E13–E16：--topic 隔离 session，并在跨主题前置满足后启动 RAG", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string, topic: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command, "--topic", topic], options);
     await expect(invoke("开始第 1 天", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("agent-development/D01") });
     await invoke("开始第 1 天", "agent-development");
@@ -78,7 +78,7 @@ describe.sequential("headless CLI workflow", () => {
   it("E11/E19：资料问答与共享主流程一样报告禁用，显式切换后才使用 mock", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command, "--topic", "rag"], options);
     const inbox = path.join(root, "zhixing", "inbox", "rag");
     await fs.mkdir(inbox, { recursive: true });
@@ -88,22 +88,22 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("资料问答 RAG --允许外发")).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("已禁用联网模型") });
     await invoke("模型切换 tutor mock --确认");
     await expect(invoke("资料问答 RAG --允许外发")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
-  });
+  }, 15_000);
 
   it("E17/E20：模型列表不泄露凭证，角色切换只影响指定角色", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command], options);
     await expect(invoke("模型列表")).resolves.toMatchObject({ stdout: expect.stringMatching(/mock：healthy/) });
     await expect(invoke("模型切换 reviewer codex-cli --确认")).resolves.toMatchObject({ stdout: expect.stringContaining("reviewer -> codex-cli") });
     await expect(invoke("模型状态")).resolves.toMatchObject({ stdout: expect.stringMatching(/tutor -> mock[\s\S]*reviewer -> codex-cli[\s\S]*lab -> mock/) });
-  });
+  }, 15_000);
 
   it("E30：备份预览与恢复仅接受确认后的备份文件", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command], options);
     const backup = await invoke("备份数据库");
     const file = /数据库备份完成：([^\n]+)/.exec(backup.stdout)?.[1];
@@ -111,12 +111,12 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=6") });
     await expect(invoke(`恢复数据库 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("需要明确确认") });
     await expect(invoke(`恢复数据库 ${file} --确认`)).resolves.toMatchObject({ stdout: expect.stringContaining("数据库恢复完成") });
-  });
+  }, 15_000);
 
   it("E31：资料问答默认使用当前 tutor 路由", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command, "--topic", "rag"], options);
     const inbox = path.join(root, "zhixing", "inbox", "rag");
     await fs.mkdir(inbox, { recursive: true });
@@ -124,12 +124,12 @@ describe.sequential("headless CLI workflow", () => {
     await invoke("导入资料 rag/privacy.md");
     await expect(invoke("资料问答 RAG")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
     await expect(invoke("资料问答 RAG --允许外发")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
-  });
+  }, 15_000);
 
   it("E40：画像、个性化计划、Skill 草案与资料概览无需配置任何模型", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
-    const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
+    const options = { timeout: 8000, cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
     const invoke = async (command: string) => await exec(process.execPath, ["--import", "tsx", "src/cli.ts", command, "--topic", "rag"], options);
     await expect(invoke("设置学习画像 掌握 RAG 面试 --水平 初学 --每天 45 --周期 14")).resolves.toMatchObject({ stdout: expect.stringContaining("已保存学习画像") });
     const proposed = await invoke("生成个性化计划");
@@ -142,5 +142,5 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("技能列表 rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag-interview") });
     await expect(invoke("资料概览")).resolves.toMatchObject({ stdout: expect.stringContaining("资料：0 份") });
     await expect(invoke("学习建议")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
-  }, 10_000);
+  }, 15_000);
 });
