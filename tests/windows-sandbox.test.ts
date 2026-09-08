@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -49,9 +49,23 @@ const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('con
     const timed = await sandbox.run(process.execPath, ["-e", "setInterval(()=>{},1000)"], { allowedCommands: [process.execPath], timeoutMs: 500 });
     expect(timed.status, timed.stderr).toBe("timed_out");
     const controller = new AbortController();
-    const pending = sandbox.run(process.execPath, ["-e", "setInterval(()=>{},1000)"], { allowedCommands: [process.execPath], timeoutMs: 5000, signal: controller.signal });
-    const timer = setTimeout(() => controller.abort(), 750);
-    try { expect((await pending).status).toBe("cancelled"); } finally { clearTimeout(timer); }
+    const makeTemp = fs.mkdtemp.bind(fs); const owned: { root?: string } = {};
+    const spy = vi.spyOn(fs, "mkdtemp").mockImplementation(async (...args) => {
+      const directory = await makeTemp(...args);
+      if (path.basename(String(args[0])).startsWith("zhixing-appcontainer-")) owned.root = String(directory);
+      return directory;
+    });
+    const pending = sandbox.run(process.execPath, ["-e", "require('node:fs').writeFileSync('started.txt','started');setInterval(()=>{},1000)"], { allowedCommands: [process.execPath], timeoutMs: 10_000, signal: controller.signal });
+    try {
+      // Observe our own child's marker before cancelling; cancelling a slow
+      // runtime copy alone would not prove that a running container is killed.
+      await vi.waitFor(async () => {
+        if (!owned.root) throw new Error("sandbox_marker_not_ready");
+        expect(await fs.readFile(path.join(owned.root, "work/started.txt"), "utf8")).toBe("started");
+      }, { timeout: 10_000, interval: 50 });
+      controller.abort(); expect((await pending).status).toBe("cancelled");
+      await expect(fs.stat(owned.root!)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally { controller.abort(); await pending; spy.mockRestore(); }
     const output = await sandbox.run(process.execPath, ["-e", "process.stdout.write('x'.repeat(200000))"], { allowedCommands: [process.execPath], timeoutMs: 5000 });
     expect(output).toMatchObject({ status: "completed", exitCode: 0 }); expect(output.stdout.length).toBe(65536);
   }, 30_000);
