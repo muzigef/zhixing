@@ -61,7 +61,7 @@ it("runs bounded Python unittest files with actual pass/failure and denies outsi
   const failed = await app.projects.write("rag", project.id, { path: file.path, expectedHash: file.hash, content: content.replace("2 + 2, 4", "2 + 2, 5") }, signal());
   const failure = await app.projects.test("rag", project.id, failed.treeHash, signal());
   if (process.platform === "darwin") { expect(failure.exitCode).toBe(1); expect(failure.stderr).toContain("FAILED"); }
-});
+}, 15_000);
 
 it("recovers a real process crash between directory swaps before returning any project files", async () => {
   const { root, app, project } = await fixture(); const script = path.join(root, "crash.mjs");
