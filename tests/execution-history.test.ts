@@ -42,3 +42,8 @@ it("reads only the service-supplied conversation and denies model-selected forei
   expect(result).toMatchObject({ ok: true, output: { messageId: id, content: expect.stringContaining("最初的数组问题"), nextMessage: null } });
   expect(await tools.harness.execute("read_conversation_history", { message: 0, sessionId: crypto.randomUUID() }, context)).toMatchObject({ ok: false, errorCode: "tool_input_invalid" });
 });
+it("can retrieve messages after ordinal 999 in the supported 20000-message history", async () => {
+  const messages = Array.from({ length: 2000 }, (_, index) => ({ id: crypto.randomUUID(), role: "user" as const, text: `合成历史 ${index}`, status: "completed" as const, createdAt: new Date().toISOString() }));
+  const tools = attachConversationHistory({ harness: new ToolHarness(), definitions: [] }, messages);
+  expect(await tools.harness.execute("read_conversation_history", { message: 1500 }, { topicId: "rag", signal: new AbortController().signal })).toMatchObject({ ok: true, output: { content: expect.stringContaining("合成历史 1500"), nextMessage: 1501 } });
+});

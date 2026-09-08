@@ -33,6 +33,13 @@ it("keeps numeric checking bound to the cited claim and avoids treating example 
   expect(inspectEvidenceSupport("```js\nconst ratio = 90 / 100;\n```\n示例代码，不是实测。", source).issues).toEqual([]);
   expect(inspectEvidenceSupport(`成本降低 90%。\n其他信息 ${marker}`, source).issues.map(item => item.code)).toContain("uncited_quantity");
 });
+it("distinguishes explicitly rejected quantities from positive measurements in the same answer", () => {
+  const source = [{ citation, text: "资料没有微调的训练费用或具体性能。", score: 1 }];
+  expect(inspectEvidenceSupport(`资料不能证明“微调比 RAG 每月便宜 200 元”。${marker}`, source).issues).toEqual([]);
+  expect(inspectEvidenceSupport(`无法根据资料证明成本降低 200 元。${marker}`, source).issues).toEqual([]);
+  expect(inspectEvidenceSupport(`不能证明成本降低 200 元，但是延迟降低 90%。${marker}`, source).issues.map(issue => issue.code)).toContain("unsupported_quantity");
+  expect(inspectEvidenceSupport(`成本降低 200 元。不能证明延迟降低 90%。${marker}`, source).issues.map(issue => issue.code)).toContain("unsupported_quantity");
+});
 it("binds retrieved excerpts to source bytes and rejects a source changed after the answer", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-source-version-")); const app = await LearningApplication.open(root, process.cwd());
   try {
@@ -53,6 +60,7 @@ it.each([true, false])("repairs unsupported cited answers through the actual ser
   const bad = "成本降低 90%。[metrics.md#anchor=成本]";
   const client = { async *stream() { calls++; yield { type: "text_delta" as const, text: bad }; yield { type: "done" as const }; }, async *continue(_prompt: string, _results: readonly unknown[], _signal: AbortSignal, options?: import("../src/model.js").ModelRequestOptions) {
     calls++; expect(JSON.stringify(options?.history)).toContain("证据支持检查");
+    expect(JSON.stringify(options?.history)).toContain("直接重写对原问题的完整回答");
     yield { type: "text_delta" as const, text: repair ? "资料尚未测量成本变化，无法给出降幅。[metrics.md#anchor=成本]" : bad }; yield { type: "done" as const };
   } };
   const service = new AgentService(new AgentSessionStore(path.join(root, "sessions")), () => client, app);

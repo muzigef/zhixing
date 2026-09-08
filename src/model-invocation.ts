@@ -300,7 +300,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       const turn: ModelTurn = { events: turnEvents, toolResults: [], toolState };
       const responseIssue = !calls.length ? request.responseCheck?.(turnText) : undefined;
       if (responseIssue) {
-        checkpoint.history.push({ ...turn, feedback: `应用回答检查：${responseIssue.slice(0, 500)}` });
+        checkpoint.history.push({ ...turn, feedback: `应用回答检查：${responseIssue.slice(0, 500)}\n请直接重写对原问题的完整回答，不要评价上一版、解释检查流程或输出修改清单。只保留可核验的陈述；无法逐字核对的原文引语改为明确的转述或删除。仍需遵守用户篇幅和格式要求。` });
         partialText = "";
         if (responseRepairs++ >= 1) {
           blocked = true; stopReason = "response_contract_failed"; checkpoint.status = "blocked"; save("response_blocked");

@@ -18,8 +18,11 @@ export function inspectEvidenceSupport(text: string, evidence: readonly SearchRe
   for (const line of prose.split(/\n/).filter(line => line.trim())) {
     const markers: string[] = line.match(markerPattern) ?? [];
     const plain = line.replace(markerPattern, "").trim();
-    const numbers = quantities(plain);
-    const uncitedMeasurement = !markers.length && numbers.length && /成本|延迟|耗时|降低|提高|提升|减少|增加|measured|cost|latency|reduced|improved/i.test(plain);
+    // A rejected proposition is not an asserted measurement or source quotation.
+    // Stop at clause boundaries and contrasts so a denial cannot hide a later claim.
+    const asserted = plain.replace(/(?:不能|无法|不足以|无从)(?:根据[^，。；;]{0,20})?(?:证明|确认|推断|得出|支持)(?:(?!(?:但是|但|然而|不过|且|实际|同时))[^\n，,。；;！？!?])*/g, "");
+    const numbers = quantities(asserted);
+    const uncitedMeasurement = !markers.length && numbers.length && /成本|延迟|耗时|降低|提高|提升|减少|增加|measured|cost|latency|reduced|improved/i.test(asserted);
     if (!markers.length && !uncitedMeasurement || report.claims.length >= 24) continue;
     const sources = evidence.filter(item => markers.includes(citationMarker(item.citation))).slice(0, 8);
     const claimIndex = report.claims.length;
@@ -35,9 +38,9 @@ export function inspectEvidenceSupport(text: string, evidence: readonly SearchRe
       return quantities(related.join("\n"));
     }));
     if (numbers.some(number => !supportedNumbers.has(number))) issue("unsupported_quantity", "引用片段没有对应的精确数值。请移除量化结论、补充实测来源，或明确给出可验证的计算过程。");
-    const absolute = plain.replace(/(?:不能|无法|不|未必)(?:保证|确保|一定|必然)|(?:not|never)\s+guarantee\w*/gi, "");
+    const absolute = asserted.replace(/(?:不能|无法|不|未必)(?:保证|确保|一定|必然)|(?:not|never)\s+guarantee\w*/gi, "");
     if (/保证|确保|一定|必然|guarantee\w*|always|never/i.test(absolute) && !sources.some(item => /保证|确保|一定|必然|guarantee\w*|always|never/i.test(item.text) && !/可能|未必|不保证|不能保证|may|might|unless/i.test(item.text))) issue("overstated_claim", "来源没有支持这种必然性表述。请保留适用条件，区分推断和已验证结论。");
-    for (const quoted of plain.matchAll(/[“"]([^”"\n]{8,240})[”"]/g)) {
+    for (const quoted of asserted.matchAll(/[“"]([^”"\n]{8,240})[”"]/g)) {
       if (!sources.some(item => normalize(item.text).includes(normalize(quoted[1]!)))) { issue("unverified_quote", "引号中的长句未在引用片段中找到，不能作为原文直接引语。"); break; }
     }
   }
