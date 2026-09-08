@@ -66,10 +66,21 @@ try {
   await page.getByRole("button", { name: "创建独立项目", exact: true }).click();
   await page.getByRole("button", { name: "test_example.py", exact: true }).waitFor();
   if (["darwin", "win32"].includes(process.platform)) {
+    const pythonStarted = Date.now();
     await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
-    await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
+    // Windows stages a private Python stdlib and applies its ACL before running
+    // tests. Observe the operation settling, then require a successful result;
+    // an execution error must not look like a missing-success-text timeout.
+    await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true })
+      .or(page.locator(".project-panel").getByRole("alert"))
+      .waitFor({ timeout: process.platform === "win32" ? 45_000 : 15_000 });
+    assert.equal(await page.locator(".project-panel").getByText(/当前项目测试通过/).isVisible(), true,
+      (await page.locator(".project-panel").innerText()).slice(-3000));
     await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
-    assert.match(await page.locator(".project-panel details").filter({ hasText: "最近实际测试结果" }).innerText(), /Ran 1 test/);
+    const pythonResult = await page.locator(".project-panel details").filter({ hasText: "最近实际测试结果" }).innerText();
+    assert.match(pythonResult, /completed · 退出码 0/);
+    assert.match(pythonResult, /Ran 1 test/);
+    console.log(`Python project UI passed: ${Date.now() - pythonStarted} ms including private runtime preparation, actual unittest and cleanup.`);
   } else await page.locator(".project-panel").getByText(/当前文件尚无有效的通过记录/).waitFor();
   await page.getByRole("combobox", { name: "当前实践项目", exact: true }).selectOption("");
   await page.getByRole("button", { name: "运行项目测试", exact: true }).waitFor({ state: "hidden" });
