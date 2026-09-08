@@ -57,6 +57,15 @@ try {
     path: path.join(captures, "01-welcome.png"),
   });
   assert.equal(await page.evaluate(() => typeof window.require), "undefined");
+  const nativeCipher = await running.app.evaluate(async ({ safeStorage }) => {
+    const available = await safeStorage.isAsyncEncryptionAvailable();
+    if (!available) return { available };
+    // Memory-only synthetic input: no existing credential or auth file is read.
+    const value = "zhixing-synthetic-encryption-roundtrip";
+    const encrypted = await safeStorage.encryptStringAsync(value);
+    return { available, opaque: !encrypted.includes(Buffer.from(value)), recovered: (await safeStorage.decryptStringAsync(encrypted)).result === value };
+  });
+  assert.deepEqual(nativeCipher, { available: true, opaque: true, recovered: true });
   const piVersion = await running.app.evaluate(async ({ app }) => {
     const { execFile } = process.getBuiltinModule("node:child_process");
     const { promisify } = process.getBuiltinModule("node:util");
@@ -335,7 +344,7 @@ try {
   await page.getByRole("navigation", { name: "历史会话", exact: true }).getByText("分页合成 1", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Desktop UI passed: sandbox bridge, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
+    "Desktop UI passed: sandbox bridge, native memory-only secret encryption roundtrip, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
   );
   console.log(`Screenshots: ${captures}`);
 } catch (error) {
