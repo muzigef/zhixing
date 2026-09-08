@@ -24,6 +24,12 @@ export async function runWindowsSandbox(command: string, args: readonly string[]
   try {
     await fs.mkdir(work); await fs.mkdir(runtime);
     const resolved = await fs.realpath(command);
+    // Inputs are private regular-file copies, so Node need not lstat every
+    // ancestor up to the host drive root while resolving modules. Do not grant
+    // drive/home metadata access just to satisfy its default realpath walk.
+    const nodeRuntime = options.electronNode || /^node\.exe$/i.test(path.basename(resolved));
+    // Electron otherwise reopens NUL, despite already inheriting valid stdio.
+    const launchArgs = [...(options.electronNode ? ["--no-stdio-init"] : []), ...(nodeRuntime ? ["--preserve-symlinks", "--preserve-symlinks-main"] : []), ...args];
     if (!(await fs.stat(resolved)).isFile()) return unavailable;
     await fs.copyFile(resolved, path.join(runtime, path.basename(resolved)));
     let size = (await fs.stat(resolved)).size;
@@ -67,7 +73,7 @@ export async function runWindowsSandbox(command: string, args: readonly string[]
       child.stdout.on("data", (bytes: Buffer) => { output += decoder.write(bytes); if (output.length > 800_000) child.kill(); });
       child.on("error", () => finish(unavailable));
       child.on("close", () => { const result = resultSchema.safeParse((() => { try { return JSON.parse(output); } catch { return undefined; } })()); finish(result.success ? result.data : unavailable); });
-      child.stdin.write(JSON.stringify({ root, executable: path.join(runtime, path.basename(resolved)), args, timeoutMs: options.timeoutMs ?? 5000, electronNode: options.electronNode ?? false }) + "\n");
+      child.stdin.write(JSON.stringify({ root, executable: path.join(runtime, path.basename(resolved)), args: launchArgs, timeoutMs: options.timeoutMs ?? 5000, electronNode: options.electronNode ?? false }) + "\n");
       options.signal?.addEventListener("abort", abort, { once: true }); if (options.signal?.aborted) abort();
     });
   } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 }); }
