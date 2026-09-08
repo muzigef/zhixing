@@ -1,4 +1,5 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { createHash, randomInt, randomUUID } from "node:crypto";
+import { explanationReviewInputSchema } from "./outcome-contracts.js";
 import { z } from "zod";
 import type { ZhixingDatabase } from "./database.js";
 import { topicIdSchema } from "./contracts.js";
@@ -106,6 +107,19 @@ export class LearningOutcomeStore {
     const trial = this.read(topic, id);
     if (trial.stage !== "complete") trial.stage = "abandoned";
     return this.save(trial);
+  }
+  reviewExplanation(topic: string, id: string, rawPhase: OutcomePhase, raw: unknown): OutcomeView {
+    const phase = outcomePhaseSchema.parse(rawPhase); const input = explanationReviewInputSchema.parse(raw);
+    return this.database.db.transaction(() => {
+      const trial = this.read(topic, id);
+      if (!["complete", "abandoned"].includes(trial.stage)) throw new Error("outcome_review_not_ready");
+      const result = trial.results[phase];
+      if (!result || result.explanation !== input.expectedExplanation || (result.reviews?.length ?? 0) !== input.expectedRevision || input.expectedRevision >= 100) throw new Error("outcome_review_conflict");
+      const sourceHash = createHash("sha256").update(JSON.stringify([topic, id, phase, result.answers, result.explanation, result.assistance, result.submittedAt])).digest("hex");
+      (result.reviews ??= []).push({ reviewer: input.reviewer, verdict: input.verdict, feedback: input.feedback, sourceHash, revision: input.expectedRevision + 1, reviewedAt: this.now().toISOString() });
+      result.explanationReview = input.verdict === "withdrawn" ? "withdrawn" : "human_reviewed";
+      return this.save(trial);
+    })();
   }
   /** Used only on a newly restored database; old workspace/session identities stay untouched. */
   remapSessions(ids: ReadonlyMap<string, string>): void {

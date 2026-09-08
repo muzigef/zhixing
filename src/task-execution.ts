@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import type { ZhixingDatabase } from "./database.js";
 
-export const taskPlanSchema = z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), title: z.string().min(1).max(120), doneWhen: z.enum(["artifact_saved", "tests_passed"]), kind: z.enum(["implementation", "testScript", "testOutput", "failureCase", "reflection"]).optional() }).strict()).min(1).max(12);
+export const taskPlanSchema = z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), title: z.string().min(1).max(120), doneWhen: z.enum(["artifact_saved", "tests_passed", "project_file_saved", "project_tests_passed", "project_checkpoint_saved"]), kind: z.enum(["implementation", "testScript", "testOutput", "failureCase", "reflection"]).optional(), projectId: z.string().uuid().optional() }).strict()).min(1).max(12);
 const storedPlanSchema = z.array(taskPlanSchema.element.extend({ completed: z.boolean(), operationKey: z.string().regex(/^[a-f0-9]{64}$/).optional() })).max(12);
 export type TaskPlanStep = z.infer<typeof storedPlanSchema>[number];
 export const operationKey = (tool: string, input: unknown) => crypto.createHash("sha256").update(`${tool}:${JSON.stringify(input, (_key, value) => value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value)}`).digest("hex");
@@ -31,9 +31,9 @@ export class TaskExecutionStore {
   plan(id: string, topic: string, raw: unknown) {
     const previous = this.snapshot(id, topic).plan;
     const steps = taskPlanSchema.parse(raw);
-    if (new Set(steps.map((step) => step.id)).size !== steps.length) throw new Error("task_plan_invalid");
+    if (steps.some(step => step.doneWhen.startsWith("project_") ? !step.projectId || step.kind : step.projectId) || new Set(steps.map((step) => step.id)).size !== steps.length) throw new Error("task_plan_invalid");
     // The model may clarify/reorder/add steps, but cannot silently remove or lower an accepted requirement.
-    if (previous.some(old => !steps.some(step => step.id === old.id && step.doneWhen === old.doneWhen && step.kind === old.kind))) throw new Error("task_plan_requirement_changed");
+    if (previous.some(old => !steps.some(step => step.id === old.id && step.doneWhen === old.doneWhen && step.kind === old.kind && step.projectId === old.projectId))) throw new Error("task_plan_requirement_changed");
     const plan = steps.map((step) => { const old = previous.find(item => item.id === step.id); return { ...step, completed: old?.completed ?? false, ...(old?.operationKey ? { operationKey: old.operationKey } : {}) }; });
     this.database.db.prepare("UPDATE assistant_tasks SET plan = ? WHERE id = ?").run(JSON.stringify(plan), id);
     return plan;
@@ -67,7 +67,7 @@ export class TaskExecutionStore {
     const key = operationKey(tool, stableInput);
     const existing = snapshot.operations.find((item) => item.key === key);
     if (existing?.status === "completed") { await validateCached?.(existing.result); this.completeStep(id, topic, tool, input, existing.result); return existing.result; }
-    if (!existing && snapshot.operations.length >= 64 || JSON.stringify(input).length > 32_000) throw new Error("task_operation_limit");
+    if (!existing && snapshot.operations.length >= 64 || JSON.stringify(input).length > (tool.startsWith("project_") ? 64_000 : 32_000)) throw new Error("task_operation_limit");
     const locks = active.get(this.database) ?? new Map<string, Promise<unknown>>(); active.set(this.database, locks);
     const lockKey = `${id}:${key}`; const running = locks.get(lockKey); if (running) return running;
     const operation = (async () => {
@@ -85,13 +85,16 @@ export class TaskExecutionStore {
     try { return await operation; } finally { locks.delete(lockKey); }
   }
   private completeStep(id: string, topic: string, tool: string, input: unknown, result: unknown) {
-    const data = input as { stepId?: string; kind?: string };
+    const data = input as { stepId?: string; kind?: string; projectId?: string };
     const plan = this.snapshot(id, topic).plan;
     const step = plan.find((item) => item.id === data.stepId);
     if (!step) return;
     const validation = result as { status?: string; exitCode?: number };
     if (step.doneWhen === "artifact_saved" && tool === "save_artifact" && (!step.kind || step.kind === data.kind)
-      || step.doneWhen === "tests_passed" && tool === "run_experiment" && validation.status === "completed" && validation.exitCode === 0) {
+      || step.doneWhen === "tests_passed" && tool === "run_experiment" && validation.status === "completed" && validation.exitCode === 0
+      || step.projectId === data.projectId && (step.doneWhen === "project_file_saved" && tool === "project_edit"
+        || step.doneWhen === "project_tests_passed" && tool === "project_test" && validation.status === "completed" && validation.exitCode === 0
+        || step.doneWhen === "project_checkpoint_saved" && tool === "project_checkpoint")) {
       step.completed = true;
       step.operationKey = operationKey(tool, Object.fromEntries(Object.entries(input as Record<string, unknown>).filter(([key]) => key !== "stepId")));
     }

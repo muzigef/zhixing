@@ -198,4 +198,14 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 ## 0.4 新设置
 
-`preferences.json` 新增可选 `reasoning`（quick/balanced/deep）与 `semanticModel`（本机 Ollama 已安装模型名）。未设置 reasoning 时发送使用 balanced；语义模型留空时使用关键词/同义词。会话另存 `executionAllowed`，仅由本次/本会话选择授予；分支、备份恢复清除授权。Pi 桌面使用公共 SDK 模型接口，旧 CLI 文本模式保持。备份范围、可选发布签名配置见 [0.4 指南](agent-0.4.md)。
+`preferences.json` 新增可选 `reasoning`（auto/quick/balanced/deep）与 `semanticModel`（本机 Ollama 已安装模型名）。未设置 reasoning 时发送使用 balanced；语义模型留空时使用关键词/同义词。会话另存 `executionAllowed`，仅由本次/本会话选择授予；分支、备份恢复清除授权。Pi 桌面使用公共 SDK 模型接口，旧 CLI 文本模式保持。备份范围、可选发布签名配置见 [0.4 指南](agent-0.4.md)。
+
+## 0.5 的可选能力与边界
+
+`reasoning=auto` 根据当前请求和执行方式选择实际档位，消息同时保存自动选择和实际档位；明确指定 quick/balanced/deep 不会被改写。Pi 传输的 `auto` 与思考档位的 `auto` 是两个不同选项，默认传输仍为 SSE。
+
+上下文预算由 Runtime 固定控制，默认估算窗口 48,000 token、输出预留 16,384，另有 128,000 字符上限；没有自动提高配额或精确计费承诺。普通任务最多 6 轮，已连接项目最多 12 轮。
+
+MCP 在主题面板中显式配置本地可执行程序、工具白名单、风险与信任确认，默认关闭，不通过 `.env` 自动注入密钥。实际协议和配置例子见 [MCP 指南](mcp-tools.md)。项目通过原生目录选择器导入副本或创建，模型不能选择用户目录；Git 需要本机可用，测试沙箱当前仅支持 macOS。见 [项目指南](practice-projects.md)。
+
+会话 v4 读取旧版时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。其他本地数据边界见 [0.5 指南](agent-0.5.md)。

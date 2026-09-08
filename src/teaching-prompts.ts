@@ -1,6 +1,19 @@
 import type { TeachingInterpretation } from "./teaching-dialogue.js";
 import type { TeachingSession } from "./teaching-session-store.js";
 import { responseGuidelines, type ResponseStyle } from "./response-style.js";
+import type { ModelMessage } from "./model.js";
+import { turnResponseRules } from "./response-quality.js";
+
+export function historyMessages(history: readonly string[]): ModelMessage[] {
+  return history.slice(-10).map(content => ({ role: /^(?:助手|教师)/.test(content) ? "assistant" : "user", content }));
+}
+
+export function answerMessages(input: string, style: ResponseStyle, context: string, history: readonly string[]): ModelMessage[] {
+  return [
+    { role: "system", content: `${responseGuidelines(style)}\n把本轮输入视为连续对话中的追问、纠正或新要求，结合前文理解“这个”“继续”“换个例子”；前文标记未完成时从中断处继续，避免从头重复。用户改变格式或角度时保留原问题目标。直接回答当前问题；涉及管理操作可以说明方法，但不能声称修改了计划、文件、记忆或完成状态。` },
+    { role: "observation", content: context }, ...historyMessages(history), ...(turnResponseRules(input) ? [{ role: "system" as const, content: turnResponseRules(input) }] : []), { role: "user", content: `本轮用户输入：\n${input}` },
+  ];
+}
 
 export function lessonPrompt(card: string, style: ResponseStyle, context = ""): string {
   return `${responseGuidelines(style)}\n开始今天的讲解。先简要说明学完能解决什么问题，再讲一个核心概念和具体例子，必要时分步推导并指出关键误区。根据学习者基础调整深度，不要一次塞入整门课。此时不布置练习、不改变完成状态；用户可直接提问或随时要求练习，无需固定口令。不调用工具或检查工作区。\n${context}\n本日学习卡：\n${card}`;

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { topicIdSchema } from "./contracts.js";
 import type { TopicPlanDay } from "./plan-loader.js";
 import type { AssessmentResult } from "./learning-assessment.js";
+import type { LearningObservation } from "./learning-observations.js";
 
 export const citationSchema = z.object({
   topicId: topicIdSchema,
@@ -20,6 +21,7 @@ export interface LearningOverview {
   days: { dayId: string; state: "未开始" | "进行中" | "完成" }[];
   materials: { id: string; name: string; status: string; createdAt: string }[];
   assessments?: AssessmentResult[];
+  observations?: LearningObservation[];
 }
 export interface WorkspaceSummary {
   id: string;

@@ -1,0 +1,188 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "71b640d870805cff3ad348c6146980a4b4b971836dbad87bd3573e73f8f626f5",
+    "datasetHash": "e8377ba8b85bc09f5959694e1dfb971b8e2441f6f34cd8c4ff60262c1c897fe2",
+    "planned": 8,
+    "recorded": 8,
+    "attempted": 8,
+    "completed": 8,
+    "reviewed": 8,
+    "unreviewed": 0,
+    "passed": 5,
+    "passRate": 0.625,
+    "independentHumanReviewed": 0,
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "failures": {},
+    "qualityFailures": {
+      "accuracy": 1,
+      "repetition": 2
+    },
+    "groups": [
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "balanced",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 6377,
+          "p95": 9112
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2465,
+          "p95": 2698
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "balanced",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 4593,
+          "p95": 6428
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2024,
+          "p95": 2651
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  },
+  "review": {
+    "version": 1,
+    "reportHash": "71b640d870805cff3ad348c6146980a4b4b971836dbad87bd3573e73f8f626f5",
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "scores": [
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文与例子符合要求，解释复用与过期。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "从重排继续生成，未整段重讲检索。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文与例子符合要求，解释复用与过期。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "从重排继续生成，未整段重讲检索。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "fail",
+          "fail"
+        ],
+        "rationale": "将今天查天气时展示昨天缓存天气当成缓存有用的例子，例子本身展示过期风险，与稳定内容前提不符。",
+        "failures": [
+          "accuracy"
+        ],
+        "verdict": "fail"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "fail",
+          "fail",
+          "pass"
+        ],
+        "rationale": "提高思考强度后仍从检索重讲完整流程，没有直接接上后续内容。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "fail"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文与例子符合要求，解释复用与过期。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "fail",
+          "fail",
+          "pass"
+        ],
+        "rationale": "提高思考强度后仍从检索重讲完整流程，没有直接接上后续内容。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "fail"
+      }
+    ]
+  }
+}

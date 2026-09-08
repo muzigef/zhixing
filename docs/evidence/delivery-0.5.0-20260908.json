@@ -1,0 +1,44 @@
+{
+  "version": "0.5.0",
+  "verifiedAt": "2026-09-08",
+  "platform": "macOS arm64",
+  "minimumMacOS": "13.0",
+  "artifacts": [
+    {
+      "path": "desktop/release/Zhixing-0.5.0-mac-arm64.dmg",
+      "bytes": 292521847,
+      "sha256": "df61eef9b449e65653c205ad4ba158ce5b0a9047bceb124c31662c984573d6ad"
+    },
+    {
+      "path": "desktop/release/Zhixing-0.5.0-mac-arm64.zip",
+      "bytes": 300734356,
+      "sha256": "9defe67c334512ba2cd8bb4ea4cadbc65b6f084b7b48f9f22351208a0e7a93c2"
+    }
+  ],
+  "verification": {
+    "developmentUiGroupsPassed": 5,
+    "packagedUiGroupsPassed": 5,
+    "rootTestFiles": 96,
+    "rootTestsPassed": 480,
+    "integrationPassed": 9,
+    "evalPassed": 6,
+    "productionAuditVulnerabilities": {
+      "root": 0,
+      "desktop": 0
+    },
+    "auditRegistry": "https://registry.npmjs.org",
+    "dmgVerify": true,
+    "readOnlyMountVersionAndArchitecture": true,
+    "mountedExecutableAndAsarMatchTestedApplication": true,
+    "installerChecksumsVerified": true
+  },
+  "notVerified": [
+    "Windows actual device",
+    "Intel Mac actual device",
+    "Developer ID signing and notarization",
+    "independent human quality review",
+    "real learning outcomes",
+    "current uncommitted changes on remote CI"
+  ],
+  "published": false
+}

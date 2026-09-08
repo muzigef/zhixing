@@ -16,7 +16,11 @@ export class LocalSandbox {
     const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-sandbox-")));
     const profile = `(version 1) (deny default) (allow process-exec (literal "${quote(command)}")) (allow sysctl-read) (allow file-read-metadata) (allow mach-lookup (global-name "com.apple.cfprefsd.agent")) (allow file-read* (literal "/") (literal "${quote(command)}") (subpath "/System") (subpath "/usr/lib") (literal "/dev/null") ${options.runtimeReadPath ? `(subpath "${quote(options.runtimeReadPath)}")` : ""} (subpath "${quote(directory)}")) (allow file-write* (subpath "${quote(directory)}")) (deny network*)`;
     try {
-      for (const [name, content] of Object.entries(options.files ?? {})) { if (!/^[a-zA-Z0-9._-]+$/.test(name) || name === "." || name === "..") throw new Error("sandbox_file_denied"); await fs.writeFile(path.join(directory, name), content, { flag: "wx", mode: 0o600 }); }
+      for (const [name, content] of Object.entries(options.files ?? {})) {
+        if (!/^[a-zA-Z0-9._/-]+$/.test(name) || path.isAbsolute(name) || name.split("/").some(part => !part || part === "." || part === "..") || name.split("/").length > 5) throw new Error("sandbox_file_denied");
+        await fs.mkdir(path.dirname(path.join(directory, name)), { recursive: true, mode: 0o700 });
+        await fs.writeFile(path.join(directory, name), content, { flag: "wx", mode: 0o600 });
+      }
       options.signal?.throwIfAborted();
       return await new Promise((resolve) => {
         let stdout = ""; let stderr = ""; let timedOut = false; let cancelled = false;

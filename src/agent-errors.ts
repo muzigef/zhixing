@@ -1,7 +1,19 @@
 export function publicError(error: unknown): string {
   const code = error instanceof Error ? error.message : "";
   if (error instanceof Error && error.name === "AbortError" || /^(?:import_)?cancelled$/.test(code)) return "已取消本次操作。";
+  if (code.startsWith("mcp_")) return code === "mcp_settings_conflict" ? "外部工具配置已改变，请关闭面板并重新打开后核对。" : code === "mcp_cancelled" ? "已取消外部工具操作。" : "外部工具未完成。请检查连接、协议版本、工具权限和参数；服务日志不会显示在对话中。";
+  const projectErrors: Record<string, string> = {
+    project_file_conflict: "文件已改变，请重新读取并核对差异后保存。", project_tree_conflict: "项目文件已改变，请刷新并重新运行测试。",
+    project_tests_required: "需要当前项目的 .test.mjs 实际测试通过后才能保存检查点。", project_busy: "这个项目正在执行另一项操作，请稍后重试。",
+    project_limit: "项目超出限制：最多 40 个文件、每文件 24KB、总计 256KB。", project_git_unavailable: "本地 Git 操作未完成。请确认 Git 已安装，稍后重试。",
+    project_selection_changed: "当前连接的项目已改变，请重新选择并发起任务。",
+  };
+  if (code.startsWith("project_")) return projectErrors[code] ?? "实践项目操作未完成。请检查文件范围、项目状态与本地 Git；原导入目录未修改。";
   const learningErrors: Record<string, string> = {
+    observation_conflict: "学习记录已改变或达到修改上限，请刷新后核对。",
+    observation_not_found: "找不到这条学习记录，请刷新列表。",
+    outcome_review_conflict: "解释或复核记录已改变，请刷新后重新核对。",
+    outcome_review_not_ready: "请在本次学习验证完成或结束后复核解释。",
     day_not_started: "请先开始这个学习日，再提交证据。",
     invalid_day: "课程中没有这个学习日。",
     evidence_size_limit: "请提交至少 8 个字符、最多 256 KB 的文本或代码。",

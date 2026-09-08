@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "reportHash": "71b640d870805cff3ad348c6146980a4b4b971836dbad87bd3573e73f8f626f5",
+  "reviewer": {
+    "name": "本轮开发助手复核",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "scores": [
+    {
+      "provider": "pi-codex",
+      "id": "H01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文与例子符合要求，解释复用与过期。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H04",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "从重排继续生成，未整段重讲检索。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H01",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文与例子符合要求，解释复用与过期。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H04",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "从重排继续生成，未整段重讲检索。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "fail",
+        "fail"
+      ],
+      "rationale": "将今天查天气时展示昨天缓存天气当成缓存有用的例子，例子本身展示过期风险，与稳定内容前提不符。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H04",
+      "repetition": 1,
+      "criteria": [
+        "fail",
+        "fail",
+        "pass"
+      ],
+      "rationale": "提高思考强度后仍从检索重讲完整流程，没有直接接上后续内容。",
+      "failures": [
+        "repetition"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H01",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文与例子符合要求，解释复用与过期。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H04",
+      "repetition": 2,
+      "criteria": [
+        "fail",
+        "fail",
+        "pass"
+      ],
+      "rationale": "提高思考强度后仍从检索重讲完整流程，没有直接接上后续内容。",
+      "failures": [
+        "repetition"
+      ]
+    }
+  ]
+}

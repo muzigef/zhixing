@@ -1,0 +1,330 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "69723d3794e420b1cdb9bf2bdcbf1c321180fc305da280b667b54cf28a28f321",
+    "datasetHash": "b92d322195b360f1fa01db05f4dfb641219ec1779e1bbf1ba73df086ebb9138a",
+    "planned": 16,
+    "recorded": 16,
+    "attempted": 16,
+    "completed": 16,
+    "reviewed": 16,
+    "unreviewed": 0,
+    "passed": 13,
+    "passRate": 0.8125,
+    "independentHumanReviewed": 0,
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "failures": {},
+    "qualityFailures": {
+      "repetition": 2,
+      "accuracy": 1
+    },
+    "groups": [
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "deep",
+        "planned": 2,
+        "attempted": 2,
+        "completed": 2,
+        "waiting": 0,
+        "latency": {
+          "samples": 2,
+          "p50": 14455,
+          "p95": 15083
+        },
+        "firstToken": {
+          "samples": 2,
+          "p50": 4512,
+          "p95": 5546
+        }
+      },
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "quick",
+        "planned": 6,
+        "attempted": 6,
+        "completed": 6,
+        "waiting": 0,
+        "latency": {
+          "samples": 6,
+          "p50": 7867,
+          "p95": 12313
+        },
+        "firstToken": {
+          "samples": 6,
+          "p50": 3558,
+          "p95": 6041
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "deep",
+        "planned": 2,
+        "attempted": 2,
+        "completed": 2,
+        "waiting": 0,
+        "latency": {
+          "samples": 2,
+          "p50": 8625,
+          "p95": 11367
+        },
+        "firstToken": {
+          "samples": 2,
+          "p50": 3263,
+          "p95": 4755
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "quick",
+        "planned": 6,
+        "attempted": 6,
+        "completed": 6,
+        "waiting": 0,
+        "latency": {
+          "samples": 6,
+          "p50": 4083,
+          "p95": 10040
+        },
+        "firstToken": {
+          "samples": 6,
+          "p50": 608,
+          "p95": 2047
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  },
+  "review": {
+    "version": 1,
+    "reportHash": "69723d3794e420b1cdb9bf2bdcbf1c321180fc305da280b667b54cf28a28f321",
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "scores": [
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导和 -4 验算正确，解释变量及偏导方向，最终公式块定界符均独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "接上重排和生成，未整段重讲检索，说明依据性及局限。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H05",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "价格更新时间线连贯，解释命中不等于最新，没有追问已知定义。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H06",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "实际调用一次资料列表工具、两轮模型往返，返回一份 retrieval.md，未写入或执行实验。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导和 -4 验算正确，解释变量及偏导方向，最终公式块定界符均独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "接上重排和生成，未整段重讲检索，说明依据性及局限。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H05",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "价格更新时间线连贯，解释命中不等于最新，没有追问已知定义。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H06",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "实际调用一次资料列表工具、两轮模型往返，返回一份 retrieval.md，未写入或执行实验。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导和 -4 验算正确，解释变量及偏导方向，最终公式块定界符均独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "补全重排和生成，但开头仍复述检索背景并附无必要的后续邀请；概念表达可用，衔接仍不够直接。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H05",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "价格更新时间线连贯，解释命中不等于最新，没有追问已知定义。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H06",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "实际调用一次资料列表工具、两轮模型往返，返回一份 retrieval.md，未写入或执行实验。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导和 -4 验算正确，解释变量及偏导方向，最终公式块定界符均独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "先介绍材料不足并跳到生成，重排仅在后面补充，且调用了不必要的资料工具；没有空泛 continue，但衔接和依据表述仍需复核。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H05",
+        "repetition": 2,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "时间线与命中旧值解释正确，但最后给出的立即一致性做法未说明并发读写条件，表述过于绝对。",
+        "failures": [
+          "accuracy"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H06",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "实际调用一次资料列表工具、两轮模型往返，返回一份 retrieval.md，未写入或执行实验。",
+        "failures": [],
+        "verdict": "pass"
+      }
+    ]
+  }
+}

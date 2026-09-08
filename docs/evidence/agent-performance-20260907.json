@@ -1,0 +1,131 @@
+{
+  "generatedAt": "2026-09-07T14:29:57.009Z",
+  "scope": "Synthetic 40ms independent read operations; not provider speed or full renderer timing",
+  "runs": [
+    {
+      "repetition": 1,
+      "parallel": false,
+      "elapsedMs": 170,
+      "peak": 1,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 1,
+      "parallel": true,
+      "elapsedMs": 84,
+      "peak": 2,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 2,
+      "parallel": false,
+      "elapsedMs": 168,
+      "peak": 1,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 2,
+      "parallel": true,
+      "elapsedMs": 85,
+      "peak": 2,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 3,
+      "parallel": false,
+      "elapsedMs": 168,
+      "peak": 1,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 3,
+      "parallel": true,
+      "elapsedMs": 85,
+      "peak": 2,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 4,
+      "parallel": false,
+      "elapsedMs": 168,
+      "peak": 1,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 4,
+      "parallel": true,
+      "elapsedMs": 84,
+      "peak": 2,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 5,
+      "parallel": false,
+      "elapsedMs": 168,
+      "peak": 1,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "repetition": 5,
+      "parallel": true,
+      "elapsedMs": 85,
+      "peak": 2,
+      "results": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    }
+  ],
+  "coalescing": {
+    "inputEvents": 1000,
+    "updates": 1,
+    "textLength": 1000
+  }
+}

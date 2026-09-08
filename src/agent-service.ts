@@ -16,6 +16,9 @@ import { buildPrompt, buildMessages } from "./learning-agent-profile.js";
 import { publicError } from "./agent-errors.js";
 
 import type { ProviderRuntime } from "./provider-runtime.js";
+import { selectReasoning } from "./agent-efficiency.js";
+import { ContinuationText, inspectResponse, normalizeDisplayMath } from "./response-quality.js";
+import { citationMarker } from "./citation-marker.js";
 export interface AgentInvocation { runtime: ProviderRuntime; request: InvocationRequest; signal?: AbortSignal; result?: InvocationResult; error?: unknown; }
 export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
   private listeners = new Set<(event: AgentEvent) => void>();
@@ -272,7 +275,8 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         createdAt: now,
         provider: request.provider,
         style: request.style,
-        reasoning: request.reasoning,
+        reasoning: selectReasoning(request.text, request.reasoning, Boolean(request.resumeTaskId || request.execution && request.execution !== "read")),
+        ...(request.reasoning === "auto" ? { reasoningMode: "auto" as const } : {}),
         taskId: request.resumeTaskId ?? randomUUID(),
         steerId: request.steerId,
       });
@@ -413,6 +417,15 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     const signal = AbortSignal.any([controller.signal, timeout]);
     const activities = new Map<string, number>();
     let invocation = supplied;
+    const previousAnswer = session.messages.slice(0, -2).at(-1);
+    let continuation = new ContinuationText(/^(继续(?:回答|讲解|说)?|continue)[。.!！]?$/i.test(request.text.trim()) && previousAnswer?.role === "assistant" && previousAnswer.status === "interrupted" ? previousAnswer.text : "");
+    let removedRepeat = 0;
+    const display = (text: string) => {
+      if (!text) return;
+      if (message.firstTokenMs === undefined) message.firstTokenMs = Date.now() - started;
+      message.text += text;
+      this.emit({ type: "delta", sessionId: session.id, messageId: message.id, text });
+    };
     const cancel = () => controller.abort();
     supplied?.signal?.addEventListener("abort", cancel, { once: true });
     if (supplied?.signal?.aborted) controller.abort();
@@ -422,12 +435,17 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         runId: message.id, providerId: request.provider, client, prompt, question: request.text,
         messages: buildMessages({ ...session, messages: session.messages.slice(0, -2) }, request),
         taskId: message.taskId, sessionId: session.id, resumeInput: request.resumeTaskId ? request.text : undefined, steerId: request.steerId, allowWrites: request.execution === "once" || session.executionAllowed === true,
-        reasoning: request.reasoning,
+        reasoning: message.reasoning,
         onTiming: (timing) => { (message.modelTimings ??= []).push(timing); },
+        onContext: (usage) => { message.contextUsage = usage; },
         onItem: (item) => { if (item.kind !== "artifact" || !session.messages.some(entry => entry.items?.some(previous => previous.kind === "artifact" && previous.artifactId === item.artifactId))) (message.items ??= []).push(item); this.emit({ type: "session", session }); },
         onInteraction: session.study ? undefined : async (item) => { const existing = session.messages.flatMap(entry => entry.items ?? []).find(entry => (entry.kind === "question" || entry.kind === "approval") && entry.id === item.id && entry.status === "pending");
           if (!existing) (message.items ??= []).push(item); await this.store.save(session); this.emit({ type: "session", session }); },
         onTurn: (text, kind) => {
+          display(continuation.finish());
+          text = continuation.clean(text); removedRepeat += continuation.removed;
+          text = normalizeDisplayMath(text);
+          continuation = new ContinuationText();
           if (text) (message.items ??= []).push({ id: randomUUID(), kind, text });
           message.text = kind === "final" ? text : "";
           this.emit({ type: "session", session });
@@ -440,9 +458,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         },
         application: session.study ? undefined : this.learning, topicId: session.study ? undefined : session.topicId, contextAllowed: session.contextAllowed ?? false,
         onText: (text) => {
-          if (message.firstTokenMs === undefined && text) message.firstTokenMs = Date.now() - started;
-          message.text += text;
-          this.emit({ type: "delta", sessionId: session.id, messageId: message.id, text });
+          display(continuation.push(text));
           if (Date.now() - savedAt > 750) {
             savedAt = Date.now();
             void this.store.save(session).catch(() => { mayDrain = false; session.queuePaused = true; });
@@ -468,11 +484,13 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         const custom = invocation.request;
         const output = await collectInvocation(invocation.runtime, {
           ...custom,
+          reasoning: custom.reasoning ?? message.reasoning,
           execution: this.learning ? new AgentExecutionStore(this.learning.database, { taskId: message.taskId!, sessionId: session.id, topicId: session.topicId ?? "general-chat" }) : undefined,
           resumeInput: request.resumeTaskId ? request.text : undefined,
           steerId: request.steerId,
           onText: (text, providerId) => { taskOptions.onText(text); custom.onText?.(text, providerId); },
           onTurn: (text, kind) => { taskOptions.onTurn?.(text, kind); custom.onTurn?.(text, kind); },
+          onContext: (usage) => { taskOptions.onContext?.(usage); custom.onContext?.(usage); },
         }, signal);
         invocation.result = output;
         result = { contextMs: 0, modelMs: Date.now() - started, turns: 0, toolMs: 0, toolCalls: output.toolResults.length, waiting: output.waiting, ...(output.blocked ? { blocked: true } : {}) };
@@ -490,6 +508,9 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         session.queuePaused = true;
       }
     } finally {
+      display(continuation.finish()); removedRepeat += continuation.removed;
+      message.quality = inspectResponse(message.text, request.text, (message.citations ?? []).map(citationMarker));
+      if (removedRepeat) message.quality.unshift({ code: "continuation_repeat_removed", detail: `已省略续写开头与上一条中断回答完全相同的 ${removedRepeat} 个字符。` });
       supplied?.signal?.removeEventListener("abort", cancel);
       controller.abort();
       await Promise.allSettled([...this.pendingEnqueues]);

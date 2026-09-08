@@ -1,0 +1,342 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "f4394c6cc08c0d43a7427775b34b6c48e7bb8752071bb113bc1e06ec25644de1",
+    "datasetHash": "fcbc8f69bf7b413e69bac443ebf771242439662679350f89c70de2140d7d5ea6",
+    "planned": 16,
+    "recorded": 16,
+    "attempted": 16,
+    "completed": 16,
+    "reviewed": 16,
+    "unreviewed": 0,
+    "passed": 9,
+    "passRate": 0.5625,
+    "independentHumanReviewed": 0,
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "failures": {},
+    "qualityFailures": {
+      "other": 1,
+      "format": 2,
+      "grounding": 2,
+      "repetition": 2,
+      "accuracy": 1
+    },
+    "groups": [
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "quick",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 6255,
+          "p95": 8487
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2207,
+          "p95": 2974
+        }
+      },
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "deep",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 5951,
+          "p95": 15238
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2539,
+          "p95": 4846
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "quick",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 3942,
+          "p95": 5299
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 542,
+          "p95": 2449
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "deep",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 5149,
+          "p95": 8578
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2886,
+          "p95": 3154
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  },
+  "review": {
+    "version": 1,
+    "reportHash": "f4394c6cc08c0d43a7427775b34b6c48e7bb8752071bb113bc1e06ec25644de1",
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "scores": [
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两个正文段落分别说明稳定内容复用和更新后过期，并有对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导得到 2x(wx+b-y)，代入为 -4；解释固定其他变量，公式有数学定界符。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H03",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "依据合成 retrieval.md 说明更新后旧缓存失效，拒绝无数据的 200 元费用结论，marker 指向正文锚点。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "从重排接上生成，没有重新整段解释检索，描述依证据生成。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两个正文段落分别说明稳定内容复用和更新后过期，并有对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "partial",
+          "pass"
+        ],
+        "rationale": "求导和 -4 正确，固定其他量的操作有说明，但未直接解释偏导对初学者的含义。",
+        "failures": [
+          "other"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H03",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "依据合成 retrieval.md 说明更新后旧缓存失效，拒绝无数据的 200 元费用结论，marker 指向正文锚点。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "从重排接上生成，没有重新整段解释检索，描述依证据生成。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两个正文段落分别说明稳定内容复用和更新后过期，并有对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "partial"
+        ],
+        "rationale": "推导、偏导说明和 -4 验算正确；多处 $$ 开闭与公式同行，未遵守独占行的产品排版约定。",
+        "failures": [
+          "format"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H03",
+        "repetition": 1,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "费用不足判断和引用锚点正确；把失效刷新说成能够保证生成/来源准确，强于合成原文能支持的结论。",
+        "failures": [
+          "grounding"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "fail",
+          "fail",
+          "pass"
+        ],
+        "rationale": "虽然补充了重排和生成，却从检索标题重新完整讲起，没有直接从中断后续部分接上。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "fail"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "fail",
+          "partial",
+          "pass"
+        ],
+        "rationale": "出现标题、两段正文及额外总结，违反只写两段；用今日头条列表说明稳定内容，边界解释不足。",
+        "failures": [
+          "format",
+          "accuracy"
+        ],
+        "verdict": "fail"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式求导得到 2x(wx+b-y)，代入为 -4；解释固定其他变量，公式有数学定界符。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H03",
+        "repetition": 2,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "费用不足判断和引用锚点正确；把失效刷新说成能够保证生成/来源准确，强于合成原文能支持的结论。",
+        "failures": [
+          "grounding"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "fail",
+          "fail",
+          "pass"
+        ],
+        "rationale": "虽然补充了重排和生成，却从检索标题重新完整讲起，没有直接从中断后续部分接上。",
+        "failures": [
+          "repetition"
+        ],
+        "verdict": "fail"
+      }
+    ]
+  }
+}

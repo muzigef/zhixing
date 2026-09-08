@@ -37,6 +37,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm --prefix desktop run typecheck
+      - name: Verify macOS learning and execution behavior before packaging
+        if: runner.os == 'macOS'
+        run: npm run verify
       - run: npm --prefix desktop run test:ui
       - run: npm --prefix desktop run dist:host
         env:

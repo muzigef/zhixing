@@ -97,9 +97,10 @@ try {
     .selectOption("light");
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.locator(".model-picker").filter({ hasText: "离线演示" }).waitFor();
+  await page.getByRole("combobox", { name: "思考强度", exact: true }).selectOption("auto");
   await page
     .getByRole("textbox", { name: "发送给知行" })
-    .fill("请用直观例子解释梯度下降，并展示公式和代码。");
+    .fill("请用两段直观例子解释梯度下降，并展示公式和代码。");
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
   await page.locator(".katex-display").waitFor();
@@ -107,6 +108,14 @@ try {
     .getByRole("button", { name: "停止生成", exact: true })
     .waitFor({ state: "hidden" });
   assert.equal(await page.locator(".assistant-message").count(), 1);
+  await page.getByText("回答检查提示", { exact: true }).click();
+  await page.getByText("以下是格式和来源提示，内容正确性仍需核对。", { exact: true }).waitFor();
+  await page.getByText("回答检查提示", { exact: true }).click();
+  await page.getByText("本轮自动选择：深入思考", { exact: true }).waitFor();
+  await page.getByRole("combobox", { name: "思考强度", exact: true }).selectOption("balanced");
+  await page.getByText("本轮上下文范围", { exact: true }).click();
+  assert.ok((await page.locator(".assistant-message").innerText()).includes("不作为计费用量"));
+  await page.getByText("本轮上下文范围", { exact: true }).click();
   assert.ok(
     (await page.locator(".assistant-message").innerText()).includes("离线演示"),
   );
@@ -250,6 +259,36 @@ try {
     .locator(".model-picker")
     .filter({ hasText: "DeepSeek · v4-pro" })
     .waitFor();
+  // Real IPC/rendering burst in a disposable session; no production test hook.
+  const current = await page.evaluate(async () => {
+    const response = await window.zhixing.invoke({ type: "load", sessionId: localStorage.getItem("last-session") });
+    if (!response.ok) throw new Error(response.error);
+    return response.data;
+  });
+  const burstText = "流".repeat(1000) + "尾段";
+  current.messages.at(-1).text = "";
+  current.messages.at(-1).status = "running";
+  const burstStart = Date.now();
+  await running.app.evaluate(({ BrowserWindow }, session) => {
+    const contents = BrowserWindow.getAllWindows()[0].webContents;
+    contents.send("zhixing:event", { type: "session", session });
+    for (let i = 0; i < 1000; i++) contents.send("zhixing:event", { type: "delta", sessionId: session.id, messageId: session.messages.at(-1).id, text: "流" });
+    contents.send("zhixing:event", { type: "delta", sessionId: session.id, messageId: session.messages.at(-1).id, text: "尾段" });
+    contents.send("zhixing:event", { type: "settled", sessionId: session.id });
+  }, current);
+  await page.waitForFunction(expected => [...document.querySelectorAll(".assistant-message .markdown")].at(-1)?.textContent === expected, burstText);
+  current.messages.at(-1).text = burstText;
+  current.messages.at(-1).status = "completed";
+  await running.app.evaluate(({ BrowserWindow }, session) => {
+    const contents = BrowserWindow.getAllWindows()[0].webContents;
+    contents.send("zhixing:event", { type: "delta", sessionId: session.id, messageId: session.messages.at(-1).id, text: "应被快照覆盖" });
+    contents.send("zhixing:event", { type: "session", session });
+    contents.send("zhixing:event", { type: "delta", sessionId: "other-session", messageId: session.messages.at(-1).id, text: "不可串入" });
+    contents.send("zhixing:event", { type: "settled", sessionId: session.id });
+  }, current);
+  await page.getByRole("button", { name: "复制回答", exact: true }).last().click();
+  assert.equal(await running.app.evaluate(({ clipboard }) => clipboard.readText()), burstText);
+  console.log(`Renderer burst passed: 1001 IPC deltas, exact final/copy text, snapshot precedence and session isolation; ${Date.now() - burstStart} ms including UI assertions.`);
   assert.deepEqual(errors, []);
   console.log(
     "Desktop UI passed: sandbox bridge, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",

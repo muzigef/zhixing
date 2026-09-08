@@ -15,6 +15,11 @@ import { randomUUID } from "node:crypto";
 import { addQuestionTool, interactionId, type AssistantItem, type PendingInteraction } from "./assistant-interactions.js";
 import { ToolHarness } from "./tool-harness.js";
 import { citationMarker } from "./citation-marker.js";
+import { responseRepairReason } from "./response-quality.js";
+import type { ContextUsage } from "./context-window.js";
+import { attachProjectTools } from "./project-tools.js";
+import { attachMcpTools, McpSettings } from "./mcp-tools.js";
+import { onDemandTools } from "./agent-efficiency.js";
 
 export interface TaskActivity { label: string; status: "running" | "completed" | "failed"; at: string; }
 export function providerRuntime(providerId: string, client: ModelClient): ProviderRuntime {
@@ -31,6 +36,7 @@ export async function runAssistantTask(options: {
   taskId?: string; sessionId?: string; resumeInput?: string; steerId?: string; allowWrites?: boolean;
   reasoning?: ReasoningProfile; onUsage?: (usage: ModelUsage) => void;
   onTiming?: (timing: ModelTiming) => void;
+  onContext?: (usage: ContextUsage) => void;
   onItem?: (item: AssistantItem) => void;
   onInteraction?: (item: PendingInteraction) => Promise<void>;
   onTurn?: (text: string, kind: "progress" | "final") => void;
@@ -67,7 +73,15 @@ export async function runAssistantTask(options: {
     if (checkpoint?.pending) { checkpoint.pending.phase = "waiting"; checkpoint.status = "waiting"; execution!.save(checkpoint, "interaction_requested", callId); }
   };
   if (options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { pause(item.callId); await options.onInteraction!({ ...item, id: interactionId(taskId, item.callId) }); });
+  let external: Awaited<ReturnType<typeof attachMcpTools>> | undefined;
   try {
+    if (tools && options.application && options.topicId && options.contextAllowed) {
+      tools = attachProjectTools(options.application, tools, options.topicId, taskId);
+      external = await attachMcpTools(tools, new McpSettings(options.application.database), options.topicId, signal); tools = external.tools;
+    }
+    const restored = execution?.read();
+    const catalog = tools ? onDemandTools(tools, [...(restored?.history ?? []).flatMap(turn => turn.events), ...(restored?.pending?.events ?? [])], Boolean(tasks?.snapshot(taskId, options.topicId!).plan.length)) : undefined;
+    tools = catalog ?? tools;
     if (options.application && options.topicId) {
       activity("context", options.contextAllowed ? "读取学习进度并检索当前主题资料" : "检查本会话的学习上下文授权", "running");
       const context = await options.application.context(options.topicId, options.question, options.contextAllowed, signal);
@@ -88,10 +102,13 @@ export async function runAssistantTask(options: {
     activity("answer", "组织回答", "running");
     const result = await collectInvocation(providerRuntime(options.providerId, options.client), {
       execution, resumeInput: options.resumeInput, steerId: options.steerId, materialContext: options.contextAllowed,
+      canParallelTool: (name) => tools?.harness.isParallelSafe(name) ?? false,
       canReplayTool: (name) => tools?.harness.isReplaySafe(name) ?? false,
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
+      responseCheck: isContinuableModelClient(options.client) ? text => responseRepairReason(text, options.question) : undefined,
       onTiming: options.onTiming,
+      onContext: options.onContext,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
       onTurn: options.onTurn, shouldPause: () => waiting,
       toolState: () => tasks?.snapshot(taskId, options.topicId!).operations.filter(item => item.status === "completed").map(item => item.key).sort().join(":") ?? "",
@@ -101,26 +118,30 @@ export async function runAssistantTask(options: {
         return pending?.length ? pending.map(step => step.title).join("、") : undefined;
       },
       containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true,
+      // Multi-file read/edit/test cycles need more bounded rounds than short learning queries.
+      limits: tools?.definitions.some(tool => tool.name.startsWith("project_")) ? { maxTurns: 12 } : undefined,
       tools: tools?.definitions,
+      advertisedTools: catalog?.advertised,
       onText: options.onText,
       onAudit: (value) => { trace = value; },
       onToolCall: tools ? async (name, input, toolSignal, callId) => {
         const decision = callId ? execution?.read()?.decisions[callId] : undefined;
         if (name === "ask_user" && decision) return { ok: true, output: { answer: decision.answer } };
-        if (["save_artifact", "run_experiment"].includes(name) && decision?.answer === "deny") return { ok: false, errorCode: "tool_policy_denied" };
+        const risk = tools!.harness.preview(name, input, options.topicId ?? "general-chat").risk;
+        if (risk !== "read" && decision?.answer === "deny") return { ok: false, errorCode: "tool_policy_denied" };
         const labels: Record<string, string> = { learning_progress: "查看学习进度", list_materials: "查看资料目录", search_materials: "检索资料", task_status: "恢复任务进度", plan_task: "整理执行步骤", save_artifact: "保存学习产物", run_experiment: "运行实验测试" };
         const key = `tool-${++toolSequence}`;
         activity(key, labels[name] ?? "执行学习查询", "running");
-        if (["save_artifact", "run_experiment"].includes(name) && !options.allowWrites && decision?.answer !== "allow" && options.onInteraction) {
-          const preview = tools!.harness.preview(name, input, options.topicId!);
+        if (risk !== "read" && !options.allowWrites && decision?.answer !== "allow" && options.onInteraction) {
+          const preview = await tools!.harness.validatedPreview(name, input, { topicId: options.topicId!, signal: toolSignal, callId });
           pause(callId);
-          await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : "运行当前实现与测试", tool: name as "save_artifact" | "run_experiment", input: preview.input as Record<string, unknown>, status: "pending" });
+          await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : name === "run_experiment" ? "运行当前实现与测试" : `执行 ${name}`, tool: name, input: preview.input as Record<string, unknown>, preview: preview.preview, status: "pending" });
           waiting = true; activity(key, "等待你授权这项操作", "completed");
           return { ok: false, errorCode: "approval_required" };
         }
         activity("model", "模型请求已完成", "completed");
         const toolStarted = Date.now();
-        const harness = decision?.answer === "allow" && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
+        const harness = decision?.answer === "allow" && ["save_artifact", "run_experiment"].includes(name) && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
         const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: options.allowWrites || decision?.answer === "allow" ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
@@ -148,5 +169,5 @@ export async function runAssistantTask(options: {
     activity("answer", signal.aborted ? "任务已停止" : "本轮未完成", "failed");
     ledger?.finish(options.runId, signal.aborted ? "cancelled" : "failed", signal.aborted ? "cancelled" : "assistant_failed");
     throw error;
-  }
+  } finally { await external?.close(); }
 }

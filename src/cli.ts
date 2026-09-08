@@ -49,7 +49,7 @@ import { learningAgentRequest } from "./learning-agent.js";
 import { completeTeachingTurn } from "./teaching-turn.js";
 import { routeConversation } from "./conversation-routing.js";
 import { ResponseStyleStore, parseResponseStyle, responseGuidelines, styleLabels } from "./response-style.js";
-import { answerPrompt, lessonPrompt, teachingPrompt } from "./teaching-prompts.js";
+import { answerMessages, answerPrompt, lessonPrompt, teachingPrompt } from "./teaching-prompts.js";
 import { formatTerminalMarkdown, TerminalMarkdownWriter } from "./terminal-markdown.js";
 import { ConversationSessionStore, emptyConversation, conversationHistory } from "./conversation-session.js";
 import { ReplController, PromptAssembler, type ReplSnapshot } from "./repl-controller.js";
@@ -124,7 +124,7 @@ function createCliAgent(): CliAgentTransport {
     const client = providerRegistry.client(request.provider) ?? mockProvider;
     const invocation = isContinuableModelClient(client)
       ? learningAgentRequest(learning.tools(allowMaterials), { topicId: activeTopic, question, style: request.style, history, context, confirmed: modelContextAllowed() })
-      : { role: "tutor" as const, providerId: "routed", prompt: answerPrompt(question, request.style, context, history), containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false };
+      : { role: "tutor" as const, providerId: "routed", prompt: answerPrompt(question, request.style, context, history), messages: answerMessages(question, request.style, context, history), containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false };
     return { runtime: providerRuntime(request.provider, client), request: { ...invocation, materialContext: true, onText: text => { liveText?.write(text); } } };
   }, text => { if (replMode) { if (liveText) liveText.write(text); else writeLive(text); } });
 }
@@ -218,7 +218,7 @@ async function execute(line: string): Promise<string> {
     await cliAgent.service.idle();
     const session = await cliAgent.service.load(chat.id); const message = session.messages.at(-1)!;
     chat = await chats.save(await cliAgent.projection(chat)); conversation.splice(0, conversation.length, ...conversationHistory(chat));
-    const cards = session.messages.flatMap(entry => entry.items ?? []).filter(item => (item.kind === "question" || item.kind === "approval") && item.status === "pending").map(item => `${"title" in item ? item.title : ""}\n/answer ${item.id} ${item.kind === "approval" ? "allow 或 deny" : "你的回答"}`);
+    const cards = session.messages.flatMap(entry => entry.items ?? []).filter(item => (item.kind === "question" || item.kind === "approval") && item.status === "pending").map(item => `${"title" in item ? item.title : ""}${item.kind === "approval" ? `\n\n${item.preview ?? JSON.stringify(item.input, null, 2)}` : ""}\n/answer ${item.id} ${item.kind === "approval" ? "allow 或 deny" : "你的回答"}`);
     return [replMode ? "" : message.text, message.error, ...cards].filter(Boolean).join("\n\n");
   }
 
@@ -666,9 +666,10 @@ async function execute(line: string): Promise<string> {
       return modelReply(result, Boolean(streamed));
     }
     if (route === "answer") {
-      const prompt = answerPrompt(command, responseStyle, await learningContext.build(activeTopic, command), conversation);
+      const context = await learningContext.build(activeTopic, command);
+      const prompt = answerPrompt(command, responseStyle, context, conversation);
       const streamed = beginLiveModelText("知行");
-      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
+      const result = await collectReply(command, { role: "tutor", providerId: "routed", prompt, messages: answerMessages(command, responseStyle, context, conversation), containsUserMaterials: true, confirmed: modelContextAllowed(), allowFallback: false, onText: streamed, onAudit: (record) => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
       return modelReply(result, Boolean(streamed));
     }
     pendingConversationPlan = undefined;

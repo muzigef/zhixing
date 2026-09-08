@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import type { ZhixingDatabase } from "./database.js";
 import { dayIdSchema } from "./evidence-store.js";
 import { topicIdSchema } from "./contracts.js";
+import { assistanceSchema, type Assistance } from "./learning-observations.js";
 
 interface Check { title: string; choices: string[]; correct: number; explanation: string; }
 const check = (title: string, choices: string[], correct: number, explanation: string): Check => ({ title, choices, correct, explanation });
@@ -29,7 +30,7 @@ const catalog: Record<string, Check[][]> = {
     [check("遇到不确定的追问，怎样回答更可核验？", ["编造细节", "明确已知边界，并说明验证方法", "重复产品口号"], 1, "不确定性需要明确边界与验证路径。"), check("复盘一次失败，最有价值的内容是什么？", ["失败触发条件、原因、修复与回归证据", "只有成功截图", "泛泛总结经验"], 0, "可复现的失败和修复证据能支持后续改进。")],
   ],
 };
-export interface AssessmentResult { id: string; topicId: string; dayId: string; status: "practice_needed" | "checks_passed"; correctCount: number; total: number; errorCauses: string[]; explanations: string[]; reflection: string; reviewAt: string; submittedAt: string; }
+export interface AssessmentResult { id: string; topicId: string; dayId: string; status: "practice_needed" | "checks_passed"; correctCount: number; total: number; errorCauses: string[]; explanations: string[]; reflection: string; assistance?: Assistance; reviewAt: string; submittedAt: string; }
 export class AssessmentStore {
   constructor(private readonly database: ZhixingDatabase) {
     database.db.exec("CREATE TABLE IF NOT EXISTS learning_assessments(id TEXT PRIMARY KEY, topic TEXT NOT NULL, day TEXT NOT NULL, checks TEXT NOT NULL, answers TEXT, result TEXT, created_at TEXT NOT NULL)");
@@ -41,17 +42,21 @@ export class AssessmentStore {
     this.database.db.prepare("INSERT INTO learning_assessments(id,topic,day,checks,created_at) VALUES(?,?,?,?,?)").run(id, topic, day, JSON.stringify(checks), new Date().toISOString());
     return { id, topicId: topic, dayId: day, questions: checks.map(({ title, choices }) => ({ title, choices })) };
   }
-  submit(topic: string, day: string, id: string, raw: number[], reflection: string, now = new Date()): AssessmentResult {
+  submit(topic: string, day: string, id: string, raw: number[], reflection: string, now = new Date(), assistance: Assistance = "unknown"): AssessmentResult {
+    assistanceSchema.parse(assistance);
     z.string().uuid().parse(id); topicIdSchema.parse(topic); dayIdSchema.parse(day); z.string().max(4000).parse(reflection);
     const row = this.database.db.prepare("SELECT topic,day,checks,answers,result FROM learning_assessments WHERE id=?").get(id) as { topic: string; day: string; checks: string; answers: string | null; result: string | null } | undefined;
     if (!row) throw new Error("assessment_not_found");
     if (row.topic !== topic || row.day !== day) throw new Error("cross_topic_denied");
     const checks = JSON.parse(row.checks) as Check[]; const answers = z.array(z.number().int().min(0).max(2)).length(checks.length).parse(raw);
-    if (row.result) { if (row.answers !== JSON.stringify(answers)) throw new Error("assessment_already_submitted"); return JSON.parse(row.result) as AssessmentResult; }
+    if (row.result) { const previous = JSON.parse(row.result) as AssessmentResult; if (row.answers !== JSON.stringify(answers) || previous.reflection !== reflection || (previous.assistance ?? "unknown") !== assistance) throw new Error("assessment_already_submitted"); return previous; }
     const errors = checks.filter((item, index) => item.correct !== answers[index]);
     const previous = this.summary(topic).find((item) => item.dayId === day);
-    const days = errors.length ? 1 : previous?.status === "checks_passed" ? 7 : 3;
+    const assisted = assistance === "hint" || assistance === "solution";
+    const comparablePrevious = assistance === "independent" ? previous?.assistance === "independent" : assistance === "unknown" && (previous?.assistance ?? "unknown") === "unknown";
+    const days = errors.length || assisted ? 1 : previous?.status === "checks_passed" && comparablePrevious ? 7 : 3;
     const result: AssessmentResult = { id, topicId: topic, dayId: day, status: errors.length ? "practice_needed" : "checks_passed", correctCount: checks.length - errors.length, total: checks.length, errorCauses: errors.map((item) => item.explanation), explanations: checks.map((item) => item.explanation), reflection, reviewAt: new Date(now.getTime() + days * 86400000).toISOString(), submittedAt: now.toISOString() };
+    result.assistance = assistance;
     this.database.db.prepare("UPDATE learning_assessments SET answers=?,result=? WHERE id=? AND result IS NULL").run(JSON.stringify(answers), JSON.stringify(result), id);
     return result;
   }

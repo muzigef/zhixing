@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
-import { evaluateQuality, qualitySeed, type QualityCase } from "../src/quality-evaluation.js";
+import { randomUUID, createHash } from "node:crypto";
+import { z } from "zod";
+import { evaluateQuality, qualitySeed } from "../src/quality-evaluation.js";
 import { LearningApplication } from "../src/learning-application.js";
 import { MacOSKeychainSecretStore } from "../src/macos-keychain.js";
 import { DeepSeekClient } from "../src/deepseek-client.js";
@@ -15,10 +16,23 @@ import { DesktopDemoClient } from "../desktop/core/service.js";
 const live = process.argv.includes("--live");
 if (live && process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("live_provider_disabled");
 const reasoning = process.argv.find((arg) => arg.startsWith("--reasoning="))?.slice(12) ?? "quick";
-if (!["quick", "balanced", "deep"].includes(reasoning)) throw new Error("reasoning_invalid");
+if (!["auto", "quick", "balanced", "deep"].includes(reasoning)) throw new Error("reasoning_invalid");
 const root = process.cwd();
 const outputArg = process.argv.find((arg) => arg.startsWith("--output="));
-const output = path.resolve(outputArg?.slice(9) ?? "docs/evidence/agent-quality-latest.json");
+const output = path.resolve(outputArg?.slice(9) ?? `docs/evidence/agent-quality-${Date.now()}.json`);
+const dataset = process.argv.includes("--heldout") ? "agent-quality-heldout.json" : "agent-quality-cases.json";
+const code = createHash("sha256");
+for (const folder of ["src", "desktop/core"]) for (const file of (await fs.readdir(path.join(root, folder))).filter(file => file.endsWith(".ts")).sort()) code.update(`${folder}/${file}\n`).update(await fs.readFile(path.join(root, folder, file)));
+const codeHash = code.digest("hex");
+const cases = z.object({ cases: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1).max(20_000), criteria: z.array(z.string()).min(1).max(20), seed: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(6000), status: z.enum(["completed", "interrupted"]) })).max(4).optional() })).min(1).max(12) }).parse(JSON.parse(await fs.readFile(path.join(root, "docs", dataset), "utf8")));
+const selectedCase = process.argv.find((arg) => arg.startsWith("--case="))?.slice(7);
+const selectedProvider = process.argv.find((arg) => arg.startsWith("--provider="))?.slice(11);
+if (selectedProvider && !["pi-codex", "deepseek-api", "demo"].includes(selectedProvider)) throw new Error("provider_invalid");
+if (selectedCase && selectedCase.split(",").some(id => !cases.cases.some(task => task.id === id))) throw new Error("case_invalid");
+const providers = live ? ["pi-codex", "deepseek-api"].filter((provider) => !selectedProvider || provider === selectedProvider) : ["demo"];
+if (!providers.length) throw new Error("provider_invalid");
+await fs.mkdir(path.dirname(output), { recursive: true });
+await fs.writeFile(output, "{}\n", { flag: "wx", mode: 0o600 }); // Never overwrite a previous run.
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-quality-live-"));
 let app: LearningApplication | undefined;
 try {
@@ -31,21 +45,17 @@ try {
   const deepseek = new DeepSeekClient(new MacOSKeychainSecretStore());
   const store = new DesktopStore(path.join(temporary, "chats"));
   const service = new DesktopService(store, (provider) => provider === "pi-codex" ? pi : provider === "deepseek-api" ? deepseek : new DesktopDemoClient(), app);
-  const cases = JSON.parse(await fs.readFile(path.join(root, "docs/agent-quality-cases.json"), "utf8")) as { cases: QualityCase[] };
-  const selectedCase = process.argv.find((arg) => arg.startsWith("--case="))?.slice(7);
-  const selectedProvider = process.argv.find((arg) => arg.startsWith("--provider="))?.slice(11);
-  const providers = live ? ["pi-codex", "deepseek-api"].filter((provider) => !selectedProvider || provider === selectedProvider) : ["demo"];
   await evaluateQuality(cases.cases.filter((task) => !selectedCase || selectedCase.split(",").includes(task.id)), providers, 2, async (provider, task, repetition) => {
     const session = await service.create();
     session.topicId = "rag";
     session.workspaceId = app!.summary().id;
     session.contextAllowed = true;
-    session.messages = qualitySeed(task.id).map((message) => ({ ...message, id: randomUUID(), createdAt: new Date().toISOString() }));
+    session.messages = (task.seed ?? qualitySeed(task.id)).map((message) => ({ ...message, id: randomUUID(), createdAt: new Date().toISOString() }));
     await store.save(session);
-    await service.send({ sessionId: session.id, text: task.prompt, provider: provider as "pi-codex" | "deepseek-api" | "demo", style: "adaptive", reasoning: reasoning as "quick" | "balanced" | "deep" });
+    await service.send({ sessionId: session.id, text: task.prompt, provider: provider as "pi-codex" | "deepseek-api" | "demo", style: "adaptive", reasoning: reasoning as "auto" | "quick" | "balanced" | "deep" });
     await service.idle();
     const message = (await store.load(session.id)).messages.at(-1)!;
     console.log(JSON.stringify({ provider, id: task.id, repetition, status: message.status, durationMs: message.durationMs }));
-    return { status: message.status, text: message.text, items: message.items, usage: message.usage, reasoning: message.reasoning, error: message.error, durationMs: message.durationMs, firstTokenMs: message.firstTokenMs, model: provider === "pi-codex" ? (await pi.selection().catch(() => undefined))?.model : provider === "deepseek-api" ? process.env.ZHIXING_DEEPSEEK_MODEL ?? "deepseek-v4-flash" : "demo" };
-  }, async (report) => { await fs.mkdir(path.dirname(output), { recursive: true }); await fs.writeFile(output, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 }); });
+    return { status: message.status, text: message.text, items: message.items, usage: message.usage, reasoning: message.reasoning, error: message.error, durationMs: message.durationMs, firstTokenMs: message.firstTokenMs, timings: message.timings, quality: message.quality, modelTimings: message.modelTimings, model: message.model ?? (provider === "pi-codex" ? (await pi.selection().catch(() => undefined))?.model : provider === "deepseek-api" ? process.env.ZHIXING_DEEPSEEK_MODEL ?? "deepseek-v4-flash" : "demo") };
+  }, async (report) => { report.conditions = { dataset, codeHash, requestedReasoning: reasoning }; const next = `${output}.${randomUUID()}.tmp`; try { await fs.writeFile(next, JSON.stringify(report, null, 2) + "\n", { flag: "wx", mode: 0o600 }); await fs.rename(next, output); } finally { await fs.rm(next, { force: true }); } });
 } finally { app?.close(); await fs.rm(temporary, { recursive: true, force: true }); }

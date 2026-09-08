@@ -1,3 +1,5 @@
+import { McpSettings } from "../../src/mcp-settings.js";
+import { PracticeProjects } from "../../src/practice-projects.js";
 import { AgentExecutionStore } from "../../src/agent-execution-store.js";
 import fs from "node:fs/promises";
 import { createWriteStream, constants } from "node:fs";
@@ -15,7 +17,7 @@ import { chatSchema } from "./contracts.js";
 const manifestSchema = z.object({ format: z.literal("zhixing-workspace-backup"), version: z.literal(1), appVersion: z.string().max(40), createdAt: z.string().datetime(), workspaceId: z.string().regex(/^[a-f0-9]{64}$/), files: z.array(z.object({ path: z.string().min(1).max(4096), bytes: z.number().int().nonnegative().max(2_000_000_000), sha256: z.string().regex(/^[a-f0-9]{64}$/) })).max(20000) });
 type Manifest = z.infer<typeof manifestSchema>;
 const privateName = /^(?:\.env(?:\..*)?|auth\.json|.*\.credential|credentials?(?:\..*)?|tokens?(?:\..*)?)$/i;
-const workspaceRoots = ["zhixing/agent/conversations", "zhixing/data", "zhixing/topics", "zhixing/skills", "zhixing/settings", "zhixing/inbox", "learning-notes"];
+const workspaceRoots = ["zhixing/agent/conversations", "zhixing/data", "zhixing/topics", "zhixing/skills", "zhixing/settings", "zhixing/inbox", "zhixing/projects", "learning-notes"];
 function allowed(relative: string): boolean {
   const parts = relative.split("/");
   if (path.isAbsolute(relative) || relative.includes("\\") || parts.some((part) => !part || part === "." || part === ".." || privateName.test(part))) return false;
@@ -44,10 +46,14 @@ async function* walk(root: string, relative: string): AsyncIterable<string> {
 /** Explicit user export; only application-owned data and a consistent SQLite snapshot are included. */
 export async function createWorkspaceBackup(app: LearningApplication, store: DesktopStore, directory: string, appVersion: string, signal: AbortSignal): Promise<string> {
   await store.flush();
+  await app.projects.validateBackup();
   const parent = await fs.realpath(directory).catch((error) => { if (error.code === "ENOENT") return path.resolve(directory); throw error; });
   if ([app.root, path.join(store.root, "conversations")].some((root) => parent === root || parent.startsWith(`${root}${path.sep}`))) throw new Error("backup_destination_invalid");
   await fs.mkdir(parent, { recursive: true, mode: 0o700 });
-  const target = await fs.mkdtemp(path.join(await fs.realpath(parent), "Zhixing-backup-"));
+  const canonicalParent = await fs.realpath(parent);
+  const protectedRoots = await Promise.all([app.root, path.join(store.root, "conversations")].map(root => fs.realpath(root).catch(error => { if (error.code === "ENOENT") return path.resolve(root); throw error; })));
+  if (protectedRoots.some(root => canonicalParent === root || canonicalParent.startsWith(`${root}${path.sep}`))) throw new Error("backup_destination_invalid");
+  const target = await fs.mkdtemp(path.join(canonicalParent, "Zhixing-backup-"));
   const manifest: Manifest = { format: "zhixing-workspace-backup", version: 1, appVersion, createdAt: new Date().toISOString(), workspaceId: app.summary().id, files: [] };
   let total = 0;
   const record = async (relative: string) => {
@@ -121,7 +127,7 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
       await (cliChats.includes(chat) ? cliStore : store).save(chat);
     }
     const database = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
-    try { new LearningOutcomeStore(database).remapSessions(ids);
+    try { McpSettings.revokeAll(database); PracticeProjects.clearSelections(database); new LearningOutcomeStore(database).remapSessions(ids);
       AgentExecutionStore.remapSessions(database, ids); } finally { database.close(); }
     return { workspace, sessions: chats.length };
   } catch (error) {

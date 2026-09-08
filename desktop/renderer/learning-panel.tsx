@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import type { LearningOverview, WorkspaceSummary } from "../../src/learning-contracts.js";
 import type { BootState, ChatSession, DesktopCommand } from "../core/contracts.js";
+import { ProjectPanel } from "./project-panel.js";
+import { McpPanel } from "./mcp-panel.js";
 import { SkillPanel } from "./skill-panel.js";
 import { EvidencePanel } from "./evidence-panel.js";
+import { ObservationPanel } from "./observation-panel.js";
 import { AssessmentPanel } from "./assessment-panel.js";
 import { OutcomePanel } from "./outcome-panel.js";
 
@@ -69,7 +72,10 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
       })}</div>
       {!overview.course.length && <p>这个主题还没有可展示的课程。可以通过 CLI 创建或完善课程。</p>}
       <SkillPanel key={`skills-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onDiscuss={onDiscuss} />
+      <ProjectPanel key={`project-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onDiscuss={onDiscuss} />
+      <McpPanel key={`mcp-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} />
       <EvidencePanel key={topicId} topicId={topicId} days={overview.days} disabled={busy || taskBusy} onReview={refresh} />
+      <ObservationPanel records={overview.observations ?? []} disabled={busy || taskBusy} refresh={refresh} />
       <AssessmentPanel key={`checks-${topicId}`} topicId={topicId} days={overview.days} results={overview.assessments ?? []} disabled={busy || taskBusy} refresh={refresh} />
       <div className="learning-section-heading"><h3>学习资料 · {overview.materials.length}</h3><button disabled={busy || taskBusy} onClick={() => void importFile()}>导入 PDF / Markdown</button></div>
       <button disabled={busy || taskBusy || !overview.materials.length} onClick={() => { setBusy(true); setError(""); void request<{ indexed: number }>({ type: "semantic-index", topicId }).then((value) => setResult(`已建立 ${value.indexed} 个片段的本机语义索引。`)).catch((problem) => setError(problem.message)).finally(() => setBusy(false)); }}>构建本机语义索引</button>

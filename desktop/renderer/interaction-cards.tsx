@@ -14,7 +14,7 @@ export function InteractionCards({ items, disabled, onAnswer, onCopy }: { items:
     if (item.kind === "artifact") return <details key={item.id} className="artifact-card"><summary>已保存 · {item.dayId} · {item.artifactKind}</summary><pre>{item.text}</pre><button onClick={() => onCopy(item.text)}>复制产物</button><small>产物 {item.artifactId}</small></details>;
     return <section key={item.id} className="interaction-card" aria-label={item.kind === "approval" ? "操作授权" : "待回答问题"}>
       <strong>{item.title}</strong>
-      {item.kind === "approval" && <details><summary>查看具体操作</summary><pre>{typeof item.input.text === "string" ? `${item.input.dayId} · ${item.input.kind}\n\n${item.input.text}` : JSON.stringify(item.input, null, 2)}</pre></details>}
+      {item.kind === "approval" && <details><summary>查看具体操作</summary><pre>{item.preview ?? (typeof item.input.text === "string" ? `${item.input.dayId} · ${item.input.kind}\n\n${item.input.text}` : JSON.stringify(item.input, null, 2))}</pre></details>}
       {item.status === "answered" ? <p>已处理：{item.answer === "allow" ? "允许" : item.answer === "deny" ? "拒绝" : item.answer}</p> : item.kind === "approval" ? <div className="interaction-actions">
         <button disabled={disabled} onClick={() => onAnswer(item.id, "allow", "once")}>允许这一次</button>
         <button disabled={disabled} onClick={() => onAnswer(item.id, "allow", "session")}>本会话允许</button>

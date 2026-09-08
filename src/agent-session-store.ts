@@ -17,7 +17,7 @@ export class AgentSessionStore {
   async create(): Promise<ChatSession> {
     const now = new Date().toISOString();
     const session: ChatSession = {
-      version: 3,
+      version: 4,
       id: randomUUID(),
       title: "新对话",
       customTitle: false,
@@ -34,21 +34,21 @@ export class AgentSessionStore {
       await readJson(this.sessionPath(id), 12_000_000),
     );
     if (session.id !== id) throw new Error("session_invalid");
-    session.version = 3;
+    session.version = 4;
     for (const message of session.messages)
       if (message.status === "running") message.status = "interrupted";
     return session;
   }
   async save(session: ChatSession): Promise<void> {
-    const checked = chatSchema.parse({ ...session, version: 3 });
+    const checked = chatSchema.parse({ ...session, version: 4 });
     chatSchema.parse(session);
     const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
       .then(async () => {
         const file = this.sessionPath(checked.id);
         try {
           const old = await readJson(file, 12_000_000) as { version?: number };
-          if (old.version !== 1 && old.version !== 2 && old.version !== 3) throw new Error("storage_version_unsupported");
-          if (old.version === 1 || old.version === 2) {
+          if (![1, 2, 3, 4].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
+          if (old.version === 1 || old.version === 2 || old.version === 3) {
             await assertNotLinked(`${file}.v${old.version}.bak`);
             try { await fs.copyFile(file, `${file}.v${old.version}.bak`, constants.COPYFILE_EXCL); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
           }

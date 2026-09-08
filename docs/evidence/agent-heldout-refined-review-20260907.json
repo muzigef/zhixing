@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "reportHash": "96c8d42e9d5b9f3f522ace2db015205e9b612e219d8373ec53b75456cb21e342",
+  "reviewer": {
+    "name": "本轮开发助手复核",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "scores": [
+    {
+      "provider": "pi-codex",
+      "id": "H01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H02",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "链式推导与 -4 验算正确，解释了固定其他量和损失变化的含义，公式定界符独占行。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H03",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H04",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "直接接上重排、生成，没有完整重讲检索。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H01",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H02",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "链式推导与 -4 验算正确，解释了固定其他量和损失变化的含义，公式定界符独占行。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H03",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+      "failures": []
+    },
+    {
+      "provider": "pi-codex",
+      "id": "H04",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "直接接上重排、生成，没有完整重讲检索。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "partial",
+        "pass"
+      ],
+      "rationale": "两段要求满足，但“max-age 有效期内不过时”和 ETag 描述边界不够严谨，文字有明显不自然表达。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H02",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "partial"
+      ],
+      "rationale": "求导、验算和偏导解释正确；$$ 定界符与公式同行，已被新增 math_layout 检测提示。",
+      "failures": [
+        "format"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H03",
+      "repetition": 1,
+      "criteria": [
+        "partial",
+        "pass",
+        "pass"
+      ],
+      "rationale": "费用判断和引用正确，但“失效机制保证准”的表述仍强于正文依据。",
+      "failures": [
+        "grounding"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H04",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "直接接上重排、生成，没有完整重讲检索。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H01",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H02",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "partial"
+      ],
+      "rationale": "求导、验算和偏导解释正确；$$ 定界符与公式同行，已被新增 math_layout 检测提示。",
+      "failures": [
+        "format"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H03",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "H04",
+      "repetition": 2,
+      "criteria": [
+        "fail",
+        "fail",
+        "fail"
+      ],
+      "rationale": "只返回 continue，没有实质续写；此原始失败触发后续有界修复机制。",
+      "failures": [
+        "execution"
+      ]
+    }
+  ]
+}

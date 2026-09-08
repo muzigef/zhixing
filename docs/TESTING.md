@@ -11,7 +11,7 @@ npm --prefix desktop run test:ui
 npm run eval:learning -- export-a.json export-b.json --output=summary.json
 ```
 
-UI 命令包含原有三套 smoke 和新增 `smoke-outcomes.mjs`，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
+UI 命令现包含聊天、学习、交互、`smoke-outcomes.mjs` 和 `smoke-projects.mjs` 五组 smoke，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
 
 ```bash
 npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learning-outcomes-live-latest.json
@@ -95,7 +95,7 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.4.1-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.5.0-mac-arm64.dmg
 ```
 
 安装包文件名中的版本来自桌面包，升级后需同步替换。当前配置和已有验收针对 macOS Apple Silicon；Windows NSIS 构建配置不等于 Windows 实机测试通过，Intel Mac 同样尚未验收。
@@ -128,7 +128,7 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 本地 npm registry 不可达时，可以在安装/审计命令末尾临时添加 `--registry=https://registry.npmjs.org`，无需修改全局配置。依赖升级同时更新 `package.json` 与对应锁文件，再用 `npm ci` 验证可复现安装；PDF.js 和内附 Pi 的修复记录见 [依赖安全 Evidence](evidence/dependency-security.md)。
 
-CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。当前没有远端 Actions 成功记录，不将工作流配置等同于平台验收。
+CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。基线 `b2874db` 的远端 verify 已成功；本轮未提交改动尚无远端执行，不能用基线结果或工作流配置代替当前提交与平台验收。
 
 [`scripts/verify.mjs`](../scripts/verify.mjs) 还扫描源码/文档中的疑似凭证及 focused/skipped 测试，并执行 `git diff --check`。扫描排除依赖、用户 data/db/inbox、编译与发布产物等目录，是有限规则检查，不等于完整秘密检测或安全审计。
 
@@ -168,6 +168,29 @@ node_modules/.bin/tsx scripts/profile-pi-latency.ts --live --repetitions=3 --cas
 后续契约检查覆盖排队权限跨重启保留、CLI 应用任务续接的调用方取消、持久纠正只取消旧批次、结果未知时拒绝不安全重放、测试通过后的真实进展识别，以及同批次内修复后重测。见[契约核查记录](evidence/p0-contract-audit-20260907.md)。
 
 最新恢复边界回归增加事件订阅异常隔离、纠正后再次恢复的防循环判断、恢复工具与上下文预算、完成检查取消/超时，以及晚到核验不能覆盖新计划。运行 `npx vitest run tests/agent-service.test.ts tests/agent-recovery-boundaries.test.ts tests/task-execution.test.ts`；完整验收为 86 文件 / 419 测试、原专项 8/8、四组 Electron UI，见[最新核查记录](evidence/p0-recovery-audit-20260907.md)。本轮未重新连接真实 Provider。
+
+## 0.5 / P1-P2 回归
+
+上节的数量和未连接声明属于 P0 历史验收。本轮增量覆盖上下文预算、按需发现、回答修复、评分导入、学习观察、并行恢复、MCP 子进程和独立实践 Git 项目；会话迁移新增 v3 → v4 原文件备份及十二轮计时保存。定向运行：
+
+```bash
+npx vitest run tests/agent-context-budget.test.ts tests/agent-efficiency.test.ts tests/response-quality.test.ts tests/quality-review.test.ts tests/learning-observations.test.ts tests/agent-parallel.test.ts tests/mcp-tools.test.ts tests/practice-projects.test.ts tests/desktop-migration.test.ts
+npm run verify
+npm --prefix desktop run test:ui
+```
+
+桌面现为五组：聊天、学习、交互、学习效果、项目。第五组通过实际窗口修改文件、预览差异、运行失败/通过测试、保存 Git 检查点并重启核验；非 macOS 必须显示隔离不可用，不能将未运行记为通过。MCP 使用实际本地 stdio 协议夹具，未连接未指定的生产服务。
+
+两套生产依赖审计：
+
+```bash
+npm audit --omit=dev --audit-level=high
+npm audit --prefix desktop --omit=dev --audit-level=high
+```
+
+若镜像不提供审计接口，可仅对这次命令指定 `--registry=https://registry.npmjs.org`，不更改全局设置。报告接口错误不能当作零漏洞。
+
+安装器仍须指定 `ZHIXING_DESKTOP_EXECUTABLE` 跑同一五组，再做 DMG 验证、只读挂载检查及 SHA-256 核验。当前完整结果、真实 Pi/DeepSeek 合成请求和失败修复记录见 [P1/P2 证据](evidence/agent-p1-p2-20260907.md)。质量题与人工评分用法见 [评测指南](agent-quality-evaluation.md)；真实参与者和三天复习效果不由这些自动化测试证明。
 
 ```bash
 node --import tsx scripts/audit-agent-p0.ts

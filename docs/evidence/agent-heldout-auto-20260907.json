@@ -1,0 +1,823 @@
+{
+  "version": 2,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-07T13:26:17.295Z",
+  "datasetHash": "fcbc8f69bf7b413e69bac443ebf771242439662679350f89c70de2140d7d5ea6",
+  "expectedResults": 16,
+  "results": [
+    {
+      "provider": "pi-codex",
+      "repetition": 1,
+      "id": "H01",
+      "prompt": "只写两段，向初学者解释网页缓存什么时候有用、什么时候会误导用户，每段包含一个具体例子。",
+      "criteria": [
+        "恰好两段且无额外开场",
+        "正确解释复用与过期",
+        "两个例子具体且对应"
+      ],
+      "status": "completed",
+      "text": "网页缓存适合保存短时间内不常变化的内容，能让页面打开更快、减少服务器压力。例如，一个网站的 logo、CSS 样式表和教学文章中的配图通常不会频繁更新，浏览器把它们缓存后，用户第二次访问时可以直接从本地读取，不必重新下载。\n\n当内容已经更新但缓存没有及时失效时，网页缓存会误导用户，让人看到过期信息。例如，电商网站把商品库存页面缓存了 10 分钟：用户看到“还有货”并下单，但真实库存其实刚刚售罄；这时应让库存等实时数据缩短缓存时间或每次重新验证。",
+      "items": [
+        {
+          "id": "1ade7a76-66a3-44b5-a0f5-2c0f259e6738",
+          "kind": "final",
+          "text": "网页缓存适合保存短时间内不常变化的内容，能让页面打开更快、减少服务器压力。例如，一个网站的 logo、CSS 样式表和教学文章中的配图通常不会频繁更新，浏览器把它们缓存后，用户第二次访问时可以直接从本地读取，不必重新下载。\n\n当内容已经更新但缓存没有及时失效时，网页缓存会误导用户，让人看到过期信息。例如，电商网站把商品库存页面缓存了 10 分钟：用户看到“还有货”并下单，但真实库存其实刚刚售罄；这时应让库存等实时数据缩短缓存时间或每次重新验证。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1611,
+        "outputTokens": 152,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 955
+      },
+      "reasoning": "quick",
+      "durationMs": 6255,
+      "firstTokenMs": 2974,
+      "timings": {
+        "contextMs": 11,
+        "modelMs": 6243,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 955,
+          "requestMs": 4896,
+          "firstEventMs": 1592,
+          "firstTextMs": 1977,
+          "selectionMs": 0,
+          "totalMs": 6239,
+          "processTailMs": 358
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 1,
+      "id": "H02",
+      "prompt": "对单个样本，预测值是 wx+b，损失是预测值与 y 的差的平方。请逐步推导损失对 w 的偏导，并代入 x=2、y=3、w=1、b=0 验算。面向初学者解释符号，公式使用规范 LaTeX。",
+      "criteria": [
+        "链式求导步骤正确且结果为 -4",
+        "解释偏导和固定其他量的含义",
+        "公式定界符与代码排版正确"
+      ],
+      "status": "completed",
+      "text": "设单个样本的输入为 $x$，真实值为 $y$，模型参数为权重 $w$ 和偏置 $b$。\n\n预测值为：\n\n$$\n\\hat{y}=wx+b\n$$\n\n其中，$\\hat{y}$ 读作“y hat”，表示模型的预测结果。\n\n损失定义为预测值与真实值之差的平方：\n\n$$\nL=(\\hat{y}-y)^2=(wx+b-y)^2\n$$\n\n这里 $L$ 是损失；平方使误差无论正负都为非负，并会更强调较大的误差。\n\n## 对 $w$ 求偏导\n\n我们要求的是：\n\n$$\n\\frac{\\partial L}{\\partial w}\n$$\n\n“偏导”表示：只考察 $w$ 变化对损失 $L$ 的影响，把 $x$、$y$、$b$ 都暂时看作常数。\n\n令误差为：\n\n$$\ne=wx+b-y\n$$\n\n那么损失可以写成：\n\n$$\nL=e^2\n$$\n\n根据链式法则：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n\\frac{\\partial L}{\\partial e}\n\\cdot\n\\frac{\\partial e}{\\partial w}\n$$\n\n分别计算两部分：\n\n$$\n\\frac{\\partial L}{\\partial e}=2e\n$$\n\n因为 $e=wx+b-y$，而对 $w$ 求导时，$x$ 是常数，所以：\n\n$$\n\\frac{\\partial e}{\\partial w}=x\n$$\n\n将两部分相乘：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2e\\cdot x\n$$\n\n再代回 $e=wx+b-y$：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}\n=\n2(wx+b-y)x\n}\n$$\n\n这就是损失对权重 $w$ 的偏导数。\n\n## 代入数值验算\n\n给定：\n\n$$\nx=2,\\quad y=3,\\quad w=1,\\quad b=0\n$$\n\n先计算预测值：\n\n$$\n\\hat{y}=wx+b=1\\times2+0=2\n$$\n\n误差为：\n\n$$\n\\hat{y}-y=2-3=-1\n$$\n\n损失为：\n\n$$\nL=(-1)^2=1\n$$\n\n代入偏导公式：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2(wx+b-y)x\n$$\n\n$$\n=\n2(1\\times2+0-3)\\times2\n$$\n\n$$\n=\n2(-1)\\times2=-4\n$$\n\n因此：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}=-4\n}\n$$\n\n负号表示：在当前点附近，增大 $w$ 会使损失下降；所以若用梯度下降更新 $w$，会把 $w$ 往更大的方向调整。",
+      "items": [
+        {
+          "id": "41137f29-24c3-43e8-819c-e317d926541c",
+          "kind": "final",
+          "text": "设单个样本的输入为 $x$，真实值为 $y$，模型参数为权重 $w$ 和偏置 $b$。\n\n预测值为：\n\n$$\n\\hat{y}=wx+b\n$$\n\n其中，$\\hat{y}$ 读作“y hat”，表示模型的预测结果。\n\n损失定义为预测值与真实值之差的平方：\n\n$$\nL=(\\hat{y}-y)^2=(wx+b-y)^2\n$$\n\n这里 $L$ 是损失；平方使误差无论正负都为非负，并会更强调较大的误差。\n\n## 对 $w$ 求偏导\n\n我们要求的是：\n\n$$\n\\frac{\\partial L}{\\partial w}\n$$\n\n“偏导”表示：只考察 $w$ 变化对损失 $L$ 的影响，把 $x$、$y$、$b$ 都暂时看作常数。\n\n令误差为：\n\n$$\ne=wx+b-y\n$$\n\n那么损失可以写成：\n\n$$\nL=e^2\n$$\n\n根据链式法则：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n\\frac{\\partial L}{\\partial e}\n\\cdot\n\\frac{\\partial e}{\\partial w}\n$$\n\n分别计算两部分：\n\n$$\n\\frac{\\partial L}{\\partial e}=2e\n$$\n\n因为 $e=wx+b-y$，而对 $w$ 求导时，$x$ 是常数，所以：\n\n$$\n\\frac{\\partial e}{\\partial w}=x\n$$\n\n将两部分相乘：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2e\\cdot x\n$$\n\n再代回 $e=wx+b-y$：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}\n=\n2(wx+b-y)x\n}\n$$\n\n这就是损失对权重 $w$ 的偏导数。\n\n## 代入数值验算\n\n给定：\n\n$$\nx=2,\\quad y=3,\\quad w=1,\\quad b=0\n$$\n\n先计算预测值：\n\n$$\n\\hat{y}=wx+b=1\\times2+0=2\n$$\n\n误差为：\n\n$$\n\\hat{y}-y=2-3=-1\n$$\n\n损失为：\n\n$$\nL=(-1)^2=1\n$$\n\n代入偏导公式：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2(wx+b-y)x\n$$\n\n$$\n=\n2(1\\times2+0-3)\\times2\n$$\n\n$$\n=\n2(-1)\\times2=-4\n$$\n\n因此：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}=-4\n}\n$$\n\n负号表示：在当前点附近，增大 $w$ 会使损失下降；所以若用梯度下降更新 $w$，会把 $w$ 往更大的方向调整。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1322,
+        "outputTokens": 690,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 38,
+        "startupMs": 516
+      },
+      "reasoning": "deep",
+      "durationMs": 15238,
+      "firstTokenMs": 4846,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 15236,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 516,
+          "requestMs": 14335,
+          "firstEventMs": 1239,
+          "firstTextMs": 4297,
+          "selectionMs": 0,
+          "totalMs": 15232,
+          "processTailMs": 353
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 1,
+      "id": "H03",
+      "prompt": "根据已导入的 retrieval.md，解释缓存为何需要失效，并告诉我这份资料是否能证明微调比 RAG 每月便宜 200 元。附可定位出处。",
+      "criteria": [
+        "缓存失效解释与正文一致",
+        "明确资料不能证明费用差",
+        "引用能定位且支持对应结论"
+      ],
+      "status": "completed",
+      "text": "缓存需要失效，是因为 RAG 依赖外部资料：资料更新后，旧的检索结果缓存可能仍指向过时内容。使其失效后重新检索，才能让生成结果基于最新资料；缓存本身则用于降低重复查询的延迟。[retrieval.md#anchor=RAG 缓存]\n\n这份资料**不能证明**“微调比 RAG 每月便宜 200 元”。资料明确说明未介绍微调的训练费用，也没有提供具体成本数据或模型性能比较，因此无法推出该金额结论。[retrieval.md#anchor=RAG 缓存]",
+      "items": [
+        {
+          "id": "5246b3f1-0e7c-4b66-a507-fc8987c8d3be",
+          "kind": "final",
+          "text": "缓存需要失效，是因为 RAG 依赖外部资料：资料更新后，旧的检索结果缓存可能仍指向过时内容。使其失效后重新检索，才能让生成结果基于最新资料；缓存本身则用于降低重复查询的延迟。[retrieval.md#anchor=RAG 缓存]\n\n这份资料**不能证明**“微调比 RAG 每月便宜 200 元”。资料明确说明未介绍微调的训练费用，也没有提供具体成本数据或模型性能比较，因此无法推出该金额结论。[retrieval.md#anchor=RAG 缓存]"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1635,
+        "outputTokens": 140,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 512
+      },
+      "reasoning": "deep",
+      "durationMs": 5167,
+      "firstTokenMs": 2276,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 5165,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 512,
+          "requestMs": 4276,
+          "firstEventMs": 1228,
+          "firstTextMs": 1733,
+          "selectionMs": 1,
+          "totalMs": 5165,
+          "processTailMs": 350
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 1,
+      "id": "H04",
+      "prompt": "继续回答",
+      "criteria": [
+        "直接接上重排和生成",
+        "不整段重讲检索",
+        "不将检索相关性等同于事实支持"
+      ],
+      "seed": [
+        {
+          "role": "user",
+          "text": "解释 RAG 的检索、重排和生成三个步骤。",
+          "status": "completed"
+        },
+        {
+          "role": "assistant",
+          "text": "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n",
+          "status": "interrupted"
+        }
+      ],
+      "status": "completed",
+      "text": "重排会对检索到的候选片段再次打分，按“与当前问题的相关性、能否直接回答问题”等标准排序，保留最有价值的少量内容。常见做法是用更精细但速度较慢的模型，对“问题—片段”逐对判断匹配程度。\n\n生成则把用户问题和重排后的资料一起交给大语言模型，由模型基于这些上下文组织答案。理想情况下，模型应优先依据提供的资料作答；若资料不足，应说明不确定或缺少的信息，而不是补全臆测。\n\n整体流程可以概括为：\n\n$$\n\\text{问题} \\rightarrow \\text{检索候选资料} \\rightarrow \\text{重排精选资料} \\rightarrow \\text{生成回答}\n$$\n\n其中，检索重在“找得全”，重排重在“排得准”，生成重在“答得清楚且有依据”。",
+      "items": [
+        {
+          "id": "c182ce97-6d47-48fe-b200-7cd4c548e69a",
+          "kind": "final",
+          "text": "重排会对检索到的候选片段再次打分，按“与当前问题的相关性、能否直接回答问题”等标准排序，保留最有价值的少量内容。常见做法是用更精细但速度较慢的模型，对“问题—片段”逐对判断匹配程度。\n\n生成则把用户问题和重排后的资料一起交给大语言模型，由模型基于这些上下文组织答案。理想情况下，模型应优先依据提供的资料作答；若资料不足，应说明不确定或缺少的信息，而不是补全臆测。\n\n整体流程可以概括为：\n\n$$\n\\text{问题} \\rightarrow \\text{检索候选资料} \\rightarrow \\text{重排精选资料} \\rightarrow \\text{生成回答}\n$$\n\n其中，检索重在“找得全”，重排重在“排得准”，生成重在“答得清楚且有依据”。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1284,
+        "outputTokens": 214,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 513
+      },
+      "reasoning": "quick",
+      "durationMs": 6706,
+      "firstTokenMs": 2441,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 6704,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 513,
+          "requestMs": 5808,
+          "firstEventMs": 1299,
+          "firstTextMs": 1898,
+          "selectionMs": 0,
+          "totalMs": 6701,
+          "processTailMs": 352
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 2,
+      "id": "H01",
+      "prompt": "只写两段，向初学者解释网页缓存什么时候有用、什么时候会误导用户，每段包含一个具体例子。",
+      "criteria": [
+        "恰好两段且无额外开场",
+        "正确解释复用与过期",
+        "两个例子具体且对应"
+      ],
+      "status": "completed",
+      "text": "网页缓存适合保存短时间内不常变化的内容，这样再次访问时浏览器或服务器可以直接使用已保存的副本，页面打开更快，也能减少网络和服务器压力。例如，一个公司的“联系我们”页面通常几个月才改一次，浏览器缓存其中的图片、样式表和文字后，用户下次打开时就不必重新下载这些资源。\n\n当内容已经更新、但缓存仍在使用旧副本时，缓存会误导用户，让人以为看到的是最新信息。例如，电商网站把商品价格从 99 元改为 79 元，但用户浏览器还显示缓存中的 99 元页面；用户可能误以为商品没有降价。对价格、库存、新闻等变化频繁的信息，应设置较短缓存时间或在更新后主动让旧缓存失效。",
+      "items": [
+        {
+          "id": "58b04038-9514-46b4-8d59-0496c0f5d732",
+          "kind": "final",
+          "text": "网页缓存适合保存短时间内不常变化的内容，这样再次访问时浏览器或服务器可以直接使用已保存的副本，页面打开更快，也能减少网络和服务器压力。例如，一个公司的“联系我们”页面通常几个月才改一次，浏览器缓存其中的图片、样式表和文字后，用户下次打开时就不必重新下载这些资源。\n\n当内容已经更新、但缓存仍在使用旧副本时，缓存会误导用户，让人以为看到的是最新信息。例如，电商网站把商品价格从 99 元改为 79 元，但用户浏览器还显示缓存中的 99 元页面；用户可能误以为商品没有降价。对价格、库存、新闻等变化频繁的信息，应设置较短缓存时间或在更新后主动让旧缓存失效。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1611,
+        "outputTokens": 183,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 511
+      },
+      "reasoning": "quick",
+      "durationMs": 5847,
+      "firstTokenMs": 2205,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 5846,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 511,
+          "requestMs": 4953,
+          "firstEventMs": 1185,
+          "firstTextMs": 1664,
+          "selectionMs": 0,
+          "totalMs": 5843,
+          "processTailMs": 351
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 2,
+      "id": "H02",
+      "prompt": "对单个样本，预测值是 wx+b，损失是预测值与 y 的差的平方。请逐步推导损失对 w 的偏导，并代入 x=2、y=3、w=1、b=0 验算。面向初学者解释符号，公式使用规范 LaTeX。",
+      "criteria": [
+        "链式求导步骤正确且结果为 -4",
+        "解释偏导和固定其他量的含义",
+        "公式定界符与代码排版正确"
+      ],
+      "status": "completed",
+      "text": "设单个样本的损失为：\n\n$$\nL(w,b)=(wx+b-y)^2\n$$\n\n其中：\n\n- $x$：输入特征；\n- $y$：真实标签；\n- $w$：需要学习的权重；\n- $b$：偏置；\n- $wx+b$：预测值；\n- $L$：预测误差的平方。\n\n对 $w$ 求偏导时，把 $x、y、b$ 看作常数。\n\n先令误差为：\n\n$$\ne=wx+b-y\n$$\n\n则损失可写成：\n\n$$\nL=e^2\n$$\n\n根据链式法则：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n\\frac{\\partial L}{\\partial e}\n\\cdot\n\\frac{\\partial e}{\\partial w}\n$$\n\n分别计算两部分：\n\n$$\n\\frac{\\partial L}{\\partial e}=2e\n$$\n\n$$\n\\frac{\\partial e}{\\partial w}=x\n$$\n\n因此：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2e\\cdot x\n=\n2(wx+b-y)x\n$$\n\n所以最终结果是：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}=2x(wx+b-y)\n}\n$$\n\n代入 $x=2,\\ y=3,\\ w=1,\\ b=0$：\n\n$$\nwx+b=1\\times 2+0=2\n$$\n\n预测值为 $2$，真实值为 $3$，误差为：\n\n$$\nwx+b-y=2-3=-1\n$$\n\n损失为：\n\n$$\nL=(-1)^2=1\n$$\n\n梯度为：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2\\times 2\\times (-1)\n=\n-4\n$$\n\n因此，在该点：\n\n$$\n\\boxed{\\frac{\\partial L}{\\partial w}=-4}\n$$\n\n负号表示：若希望让损失下降，应适当增大 $w$。例如用梯度下降更新时：\n\n$$\nw_{\\text{new}}=w-\\eta\\frac{\\partial L}{\\partial w}\n=1-\\eta(-4)=1+4\\eta\n$$\n\n其中 $\\eta>0$ 是学习率。",
+      "items": [
+        {
+          "id": "2d5bb890-bc06-477f-af19-4ebf019e5aec",
+          "kind": "final",
+          "text": "设单个样本的损失为：\n\n$$\nL(w,b)=(wx+b-y)^2\n$$\n\n其中：\n\n- $x$：输入特征；\n- $y$：真实标签；\n- $w$：需要学习的权重；\n- $b$：偏置；\n- $wx+b$：预测值；\n- $L$：预测误差的平方。\n\n对 $w$ 求偏导时，把 $x、y、b$ 看作常数。\n\n先令误差为：\n\n$$\ne=wx+b-y\n$$\n\n则损失可写成：\n\n$$\nL=e^2\n$$\n\n根据链式法则：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n\\frac{\\partial L}{\\partial e}\n\\cdot\n\\frac{\\partial e}{\\partial w}\n$$\n\n分别计算两部分：\n\n$$\n\\frac{\\partial L}{\\partial e}=2e\n$$\n\n$$\n\\frac{\\partial e}{\\partial w}=x\n$$\n\n因此：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2e\\cdot x\n=\n2(wx+b-y)x\n$$\n\n所以最终结果是：\n\n$$\n\\boxed{\n\\frac{\\partial L}{\\partial w}=2x(wx+b-y)\n}\n$$\n\n代入 $x=2,\\ y=3,\\ w=1,\\ b=0$：\n\n$$\nwx+b=1\\times 2+0=2\n$$\n\n预测值为 $2$，真实值为 $3$，误差为：\n\n$$\nwx+b-y=2-3=-1\n$$\n\n损失为：\n\n$$\nL=(-1)^2=1\n$$\n\n梯度为：\n\n$$\n\\frac{\\partial L}{\\partial w}\n=\n2\\times 2\\times (-1)\n=\n-4\n$$\n\n因此，在该点：\n\n$$\n\\boxed{\\frac{\\partial L}{\\partial w}=-4}\n$$\n\n负号表示：若希望让损失下降，应适当增大 $w$。例如用梯度下降更新时：\n\n$$\nw_{\\text{new}}=w-\\eta\\frac{\\partial L}{\\partial w}\n=1-\\eta(-4)=1+4\\eta\n$$\n\n其中 $\\eta>0$ 是学习率。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1322,
+        "outputTokens": 588,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 87,
+        "startupMs": 507
+      },
+      "reasoning": "deep",
+      "durationMs": 13137,
+      "firstTokenMs": 4296,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 13135,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 507,
+          "requestMs": 12228,
+          "firstEventMs": 1121,
+          "firstTextMs": 3758,
+          "selectionMs": 0,
+          "totalMs": 13133,
+          "processTailMs": 370
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 2,
+      "id": "H03",
+      "prompt": "根据已导入的 retrieval.md，解释缓存为何需要失效，并告诉我这份资料是否能证明微调比 RAG 每月便宜 200 元。附可定位出处。",
+      "criteria": [
+        "缓存失效解释与正文一致",
+        "明确资料不能证明费用差",
+        "引用能定位且支持对应结论"
+      ],
+      "status": "completed",
+      "text": "缓存需要失效，是因为 RAG 依赖外部资料检索；当资料更新后，旧的检索结果可能不再反映最新内容。若继续使用旧缓存，生成回答可能引用过时信息。缓存失效能在保留重复查询加速效果的同时，避免资料更新后的结果陈旧。\n\n出处： [retrieval.md#anchor=RAG 缓存]\n\n这份资料**不能证明**“微调比 RAG 每月便宜 200 元”。资料明确说明未介绍微调的训练费用或具体模型性能，也没有提供 RAG 的月度成本、使用量或任何“200 元”差额数据，因此无法得出该结论。\n\n出处： [retrieval.md#anchor=RAG 缓存]",
+      "items": [
+        {
+          "id": "00f869ce-c693-490d-b8e9-51e142b06cf6",
+          "kind": "final",
+          "text": "缓存需要失效，是因为 RAG 依赖外部资料检索；当资料更新后，旧的检索结果可能不再反映最新内容。若继续使用旧缓存，生成回答可能引用过时信息。缓存失效能在保留重复查询加速效果的同时，避免资料更新后的结果陈旧。\n\n出处： [retrieval.md#anchor=RAG 缓存]\n\n这份资料**不能证明**“微调比 RAG 每月便宜 200 元”。资料明确说明未介绍微调的训练费用或具体模型性能，也没有提供 RAG 的月度成本、使用量或任何“200 元”差额数据，因此无法得出该结论。\n\n出处： [retrieval.md#anchor=RAG 缓存]"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1635,
+        "outputTokens": 170,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 513
+      },
+      "reasoning": "deep",
+      "durationMs": 5951,
+      "firstTokenMs": 2539,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 5950,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 513,
+          "requestMs": 5050,
+          "firstEventMs": 1532,
+          "firstTextMs": 1996,
+          "selectionMs": 0,
+          "totalMs": 5947,
+          "processTailMs": 356
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "pi-codex",
+      "repetition": 2,
+      "id": "H04",
+      "prompt": "继续回答",
+      "criteria": [
+        "直接接上重排和生成",
+        "不整段重讲检索",
+        "不将检索相关性等同于事实支持"
+      ],
+      "seed": [
+        {
+          "role": "user",
+          "text": "解释 RAG 的检索、重排和生成三个步骤。",
+          "status": "completed"
+        },
+        {
+          "role": "assistant",
+          "text": "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n",
+          "status": "interrupted"
+        }
+      ],
+      "status": "completed",
+      "text": "重排会对检索到的候选片段再次打分，按“与当前问题的相关性”重新排序，只保留最有用的少量内容。常见做法是用更精细、但计算更慢的模型比较“问题—片段”是否匹配。\n\n生成阶段把“用户问题 + 重排后的资料片段”一起交给大语言模型，由模型基于这些上下文组织答案、解释推理或生成摘要。它的目标不是重新检索，而是尽量依据给定证据作答。\n\n整体流程可写成：\n\n$$\n\\text{问题} \\rightarrow \\text{检索} \\rightarrow \\text{候选文档} \\rightarrow \\text{重排} \\rightarrow \\text{优质上下文} \\rightarrow \\text{生成答案}\n$$\n\n例如问“公司报销的住宿标准是什么”：\n\n1. **检索**：从制度库找出包含“住宿”“差旅”“报销”的多个段落。  \n2. **重排**：把明确写有“住宿上限、城市等级、凭证要求”的段落排到前面。  \n3. **生成**：模型依据这些段落回答不同城市的上限，并说明需要哪些票据。\n\n检索决定“找得全不全”，重排决定“给模型的资料准不准”，生成决定“答案是否清晰、贴合问题”。",
+      "items": [
+        {
+          "id": "9ef32608-3d2a-484f-9c1e-fbebe6562174",
+          "kind": "final",
+          "text": "重排会对检索到的候选片段再次打分，按“与当前问题的相关性”重新排序，只保留最有用的少量内容。常见做法是用更精细、但计算更慢的模型比较“问题—片段”是否匹配。\n\n生成阶段把“用户问题 + 重排后的资料片段”一起交给大语言模型，由模型基于这些上下文组织答案、解释推理或生成摘要。它的目标不是重新检索，而是尽量依据给定证据作答。\n\n整体流程可写成：\n\n$$\n\\text{问题} \\rightarrow \\text{检索} \\rightarrow \\text{候选文档} \\rightarrow \\text{重排} \\rightarrow \\text{优质上下文} \\rightarrow \\text{生成答案}\n$$\n\n例如问“公司报销的住宿标准是什么”：\n\n1. **检索**：从制度库找出包含“住宿”“差旅”“报销”的多个段落。  \n2. **重排**：把明确写有“住宿上限、城市等级、凭证要求”的段落排到前面。  \n3. **生成**：模型依据这些段落回答不同城市的上限，并说明需要哪些票据。\n\n检索决定“找得全不全”，重排决定“给模型的资料准不准”，生成决定“答案是否清晰、贴合问题”。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1284,
+        "outputTokens": 312,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 510
+      },
+      "reasoning": "quick",
+      "durationMs": 8487,
+      "firstTokenMs": 2207,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 8485,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 510,
+          "requestMs": 7576,
+          "firstEventMs": 1191,
+          "firstTextMs": 1667,
+          "selectionMs": 1,
+          "totalMs": 8483,
+          "processTailMs": 369
+        }
+      ],
+      "model": "gpt-5.6-terra",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "H01",
+      "prompt": "只写两段，向初学者解释网页缓存什么时候有用、什么时候会误导用户，每段包含一个具体例子。",
+      "criteria": [
+        "恰好两段且无额外开场",
+        "正确解释复用与过期",
+        "两个例子具体且对应"
+      ],
+      "status": "completed",
+      "text": "网页缓存有用的时候：当内容很少变化、又需要快速重复读取时，缓存能显著减少等待。比如一个新闻站点的首页每天只更新几次，浏览器缓存了它，你再次访问时几乎立即打开，不必重新下载一堆图片和脚本，既快又省流量。\n\n网页缓存会误导用户的时候：当页面内容频繁或临时更新，而缓存还没过期时，你会看到旧版本。比如购物网站的大促价已经结束、价格刚调回原价，但浏览器仍显示缓存里的折扣价，让你误以为还在优惠期，直到强制刷新（Ctrl+F5）后才看到真实价格。",
+      "items": [
+        {
+          "id": "ad8080cf-eb96-4581-9a4a-56c9dfe786a5",
+          "kind": "final",
+          "text": "网页缓存有用的时候：当内容很少变化、又需要快速重复读取时，缓存能显著减少等待。比如一个新闻站点的首页每天只更新几次，浏览器缓存了它，你再次访问时几乎立即打开，不必重新下载一堆图片和脚本，既快又省流量。\n\n网页缓存会误导用户的时候：当页面内容频繁或临时更新，而缓存还没过期时，你会看到旧版本。比如购物网站的大促价已经结束、价格刚调回原价，但浏览器仍显示缓存里的折扣价，让你误以为还在优惠期，直到强制刷新（Ctrl+F5）后才看到真实价格。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1797,
+        "outputTokens": 132,
+        "cacheReadTokens": 0
+      },
+      "reasoning": "quick",
+      "durationMs": 3942,
+      "firstTokenMs": 2449,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 3939,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "H02",
+      "prompt": "对单个样本，预测值是 wx+b，损失是预测值与 y 的差的平方。请逐步推导损失对 w 的偏导，并代入 x=2、y=3、w=1、b=0 验算。面向初学者解释符号，公式使用规范 LaTeX。",
+      "criteria": [
+        "链式求导步骤正确且结果为 -4",
+        "解释偏导和固定其他量的含义",
+        "公式定界符与代码排版正确"
+      ],
+      "status": "completed",
+      "text": "损失对 $w$ 的偏导可以通过“链式法则”一步步推出来。下面分几步做。\n\n## 1. 符号含义\n\n先约定记号：\n\n- $w$：权重（斜率），是我们想求导的对象；\n- $b$：偏置（截距），在本例中当常数看；\n- $x$：输入特征，已知常数；\n- $y$：真实标签，已知常数；\n- $\\hat{y} = wx+b$：模型预测值；\n- $L = (\\hat{y}-y)^2$：单个样本的损失，即预测与真实的差的平方。\n\n“对 $w$ 的偏导” $\\dfrac{\\partial L}{\\partial w}$ 的含义是：$w$ 稍微变化一点时，损失 $L$ 跟着变化多少。因为 $L$ 还依赖 $x,b,y$，但求偏导时把 $x,b,y$ 都当作不动，只让 $w$ 动，所以叫“偏导”。\n\n## 2. 引入中间变量，拆分损失\n\n把 $\\hat{y}-y$ 记成一个中间变量\n\n$$u = wx+b-y,$$\n\n那么损失就是\n\n$$L = u^2.$$\n\n于是“$L$ 对 $w$ 求导”被拆成两步：先看 $L$ 对 $u$ 怎么变，再看 $u$ 对 $w$ 怎么变，两者相乘（链式法则）：\n\n$$\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial u}\\cdot\\frac{\\partial u}{\\partial w}.$$\n\n## 3. 分别求两部分的导数\n\n**第一步：$L$ 对 $u$ 的导数。** 因为 $L = u^2$，由幂函数求导公式（指数搬下来做系数、指数减 1）：\n\n$$\\frac{\\partial L}{\\partial u} = 2u.$$\n\n**第二步：$u$ 对 $w$ 的导数。** 因为 $u = wx+b-y$，把 $x$ 看作 $w$ 的系数，$b$ 和 $-y$ 是与 $w$ 无关的常数，求导后消失：\n\n$$\\frac{\\partial u}{\\partial w} = x.$$\n\n## 4. 相乘并还原成原变量\n\n把两步结果相乘：\n\n$$\\frac{\\partial L}{\\partial w} = 2u\\cdot x = 2x\\,(wx+b-y).$$\n\n也就是：\n\n$$\\boxed{\\;\\frac{\\partial L}{\\partial w}=2x(wx+b-y)\\;}$$\n\n直观读法：$wx+b-y$ 是“预测减真实”的误差，梯度等于 2 乘输入 $x$ 再乘这个误差。误差越大，或 $x$ 绝对值越大，损失对 $w$ 越敏感。\n\n## 5. 代入数值验算\n\n给定 $x=2$，$y=3$，$w=1$，$b=0$。\n\n先算预测值：\n\n$$\\hat{y}=wx+b=1\\cdot 2+0=2.$$\n\n再算损失：\n\n$$L=(\\hat{y}-y)^2=(2-3)^2=(-1)^2=1.$$\n\n再用推导出的公式算偏导：\n\n$$\\frac{\\partial L}{\\partial w}=2x(wx+b-y)=2\\cdot 2\\cdot(1\\cdot 2+0-3)=4\\cdot(-1)=-4.$$\n\n**结论**：代入验算得 $\\dfrac{\\partial L}{\\partial w}=-4$。符号为负表示：当前 $w=1$ 时预测值 2 小于真实值 3，稍微增大 $w$ 会使误差减小，从而损失下降，所以导数方向是负的——这也正是梯度下降朝负梯度方向更新 $w$ 的原因。",
+      "items": [
+        {
+          "id": "855bb45e-0953-483c-8378-265466e7d8ba",
+          "kind": "final",
+          "text": "损失对 $w$ 的偏导可以通过“链式法则”一步步推出来。下面分几步做。\n\n## 1. 符号含义\n\n先约定记号：\n\n- $w$：权重（斜率），是我们想求导的对象；\n- $b$：偏置（截距），在本例中当常数看；\n- $x$：输入特征，已知常数；\n- $y$：真实标签，已知常数；\n- $\\hat{y} = wx+b$：模型预测值；\n- $L = (\\hat{y}-y)^2$：单个样本的损失，即预测与真实的差的平方。\n\n“对 $w$ 的偏导” $\\dfrac{\\partial L}{\\partial w}$ 的含义是：$w$ 稍微变化一点时，损失 $L$ 跟着变化多少。因为 $L$ 还依赖 $x,b,y$，但求偏导时把 $x,b,y$ 都当作不动，只让 $w$ 动，所以叫“偏导”。\n\n## 2. 引入中间变量，拆分损失\n\n把 $\\hat{y}-y$ 记成一个中间变量\n\n$$u = wx+b-y,$$\n\n那么损失就是\n\n$$L = u^2.$$\n\n于是“$L$ 对 $w$ 求导”被拆成两步：先看 $L$ 对 $u$ 怎么变，再看 $u$ 对 $w$ 怎么变，两者相乘（链式法则）：\n\n$$\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial u}\\cdot\\frac{\\partial u}{\\partial w}.$$\n\n## 3. 分别求两部分的导数\n\n**第一步：$L$ 对 $u$ 的导数。** 因为 $L = u^2$，由幂函数求导公式（指数搬下来做系数、指数减 1）：\n\n$$\\frac{\\partial L}{\\partial u} = 2u.$$\n\n**第二步：$u$ 对 $w$ 的导数。** 因为 $u = wx+b-y$，把 $x$ 看作 $w$ 的系数，$b$ 和 $-y$ 是与 $w$ 无关的常数，求导后消失：\n\n$$\\frac{\\partial u}{\\partial w} = x.$$\n\n## 4. 相乘并还原成原变量\n\n把两步结果相乘：\n\n$$\\frac{\\partial L}{\\partial w} = 2u\\cdot x = 2x\\,(wx+b-y).$$\n\n也就是：\n\n$$\\boxed{\\;\\frac{\\partial L}{\\partial w}=2x(wx+b-y)\\;}$$\n\n直观读法：$wx+b-y$ 是“预测减真实”的误差，梯度等于 2 乘输入 $x$ 再乘这个误差。误差越大，或 $x$ 绝对值越大，损失对 $w$ 越敏感。\n\n## 5. 代入数值验算\n\n给定 $x=2$，$y=3$，$w=1$，$b=0$。\n\n先算预测值：\n\n$$\\hat{y}=wx+b=1\\cdot 2+0=2.$$\n\n再算损失：\n\n$$L=(\\hat{y}-y)^2=(2-3)^2=(-1)^2=1.$$\n\n再用推导出的公式算偏导：\n\n$$\\frac{\\partial L}{\\partial w}=2x(wx+b-y)=2\\cdot 2\\cdot(1\\cdot 2+0-3)=4\\cdot(-1)=-4.$$\n\n**结论**：代入验算得 $\\dfrac{\\partial L}{\\partial w}=-4$。符号为负表示：当前 $w=1$ 时预测值 2 小于真实值 3，稍微增大 $w$ 会使误差减小，从而损失下降，所以导数方向是负的——这也正是梯度下降朝负梯度方向更新 $w$ 的原因。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1591,
+        "outputTokens": 1150,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 328
+      },
+      "reasoning": "deep",
+      "durationMs": 8270,
+      "firstTokenMs": 2886,
+      "timings": {
+        "contextMs": 4,
+        "modelMs": 8266,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "H03",
+      "prompt": "根据已导入的 retrieval.md，解释缓存为何需要失效，并告诉我这份资料是否能证明微调比 RAG 每月便宜 200 元。附可定位出处。",
+      "criteria": [
+        "缓存失效解释与正文一致",
+        "明确资料不能证明费用差",
+        "引用能定位且支持对应结论"
+      ],
+      "status": "completed",
+      "text": "**1. 缓存为何需要失效**\n\nRAG 的检索缓存用于保存检索结果，作用是降低重复查询的延迟[retrieval.md#anchor=RAG 缓存]。但它依赖的前提是**缓存内容与最新资料一致**：一旦外部资料发生更新（增删改），旧缓存对应的就仍是更新前的旧资料，直接命中会给出过期结果。因此资料更新时必须使旧缓存失效，强制重新检索，才能保证生成内容和提供来源的准确性[retrieval.md#anchor=RAG 缓存]。\n\n**2. 该资料能否证明微调比 RAG 每月便宜 200 元**\n\n不能。理由有两点：\n\n- 资料中没有任何成本数据，检索结果缓存的相关说明只涉及延迟优化和失效时机，不涉及任何费用比较；\n- 资料明确写道\"本资料没有介绍微调的训练费用或具体模型性能\"[retrieval.md#anchor=RAG 缓存]，因此**微调与 RAG 的费用高低、\"每月便宜 200 元\"这类具体金额，都无法从这份资料得到证实或证伪**。\n\n结论：缓存失效的必要性可以由该资料支撑；但\"微调每月比 RAG 便宜 200 元\"属于资料之外的经济性论断，该资料不足以作为其出处。",
+      "items": [
+        {
+          "id": "a07cfc34-a0c0-40a2-b1a1-d60297524ccd",
+          "kind": "final",
+          "text": "**1. 缓存为何需要失效**\n\nRAG 的检索缓存用于保存检索结果，作用是降低重复查询的延迟[retrieval.md#anchor=RAG 缓存]。但它依赖的前提是**缓存内容与最新资料一致**：一旦外部资料发生更新（增删改），旧缓存对应的就仍是更新前的旧资料，直接命中会给出过期结果。因此资料更新时必须使旧缓存失效，强制重新检索，才能保证生成内容和提供来源的准确性[retrieval.md#anchor=RAG 缓存]。\n\n**2. 该资料能否证明微调比 RAG 每月便宜 200 元**\n\n不能。理由有两点：\n\n- 资料中没有任何成本数据，检索结果缓存的相关说明只涉及延迟优化和失效时机，不涉及任何费用比较；\n- 资料明确写道\"本资料没有介绍微调的训练费用或具体模型性能\"[retrieval.md#anchor=RAG 缓存]，因此**微调与 RAG 的费用高低、\"每月便宜 200 元\"这类具体金额，都无法从这份资料得到证实或证伪**。\n\n结论：缓存失效的必要性可以由该资料支撑；但\"微调每月比 RAG 便宜 200 元\"属于资料之外的经济性论断，该资料不足以作为其出处。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1900,
+        "outputTokens": 576,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 307
+      },
+      "reasoning": "deep",
+      "durationMs": 5149,
+      "firstTokenMs": 2991,
+      "timings": {
+        "contextMs": 5,
+        "modelMs": 5144,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 1,
+      "id": "H04",
+      "prompt": "继续回答",
+      "criteria": [
+        "直接接上重排和生成",
+        "不整段重讲检索",
+        "不将检索相关性等同于事实支持"
+      ],
+      "seed": [
+        {
+          "role": "user",
+          "text": "解释 RAG 的检索、重排和生成三个步骤。",
+          "status": "completed"
+        },
+        {
+          "role": "assistant",
+          "text": "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n",
+          "status": "interrupted"
+        }
+      ],
+      "status": "completed",
+      "text": "我接着讲剩下两步，并把三步串起来。\n\n## 1. 检索（Retrieval）\n\n**目标**：从大量资料的向量库/知识库中，快速召回可能相关的候选片段。\n\n**做法**：\n- 先把用户问题也编码成向量，与资料向量做相似度计算（如余弦相似度），通常用 Top-K 取分数最高的若干片段。\n- 也可以叠加关键词检索（BM25），即\"向量 + 关键词\"的混合检索，两类结果合并去重。\n\n这一步输出的是**候选集**，可能包含冗余甚至不相关内容，只是\"可能相关\"。\n\n## 2. 重排（Rerank）\n\n**目标**：对候选片段做更精细的排序，压缩到真正有用的少数几条。\n\n**作用与理由**：\n- 第一步的向量相似度只是初步近似，不够精准。\n- 用一个更强的重排模型（reranker）逐条计算问题与片段的交叉相关性分数，重新排序，过滤掉低分的噪声片段。\n- 结果是精炼出高相关、高支持度的小集合，作为上下文喂给模型。\n\n重要性：检索负责\"广撒网\"，重排负责\"去粗取精\"——**这步直接决定送入生成器的上下文质量**，是 RAG 提高准确率的关键环节。\n\n## 3. 生成（Generation）\n\n**目标**：把问题 + 精选上下文交给大模型，生成最终回答。\n\n**要点**：\n- 模型基于\"问题 + 重排后的上下文 + 提示词\"生成，而不是凭空答。\n- 因为上下文来自真实资料，答案有出处、可溯源，能降低知识陈旧和编造（幻觉）的问题。\n- 输出质量受限于上面两步：上下文没召回对或没排好，生成再强也难答准。\n\n---\n\n**一句话串起来**：检索负责\"找出可能相关的资料\"，重排负责\"从候选里筛出最靠谱的几条\"，生成负责\"基于这些资料组织成最终回答\"。三者环环相扣，前两步决定\"喂什么\"，第三步决定\"怎么答\"。",
+      "items": [
+        {
+          "id": "44411250-1764-4bca-b25d-889731aa81b9",
+          "kind": "final",
+          "text": "我接着讲剩下两步，并把三步串起来。\n\n## 1. 检索（Retrieval）\n\n**目标**：从大量资料的向量库/知识库中，快速召回可能相关的候选片段。\n\n**做法**：\n- 先把用户问题也编码成向量，与资料向量做相似度计算（如余弦相似度），通常用 Top-K 取分数最高的若干片段。\n- 也可以叠加关键词检索（BM25），即\"向量 + 关键词\"的混合检索，两类结果合并去重。\n\n这一步输出的是**候选集**，可能包含冗余甚至不相关内容，只是\"可能相关\"。\n\n## 2. 重排（Rerank）\n\n**目标**：对候选片段做更精细的排序，压缩到真正有用的少数几条。\n\n**作用与理由**：\n- 第一步的向量相似度只是初步近似，不够精准。\n- 用一个更强的重排模型（reranker）逐条计算问题与片段的交叉相关性分数，重新排序，过滤掉低分的噪声片段。\n- 结果是精炼出高相关、高支持度的小集合，作为上下文喂给模型。\n\n重要性：检索负责\"广撒网\"，重排负责\"去粗取精\"——**这步直接决定送入生成器的上下文质量**，是 RAG 提高准确率的关键环节。\n\n## 3. 生成（Generation）\n\n**目标**：把问题 + 精选上下文交给大模型，生成最终回答。\n\n**要点**：\n- 模型基于\"问题 + 重排后的上下文 + 提示词\"生成，而不是凭空答。\n- 因为上下文来自真实资料，答案有出处、可溯源，能降低知识陈旧和编造（幻觉）的问题。\n- 输出质量受限于上面两步：上下文没召回对或没排好，生成再强也难答准。\n\n---\n\n**一句话串起来**：检索负责\"找出可能相关的资料\"，重排负责\"从候选里筛出最靠谱的几条\"，生成负责\"基于这些资料组织成最终回答\"。三者环环相扣，前两步决定\"喂什么\"，第三步决定\"怎么答\"。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1479,
+        "outputTokens": 441,
+        "cacheReadTokens": 0
+      },
+      "reasoning": "quick",
+      "durationMs": 5299,
+      "firstTokenMs": 1283,
+      "timings": {
+        "contextMs": 6,
+        "modelMs": 5291,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "H01",
+      "prompt": "只写两段，向初学者解释网页缓存什么时候有用、什么时候会误导用户，每段包含一个具体例子。",
+      "criteria": [
+        "恰好两段且无额外开场",
+        "正确解释复用与过期",
+        "两个例子具体且对应"
+      ],
+      "status": "completed",
+      "text": "# 网页缓存：何时有用、何时误导\n\n**缓存有用的场景：** 缓存能大幅提速的典型场景是内容稳定、不会频繁变化的数据。例如一个新闻网站的首页今日头条列表，页面结构几乎不变，用户重复访问时浏览器或 CDN 直接返回缓存副本，秒开且不必每次回服务器重新下载整张网页。这里的缓存就像便利贴——记得上次的结果，又快又准确。\n\n**缓存会误导用户的场景：** 当内容在用户没有感知的情况下更新，而缓存仍返回旧副本时，用户会看到过时甚至错误的页面。最经典的例子是购物网站的结算页——你清空了购物车、切换了收货地址，但缓存仍把旧购物车内容返回给你，让你误以为刚刚的下单操作没有生效；更严重的是下单后回到支付页可能看到错误金额。这里缓存变成了一张过期的假地图，它\"忠实\"地复述旧状态，却和现实脱节。\n\n一句话区分两者：**内容稳定、重复访问才缓存；内容随用户操作或个人状态变化时，必须每次重新获取或精确失效旧缓存**。",
+      "items": [
+        {
+          "id": "c9a9da37-53f5-4f6c-aea5-775330269fa6",
+          "kind": "final",
+          "text": "# 网页缓存：何时有用、何时误导\n\n**缓存有用的场景：** 缓存能大幅提速的典型场景是内容稳定、不会频繁变化的数据。例如一个新闻网站的首页今日头条列表，页面结构几乎不变，用户重复访问时浏览器或 CDN 直接返回缓存副本，秒开且不必每次回服务器重新下载整张网页。这里的缓存就像便利贴——记得上次的结果，又快又准确。\n\n**缓存会误导用户的场景：** 当内容在用户没有感知的情况下更新，而缓存仍返回旧副本时，用户会看到过时甚至错误的页面。最经典的例子是购物网站的结算页——你清空了购物车、切换了收货地址，但缓存仍把旧购物车内容返回给你，让你误以为刚刚的下单操作没有生效；更严重的是下单后回到支付页可能看到错误金额。这里缓存变成了一张过期的假地图，它\"忠实\"地复述旧状态，却和现实脱节。\n\n一句话区分两者：**内容稳定、重复访问才缓存；内容随用户操作或个人状态变化时，必须每次重新获取或精确失效旧缓存**。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1797,
+        "outputTokens": 236,
+        "cacheReadTokens": 1792
+      },
+      "reasoning": "quick",
+      "durationMs": 3843,
+      "firstTokenMs": 542,
+      "timings": {
+        "contextMs": 3,
+        "modelMs": 3839,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [
+        {
+          "code": "paragraph_count",
+          "detail": "回答的段落块数量与本轮要求的 2 段可能不一致，可要求按原内容调整格式。"
+        }
+      ],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "H02",
+      "prompt": "对单个样本，预测值是 wx+b，损失是预测值与 y 的差的平方。请逐步推导损失对 w 的偏导，并代入 x=2、y=3、w=1、b=0 验算。面向初学者解释符号，公式使用规范 LaTeX。",
+      "criteria": [
+        "链式求导步骤正确且结果为 -4",
+        "解释偏导和固定其他量的含义",
+        "公式定界符与代码排版正确"
+      ],
+      "status": "completed",
+      "text": "直接给出结论：损失对 $w$ 的偏导是\n\n$$\n\\frac{\\partial L}{\\partial w} = 2x(wx + b - y)\n$$\n\n下面逐步推导并验算。\n\n## 第一步：写出预测值与损失\n\n单个样本的预测值（记作 $\\hat{y}$，读作“y hat”）：\n\n$$\n\\hat{y} = wx + b\n$$\n\n损失是预测值与真实值 $y$ 之差的平方：\n\n$$\nL = (\\hat{y} - y)^2 = (wx + b - y)^2\n$$\n\n符号说明：\n\n- $x$：样本特征（一个数字）；\n- $y$：真实标签；\n- $w$：权重（我们要对谁求导，谁就是“自变量”）；\n- $b$：偏置（本例中当作固定常数处理）；\n- $L$：损失。\n\n## 第二步：引入中间变量，用链式法则\n\n把括号里的整体看成一个新变量 $u$：\n\n$$\nu = wx + b - y\n$$\n\n于是损失变成 $L = u^2$。$L$ 先随 $u$ 变，$u$ 再随 $w$ 变，所以要用**链式法则**（“外层导数 × 内层导数”）：\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\underbrace{\\frac{dL}{du}}_{\\text{外层}} \\cdot \\underbrace{\\frac{\\partial u}{\\partial w}}_{\\text{内层}}\n$$\n\n## 第三步：分别求外层和内层导数\n\n**外层：** 对 $u$ 求 $u^2$ 的导数，用幂函数求导规则“指数放前面、指数减一”：\n\n$$\n\\frac{dL}{du} = \\frac{d(u^2)}{du} = 2u\n$$\n\n**内层：** $u = wx + b - y$ 对 $w$ 求导。在“视 $w$ 为自变量、$x, b, y$ 为常数”的视角下，$wx$ 相当于“常数 $x$ 乘以 $w$”，导数是 $x$；$b$ 和 $-y$ 都是常数，导数为 $0$：\n\n$$\n\\frac{\\partial u}{\\partial w} = \\frac{\\partial (wx + b - y)}{\\partial w} = x\n$$\n\n## 第四步：乘起来并代回 $u$\n\n$$\n\\frac{\\partial L}{\\partial w} = 2u \\cdot x = 2x(wx + b - y)\n$$\n\n所以最终公式是\n\n$$\n\\boxed{\\frac{\\partial L}{\\partial w} = 2x(wx + b - y)}\n$$\n\n直观理解：偏导的值取决于“当前预测离 $y$ 差多远”以及“特征 $x$ 有多大”，这正对应梯度下降“误差大、走得远，误差小、走得近”的思想。\n\n## 第五步：代入验算\n\n已知 $x = 2$，$y = 3$，$w = 1$，$b = 0$。\n\n先算预测值和损失：\n\n$$\n\\hat{y} = 1 \\times 2 + 0 = 2,\\qquad L = (2 - 3)^2 = (-1)^2 = 1\n$$\n\n再把数值代入偏导公式：\n\n$$\n\\frac{\\partial L}{\\partial w} = 2 \\times 2 \\times (1 \\times 2 + 0 - 3) = 4 \\times (2 - 3) = 4 \\times (-1) = -4\n$$\n\n**验算结果：$\\dfrac{\\partial L}{\\partial w} = -4$。**\n\n补充一种直接核对方式：固定 $x=2, b=0, y=3$ 时，损失是 $w$ 的函数 $L(w) = (2w - 3)^2$，对 $w$ 求导得 $4(2w-3)$，在 $w=1$ 处同样是 $4 \\times (-1) = -4$，两种方法结果一致。\n\n**负号的含义**：偏导为 $-4$ 表示“$w$ 增大一点点，损失会减小”——这正是梯度下降要让 $w$ 沿负梯度方向更新的原因，例如新权重 $w' = w - \\eta \\cdot (-4) = w + 4\\eta$（$\\eta$ 为学习率）。",
+      "items": [
+        {
+          "id": "53d51c89-ec9e-4f46-a7c5-18c00abf9444",
+          "kind": "final",
+          "text": "直接给出结论：损失对 $w$ 的偏导是\n\n$$\n\\frac{\\partial L}{\\partial w} = 2x(wx + b - y)\n$$\n\n下面逐步推导并验算。\n\n## 第一步：写出预测值与损失\n\n单个样本的预测值（记作 $\\hat{y}$，读作“y hat”）：\n\n$$\n\\hat{y} = wx + b\n$$\n\n损失是预测值与真实值 $y$ 之差的平方：\n\n$$\nL = (\\hat{y} - y)^2 = (wx + b - y)^2\n$$\n\n符号说明：\n\n- $x$：样本特征（一个数字）；\n- $y$：真实标签；\n- $w$：权重（我们要对谁求导，谁就是“自变量”）；\n- $b$：偏置（本例中当作固定常数处理）；\n- $L$：损失。\n\n## 第二步：引入中间变量，用链式法则\n\n把括号里的整体看成一个新变量 $u$：\n\n$$\nu = wx + b - y\n$$\n\n于是损失变成 $L = u^2$。$L$ 先随 $u$ 变，$u$ 再随 $w$ 变，所以要用**链式法则**（“外层导数 × 内层导数”）：\n\n$$\n\\frac{\\partial L}{\\partial w}\n= \\underbrace{\\frac{dL}{du}}_{\\text{外层}} \\cdot \\underbrace{\\frac{\\partial u}{\\partial w}}_{\\text{内层}}\n$$\n\n## 第三步：分别求外层和内层导数\n\n**外层：** 对 $u$ 求 $u^2$ 的导数，用幂函数求导规则“指数放前面、指数减一”：\n\n$$\n\\frac{dL}{du} = \\frac{d(u^2)}{du} = 2u\n$$\n\n**内层：** $u = wx + b - y$ 对 $w$ 求导。在“视 $w$ 为自变量、$x, b, y$ 为常数”的视角下，$wx$ 相当于“常数 $x$ 乘以 $w$”，导数是 $x$；$b$ 和 $-y$ 都是常数，导数为 $0$：\n\n$$\n\\frac{\\partial u}{\\partial w} = \\frac{\\partial (wx + b - y)}{\\partial w} = x\n$$\n\n## 第四步：乘起来并代回 $u$\n\n$$\n\\frac{\\partial L}{\\partial w} = 2u \\cdot x = 2x(wx + b - y)\n$$\n\n所以最终公式是\n\n$$\n\\boxed{\\frac{\\partial L}{\\partial w} = 2x(wx + b - y)}\n$$\n\n直观理解：偏导的值取决于“当前预测离 $y$ 差多远”以及“特征 $x$ 有多大”，这正对应梯度下降“误差大、走得远，误差小、走得近”的思想。\n\n## 第五步：代入验算\n\n已知 $x = 2$，$y = 3$，$w = 1$，$b = 0$。\n\n先算预测值和损失：\n\n$$\n\\hat{y} = 1 \\times 2 + 0 = 2,\\qquad L = (2 - 3)^2 = (-1)^2 = 1\n$$\n\n再把数值代入偏导公式：\n\n$$\n\\frac{\\partial L}{\\partial w} = 2 \\times 2 \\times (1 \\times 2 + 0 - 3) = 4 \\times (2 - 3) = 4 \\times (-1) = -4\n$$\n\n**验算结果：$\\dfrac{\\partial L}{\\partial w} = -4$。**\n\n补充一种直接核对方式：固定 $x=2, b=0, y=3$ 时，损失是 $w$ 的函数 $L(w) = (2w - 3)^2$，对 $w$ 求导得 $4(2w-3)$，在 $w=1$ 处同样是 $4 \\times (-1) = -4$，两种方法结果一致。\n\n**负号的含义**：偏导为 $-4$ 表示“$w$ 增大一点点，损失会减小”——这正是梯度下降要让 $w$ 沿负梯度方向更新的原因，例如新权重 $w' = w - \\eta \\cdot (-4) = w + 4\\eta$（$\\eta$ 为学习率）。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1591,
+        "outputTokens": 1358,
+        "cacheReadTokens": 1536,
+        "reasoningTokens": 416
+      },
+      "reasoning": "deep",
+      "durationMs": 8578,
+      "firstTokenMs": 2798,
+      "timings": {
+        "contextMs": 5,
+        "modelMs": 8573,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "H03",
+      "prompt": "根据已导入的 retrieval.md，解释缓存为何需要失效，并告诉我这份资料是否能证明微调比 RAG 每月便宜 200 元。附可定位出处。",
+      "criteria": [
+        "缓存失效解释与正文一致",
+        "明确资料不能证明费用差",
+        "引用能定位且支持对应结论"
+      ],
+      "status": "completed",
+      "text": "## 缓存为何需要失效\n\n依据 [retrieval.md#anchor=RAG 缓存]：RAG 通过检索外部资料支持生成，检索结果缓存用于降低重复查询的延迟；但资料一旦更新，旧缓存里的检索结果就不再反映最新内容，继续返回会给出过时甚至错误的信息，所以必须在资料更新时让旧缓存失效。简单说：**缓存的价值是快，代价是可能旧**，只有及时失效才能保证又快又准。\n\n## 能否证明微调比 RAG 每月便宜 200 元\n\n**不能。** 同一份资料明确写道：\"本资料没有介绍微调的训练费用或具体模型性能。\"也就是说，retrieval.md 对两者的费用差异没有任何数据，无法支撑\"微调每月便宜 200 元\"这一结论，该说法在本资料中既无出处、也无法验证。\n\n可定位出处：[retrieval.md#anchor=RAG 缓存]（唯一相关段落，其中包含\"没有介绍微调训练费用\"的说明）。",
+      "items": [
+        {
+          "id": "0b04cde6-201c-4376-8f1d-bf5ad5b95393",
+          "kind": "final",
+          "text": "## 缓存为何需要失效\n\n依据 [retrieval.md#anchor=RAG 缓存]：RAG 通过检索外部资料支持生成，检索结果缓存用于降低重复查询的延迟；但资料一旦更新，旧缓存里的检索结果就不再反映最新内容，继续返回会给出过时甚至错误的信息，所以必须在资料更新时让旧缓存失效。简单说：**缓存的价值是快，代价是可能旧**，只有及时失效才能保证又快又准。\n\n## 能否证明微调比 RAG 每月便宜 200 元\n\n**不能。** 同一份资料明确写道：\"本资料没有介绍微调的训练费用或具体模型性能。\"也就是说，retrieval.md 对两者的费用差异没有任何数据，无法支撑\"微调每月便宜 200 元\"这一结论，该说法在本资料中既无出处、也无法验证。\n\n可定位出处：[retrieval.md#anchor=RAG 缓存]（唯一相关段落，其中包含\"没有介绍微调训练费用\"的说明）。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1900,
+        "outputTokens": 463,
+        "cacheReadTokens": 1792,
+        "reasoningTokens": 247
+      },
+      "reasoning": "deep",
+      "durationMs": 4211,
+      "firstTokenMs": 3154,
+      "timings": {
+        "contextMs": 3,
+        "modelMs": 4207,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    },
+    {
+      "provider": "deepseek-api",
+      "repetition": 2,
+      "id": "H04",
+      "prompt": "继续回答",
+      "criteria": [
+        "直接接上重排和生成",
+        "不整段重讲检索",
+        "不将检索相关性等同于事实支持"
+      ],
+      "seed": [
+        {
+          "role": "user",
+          "text": "解释 RAG 的检索、重排和生成三个步骤。",
+          "status": "completed"
+        },
+        {
+          "role": "assistant",
+          "text": "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n",
+          "status": "interrupted"
+        }
+      ],
+      "status": "completed",
+      "text": "我先把上一步没讲完的内容延续下去，从已经提到的检索继续，把重排和生成两部分补全。\n\n### 检索（Retrieval）\n\n第一步是从资料库中召回与问题相关的候选片段。方法上通常先用**嵌入模型**把问题转换成向量，再去和库中预先向量化的文档片段做相似度比较（常见是余弦相似度），按相似度从高到低取回 Top-K 个片段。\n\n它提供的只是候选池，以“查得到相关材料”为目标，至于这些片段是否真正解决问题、彼此是否互相矛盾，检索本身不作判断。\n\n### 重排（Reranking）\n\n第二步是对检索出来的候选做精细化排序。原因是第一步的向量相似度只衡量语义粗粒度相关，排序末端的片段可能并不真正契合问题。重排模型（cross-encoder 类是典型做法）会把问题与每个候选片段一起输入，输出一个更精准的相关性分数，然后对候选重新排序，剪掉质量低的片段。\n\n这一步的价值在于**提高送入生成器的上下文质量**，减少无关或低质内容对最终答案的干扰。因此重排通常配合一个数量限制，只把分数靠前的少量片段交给下一步，既控质量也控输入长度。\n\n### 生成（Generation）\n\n第三步把问题和筛选后的片段拼接成提示词，交给大语言模型生成最终回答。生成的要点是把相关片段作为依据，让模型在回答中引用逻辑上能支撑结论的信息，避免编造片段中不存在的事实——这也是 RAG 抑制幻觉的关键所在。\n\n要注意的是，生成模型的输出质量上限取决于前两步送进来的资料质量：检索没召回、重排没有留下的片段，模型再强也无法凭空用上。\n\n---\n\n把三步连起来看：**检索解决“去哪找”，重排解决“哪些能用”，生成解决“如何依据材料作答”**，三者协作而不是各自独立完成信息处理环节。",
+      "items": [
+        {
+          "id": "9e869299-0d7a-46b2-9333-299beb219605",
+          "kind": "final",
+          "text": "我先把上一步没讲完的内容延续下去，从已经提到的检索继续，把重排和生成两部分补全。\n\n### 检索（Retrieval）\n\n第一步是从资料库中召回与问题相关的候选片段。方法上通常先用**嵌入模型**把问题转换成向量，再去和库中预先向量化的文档片段做相似度比较（常见是余弦相似度），按相似度从高到低取回 Top-K 个片段。\n\n它提供的只是候选池，以“查得到相关材料”为目标，至于这些片段是否真正解决问题、彼此是否互相矛盾，检索本身不作判断。\n\n### 重排（Reranking）\n\n第二步是对检索出来的候选做精细化排序。原因是第一步的向量相似度只衡量语义粗粒度相关，排序末端的片段可能并不真正契合问题。重排模型（cross-encoder 类是典型做法）会把问题与每个候选片段一起输入，输出一个更精准的相关性分数，然后对候选重新排序，剪掉质量低的片段。\n\n这一步的价值在于**提高送入生成器的上下文质量**，减少无关或低质内容对最终答案的干扰。因此重排通常配合一个数量限制，只把分数靠前的少量片段交给下一步，既控质量也控输入长度。\n\n### 生成（Generation）\n\n第三步把问题和筛选后的片段拼接成提示词，交给大语言模型生成最终回答。生成的要点是把相关片段作为依据，让模型在回答中引用逻辑上能支撑结论的信息，避免编造片段中不存在的事实——这也是 RAG 抑制幻觉的关键所在。\n\n要注意的是，生成模型的输出质量上限取决于前两步送进来的资料质量：检索没召回、重排没有留下的片段，模型再强也无法凭空用上。\n\n---\n\n把三步连起来看：**检索解决“去哪找”，重排解决“哪些能用”，生成解决“如何依据材料作答”**，三者协作而不是各自独立完成信息处理环节。"
+        }
+      ],
+      "usage": {
+        "inputTokens": 1479,
+        "outputTokens": 397,
+        "cacheReadTokens": 1408
+      },
+      "reasoning": "quick",
+      "durationMs": 4443,
+      "firstTokenMs": 507,
+      "timings": {
+        "contextMs": 3,
+        "modelMs": 4439,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "quality": [],
+      "model": "deepseek-v4-flash",
+      "attempted": true,
+      "review": "pending_human_review"
+    }
+  ],
+  "conditions": {
+    "dataset": "agent-quality-heldout.json",
+    "codeHash": "2b9af338e041d3a55f93c259ccd723bf2c160a5b1d17507e4d551438c659b3fe",
+    "requestedReasoning": "auto"
+  }
+}

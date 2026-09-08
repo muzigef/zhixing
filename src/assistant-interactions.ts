@@ -8,7 +8,7 @@ export const assistantItemSchema = z.discriminatedUnion("kind", [
   z.object({ ...identity, kind: z.literal("progress"), text: z.string().max(64_000) }),
   z.object({ ...identity, kind: z.literal("final"), text: z.string().max(64_000) }),
   z.object({ ...identity, ...resolution, kind: z.literal("question"), title: z.string().min(1).max(500), options: z.array(z.string().min(1).max(120)).max(3) }),
-  z.object({ ...identity, ...resolution, kind: z.literal("approval"), title: z.string().max(200), tool: z.enum(["save_artifact", "run_experiment"]), input: z.record(z.unknown()) }),
+  z.object({ ...identity, ...resolution, kind: z.literal("approval"), title: z.string().max(200), tool: z.string().regex(/^(?:save_artifact|run_experiment|mcp_[a-zA-Z0-9_-]{1,100}|project_[a-z_]{1,60})$/), input: z.record(z.unknown()), preview: z.string().max(48_000).optional() }),
   z.object({ ...identity, kind: z.literal("artifact"), artifactId: z.string().uuid(), dayId: z.string().regex(/^D\d{2}$/), artifactKind: z.string().max(40), text: z.string().max(24_000) }),
 ]);
 export type AssistantItem = z.infer<typeof assistantItemSchema>;

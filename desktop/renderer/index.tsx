@@ -1,3 +1,4 @@
+import { DeltaBatcher } from "./delta-batcher.js";
 import { displayMath } from "../../src/display-math.js";
 import { BackupPanel } from "./backup-panel.js";
 import { DiagnosticsPanel } from "./diagnostics-panel.js";
@@ -6,6 +7,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -166,6 +168,7 @@ function App() {
   const [source, setSource] = useState<LearningSource>();
   const [contextOpen, setContextOpen] = useState(false);
   const currentId = useRef<string | null>(null);
+  const deltas = useRef<DeltaBatcher | null>(null);
   const draftRef = useRef("");
   const input = useRef<HTMLTextAreaElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -186,6 +189,7 @@ function App() {
     setToast(text);
   };
   const updateSession = (value: ChatSession) => {
+    deltas.current?.discard(value.id);
     setBoot((previous) =>
       previous
         ? { ...previous, sessions: mergeSummary(previous.sessions, value) }
@@ -198,6 +202,7 @@ function App() {
     try {
       const value = await invoke<ChatSession>({ type: "load", sessionId: id });
       if (serial !== selecting.current) return;
+      deltas.current?.dispose();
       currentId.current = id;
       localStorage.setItem("last-session", id);
       setSession(value);
@@ -221,29 +226,21 @@ function App() {
     return value;
   }, []);
   useEffect(() => {
+    const batcher = new DeltaBatcher((sessionId, messageId, text) => {
+      if (sessionId === currentId.current) setSession(previous => previous?.id === sessionId
+        ? { ...previous, messages: previous.messages.map(message => message.id === messageId ? { ...message, text: message.text + text } : message) }
+        : previous);
+    });
+    deltas.current = batcher;
     const unsubscribe = window.zhixing.subscribe((event) => {
       if (event.type === "session") {
         updateSession(event.session);
-        if (event.session.messages.at(-1)?.status === "running")
-          setActiveId(event.session.id);
+        if (event.session.messages.at(-1)?.status === "running") setActiveId(event.session.id);
       } else if (event.type === "delta") {
-        if (event.sessionId === currentId.current)
-          setSession((previous) =>
-            previous?.id === event.sessionId
-              ? {
-                  ...previous,
-                  messages: previous.messages.map((message) =>
-                    message.id === event.messageId
-                      ? { ...message, text: message.text + event.text }
-                      : message,
-                  ),
-                }
-              : previous,
-          );
+        if (event.sessionId === currentId.current) batcher.add(event.sessionId, event.messageId, event.text);
       } else {
-        setActiveId((previous) =>
-          previous === event.sessionId ? null : previous,
-        );
+        batcher.flush(event.sessionId);
+        setActiveId(previous => previous === event.sessionId ? null : previous);
       }
     });
     void refresh()
@@ -256,7 +253,7 @@ function App() {
         else setDraft(drafts.current.new ?? "");
       })
       .catch((problem) => setError(messageOf(problem)));
-    return unsubscribe;
+    return () => { unsubscribe(); batcher.dispose(); if (deltas.current === batcher) deltas.current = null; };
   }, [refresh, select]);
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
@@ -787,7 +784,7 @@ function App() {
                   ))}
                 </select>
               </label>
-              <label className="style-picker"><span className="sr-only">思考强度</span><select aria-label="思考强度" value={settings.reasoning ?? "balanced"} onChange={(event) => void saveSettings({ ...settings, reasoning: event.target.value as DesktopSettings["reasoning"] })}><option value="quick">快速</option><option value="balanced">均衡</option><option value="deep">深入思考</option></select></label>
+              <label className="style-picker"><span className="sr-only">思考强度</span><select aria-label="思考强度" value={settings.reasoning ?? "balanced"} onChange={(event) => void saveSettings({ ...settings, reasoning: event.target.value as DesktopSettings["reasoning"] })}><option value="auto">自动</option><option value="quick">快速</option><option value="balanced">均衡</option><option value="deep">深入思考</option></select></label>
               <div className="composer-spacer" />
               {isCurrentRunning && <>
                 <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send()}>排队</button>
@@ -948,36 +945,10 @@ const Message = memo(
         {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}
         {message.status === "waiting" && <p role="status">等待你的回复，任务和已完成结果已保存。</p>}
         {message.timings?.taskCompleted === false && <p>执行计划仍有未完成步骤。</p>}
-        <div className="markdown">
-          <Markdown
-            remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-            components={{
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (href) onOpenLink(href);
-                  }}
-                >
-                  {children}
-                  <ExternalLink size={11} />
-                </a>
-              ),
-              img: ({ alt }) => (
-                <span className="image-placeholder">
-                  {alt ? `[图片：${alt}]` : "[图片]"}
-                </span>
-              ),
-              pre: ({ children }) => (
-                <CodeBlock onCopy={onCopy}>{children}</CodeBlock>
-              ),
-            }}
-          >
-            {displayMath(message.text)}
-          </Markdown>
-        </div>
+        {!!message.quality?.length && <details className="task-activities"><summary>回答检查提示</summary><p>以下是格式和来源提示，内容正确性仍需核对。</p>{message.quality.map(item => <p key={item.code}>{item.detail}</p>)}</details>}
+        {message.reasoningMode === "auto" && <p className="message-meta">本轮自动选择：{message.reasoning === "deep" ? "深入思考" : message.reasoning === "quick" ? "快速" : "均衡"}</p>}
+        {message.contextUsage && <details className="task-activities"><summary>本轮上下文范围</summary><p>模型本轮省略了 {message.contextUsage.omittedMessages} 条旧消息、{message.contextUsage.omittedTurns} 轮旧执行记录。完整记录仍保存在本地。</p><p>输入估算 {message.contextUsage.estimatedInputTokens} Token，输出预留 {message.contextUsage.reservedOutputTokens} Token。估算用于控制上下文，不作为计费用量。</p></details>}
+        <MarkdownBody text={message.text} onCopy={onCopy} onOpenLink={onOpenLink} />
         {!!message.citations?.length && <div className="source-list" aria-label="已引用资料">{message.citations.map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{index + 1}. {citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</div>}
         {!!message.retrievedCitations?.length && <details className="source-list" aria-label="检索候选资料"><summary>检索到的资料 · 不表示回答已引用</summary>{message.retrievedCitations.filter((citation) => !message.citations?.some((used) => used.chunkId === citation.chunkId)).map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</details>}
         {message.status === "running" && (
@@ -1041,11 +1012,43 @@ const Message = memo(
       </article>
     );
   },
-  (previous, next) =>
-    previous.message === next.message &&
-    previous.canSend === next.canSend &&
-    (next.message.status !== "running" || previous.elapsed === next.elapsed),
 );
+function MarkdownBody({ text, onCopy, onOpenLink }: { text: string; onCopy: (text: string) => void; onOpenLink: (url: string) => void }) {
+  // Cache expensive parsing by text, while keeping action callbacks current.
+  const callbacks = useRef({ onCopy, onOpenLink }); callbacks.current = { onCopy, onOpenLink };
+  return useMemo(() => (
+        <div className="markdown">
+          <Markdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (href) callbacks.current.onOpenLink(href);
+                  }}
+                >
+                  {children}
+                  <ExternalLink size={11} />
+                </a>
+              ),
+              img: ({ alt }) => (
+                <span className="image-placeholder">
+                  {alt ? `[图片：${alt}]` : "[图片]"}
+                </span>
+              ),
+              pre: ({ children }) => (
+                <CodeBlock onCopy={value => callbacks.current.onCopy(value)}>{children}</CodeBlock>
+              ),
+            }}
+          >
+            {displayMath(text)}
+          </Markdown>
+        </div>
+  ), [text]);
+}
 function CodeBlock({
   children,
   onCopy,

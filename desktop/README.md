@@ -1,23 +1,23 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行桌面版
 
-当前源码已新增「课程与资料 → 学习效果验证」，支持学前/学后/3 天复习、同模型两种教学方式及报告导出，见[使用指南](../docs/learning-outcomes.md)。此功能尚未重新打包进入既有 0.4.1 安装器，可从源码启动使用。
+当前源码已新增「课程与资料 → 学习效果验证」，支持学前/学后/3 天复习、同模型两种教学方式及报告导出，见[使用指南](../docs/learning-outcomes.md)。0.5.0 纳入该功能、学习观察和解释复核；当前交付验证见 [P1/P2 验收记录](../docs/evidence/agent-p1-p2-20260907.md)。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.4.1`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.5.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
 
-本轮新增能力与数据兼容说明见 [0.4 指南](../docs/agent-0.4.md)：结构化对话、受控任务执行、审批/提问卡、编辑分支与对比、独立检查、桌面技能及完整备份恢复。
+本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
 
 ## 安装和使用
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/Zhixing-0.4.1-mac-arm64.dmg`。
+1. 打开本目录下的 `release/Zhixing-0.5.0-mac-arm64.dmg`。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
-`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，Windows 与 Intel Mac 尚未实机验收。产物及已验证范围见 [2026-09-05 验收记录](../docs/evidence/desktop-app.md)。
+`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，Windows 与 Intel Mac 尚未实机验收。当前产物及已验证范围见 [P1/P2 验收记录](../docs/evidence/agent-p1-p2-20260907.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
 
-当前源码内附 Electron 和 Pi `0.85.0`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。更新源码不会修改既有安装包，安全更新需重新构建并安装，见 [依赖安全修复](../docs/evidence/dependency-security.md)。
+当前源码内附 Electron 和 Pi `0.85.0`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。项目检查点需要本机 Git；用户配置的 MCP 服务可能另有运行环境要求。更新源码不会修改既有安装包，安全更新需重新构建并安装，见 [依赖安全修复](../docs/evidence/dependency-security.md)。
 
 ## 模型设置
 
@@ -79,7 +79,7 @@ Zhixing/
 
 草稿和最近会话标识另存于应用 localStorage。源码启动和已安装应用默认使用同一桌面数据目录；不会自动迁移、合并或同步 CLI 的会话、资料和学习进度。
 
-每个会话最多 1,000 条消息，达到上限需要新建；会话文件最多 12,000,000 字节。单次输入最多 20,000 字符，回答最多 64,000 字符；发送给模型的历史最多 24 条、40,000 字符，再加本次输入、约束、摘要和授权的学习上下文，较早的本地历史不会因上下文裁剪被删除。生成总时限为 180 秒，DeepSeek 的 60 秒或 Pi 的 150 秒适配器超时可能先结束请求。
+每个会话最多 1,000 条消息，达到上限需要新建；会话文件最多 12,000,000 字节。单次输入最多 20,000 字符，回答最多 64,000 字符；发送给模型的历史最多 24 条、40,000 字符，再加本次输入、约束、摘要和授权的学习上下文，较早的本地历史不会因上下文裁剪被删除。另有 48,000 输入/输出估算 token 窗口，预留 16,384 输出 token，完整旧工具轮次可被裁剪而不修改历史原文；该估算不是模型精确计费值。普通任务最多 6 个模型回合，已连接项目为 12 个。生成总时限为 180 秒，DeepSeek 的 60 秒或 Pi 的 150 秒适配器超时可能先结束请求。
 
 0.3 已提供主题、课程、资料导入/引用、进度和证据验收入口；CLI 的个性化课程生成、长期记忆管理等高级管理命令仍保留在 CLI。连接工作区共用学习数据，聊天仍分别保存。
 
@@ -119,7 +119,7 @@ npm --prefix desktop run test:ui
 npm --prefix desktop run dist:mac
 ```
 
-该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.4.1-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
+该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.5.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
 
 验证实际 `.app` 时，在 `desktop/` 内执行：
 
@@ -171,4 +171,4 @@ node desktop/scripts/check-deepseek.mjs --live
 
 ## 当前源码的 Agent 内核更新
 
-桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v3，v1/v2 首次保存前保留原文件备份。旧安装包不包含这些改动；使用源码启动可验证新行为。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。
+桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v4，v1/v2/v3 首次保存前保留对应原文件备份；读取本身不改写旧文件。旧版拒绝新格式，避免丢失审批和诊断字段。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。

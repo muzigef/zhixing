@@ -1,3 +1,4 @@
+import { McpSettings, McpConnection } from "../../src/mcp-tools.js";
 import {
   app,
   BrowserWindow,
@@ -280,11 +281,66 @@ else {
             }
             case "assessment-submit":
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
-              data = await learning.submitAssessment(command.topicId, command.dayId, command.attemptId, command.answers, command.reflection);
+              data = await learning.submitAssessment(command.topicId, command.dayId, command.attemptId, command.answers, command.reflection, command.assistance);
+              break;
+            case "observation-update":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId);
+              data = learning.observations.update(command.topicId, command.id, command.revision, command.annotation, command.withdrawn);
+              break;
+            case "outcome-review-explanation":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId);
+              data = learning.outcomes.reviewExplanation(command.topicId, command.id, command.phase, command.review);
               break;
             case "learning-source":
               data = await learning.source(command.topicId, command.citation);
               break;
+            case "project-list":
+              learning.registry.get(command.topicId); data = { projects: learning.projects.list(command.topicId), selected: learning.projects.selected(command.topicId) }; break;
+            case "project-select":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId); learning.projects.select(command.topicId, command.projectId); data = null; break;
+            case "project-create":
+            case "project-import":
+            case "project-view":
+            case "project-read":
+            case "project-preview":
+            case "project-write":
+            case "project-test":
+            case "project-checkpoint": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId); beginLearning();
+              try {
+                const signal = learningController!.signal;
+                if (command.type === "project-create" || command.type === "project-import") {
+                  let directory: string | undefined;
+                  if (command.type === "project-import") { const choice = await dialog.showOpenDialog(window, { title: "复制文本文件为独立实践项目", properties: ["openDirectory"] }); if (choice.canceled || !choice.filePaths[0]) { data = { cancelled: true }; break; } directory = choice.filePaths[0]; }
+                  const project = await learning.projects.create(command.topicId, command.title, signal, directory); learning.projects.select(command.topicId, project.id); data = project;
+                } else if (command.type === "project-view") data = await learning.projects.snapshot(command.topicId, command.projectId, signal);
+                else if (command.type === "project-read") data = await learning.projects.read(command.topicId, command.projectId, command.path);
+                else if (command.type === "project-preview") data = { preview: await learning.projects.preview(command.topicId, command.projectId, command.edit) };
+                else if (command.type === "project-write") data = await learning.projects.write(command.topicId, command.projectId, command.edit, signal);
+                else if (command.type === "project-test") data = await learning.projects.test(command.topicId, command.projectId, command.expectedTreeHash, signal);
+                else data = await learning.projects.checkpoint(command.topicId, command.projectId, command.expectedTreeHash, command.title, signal);
+              } finally { endLearning(); }
+              break;
+            }
+            case "mcp-settings":
+              learning.registry.get(command.topicId); data = new McpSettings(learning.database).read(command.topicId); break;
+            case "mcp-save":
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId); data = new McpSettings(learning.database).replace(command.topicId, command.revision, command.servers); break;
+            case "mcp-test": {
+              if (learningController || service.activeSessionId) throw new Error("learning_busy");
+              learning.registry.get(command.topicId);
+              const server = new McpSettings(learning.database).read(command.topicId).servers.find(server => server.id === command.serverId);
+              if (!server) throw new Error("mcp_settings_invalid");
+              beginLearning(); let connection: McpConnection | undefined;
+              try { connection = await McpConnection.open({ ...server, enabled: true }, learningController!.signal); data = { tools: connection.tools.map(tool => tool.name) }; }
+              finally { await connection?.close(); endLearning(); }
+              break;
+            }
             case "skills-list":
               learning.registry.get(command.topicId);
               data = (await learning.skills.list(command.topicId)).map(({ name, description, scope }) => ({ name, description, scope }));

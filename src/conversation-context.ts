@@ -2,10 +2,13 @@ export interface ContextMessage { readonly role: string; readonly text: string; 
 
 /** Loss-bounded excerpts for model context. The complete transcript stays in its store. */
 export function excerpt(text: string, limit: number): string {
+  if (!Number.isSafeInteger(limit) || limit < 0) throw new Error("context_budget_invalid");
   if (text.length <= limit) return text;
   const marker = "\n[…已省略中间内容，完整记录仍保存在本地…]\n";
+  const safe = (part: string) => part.replace(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/g, "");
+  if (limit <= marker.length) return safe(text.slice(0, limit));
   const head = Math.max(0, Math.floor((limit - marker.length) * 0.7));
-  return `${text.slice(0, head)}${marker}${text.slice(-(limit - marker.length - head))}`;
+  return `${safe(text.slice(0, head))}${marker}${safe(text.slice(-(limit - marker.length - head)))}`;
 }
 
 export function selectConversationContext(messages: readonly ContextMessage[], budget = 40_000) {

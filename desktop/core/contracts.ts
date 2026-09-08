@@ -1,12 +1,15 @@
+import { projectEditSchema, projectPathSchema } from "../../src/practice-projects.js";
+import { mcpServerSchema } from "../../src/mcp-settings.js";
 import { z } from "zod";
 import { topicIdSchema } from "../../src/contracts.js";
 import { citationSchema, type WorkspaceSummary } from "../../src/learning-contracts.js";
 import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
-import { outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema } from "../../src/outcome-contracts.js";
+import { outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema, explanationReviewInputSchema } from "../../src/outcome-contracts.js";
+import { assistanceSchema } from "../../src/learning-observations.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
-export const reasoningSchema = z.enum(["quick", "balanced", "deep"]);
+export const reasoningSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const settingsSchema = z.object({
   provider: providerSchema.default("pi-codex"),
   style: styleSchema.default("adaptive"),
@@ -50,7 +53,22 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
   z.object({ type: z.literal("learning-overview"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("project-list"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("project-create"), topicId: topicIdSchema, title: z.string().trim().min(1).max(80) }),
+  z.object({ type: z.literal("project-import"), topicId: topicIdSchema, title: z.string().trim().min(1).max(80) }),
+  z.object({ type: z.literal("project-select"), topicId: topicIdSchema, projectId: z.string().uuid().nullable() }),
+  z.object({ type: z.literal("project-view"), topicId: topicIdSchema, projectId: z.string().uuid() }),
+  z.object({ type: z.literal("project-read"), topicId: topicIdSchema, projectId: z.string().uuid(), path: projectPathSchema }),
+  z.object({ type: z.literal("project-preview"), topicId: topicIdSchema, projectId: z.string().uuid(), edit: projectEditSchema }),
+  z.object({ type: z.literal("project-write"), topicId: topicIdSchema, projectId: z.string().uuid(), edit: projectEditSchema }),
+  z.object({ type: z.literal("project-test"), topicId: topicIdSchema, projectId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/) }),
+  z.object({ type: z.literal("project-checkpoint"), topicId: topicIdSchema, projectId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/), title: z.string().trim().min(1).max(120) }),
+  z.object({ type: z.literal("mcp-settings"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("mcp-save"), topicId: topicIdSchema, revision: z.number().int().nonnegative(), servers: z.array(mcpServerSchema).max(4) }),
+  z.object({ type: z.literal("mcp-test"), topicId: topicIdSchema, serverId: z.string().max(24) }),
   z.object({ type: z.literal("outcome-list"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("outcome-review-explanation"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, review: explanationReviewInputSchema }),
+  z.object({ type: z.literal("observation-update"), topicId: topicIdSchema, id: z.string().uuid(), revision: z.number().int().positive(), annotation: z.string().max(2000), withdrawn: z.boolean() }),
   z.object({ type: z.literal("outcome-export"), topicId: topicIdSchema }),
   z.object({ type: z.literal("outcome-start"), topicId: topicIdSchema, mode: outcomeModeSchema }),
   z.object({ type: z.literal("outcome-submit"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, submission: outcomeSubmissionSchema }),
@@ -76,7 +94,7 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("evidence-validate"), topicId: topicIdSchema, dayId: dayIdSchema }),
   z.object({ type: z.literal("evidence-review"), topicId: topicIdSchema, dayId: dayIdSchema }),
   z.object({ type: z.literal("assessment-start"), topicId: topicIdSchema, dayId: dayIdSchema }),
-  z.object({ type: z.literal("assessment-submit"), topicId: topicIdSchema, dayId: dayIdSchema, attemptId: z.string().uuid(), answers: z.array(z.number().int().min(0).max(2)).max(5), reflection: z.string().max(4000) }),
+  z.object({ type: z.literal("assessment-submit"), topicId: topicIdSchema, dayId: dayIdSchema, attemptId: z.string().uuid(), answers: z.array(z.number().int().min(0).max(2)).max(5), reflection: z.string().max(4000), assistance: assistanceSchema.optional() }),
 ]);
 export type DesktopCommand = z.infer<typeof desktopCommandSchema>;
 export interface ModelStatus {

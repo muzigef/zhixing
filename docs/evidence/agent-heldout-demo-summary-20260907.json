@@ -1,0 +1,41 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "544c240d2cff4badfaa1ea6f3a727376257950a65e7ad515f5afaa5d7b46cd27",
+    "datasetHash": "e8377ba8b85bc09f5959694e1dfb971b8e2441f6f34cd8c4ff60262c1c897fe2",
+    "planned": 4,
+    "recorded": 4,
+    "attempted": 4,
+    "completed": 4,
+    "reviewed": 0,
+    "unreviewed": 4,
+    "passed": 0,
+    "passRate": null,
+    "independentHumanReviewed": 0,
+    "reviewer": null,
+    "failures": {},
+    "qualityFailures": {},
+    "groups": [
+      {
+        "provider": "demo",
+        "model": "demo",
+        "reasoning": "quick",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 1293,
+          "p95": 1303
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 32,
+          "p95": 39
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  }
+}

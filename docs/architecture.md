@@ -55,7 +55,7 @@ CLI / REPL
 - 内置主题定义在 `src/topics.ts`；`创建主题` 通过 `TopicStore` 建立受控本地主题、计划、Skill 与 inbox 目录。
 - 当前主题保存在 `zhixing/settings/current-topic.local.json`；用户生成主题、学习记录和本地设置均被 `.gitignore` 排除。
 - Day 状态、进度和计划由主题目录中的 Markdown/JSON 文件保存；资料元数据、Chunk、FTS5、嵌入与记忆保存在 `zhixing/db/zhixing.sqlite`。
-- `TeachingSessionStore` 保存当前 Day、阶段、受限转录、当前练习和作答；`LearningContextBuilder` 仅组装当前主题画像、至多三条记忆、资料名称和教学检查点。
+- `TeachingSessionStore` 保存当前 Day、阶段、受限转录、当前练习和作答；`LearningContextBuilder` 组装当前主题画像、至多三条记忆、资料名称、教学检查点和至多三条相关学习观察；受主题与上下文授权约束。
 - `ConversationSessionStore` 保存每主题当前对话及可显式恢复的旧对话，最近 6 轮、每轮输入与回答各最多 8,000 字符，额外持久保存最初目标；作为兼容历史投影；完整消息由 `AgentSessionStore` 存于 `zhixing/agent/conversations/`。请求前保存当前会话指针与用户输入，重启从完整快照恢复投影。强制结束可能丢失约 750 ms 内的未保存增量，教学检查点不随旧聊天恢复而回滚。
 - `WorkflowLedger` 将运行与步骤状态写入 SQLite；启动时会把上次进程遗留的 `running` 运行标记为 `process_interrupted`，不重放任何可能含写入的操作。用户可安全地重新发起操作。
 - CLI 已有手动数据库备份、预览和确认恢复：`备份数据库` 将 SQLite 保存到 `zhixing/db/backups/`；它不包含资料原文件、主题计划、学习笔记或桌面对话。当前没有全局 `profile.md`、`MISTAKES.md`、情节记忆、主题删除或定时自动备份。桌面另有完整工作区/会话备份恢复和单会话 Markdown 导出。
@@ -102,7 +102,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 教学转移由 `completeTeachingTurn` 在模型成功返回后计算。索要答案、批改和澄清不会覆盖原练习；新出题才增加轮次，仍保留原有 20 轮上限。部分回答可保留为未完成转录，但不推进阶段或写入学习者作答。转录保存前有明确截断标记；切换主题时清除旧主题的内存对话和待确认草案。
 
-这些预算属于 CLI 的 `collectInvocation`，不等于桌面服务的预算。当前没有费用预算或通用并行调度、自动网络重试、Claude/本地 HTTP Provider、DOCX 导入或云同步；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
+CLI 和桌面均使用共享 `collectInvocation`，入口的历史投影和适配器时限仍有差异。当前没有费用预算或通用并行调度、自动网络重试、Claude/本地 HTTP Provider、DOCX 导入或云同步；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
 
 ## 桌面对话链路
 
@@ -138,7 +138,7 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 | 保存的会话 | 最多 1000 条消息；单文件最多 12,000,000 字节 | `src/agent-session-contracts.ts`、`src/agent-session-store.ts` |
 | 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `src/agent-service.ts` |
 
-本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。这些字符限制不是精确 token 预算。
+本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。此外，`context-window.ts` 在每次请求和工具分发前约束估算 token：默认 48,000 窗口、预留 16,384 输出 token，保留必须消息、裁剪完整旧工具轮次。该估算不是模型精确计费值；必须内容超限时停止，不截断工具配对或继续执行副作用。
 
 ## 安全与质量
 
@@ -172,11 +172,11 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 
 `desktop/scripts/build.mjs` 用 esbuild 分别生成主进程 ESM、preload CJS、renderer 静态资源以及守卫模块。electron-builder 将内附 Pi 依赖展开到 `app.asar.unpacked/node_modules/`，并将 runtime 规则与守卫放入额外资源；桌面独立安装 SQLite/PDF 依赖；prepare-runtime 先安装项目内 Electron 并探测/重建 Electron ABI，根包 SQLite 保持 Node ABI。只将四个内置课程与运行规则打包，不收集用户主题。
 
-`desktop/package.json` 提供 macOS arm64 DMG/ZIP 和 Windows x64 NSIS 配置。当前实际验收覆盖 macOS Apple Silicon 应用及安装包；Windows 与 Intel Mac 未完成平台验收。已提供 macOS/Windows 构建、实际包 UI 与 draft release 流水线，以及用户主动检查公开新版本；Developer ID 签名、公证和远端执行另行验收。已有记录包括 DeepSeek 一次真实短请求成功，但 Pi 内附运行时/协议验证不能替代 Codex 真实认证验收。详情见 [桌面验收记录](evidence/desktop-app.md)。
+`desktop/package.json` 提供 macOS arm64 DMG/ZIP 和 Windows x64 NSIS 配置。当前实际验收覆盖 macOS Apple Silicon 应用及安装包；Windows 与 Intel Mac 未完成平台验收。已提供 macOS/Windows 构建、实际包 UI 与 draft release 流水线，以及用户主动检查公开新版本；Developer ID 签名、公证和远端执行另行验收。本轮 Pi Codex 与 DeepSeek 均经配置的产品接口执行真实合成评测，结果见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)；历史安装器证据见 [桌面验收记录](evidence/desktop-app.md)。
 
 ## 后续设计（未实现）
 
-后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、完整学习备份、跨设备同步。桌面课程/资料/进度/证据与任务上下文已落地；通用 Shell、任意代码编辑、多 Agent、MCP 市场不在本轮范围。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
+后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、定时备份、跨设备同步。完整学习备份已实现。桌面课程/资料/进度/证据与任务上下文已落地；通用 Shell、任意代码编辑、多 Agent、MCP 市场不在本轮范围。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
 
 ## 0.4 的新增结构
 
@@ -185,3 +185,14 @@ REPL 持续读输入，普通消息串行执行，状态与取消即时响应，
 `TaskExecutionStore` 保存步骤、实际操作结果及幂等键；`assistant-interactions` 将问题、批准、产物、progress/final 类型化。后台压缩可取消，首字路径不等待压缩。SemanticIndex 为可选 loopback Ollama 索引；AssessmentStore 单独保存作答和复习。全量备份经路径/哈希/数据库预检恢复到新目录，会话版本兼容保留旧文件。详细边界见 [0.4 指南](agent-0.4.md)。
 
 共享服务的原生工具恢复、双层租约、循环进展与备份权限规则见 [Agent 内核](agent-kernel.md)。新协议与旧版交互卡的兼容分开处理，不将摘要或模型文字作为工具结果。
+
+## 0.5 的执行和教学扩展
+
+- `context-window.ts` 做有界模型输入投影；`agent-efficiency.ts` 管理按需 schema 和自动思考选择。完整工具注册表继续承担授权，模型看见较少定义不会扩大权限。
+- `response-quality.ts` 处理显示与持久回答的格式、重复边界和一次修复预算；执行检查点保留原始 Provider 文本。`quality-review.ts` 以报告哈希绑定评分，明确未尝试/未完成/未评分与实际模型条件。
+- `ToolHarness.parallelSafe` 只允许纯只读幂等工具；循环最多两个并行，完成结果先持久化再通知消费者，检查点 v2 保存已启动范围。renderer 的 `delta-batcher.ts` 合并约 32ms 的文字增量，快照和终止事件负责清理/刷新。
+- `LearningObservations` 保存真实课程作答的来源、帮助和修订；`LearningOutcomes.reviewExplanation` 保存结束后人工复核，绑定解释哈希。观察可用于获得授权的相关教学；对照会话不获得这些资料，也不接入工具。
+- `McpSettings → McpConnection → ToolHarness` 限定主题、命令和工具。JSON Schema 在带资源/时限的 worker 中执行；服务不可用不阻断普通聊天。非幂等外部写入断连后保留结果未知，不能伪装成安全失败重试。详细协议范围见 [MCP](mcp-tools.md)。
+- `PracticeProjects` 持有项目文件、独立裸 Git 仓库、项目选择和进程租约；`project-tools.ts` 将读写、实际测试及检查点绑定主题/项目/哈希。没有连接任意用户工作树，导入仅复制允许文本。完成计划依赖实际文件、测试和提交状态，见 [项目指南](practice-projects.md)。
+
+当前聊天版本 v4 兼容读旧版并在首次保存前备份；执行检查点 v1/v2 是独立版本。完整备份新增项目文件/Git、学习观察和解释复核；恢复清除项目选择、MCP 启用状态和会话权限。验证与真实模型残余问题见 [本轮证据](evidence/agent-p1-p2-20260907.md)。

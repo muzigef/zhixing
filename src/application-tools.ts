@@ -12,6 +12,7 @@ export async function verifiedTaskSnapshot(app: LearningApplication, tasks: Task
   return tasks.verify(taskId, topic, async operation => {
     const input = operation.input as { dayId?: string; kind?: string };
     const result = operation.result as { id?: string; implementationHash?: string; testHash?: string; status?: string; exitCode?: number } | null;
+    if (operation.tool.startsWith("project_")) return app.projects.verifyOperation(topic, operation.tool, operation.input as Record<string, unknown>, operation.result as Record<string, unknown>);
     if (!input.dayId || !result) return false;
     let snapshot = snapshots.get(input.dayId);
     if (!snapshot) { snapshot = await app.evidence.list(topic, input.dayId); snapshots.set(input.dayId, snapshot); }
@@ -30,7 +31,13 @@ export function applicationTools(app: LearningApplication, base: LearningTools, 
   const task = (topic: string) => { tasks.begin(options.taskId, topic, "当前学习任务"); return tasks; };
   definitions.push({ name: "task_status", description: "查看当前任务的持久步骤、真实结果及未完成事项。重启或重试先查询，不重复保存已完成产物。", inputSchema: { type: "object", properties: {}, additionalProperties: false } });
   harness.register({ name: "task_status", risk: "read", input: z.object({}).strict(), timeoutMs: 5000, idempotent: true, execute: async (_input, context) => verifiedTaskSnapshot(app, task(context.topicId), options.taskId, context.topicId, context.signal) });
-  definitions.push({ name: "plan_task", description: "为需要执行的学习任务建立简短步骤和完成标准，状态由真实操作更新，不因模型声明而完成。", inputSchema: { type: "object", properties: { steps: { type: "array", minItems: 1, maxItems: 12, items: { type: "object", properties: { id: { type: "string" }, title: { type: "string" }, doneWhen: { type: "string", enum: ["artifact_saved", "tests_passed"] }, kind: { type: "string", enum: evidenceKindSchema.options } }, required: ["id", "title", "doneWhen"], additionalProperties: false } } }, required: ["steps"], additionalProperties: false } });
+  const identity = { id: { type: "string", pattern: "^[a-z0-9_-]{1,40}$" }, title: { type: "string", minLength: 1, maxLength: 120 } };
+  const stepSchemas = [
+    { type: "object", properties: { ...identity, doneWhen: { type: "string", enum: ["project_file_saved", "project_tests_passed", "project_checkpoint_saved"] }, projectId: { type: "string", format: "uuid" } }, required: ["id", "title", "doneWhen", "projectId"], additionalProperties: false },
+    { type: "object", properties: { ...identity, doneWhen: { type: "string", enum: ["artifact_saved"] }, kind: { type: "string", enum: evidenceKindSchema.options } }, required: ["id", "title", "doneWhen", "kind"], additionalProperties: false },
+    { type: "object", properties: { ...identity, doneWhen: { type: "string", enum: ["tests_passed"] } }, required: ["id", "title", "doneWhen"], additionalProperties: false },
+  ];
+  definitions.push({ name: "plan_task", description: "建立执行步骤，完成状态由真实操作更新。项目步骤必须使用 project_* 完成条件和 projectId，不能填写课程产物 kind。只需保存课程产物时用 artifact_saved 和 kind；课程测试用 tests_passed。", inputSchema: { type: "object", properties: { steps: { type: "array", minItems: 1, maxItems: 12, items: { anyOf: stepSchemas } } }, required: ["steps"], additionalProperties: false } });
   harness.register({ name: "plan_task", risk: "read", input: z.object({ steps: taskPlanSchema }).strict(), timeoutMs: 5000, idempotent: true, execute: async ({ steps }, context) => task(context.topicId).plan(options.taskId, context.topicId, steps) });
   const stepId = z.string().regex(/^[a-z0-9_-]{1,40}$/).optional();
   definitions.push({ name: "list_skills", description: "列出共享和当前主题的可用学习技能，仅按当前任务需要选择。", inputSchema: { type: "object", properties: {}, additionalProperties: false } },

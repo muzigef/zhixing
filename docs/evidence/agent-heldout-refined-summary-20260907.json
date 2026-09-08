@@ -1,0 +1,336 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "96c8d42e9d5b9f3f522ace2db015205e9b612e219d8373ec53b75456cb21e342",
+    "datasetHash": "fcbc8f69bf7b413e69bac443ebf771242439662679350f89c70de2140d7d5ea6",
+    "planned": 16,
+    "recorded": 16,
+    "attempted": 16,
+    "completed": 16,
+    "reviewed": 16,
+    "unreviewed": 0,
+    "passed": 11,
+    "passRate": 0.6875,
+    "independentHumanReviewed": 0,
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "failures": {},
+    "qualityFailures": {
+      "accuracy": 1,
+      "format": 2,
+      "grounding": 1,
+      "execution": 1
+    },
+    "groups": [
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "quick",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 7113,
+          "p95": 11356
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 2500,
+          "p95": 3162
+        }
+      },
+      {
+        "provider": "pi-codex",
+        "model": "gpt-5.6-terra",
+        "reasoning": "deep",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 5955,
+          "p95": 16525
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 3190,
+          "p95": 5027
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "quick",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 2969,
+          "p95": 5822
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 668,
+          "p95": 809
+        }
+      },
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "deep",
+        "planned": 4,
+        "attempted": 4,
+        "completed": 4,
+        "waiting": 0,
+        "latency": {
+          "samples": 4,
+          "p50": 7199,
+          "p95": 10021
+        },
+        "firstToken": {
+          "samples": 4,
+          "p50": 3540,
+          "p95": 4548
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  },
+  "review": {
+    "version": 1,
+    "reportHash": "96c8d42e9d5b9f3f522ace2db015205e9b612e219d8373ec53b75456cb21e342",
+    "reviewer": {
+      "name": "本轮开发助手复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "scores": [
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式推导与 -4 验算正确，解释了固定其他量和损失变化的含义，公式定界符独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H03",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "直接接上重排、生成，没有完整重讲检索。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "链式推导与 -4 验算正确，解释了固定其他量和损失变化的含义，公式定界符独占行。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H03",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "pi-codex",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "直接接上重排、生成，没有完整重讲检索。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "partial",
+          "pass"
+        ],
+        "rationale": "两段要求满足，但“max-age 有效期内不过时”和 ETag 描述边界不够严谨，文字有明显不自然表达。",
+        "failures": [
+          "accuracy"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "partial"
+        ],
+        "rationale": "求导、验算和偏导解释正确；$$ 定界符与公式同行，已被新增 math_layout 检测提示。",
+        "failures": [
+          "format"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H03",
+        "repetition": 1,
+        "criteria": [
+          "partial",
+          "pass",
+          "pass"
+        ],
+        "rationale": "费用判断和引用正确，但“失效机制保证准”的表述仍强于正文依据。",
+        "failures": [
+          "grounding"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "直接接上重排、生成，没有完整重讲检索。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H01",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "两段正文分别说明稳定资源复用和过期风险，含对应例子。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "partial"
+        ],
+        "rationale": "求导、验算和偏导解释正确；$$ 定界符与公式同行，已被新增 math_layout 检测提示。",
+        "failures": [
+          "format"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H03",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "pass"
+        ],
+        "rationale": "失效说明与合成正文一致，费用断言被拒绝，引用 marker 对应正文锚点。",
+        "failures": [],
+        "verdict": "pass"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "H04",
+        "repetition": 2,
+        "criteria": [
+          "fail",
+          "fail",
+          "fail"
+        ],
+        "rationale": "只返回 continue，没有实质续写；此原始失败触发后续有界修复机制。",
+        "failures": [
+          "execution"
+        ],
+        "verdict": "fail"
+      }
+    ]
+  }
+}

@@ -10,10 +10,14 @@ export const outcomeSubmissionSchema = z.object({
 export type OutcomeMode = z.infer<typeof outcomeModeSchema>;
 export type OutcomePhase = z.infer<typeof outcomePhaseSchema>;
 export type OutcomeSubmission = z.infer<typeof outcomeSubmissionSchema>;
+export const explanationReviewInputSchema = z.object({ expectedExplanation: z.string().max(2000), expectedRevision: z.number().int().min(0).max(100), reviewer: z.string().trim().min(1).max(100), verdict: z.enum(["supported", "partial", "unsupported", "withdrawn"]), feedback: z.string().trim().min(1).max(2000) }).strict();
+export const explanationReviewSchema = explanationReviewInputSchema.omit({ expectedExplanation: true, expectedRevision: true }).extend({ sourceHash: z.string().regex(/^[a-f0-9]{64}$/), revision: z.number().int().positive(), reviewedAt: z.string().datetime() });
+export type ExplanationReviewInput = z.infer<typeof explanationReviewInputSchema>;
 export interface OutcomeResult extends OutcomeSubmission {
   formId: number;
   correctCount: number; total: number; submittedAt: string; elapsedMs: number;
-  explanationReview: "pending_human_review";
+  explanationReview: "pending_human_review" | "human_reviewed" | "withdrawn";
+  reviews?: z.infer<typeof explanationReviewSchema>[];
 }
 export interface LessonEvidence {
   sessionId: string;
@@ -41,7 +45,7 @@ export const lessonEvidenceSchema = z.object({
 });
 export const outcomeResultSchema = outcomeSubmissionSchema.extend({
   formId: z.number().int().min(0).max(2), correctCount: z.number().int().min(0).max(3), total: z.literal(3),
-  submittedAt: z.string().datetime(), elapsedMs: z.number().finite().nonnegative(), explanationReview: z.literal("pending_human_review"),
+  submittedAt: z.string().datetime(), elapsedMs: z.number().finite().nonnegative(), explanationReview: z.enum(["pending_human_review", "human_reviewed", "withdrawn"]), reviews: z.array(explanationReviewSchema).max(100).optional(),
 });
 export const outcomeViewSchema = z.object({
   id: z.string().uuid(), topicId: z.enum(["agent-development", "rag"]), mode: outcomeModeSchema, bankVersion: z.literal(1), title: z.string().min(1).max(200),

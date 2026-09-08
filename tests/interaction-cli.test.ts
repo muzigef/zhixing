@@ -110,7 +110,7 @@ describe("natural interaction through the actual CLI", () => {
     const question = "解释课程中大语言模型的注意力机制";
     expect((await fixture.invoke(question)).stdout.trim()).toBe(answer);
     const requests = await fixture.requests(); expect(requests).toHaveLength(1);
-    const prompt = requests[0]!.messages[0]!.content;
+    const prompt = requests[0]!.messages.map(message => message.content).join("\n");
     expect(prompt.split(question)).toHaveLength(2);
     expect(prompt).toContain("上次只解释了查询向量");
     expect(prompt).not.toContain("结尾必须询问");
@@ -129,7 +129,7 @@ describe("natural interaction through the actual CLI", () => {
     expect((await fixture.invoke("开始任务")).stdout).toContain("当前教学已在 D01");
     expect((await fixture.chats.current("agent-development"))?.mode).toBe("lesson");
     await fixture.invoke("举个例子");
-    expect((await fixture.requests())[0]!.messages[0]!.content).toContain("上次只解释了查询向量");
+    expect((await fixture.requests())[0]!.messages.map(message => message.content).join("\n")).toContain("上次只解释了查询向量");
   });
   it("remembers explicit style per topic across CLI processes", async () => {
     const fixture = await setup();
@@ -137,8 +137,8 @@ describe("natural interaction through the actual CLI", () => {
     await fixture.invoke("解释注意力");
     await fixture.invoke("解释注意力", "rag");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
-    expect(requests[0]!.messages[0]!.content).toContain("回答风格：简洁");
-    expect(requests[1]!.messages[0]!.content).toContain("回答风格：适中");
+    expect(requests[0]!.messages.map(message => message.content).join("\n")).toContain("回答风格：简洁");
+    expect(requests[1]!.messages.map(message => message.content).join("\n")).toContain("回答风格：适中");
   });
   it("processes queued REPL turns, preserves history, and streams each answer only once", async () => {
     const fixture = await setup(false, [answer, "例如，查询向量可以代表你正在找的信息。"]);
@@ -147,8 +147,8 @@ describe("natural interaction through the actual CLI", () => {
     expect(output).toContain("查询向量可以代表");
     expect(output).not.toContain("本轮教学完成");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
-    expect(requests[1]!.messages[0]!.content).toContain("模型按相关性组合信息");
-    expect(requests[1]!.messages[0]!.content.split("举个例子")).toHaveLength(2);
+    expect(requests[1]!.messages.map(message => message.content).join("\n")).toContain("模型按相关性组合信息");
+    expect(requests[1]!.messages.map(message => message.content).join("\n").split("举个例子")).toHaveLength(2);
   });
   it("allows a knowledge question while a plan is pending, then cancels the draft locally", async () => {
     const proposal = JSON.stringify({ kind: "proposal", topicId: "agent-development", summary: "查看进度", actions: [{ type: "command", command: "进度" }] });
@@ -165,7 +165,7 @@ describe("natural interaction through the actual CLI", () => {
     const fixture = await setup();
     const result = await fixture.invoke("开始第 1 天");
     expect(result.stdout).toContain(answer);
-    const prompt = (await fixture.requests())[0]!.messages[0]!.content;
+    const prompt = (await fixture.requests())[0]!.messages.map(message => message.content).join("\n");
     expect(prompt).not.toContain("800");
     expect(prompt).not.toContain("不少于");
     expect(prompt).toContain("$$");
@@ -219,7 +219,7 @@ describe("natural interaction through the actual CLI", () => {
     await fixture.invoke("解释注意力");
     expect((await fixture.invoke("继续")).stdout).toContain("接下来解释加权求和");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
-    expect(requests[1]!.messages[0]!.content).toContain("通过查询和键计算相关性");
+    expect(requests[1]!.messages.map(message => message.content).join("\n")).toContain("通过查询和键计算相关性");
   });
   it("starts a fresh chat and can resume the earlier one without leaking across topics", async () => {
     const fixture = await setup(false, ["旧会话的查询向量。", "新会话内容。", "继续旧会话。"]);
@@ -227,10 +227,10 @@ describe("natural interaction through the actual CLI", () => {
     const previous = (await fixture.chats.current("agent-development"))!;
     expect((await fixture.invoke("/new")).stdout).toContain("新对话");
     await fixture.invoke("解释索引");
-    expect((await fixture.requests())[1]!.messages[0]!.content).not.toContain("旧会话的查询向量");
+    expect((await fixture.requests())[1]!.messages.map(message => message.content).join("\n")).not.toContain("旧会话的查询向量");
     await fixture.invoke(`/resume ${previous.id}`);
     await fixture.invoke("继续");
-    expect((await fixture.requests())[2]!.messages[0]!.content).toContain("旧会话的查询向量");
+    expect((await fixture.requests())[2]!.messages.map(message => message.content).join("\n")).toContain("旧会话的查询向量");
     expect(await fixture.chats.current("rag")).toBeUndefined();
   });
   it("shows text without a newline, handles status immediately, and steers using interrupted context", async () => {
@@ -239,8 +239,8 @@ describe("natural interaction through the actual CLI", () => {
     expect(output).toContain("正在回答");
     expect(output).toContain("换成生活例子解释");
     const requests = await fixture.requests(); expect(requests).toHaveLength(2);
-    expect(requests[1]!.messages[0]!.content).toContain("查询向量的未完成解释");
-    expect(requests[1]!.messages[0]!.content).toContain("解释查询向量");
+    expect(requests[1]!.messages.map(message => message.content).join("\n")).toContain("查询向量的未完成解释");
+    expect(requests[1]!.messages.map(message => message.content).join("\n")).toContain("解释查询向量");
     const projected = (await fixture.chats.current("agent-development"))!;
     const shared = await new AgentSessionStore(path.join(fixture.root, "zhixing", "agent")).load(projected.id);
     expect(shared.messages[1]?.taskId).toBe(shared.messages[3]?.taskId);
@@ -260,7 +260,7 @@ describe("natural interaction through the actual CLI", () => {
     const fixture = await setup();
     await fixture.repl(["/paste", "解释下面代码", "```ts", "const x = 1;", "```", "/send", "退出"]);
     const requests = await fixture.requests(); expect(requests).toHaveLength(1);
-    expect(requests[0]!.messages[0]!.content).toContain("解释下面代码\n```ts\nconst x = 1;\n```");
+    expect(requests[0]!.messages.map(message => message.content).join("\n")).toContain("解释下面代码\n```ts\nconst x = 1;\n```");
   });
   it("uses natural approval for a reviewed plan without asking for a fixed command", async () => {
     const proposal = JSON.stringify({ kind: "proposal", topicId: "agent-development", summary: "检查进度", actions: [{ type: "command", command: "进度" }] });

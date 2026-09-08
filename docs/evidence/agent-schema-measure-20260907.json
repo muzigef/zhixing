@@ -1,0 +1,10 @@
+{
+  "fullSchemaChars": 2400,
+  "initialSchemaChars": 991,
+  "reductionPercent": 58.7,
+  "definitionCounts": {
+    "full": 9,
+    "initial": 5
+  },
+  "note": "不含问答工具的相同应用工具集；字符数不是实际 tokenizer Token 或费用。发现额外能力可能增加一轮。"
+}

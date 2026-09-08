@@ -4,9 +4,11 @@ import { citationSchema } from "./learning-contracts.js";
 import { assistantItemSchema } from "./assistant-interactions.js";
 import { modelTimingSchema } from "./model-telemetry.js";
 import { outcomeModeSchema } from "./outcome-contracts.js";
+import { responseObservationSchema } from "./response-quality.js";
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo", "mock", "codex-cli"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["quick", "balanced", "deep"]);
+export const reasoningRequestSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const messageSchema = z.object({
   id: z.string().uuid(),
   role: z.enum(["user", "assistant"]),
@@ -19,13 +21,16 @@ export const messageSchema = z.object({
   style: styleSchema.optional(),
   model: z.string().max(128).optional(),
   reasoning: reasoningSchema.optional(),
+  reasoningMode: z.literal("auto").optional(),
+  quality: z.array(responseObservationSchema).max(7).optional(),
   usage: z.object({ inputTokens: z.number().nonnegative(), outputTokens: z.number().nonnegative(), cacheReadTokens: z.number().nonnegative().optional(), reasoningTokens: z.number().nonnegative().optional(), startupMs: z.number().nonnegative().optional() }).optional(),
   profile: z.enum(["application", "custom"]).optional(),
   taskId: z.string().uuid().optional(),
   steerId: z.string().uuid().optional(),
   durationMs: z.number().nonnegative().optional(),
   firstTokenMs: z.number().nonnegative().optional(),
-  modelTimings: z.array(modelTimingSchema).max(6).optional(),
+  contextUsage: z.object({ estimatedInputTokens: z.number().nonnegative(), reservedOutputTokens: z.number().positive(), windowTokens: z.number().positive(), chars: z.number().nonnegative(), omittedMessages: z.number().nonnegative(), omittedTurns: z.number().nonnegative() }).optional(),
+  modelTimings: z.array(modelTimingSchema).max(12).optional(),
   citations: z.array(citationSchema).max(24).optional(),
   retrievedCitations: z.array(citationSchema).max(24).optional(),
   activities: z.array(z.object({ label: z.string().max(120), status: z.enum(["running", "completed", "failed"]), at: z.string().datetime() })).max(100).optional(),
@@ -33,7 +38,7 @@ export const messageSchema = z.object({
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   id: z.string().uuid(),
   title: z.string().min(1).max(80),
   customTitle: z.boolean().default(false),
@@ -51,7 +56,7 @@ export const chatSchema = z.object({
     summary: z.string().max(4000).optional(), summaryThroughId: z.string().uuid().optional(),
     lastAttemptId: z.string().uuid().optional(),
   }).optional(),
-  pendingRequests: z.array(z.object({ id: z.string().uuid(), text: z.string().min(1).max(20_000), provider: providerSchema, style: styleSchema, reasoning: reasoningSchema.optional(), topicId: topicIdSchema.optional(), contextAllowed: z.boolean().optional(), execution: z.enum(["read", "once", "session"]).optional(), resumeTaskId: z.string().uuid().optional(), steerId: z.string().uuid().optional(), enqueuedAt: z.string().datetime() })).max(10).optional(),
+  pendingRequests: z.array(z.object({ id: z.string().uuid(), text: z.string().min(1).max(20_000), provider: providerSchema, style: styleSchema, reasoning: reasoningRequestSchema.optional(), topicId: topicIdSchema.optional(), contextAllowed: z.boolean().optional(), execution: z.enum(["read", "once", "session"]).optional(), resumeTaskId: z.string().uuid().optional(), steerId: z.string().uuid().optional(), enqueuedAt: z.string().datetime() })).max(10).optional(),
   queuePaused: z.boolean().optional(),
   queueError: z.string().max(500).optional(),
 });
@@ -65,7 +70,7 @@ export const agentSendSchema = z.object({
   text: z.string().trim().min(1).max(20_000),
   provider: providerSchema,
   style: styleSchema,
-  reasoning: reasoningSchema.optional(),
+  reasoning: reasoningRequestSchema.optional(),
   topicId: topicIdSchema.optional(),
   contextAllowed: z.boolean().optional(),
   execution: z.enum(["read", "once", "session"]).optional(),

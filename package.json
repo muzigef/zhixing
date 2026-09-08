@@ -36,6 +36,8 @@
     "eval:learning": "tsx scripts/summarize-learning-outcomes.ts"
   },
   "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "better-sqlite3": "^12.11.1",
     "pdfjs-dist": "6.2.108",
     "yaml": "^2.9.0",

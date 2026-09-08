@@ -35,8 +35,27 @@ try {
   await page.getByRole("button", { name: "开始独立检查", exact: true }).click();
   await page.getByRole("radio", { name: "尚未验证", exact: true }).check();
   await page.getByRole("radio", { name: "Runtime 的主题和权限规则", exact: true }).check();
+  await page.getByRole("combobox", { name: "知识检查帮助方式", exact: true }).selectOption("hint");
+  await page.getByRole("textbox", { name: "知识检查复盘", exact: true }).fill("合成复盘：这次使用提示，后续需要独立检验。");
   await page.getByRole("button", { name: "提交知识检查", exact: true }).click();
   await page.locator(".assessment-result").getByText(/本次检查通过/).waitFor();
+  await page.locator(".learning-observation summary").first().click();
+  await page.getByRole("textbox", { name: "学习记录更正", exact: true }).fill("合成更正：先独立做边界练习。");
+  await page.getByRole("button", { name: "保存更正", exact: true }).click();
+  await page.locator(".learning-observation[data-revision=\"2\"] summary").first().click();
+  await page.getByRole("button", { name: "撤回学习记录", exact: true }).click();
+  await page.locator(".learning-observation").getByText(/已撤回/).first().waitFor();
+  await page.locator(".mcp-panel > summary").click();
+  const mcpConfig = [{ id: "ui-fixture", enabled: true, consent: "local-process-and-topic-inputs", command: process.execPath, args: [path.join(root, "../tests/fixtures/mcp-server.mjs"), "modern"], tools: [{ name: "echo", risk: "read", replaySafe: true }] }];
+  await page.getByRole("textbox", { name: "MCP 连接配置", exact: true }).fill(JSON.stringify(mcpConfig));
+  await page.getByRole("checkbox", { name: "我信任所填服务，并允许当前主题向其发送工具参数", exact: true }).check();
+  await page.getByRole("button", { name: "保存 MCP 配置", exact: true }).click();
+  await page.getByText("当前主题的连接配置已保存。", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "测试 ui-fixture 连接", exact: true }).click();
+  await page.getByText(/ui-fixture 连接成功，可用工具：echo、write、slow/).waitFor();
+  await page.getByRole("button", { name: "停用 ui-fixture", exact: true }).click();
+  await page.getByText(/ui-fixture · 已停用/).waitFor();
+  await page.locator(".mcp-panel > summary").click();
   await running.app.evaluate(({ dialog }, selected) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selected] });
   }, fixture);

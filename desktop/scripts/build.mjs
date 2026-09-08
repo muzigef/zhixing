@@ -11,7 +11,7 @@ await build({
   platform: "node",
   target: "node24",
   format: "esm",
-  external: ["electron", "better-sqlite3", "pdfjs-dist/*"],
+  external: ["electron", "better-sqlite3", "pdfjs-dist/*", "ajv/*", "ajv-formats"],
   banner: { js: 'import { createRequire as zhixingRequire } from "node:module"; const require = zhixingRequire(import.meta.url);' },
   sourcemap: true,
 });

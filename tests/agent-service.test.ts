@@ -27,6 +27,7 @@ it.each((["session", "delta", "settled"] as const).flatMap(type => [{ type, asyn
     const request = { sessionId: session.id, text: "合成问题", provider: "mock" as const, style: "adaptive" as const };
     await service.send(request); await service.idle();
     expect((await store.load(session.id)).messages.at(-1)).toMatchObject({ text: "正常回答", status: "completed" });
+    expect((await store.load(session.id)).messages.at(-1)?.contextUsage?.estimatedInputTokens).toBeGreaterThan(0);
     expect(service.activeSessionId).toBeNull(); expect(seen).toContain(failedEvent); expect(seen).toContain("settled");
     await service.send(request); await service.idle();
     const other = new AgentService(new AgentSessionStore(store.root), () => client, app);
