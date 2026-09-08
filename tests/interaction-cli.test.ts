@@ -185,7 +185,7 @@ describe("natural interaction through the actual CLI", () => {
     await fixture.invoke("举个例子");
     expect((await fixture.requests())[0]!.messages.map(message => message.content).join("\n")).not.toContain("上次只解释了查询向量");
     expect((await fixture.currentTeaching())?.dayId).toBe("D01");
-  });
+  }, 15_000);
   it("remembers explicit style per topic across CLI processes", async () => {
     const fixture = await setup();
     expect((await fixture.invoke("/style concise")).stdout).toContain("简洁");

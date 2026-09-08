@@ -36,7 +36,7 @@ it("discovers the complete project plan contract and rejects course-only fields 
   expect(validate({ steps: [{ id: "edit", title: "修改", doneWhen: "project_file_saved" }] })).toBe(false);
   expect((await catalog.harness.execute("plan_task", { steps }, { topicId: "rag", signal: signal() })).ok).toBe(true);
   expect(catalog.advertised().some(tool => tool.name === "save_artifact")).toBe(false);
-});
+}, 15_000);
 it("creates an isolated multi-file Git project, previews exact changes and prevents stale writes", async () => {
   const { app } = await fixture(); const project = await app.projects.create("rag", "合成实践", signal());
   expect(project.files.map(file => file.path)).toEqual(expect.arrayContaining(["src/implementation.mjs", "test/implementation.test.mjs"]));

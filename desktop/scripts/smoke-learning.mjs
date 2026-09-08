@@ -87,7 +87,7 @@ try {
   await page.locator(".evidence-result").getByText(/未复跑/).waitFor();
   await page.getByText("运行本地 JavaScript 测试", { exact: true }).click();
   await page.getByRole("button", { name: "运行提交的测试", exact: true }).click();
-  await page.locator(".evidence-result").getByText(process.platform === "darwin" ? /退出码 0/ : /unavailable/).waitFor();
+  await page.locator(".evidence-result").getByText(["darwin", "win32"].includes(process.platform) ? /退出码 0/ : /unavailable/).waitFor();
   await page.locator(".course-row").first().getByText(/完成/).waitFor();
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("textbox", { name: "发送给知行" }).fill("请根据资料解释可验证的检索证据。");
