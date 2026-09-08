@@ -32,9 +32,9 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.5.0`。两者复用 Agent 会话服务、学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.6.0`。两者复用 Agent 会话服务、学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
-当前源码新增[学习效果验证](docs/learning-outcomes.md)：学前检查 → 同模型引导教学/直接聊天 → 学后检查 → 3 天延迟复习，支持本地记录及去重汇总。选择题与文字解释分别记录，尚无真实学习效果结论。0.5.0 将这套流程与本轮 Agent 优化一起交付，验证范围见 [P1/P2 记录](docs/evidence/agent-p1-p2-20260907.md)。
+当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
 目前的学习效果题库覆盖 Agent 执行边界和 RAG 证据判断，独立作答由用户自报。已支持基于真实课程作答的跨会话学习观察、纠正与撤回，以及验证结束后的署名解释复核。模型可参考获得授权的相关观察调整反馈；题卷校准、独立人工评价和真实学习效果仍待验证。
 
@@ -45,7 +45,7 @@
 
 桌面现已接入课程、进度、资料导入与引用、真实产物验收、任务排队与纠正、持久目标及耗时诊断。完整使用步骤见 [0.3 升级指南](docs/agent-upgrade.md)。
 
-本轮能力与数据兼容说明见 [0.5 指南](docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、真实评测与复核、学习观察、有界并行、[MCP](docs/mcp-tools.md) 和[项目级实践](docs/practice-projects.md)。0.4 的交互卡、分支、技能和完整备份继续可用。
+当前能力与数据兼容说明见 [0.6 指南](docs/agent-0.6.md)：可核对的任务恢复、独立权限、项目快照与 Python 实践、历史分页、Skill 版本、知识点变式题和完整产品效果试验。实施范围和验证见 [C01–C12 记录](docs/evidence/agent-architecture-next.md)；0.4/0.5 指南保留历史背景。
 
 当前源码已实现并通过[三项 Agent 内核优化](docs/agent-kernel.md)的阶段验收：CLI/桌面共享任务服务；原生工具检查点、审批和同任务恢复；失败后修复重测及未完成计划拦截。[最新复核证据](docs/evidence/p0-recovery-audit-20260907.md)记录新增边界修复，保留当轮自动化和真实模型证据；当前交付验收另见 [P1/P2 记录](docs/evidence/agent-p1-p2-20260907.md)。
 
@@ -53,7 +53,7 @@
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.5.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.6.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
@@ -279,7 +279,7 @@ npm --prefix desktop run test:ui
 
 历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。该时点 Pi 未通过真实调用；2026-09-07 已完成[登录后验证](docs/evidence/pi-availability-20260907.md)，后续性能修复见上方记录。这些是各次执行证据，不代表每次阅读本文时重新运行过检查。
 
-当前验证见 [0.4 Evidence](docs/evidence/agent-next.md)；0.3 的历史记录保留用于追溯。
+当前验证见 [0.6 执行记录](docs/evidence/agent-architecture-next.md)；0.3–0.5 的记录保留用于追溯。
 
 ## 文档
 
@@ -290,6 +290,7 @@ npm --prefix desktop run test:ui
 | 命令说明 | [CLI 参考](docs/CLI-REFERENCE.md) |
 | Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
 | 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
+| 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
 
 运行时审查、修复证据和仍未对齐的能力见 [Agent 审查报告](docs/evidence/agent-runtime-audit.md)。

@@ -6,7 +6,7 @@ import { createWriteStream, constants } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { inspectDatabaseSnapshot, ZhixingDatabase } from "../../src/database.js";
 import { LearningOutcomeStore } from "../../src/learning-outcomes.js";
 import type { LearningApplication } from "../../src/learning-application.js";
@@ -111,7 +111,7 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
     for (const chat of [...chats, ...cliChats]) {
       const originalId = chat.id;
       signal.throwIfAborted(); chat.id = ids.get(chat.id)!; chat.title = `${chat.title.slice(0, 68)} · 恢复`;
-      chat.executionAllowed = false; chat.contextAllowed = false; chat.pendingRequests = []; chat.queuePaused = true;
+      chat.executionAllowed = false; chat.contextAllowed = false; chat.permissions = { version: 1, materials: false }; chat.writeGrants = []; chat.pendingRequests = []; chat.queuePaused = true;
       if (chat.topicId && chat.workspaceId === manifest.workspaceId) chat.workspaceId = workspaceId;
       chat.parent = chat.parent && ids.has(chat.parent.sessionId) ? { ...chat.parent, sessionId: ids.get(chat.parent.sessionId)! } : undefined;
       for (const message of chat.messages) if (message.status === "running") message.status = "interrupted";

@@ -3,6 +3,7 @@ import { collectInvocation } from "./model-invocation.js";
 import { ToolDispatcher } from "./tool-dispatcher.js";
 import { ProviderRuntime } from "./provider-runtime.js";
 import { responseGuidelines, type ResponseStyle } from "./response-style.js";
+import { inspectEvidenceSupport, evidenceRepairReason } from "./evidence-support.js";
 
 /** Produces a citation-constrained answer from retrieved evidence only. */
 export async function answerFromEvidence(runtime: ProviderRuntime, question: string, evidence: readonly SearchResult[], confirmed: boolean, signal: AbortSignal, onAudit?: (providerId: string, role: string, durationMs: number, status: string) => unknown | Promise<unknown>, tools?: ToolDispatcher, skills: readonly { name: string; description: string }[] = [], style: ResponseStyle = "adaptive"): Promise<string> {
@@ -14,5 +15,7 @@ export async function answerFromEvidence(runtime: ProviderRuntime, question: str
   const citationMarkers = new Set(evidence.slice(0, 3).map((item) => `[${item.citation.documentName}#${item.citation.pageNumber ? `page=${item.citation.pageNumber}` : `anchor=${item.citation.anchor ?? "root"}`}]`));
   const citations = result.text.match(/\[[^\]\n]+#(?:page|anchor)=[^\]\n]+\]/g) ?? [];
   if (!citations.length || citations.some((marker) => !citationMarkers.has(marker))) return "insufficient_evidence：模型回答缺少有效引用，或引用了未提供的位置。";
+  const support = evidenceRepairReason(inspectEvidenceSupport(result.text, evidence.slice(0, 3)));
+  if (support) return `insufficient_evidence：${support}`;
   return result.text + (result.partial ? "\n\n回答未完成，请重试或继续追问。" : "");
 }

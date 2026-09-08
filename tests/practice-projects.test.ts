@@ -144,6 +144,12 @@ it("completes a source-bound project plan through discovery, editing, real tests
   };
   const store = new AgentSessionStore(path.join(root, "sessions")); const service = new AgentService(store, () => client, app); const session = await service.create();
   await service.send({ sessionId: session.id, text: "完成项目修改与测试", topicId: "rag", contextAllowed: true, execution: "session", provider: "mock", style: "adaptive" }); await service.idle();
+  for (let index = 0; index < 3; index++) {
+    const waiting = (await service.load(session.id)).messages.at(-1)!;
+    expect(waiting.status).toBe("waiting");
+    const card = waiting.items!.find(item => item.kind === "approval" && item.status === "pending")!;
+    await service.answerInteraction(session.id, card.id, "allow"); await service.idle();
+  }
   const answer = (await service.load(session.id)).messages.at(-1)!; expect(answer.status).toBe("completed");
   const tasks = new TaskExecutionStore(app.database); expect((await verifiedTaskSnapshot(app, tasks, answer.taskId!, "rag")).plan.map(step => step.completed)).toEqual([true, true, true]);
   const snapshot = await app.projects.snapshot("rag", project.id); expect(snapshot.currentTestsPassed).toBe(true); expect(snapshot.history).toHaveLength(2);

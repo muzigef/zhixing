@@ -30,6 +30,12 @@ try {
   await page.getByRole("combobox", { name: "学习主题", exact: true }).selectOption("agent-development");
   await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).check();
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();
+  // A press inside a dialog followed by a release outside is a drag, not backdrop dismissal.
+  const heading = await page.getByRole("heading", { name: "课程与资料", exact: true }).boundingBox();
+  assert(heading);
+  await page.mouse.move(heading.x + 10, heading.y + 10); await page.mouse.down();
+  await page.mouse.move(1, 1); await page.mouse.up();
+  assert.equal(await page.getByRole("dialog", { name: "课程与资料", exact: true }).isVisible(), true);
   await page.getByRole("button", { name: "开始学习", exact: true }).first().click();
   await page.locator(".course-row").first().getByText(/进行中/).waitFor();
   await page.getByRole("button", { name: "开始独立检查", exact: true }).click();
@@ -95,7 +101,7 @@ try {
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
   const queued = await page.evaluate(async () => (await window.zhixing.invoke({ type: "load", sessionId: localStorage.getItem("last-session") })).data);
   assert.equal(queued.pendingRequests[0].execution, "read");
-  assert.equal(queued.pendingRequests[0].contextAllowed, true);
+  assert.equal(queued.pendingRequests[0].access.materials, true);
   assert.equal(queued.pendingRequests[0].topicId, "agent-development");
   const captures = path.join(os.tmpdir(), "zhixing-desktop-preview"); await fs.mkdir(captures, { recursive: true });
   await page.screenshot({ path: path.join(captures, "learning-conversation.png"), animations: "disabled" });

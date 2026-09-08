@@ -50,7 +50,7 @@ it("includes CLI execution sessions and restores pending approvals with grants c
     const { AgentExecutionStore } = await import("../src/agent-execution-store.js");
     const desktop = new DesktopStore(path.join(root, "desktop"));
     const cli = new DesktopStore(path.join(app.root, "zhixing/agent")); const source = await cli.create();
-    source.topicId = "agent-development"; source.workspaceId = app.summary().id; source.contextAllowed = true; source.executionAllowed = true;
+    source.topicId = "agent-development"; source.workspaceId = app.summary().id; source.contextAllowed = true; source.executionAllowed = true; source.permissions = { version: 1, materials: true, projectId: crypto.randomUUID(), externalRevision: 3 }; source.writeGrants = [{ key: "a".repeat(64), kind: "project", label: "合成授权" }];
     const taskId = crypto.randomUUID(); const callId = "backup-call";
     source.messages.push({ id: crypto.randomUUID(), role: "assistant", text: "", status: "waiting", createdAt: new Date().toISOString(), taskId, items: [{ id: crypto.randomUUID(), callId, kind: "approval", tool: "save_artifact", title: "保存合成产物", input: { dayId: "D01", kind: "implementation", text: "export const answer = 42;" }, status: "answered", answer: "allow" }] });
     await cli.save(source);
@@ -61,7 +61,7 @@ it("includes CLI execution sessions and restores pending approvals with grants c
     const copy = await LearningApplication.open(restored.workspace, process.cwd());
     try {
       const session = await new DesktopStore(path.join(restored.workspace, "zhixing/agent")).load(source.id);
-      expect(session.executionAllowed).toBe(false); expect(session.contextAllowed).toBe(false); expect(session.workspaceId).toBe(copy.summary().id);
+      expect(session.executionAllowed).toBe(false); expect(session.contextAllowed).toBe(false); expect(session.permissions).toEqual({ version: 1, materials: false }); expect(session.writeGrants).toEqual([]); expect(session.workspaceId).toBe(copy.summary().id);
       expect(session.messages[0]?.items?.[0]).toMatchObject({ status: "pending" });
       const checkpoint = new AgentExecutionStore(copy.database, { taskId, sessionId: source.id, topicId: source.topicId }).read();
       expect(checkpoint?.decisions).toEqual({}); expect(checkpoint?.status).toBe("interrupted");

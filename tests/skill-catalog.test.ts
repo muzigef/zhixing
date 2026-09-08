@@ -41,6 +41,22 @@ describe("skill catalog", () => {
     await fs.writeFile(file, "invalid", "utf8");
     await expect(catalog.list("rag")).resolves.toEqual([expect.objectContaining({ name: "stable" })]);
     await expect(catalog.read("rag", "stable")).resolves.toContain("# Steps");
+    const stale = await catalog.details("rag", "stable");
+    expect(stale).toMatchObject({ status: "stale", fallbackReason: "catalog_unavailable", authority: "reference_only" });
+    expect(stale.contentHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("binds workflow versions, conditions and evaluation links to actual file bytes", async () => {
+    const directory = await root(); await skill(directory, "rag", "versioned");
+    const file = path.join(directory, "skills/rag/versioned/SKILL.md");
+    await fs.writeFile(file, '---\nname: versioned\ndescription: A versioned workflow\nversion: "1.0"\nconditions: [需要核对资料]\nevaluations: ["quality:R04"]\n---\n第一版流程');
+    const catalog = new SkillCatalog(directory); const first = await catalog.details("rag", "versioned");
+    expect(first).toMatchObject({ version: "1.0", status: "current", conditions: ["需要核对资料"], evaluations: ["quality:R04"], authority: "reference_only", workflow: "第一版流程" });
+    await fs.writeFile(file, (await fs.readFile(file, "utf8")).replace("第一版流程", "修改后的流程"));
+    const next = await catalog.details("rag", "versioned"); expect(next.contentHash).not.toBe(first.contentHash);
+    await expect(catalog.page("rag", "versioned", 1, first.contentHash)).rejects.toThrow("skill_version_mismatch");
+    await fs.writeFile(file, '---\nname: one\nname: two\ndescription: invalid duplicate\n---\n不要使用');
+    expect(await catalog.details("rag", "versioned")).toMatchObject({ contentHash: next.contentHash, status: "stale", workflow: "修改后的流程" });
   });
 
   it("坏 frontmatter 失败关闭", async () => {

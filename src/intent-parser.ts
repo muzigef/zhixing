@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export const intentSchema = z.object({ intent: z.enum(["next_step", "progress", "current_topic", "create_topic", "custom_course", "unknown"]), topicId: z.string().optional(), title: z.string().optional() });
 export type ParsedIntent = z.infer<typeof intentSchema>;

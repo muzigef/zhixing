@@ -8,7 +8,7 @@ import { AgentSessionStore } from "../src/agent-session-store.js";
 import { McpConnection, McpSettings, attachMcpTools, mcpAlias } from "../src/mcp-tools.js";
 import { JsonSchemaWorker } from "../src/json-schema-worker.js";
 import { ToolHarness, ToolOutcomeUnknown } from "../src/tool-harness.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const close of cleanup.splice(0).reverse()) await close(); });

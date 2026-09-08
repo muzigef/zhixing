@@ -3,13 +3,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { mcpServerSchema, type McpServer } from "./mcp-settings.js";
 import { JsonSchemaWorker } from "./json-schema-worker.js";
 import { ToolOutcomeUnknown } from "./tool-harness.js";
 
 const MODERN = "2026-07-28"; const LEGACY = "2025-11-25";
-const toolSchema = z.object({ name: z.string().min(1).max(128), description: z.string().max(4000).optional(), inputSchema: z.record(z.unknown()), outputSchema: z.record(z.unknown()).optional() });
+export const toolSchema = z.object({ name: z.string().min(1).max(128), description: z.string().max(4000).optional(), inputSchema: z.record(z.string(), z.unknown()), outputSchema: z.record(z.string(), z.unknown()).optional() });
 export type McpTool = z.infer<typeof toolSchema>;
 class RpcError extends Error { constructor(readonly code: number) { super("mcp_remote_error"); } }
 export class McpConnection {
@@ -83,7 +83,7 @@ export class McpConnection {
   async call(name: string, input: unknown, signal: AbortSignal, write = false): Promise<unknown> {
     await this.validate(name, input, signal);
     try {
-      const result = z.object({ content: z.array(z.object({ type: z.literal("text"), text: z.string().max(64_000) })).max(32), structuredContent: z.record(z.unknown()).optional(), isError: z.boolean().optional() }).parse(this.complete(await this.request("tools/call", { name, arguments: input }, signal)));
+      const result = z.object({ content: z.array(z.object({ type: z.literal("text"), text: z.string().max(64_000) })).max(32), structuredContent: z.record(z.string(), z.unknown()).optional(), isError: z.boolean().optional() }).parse(this.complete(await this.request("tools/call", { name, arguments: input }, signal)));
       const schema = this.tools.find(tool => tool.name === name)?.outputSchema;
       if (schema && !result.isError) await this.validator.check(`${name}:output`, { input: result.structuredContent }, signal);
       if (write && result.isError) throw new ToolOutcomeUnknown();

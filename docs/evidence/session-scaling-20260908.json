@@ -1,0 +1,21 @@
+{
+  "syntheticOnly": true,
+  "platform": "darwin-arm64",
+  "node": "v24.8.0",
+  "sessions": 500,
+  "messages": 20000,
+  "conversationBytes": 29149890,
+  "returnedPerPage": 40,
+  "coldMs": 174.04916699999995,
+  "coldConversationReads": 500,
+  "warmMs": [
+    27.75591700000001,
+    30.36541699999998,
+    24.173374999999965,
+    23.46920799999998,
+    25.413165999999933
+  ],
+  "warmMedianMs": 25.413165999999933,
+  "warmConversationReads": 0,
+  "indexBytes": 139627
+}

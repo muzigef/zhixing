@@ -1,3 +1,4 @@
+import type { AgentPermissions } from "./agent-permissions.js";
 import type { ModelEvent, ModelMessage, ModelRole, ModelToolDefinition, ModelTurn, ModelUsage, ReasoningProfile, ToolResultMessage } from "./model.js";
 import { assertExternalContentAllowed } from "./external-content-gate.js";
 import { ProviderRuntime } from "./provider-runtime.js";
@@ -8,7 +9,8 @@ import type { ModelPhase, ModelTiming } from "./model-telemetry.js";
 import { randomUUID } from "node:crypto";
 import type { AgentExecutionStore, ExecutionCheckpoint } from "./agent-execution-store.js";
 import { modelContextWindow, type ContextBudget, type ContextUsage } from "./context-window.js";
-import { ToolOutcomeUnknown } from "./tool-harness.js";
+import { ToolOutcomeUnknown, toolFailure } from "./tool-harness.js";
+import { boundToolOutput } from "./tool-results.js";
 
 /** Runtime-enforced resource bounds; these values never come from model output. */
 export interface InvocationLimits {
@@ -32,7 +34,7 @@ export interface InvocationRequest {
   readonly onTurn?: (text: string, kind: "progress" | "final") => void;
   readonly shouldPause?: () => boolean;
   /** Actual application revisions, not a model-supplied claim of progress. */
-  readonly toolState?: () => string;
+  readonly toolState?: (name?: string) => string;
   /** Missing execution requirements; undefined means no unfinished plan. */
   readonly completionCheck?: (signal: AbortSignal) => string | undefined | Promise<string | undefined>;
   /** Bounded presentation validation; cannot grant tools or certify factual correctness. */
@@ -42,6 +44,7 @@ export interface InvocationRequest {
   /** Durable identity of a user correction; reapplying the same correction is a no-op. */
   readonly steerId?: string;
   readonly materialContext?: boolean;
+  readonly contextAccess?: AgentPermissions;
   readonly canParallelTool?: (name: string) => boolean;
   readonly canReplayTool?: (name: string) => boolean;
   readonly providerId: string;
@@ -59,6 +62,9 @@ export interface InvocationRequest {
   readonly limits?: Partial<InvocationLimits>;
   readonly requireDone?: boolean;
   readonly contextBudget?: ContextBudget;
+  readonly inputModalities?: readonly ("text" | "image")[];
+  /** New trusted-application observations replace stale observations in a disposable model view. */
+  readonly freshObservations?: readonly ModelMessage[];
   readonly onContext?: (usage: ContextUsage) => void;
 }
 
@@ -85,9 +91,13 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
   const timer = setTimeout(() => controller.abort(new Error("invocation_timeout")), limits.timeoutMs);
   const signal = AbortSignal.any([parent, controller.signal]);
   const providers = runtime.forInvocation(request.role);
+  const capabilities = providers.capabilities(request.role);
+  if (request.inputModalities?.some(modality => !capabilities.inputModalities.includes(modality))) { clearTimeout(timer); throw new Error("provider_modality_unsupported"); }
+  let estimateMultiplier = 1;
   let text = ""; let finalText = ""; let partialText = "";
   let savedTextAt = 0;
   let events = 0; let turns = 0; let toolCalls = 0;
+  let newToolCalls = 0; let inputTokens = 0; let outputTokens = 0;
   let actualProviderId = request.providerId;
   let failure: unknown; let stopReason: string | undefined;
   let waiting = false; let blocked = false; let completionAttempts = 0;
@@ -96,7 +106,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
   const callIds = new Set<string>();
   let release: (() => void) | undefined;
   let started = false;
-  let checkpoint: ExecutionCheckpoint = { version: 1, status: "running", prompt: request.prompt, messages: request.messages ? [...request.messages] : undefined, history: [], decisions: {}, containsMaterials: request.materialContext ?? false };
+  let checkpoint: ExecutionCheckpoint = { version: 1, status: "running", prompt: request.prompt, messages: request.messages ? [...request.messages] : undefined, history: [], decisions: {}, containsMaterials: request.materialContext ?? false, contextAccess: request.contextAccess };
   const save = (type: string, callId?: string) => request.execution?.save(checkpoint, type, callId);
   const checkCompletion = async () => {
     const result = await abortable(async () => request.completionCheck?.(signal), signal);
@@ -104,6 +114,8 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
     return result;
   };
   try {
+    const contextBudget = providers.contextBudget(request.role, request.contextBudget);
+    if (request.freshObservations?.some(message => message.role !== "observation" || message.content.length > 128_000) || (request.freshObservations?.length ?? 0) > 20) throw new Error("context_observation_invalid");
     release = request.execution?.claim();
     const previousCheckpoint = request.execution?.read();
     let responseRepairs = previousCheckpoint?.history.filter(turn => turn.feedback?.startsWith("应用回答检查：")).length ?? 0;
@@ -111,7 +123,11 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
     if (!previousCheckpoint) checkpoint.steerId = request.steerId;
     if (previousCheckpoint) {
       if (previousCheckpoint.containsMaterials && !request.materialContext) throw new Error("execution_context_required");
+      const required = previousCheckpoint.contextAccess;
+      if (required && (required.projectId && required.projectId !== request.contextAccess?.projectId || required.externalRevision !== undefined && required.externalRevision !== request.contextAccess?.externalRevision)) throw new Error("execution_context_required");
       checkpoint = previousCheckpoint;
+      checkpoint.contextAccess = request.contextAccess ?? checkpoint.contextAccess;
+      checkpoint.containsMaterials ||= request.materialContext ?? false;
       const feedback = [request.resumeInput, checkpoint.partialText ? `已展示但未完成的回答片段（不能作为完成证据，请避免重复）：${checkpoint.partialText}` : undefined].filter(Boolean).join("\n");
       if (feedback) {
         const target = checkpoint.pending ?? checkpoint.history.at(-1);
@@ -149,7 +165,9 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
     checkpoint.status = "running"; save(steered ? "steered" : previousCheckpoint ? "resumed" : "started"); started = true;
     // Restored work consumes this invocation's budget; completed results are not dispatched again.
     toolCalls = checkpoint.pending ? checkpoint.pending.events.filter(event => event.type === "tool_call").length - checkpoint.pending.next : 0;
-    const contextWindow = () => modelContextWindow({ prompt: checkpoint.prompt, messages: checkpoint.messages, history: checkpoint.history, pending: checkpoint.pending, tools: request.advertisedTools?.() ?? request.tools }, limits.maxContextChars, request.contextBudget);
+    const modelMessages = request.freshObservations && checkpoint.messages ? [...checkpoint.messages.filter(message => message.role !== "observation")] : checkpoint.messages;
+    if (request.freshObservations && modelMessages) modelMessages.splice(Math.max(0, modelMessages.findLastIndex(message => message.role === "user")), 0, ...request.freshObservations);
+    const contextWindow = () => modelContextWindow({ prompt: checkpoint.prompt, messages: modelMessages, history: checkpoint.history, pending: checkpoint.pending, tools: request.advertisedTools?.() ?? request.tools }, limits.maxContextChars, contextBudget, estimateMultiplier);
     let contextChars = contextWindow().usage.chars;
     for (;;) {
       signal.throwIfAborted();
@@ -170,8 +188,8 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
           const width = pending.phase === "executing" ? (calls.slice(pending.next, pending.executingUntil ?? pending.next + 1).every(eligible) ? (pending.executingUntil ?? pending.next + 1) - pending.next : 1)
             : eligible(calls[pending.next]!) && calls[pending.next + 1] && eligible(calls[pending.next + 1]!) ? 2 : 1;
           const batch = calls.slice(pending.next, pending.next + width);
-          const dispatchState = request.toolState?.() ?? "";
-          for (const call of batch) { const duplicate = loop.tool(call.tool!, call.input, dispatchState); if (duplicate) throw new Error(duplicate); }
+          const dispatchStates = batch.map(call => request.toolState?.(call.tool) ?? "");
+          for (const [index, call] of batch.entries()) { const duplicate = loop.tool(call.tool!, call.input, dispatchStates[index]); if (duplicate) throw new Error(duplicate); }
           pending.phase = "executing";
           if (width > 1 || pending.executingUntil !== undefined) { checkpoint.version = 2; pending.executingUntil = Math.max(pending.executingUntil ?? 0, pending.next + width); }
           checkpoint.pending = { ...pending, toolResults: results }; save("tool_started", batch[0]!.callId);
@@ -180,11 +198,11 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
             if (request.tools && !request.tools.some(tool => tool.name === call.tool)) result = { ok: false, errorCode: "tool_not_allowed" };
             else {
               try { result = await abortable(() => request.onToolCall!(call.tool!, call.input, signal, call.callId), signal); }
-              catch (error) { if (signal.aborted || error instanceof ToolOutcomeUnknown) throw error; result = { ok: false, errorCode: "tool_failed" }; }
+              catch (error) { if (signal.aborted || error instanceof ToolOutcomeUnknown) throw error; result = toolFailure(error); }
             }
             const serialized = JSON.stringify(result ?? null);
             if (serialized === undefined) throw new Error("tool_output_invalid");
-            return serialized.length > 12_000 ? { truncated: true, preview: serialized.slice(0, 12_000) } : result ?? null;
+            return serialized.length > 12_000 ? boundToolOutput(result, 12_000) : result ?? null;
           }));
           if (request.shouldPause?.()) {
             if (width !== 1) throw new Error("tool_parallel_policy_invalid");
@@ -196,7 +214,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
           for (const [index, value] of completed.entries()) {
             if (value.status === "rejected") throw value.reason;
             const call = batch[index]!;
-            const message: ToolResultMessage = { tool: call.tool!, result: value.value, ...(call.callId ? { callId: call.callId } : {}), ...(request.toolState ? { toolState: dispatchState } : {}) };
+            const message: ToolResultMessage = { tool: call.tool!, result: value.value, ...(call.callId ? { callId: call.callId } : {}), ...(request.toolState ? { toolState: dispatchStates[index]! } : {}) };
             results.push(message); toolResults.push(message); notifications.push(message);
             pending.next++;
             if (!pending.executingUntil || pending.next >= pending.executingUntil) { pending.phase = "ready"; pending.executingUntil = undefined; }
@@ -217,7 +235,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       const previous = context.history.at(-1);
       const toolState = request.toolState?.() ?? "";
       const holdText = Boolean(await checkCompletion());
-      const options = { tools: request.advertisedTools?.() ?? request.tools, history: context.history, messages: checkpoint.messages || context.usage.omittedTurns || context.usage.omittedMessages ? context.messages : undefined, reasoning: request.reasoning };
+      const options = { tools: request.advertisedTools?.() ?? request.tools, history: context.history, messages: checkpoint.messages || context.usage.omittedTurns || context.usage.omittedMessages ? context.messages : undefined, reasoning: request.reasoning, maxOutputTokens: contextBudget.reserveOutputTokens };
       const onProvider = (id: string) => { actualProviderId = id; };
       let stream = previous
         ? providers.continue(request.role, context.prompt, previous.toolResults, signal, onProvider, options)
@@ -248,9 +266,19 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
             if (request.execution && Date.now() - savedTextAt >= 750) { checkpoint.partialText = partialText; save("text_checkpoint"); savedTextAt = Date.now(); }
             if (!holdText) request.onText?.(event.text, actualProviderId);
           } else if (event.type === "usage") {
+            if (event.usage) {
+              if (Number.isFinite(event.usage.inputTokens) && event.usage.inputTokens >= 0) inputTokens += event.usage.inputTokens;
+              if (Number.isFinite(event.usage.outputTokens) && event.usage.outputTokens >= 0) outputTokens += event.usage.outputTokens;
+              if (Number.isFinite(event.usage.inputTokens) && event.usage.inputTokens >= 0) {
+                const rawEstimate = context.usage.estimatedInputTokens / (context.usage.estimateMultiplier ?? 1);
+                estimateMultiplier = Math.max(estimateMultiplier, Math.min(4, event.usage.inputTokens / Math.max(1, rawEstimate)));
+                request.onContext?.({ ...context.usage, reportedInputTokens: event.usage.inputTokens });
+              }
+            }
             if (event.usage) request.onUsage?.(event.usage);
           } else if (event.type === "provider_state") contextChars += JSON.stringify(event.result ?? null).length;
           else if (event.type === "tool_call") {
+            newToolCalls++;
             if (!request.onToolCall) throw new Error("tool_dispatcher_required");
             if (!event.tool) throw new Error("provider_protocol_error");
             if (++toolCalls > limits.maxToolCalls) throw new Error("max_tool_calls");
@@ -276,10 +304,10 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
         partialText = "";
         if (responseRepairs++ >= 1) {
           blocked = true; stopReason = "response_contract_failed"; checkpoint.status = "blocked"; save("response_blocked");
-          finalText = "本轮回答仍未满足续写或段落要求，已停止自动重试。请重试或调整要求。";
+          finalText = "本轮回答仍未通过检查，已停止自动重试。请查看回答检查提示，补充依据或调整要求后重试。";
           text = finalText; request.onTurn?.(finalText, "final"); break;
         }
-        save("response_repair"); request.onTurn?.(turnText, "progress"); continue;
+        save("response_repair"); request.onTurn?.("回答检查发现问题，正在修正。", "progress"); continue;
       }
       const unfinished = !calls.length ? await checkCompletion() : undefined;
       if (unfinished) {
@@ -312,7 +340,15 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
     }
     const code = failure instanceof Error ? failure.message.split(":", 1)[0] : "";
     if (!parent.aborted && text.trim() && ["provider_timeout", "provider_incomplete", "invocation_timeout"].includes(code ?? "")) { stopReason = code; failure = undefined; }
-  } finally { clearTimeout(timer); release?.(); }
+  } finally {
+    clearTimeout(timer);
+    try {
+      if (started) {
+        const reason = failure instanceof Error ? failure.message.split(":", 1)[0] : stopReason ?? (waiting ? "waiting" : blocked ? "blocked" : "completed");
+        request.execution?.recordUsage({ segments: 1, modelTurns: turns, toolCalls: newToolCalls, inputTokens, outputTokens, elapsedMs: Date.now() - startedAt, lastStopReason: parent.aborted ? "cancelled" : reason && /^[a-z_]{1,60}$/.test(reason) ? reason : "error" });
+      }
+    } catch (error) { failure ??= error; } finally { release?.(); }
+  }
   await request.onAudit?.(createModelAudit(actualProviderId, request.role, startedAt, parent.aborted ? "cancelled" : failure || stopReason ? "error" : "success", { events, turns, toolCalls }));
   if (failure) throw failure;
   return { text, finalText, waiting, events, providerId: actualProviderId, toolResults, ...(blocked ? { blocked: true, stopReason } : stopReason ? { partial: true, stopReason } : {}) };

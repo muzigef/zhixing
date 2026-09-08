@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { PathPolicy } from "./paths.js";
 import type { EvidenceInput } from "./reviewer.js";
 import type { SandboxResult } from "./local-sandbox.js";

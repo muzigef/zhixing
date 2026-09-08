@@ -1,6 +1,8 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { explanationReviewInputSchema } from "./outcome-contracts.js";
-import { z } from "zod";
+import { outcomeProtocolSchema, type OutcomeProtocol } from "./outcome-contracts.js";
+import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance.js";
+import { z } from "zod/v4";
 import type { ZhixingDatabase } from "./database.js";
 import { topicIdSchema } from "./contracts.js";
 import { outcomeBank } from "./outcome-bank.js";
@@ -38,6 +40,7 @@ export class LearningOutcomeStore {
     const { forms } = trial;
     const phase = phases.indexOf(trial.stage as OutcomePhase);
     return { id: trial.id, topicId: trial.topicId, mode: trial.mode, bankVersion: trial.bankVersion,
+      protocol: trial.protocol ?? "prompt_only", provenance: trial.provenance,
       stage: trial.stage, repeated: trial.repeated, createdAt: trial.createdAt, reviewAt: trial.reviewAt,
       sessionId: trial.sessionId, results: trial.results, lesson: trial.lesson, title: unit.title,
       questions: phase < 0 ? [] : unit.forms[forms[phase]!]!.map(({ title, choices }) => ({ title, choices })),
@@ -50,8 +53,9 @@ export class LearningOutcomeStore {
     const rows = this.database.db.prepare("SELECT id FROM learning_outcomes WHERE topic=? ORDER BY rowid DESC").all(topic) as { id: string }[];
     return rows.map(row => this.get(topic, row.id));
   }
-  start(topic: string, rawMode: OutcomeMode): OutcomeView {
+  start(topic: string, rawMode: OutcomeMode, rawProtocol: OutcomeProtocol = "prompt_only"): OutcomeView {
     topicIdSchema.parse(topic); const mode = outcomeModeSchema.parse(rawMode);
+    const protocol = outcomeProtocolSchema.parse(rawProtocol);
     if (!outcomeBank[topic]) throw new Error("outcome_not_available");
     return this.database.db.transaction(() => {
       const previous = this.list(topic);
@@ -60,7 +64,7 @@ export class LearningOutcomeStore {
       const forms = [0, 1, 2];
       for (let i = 2; i > 0; i--) { const j = randomInt(i + 1); [forms[i], forms[j]] = [forms[j]!, forms[i]!]; }
       const timestamp = this.now().toISOString();
-      return this.save({ id: randomUUID(), topicId: topic, mode, bankVersion: 1, stage: "pre", repeated: previous.length > 0, createdAt: timestamp, openedAt: timestamp, forms, results: {} });
+      return this.save({ id: randomUUID(), topicId: topic, mode, protocol, bankVersion: 1, stage: "pre", repeated: previous.length > 0, createdAt: timestamp, openedAt: timestamp, forms, results: {} });
     })();
   }
   submit(topic: string, id: string, rawPhase: OutcomePhase, raw: unknown): OutcomeView {
@@ -86,6 +90,11 @@ export class LearningOutcomeStore {
     if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
     if (trial.sessionId && trial.sessionId !== sessionId) throw new Error("outcome_session_mismatch");
     trial.sessionId = sessionId; return this.save(trial);
+  }
+  bindProvenance(topic: string, id: string, provenance: BuildProvenance): void {
+    const trial = this.read(topic, id);
+    if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
+    if (!trial.provenance) { trial.provenance = buildProvenanceSchema.parse(provenance); this.save(trial); }
   }
   finishLesson(topic: string, id: string, raw: LessonEvidence): OutcomeView {
     const evidence = lessonEvidenceSchema.parse(raw); const trial = this.read(topic, id);
@@ -156,8 +165,9 @@ export function summarizeOutcomes(trials: OutcomeView[]): OutcomeSummary {
     if (trial.repeated) { exclude("repeated"); continue; }
     if (!trial.results.pre || !trial.results.post) { exclude("missing_post"); continue; }
     if (!independent(trial.results.pre) || !independent(trial.results.post)) { exclude("assisted"); continue; }
-    const c = conditions[0]!; const label = `${trial.topicId} · v${trial.bankVersion} · ${c.provider}/${c.model} · ${c.reasoning}/${c.style}`;
-    const key = JSON.stringify([label, trial.mode]);
+    if (trial.protocol === "full_product" && (!trial.provenance || conditions.some(c => c.codeHash !== trial.provenance?.codeHash))) { exclude("unknown_or_changed_build"); continue; }
+    const c = conditions[0]!; const label = `${trial.topicId} · ${trial.protocol === "full_product" ? "完整产品" : "提示方式"} · v${trial.bankVersion} · ${c.provider}/${c.model} · ${c.reasoning}/${c.style}${c.codeHash ? ` · ${c.codeHash.slice(0, 12)}` : ""}${c.windowTokens ? ` · ${c.windowTokens}/${c.reserveOutputTokens}` : ""}`;
+    const key = JSON.stringify([trial.topicId, trial.bankVersion, trial.protocol ?? "prompt_only", c, trial.mode]);
     const entry = values.get(key) ?? { group: { label, mode: trial.mode, independentPairs: 0, retentionPairs: 0, scoreChange: null, retentionChange: null }, immediate: [], delayed: [] };
     entry.immediate.push(difference(trial.results.pre, trial.results.post));
     if (trial.results.delayed) {

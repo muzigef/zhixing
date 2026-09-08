@@ -1,9 +1,13 @@
 import { isContinuableModelClient, type ModelClient, type ModelEvent, type ModelRole, type ToolResultMessage, type ModelRequestOptions } from "./model.js";
 import { ProviderRegistry, type ProviderHealth } from "./provider-registry.js";
+import { capabilitiesFor, effectiveModelBudget, environmentContextBudget } from "./model-capabilities.js";
+import type { ContextBudget } from "./context-window.js";
 
 /** Resolves role-routed providers with a deterministic fallback client. */
 export class ProviderRuntime {
   constructor(private readonly registry: ProviderRegistry, private readonly fallback: ModelClient) {}
+  capabilities(role: ModelRole) { return capabilitiesFor(this.registry.resolve(role) ?? this.fallback); }
+  contextBudget(role: ModelRole, requested?: ContextBudget) { const client = this.registry.resolve(role) ?? this.fallback; return effectiveModelBudget(client, requested ?? client.contextBudget ?? environmentContextBudget(process.env)); }
 
   /** Pin a route so changing role settings cannot move an in-flight tool history. */
   forInvocation(role: ModelRole): ProviderRuntime {

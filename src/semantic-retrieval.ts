@@ -1,8 +1,9 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { cosineSimilarity } from "./embedding.js";
 import type { ZhixingDatabase } from "./database.js";
 import type { SearchResult } from "./contracts.js";
 import { abortable } from "./abortable.js";
+import { withSourceVersion } from "./source-version.js";
 
 export interface SemanticEmbedding { readonly id: string; embed(texts: string[], signal: AbortSignal): Promise<number[][]>; }
 const vectorSchema = z.array(z.number().finite()).min(2).max(8192).refine((vector) => Math.hypot(...vector) > 0);
@@ -40,6 +41,7 @@ export class SemanticIndex {
   constructor(private readonly database: ZhixingDatabase, private readonly model: SemanticEmbedding) {
     database.db.exec("CREATE TABLE IF NOT EXISTS semantic_embeddings (chunk_id TEXT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE, model TEXT NOT NULL, content_hash TEXT NOT NULL, vector TEXT NOT NULL, PRIMARY KEY(chunk_id, model))");
   }
+  indexedCount(topic: string): number { return (this.database.db.prepare("SELECT count(*) AS count FROM semantic_embeddings e JOIN chunks c ON c.id=e.chunk_id WHERE c.topic_id=? AND e.model=? AND e.content_hash=c.content_hash").get(topic, this.model.id) as { count: number }).count; }
   async build(topic: string, signal: AbortSignal): Promise<{ indexed: number }> {
     let after = 0; let indexed = 0;
     for (;;) {
@@ -64,7 +66,7 @@ export class SemanticIndex {
     if (!rows.length) return [];
     const [vector] = await this.model.embed([query.slice(0, 400)], signal); signal.throwIfAborted();
     vectorSchema.parse(vector);
-    return rows.map(({ vector: stored, ...row }) => ({ text: row.text, score: cosineSimilarity(vector!, vectorSchema.parse(JSON.parse(stored))), citation: { topicId: topic, chunkId: row.chunkId, pageNumber: row.pageNumber, anchor: row.anchor, documentId: row.documentId, documentName: row.documentName } })).filter((item) => item.score >= .35).sort((a, b) => b.score - a.score).slice(0, 8);
+    return rows.map(({ vector: stored, ...row }) => withSourceVersion({ text: row.text, score: cosineSimilarity(vector!, vectorSchema.parse(JSON.parse(stored))), citation: { topicId: topic, chunkId: row.chunkId, pageNumber: row.pageNumber, anchor: row.anchor, documentId: row.documentId, documentName: row.documentName } })).filter((item) => item.score >= .35).sort((a, b) => b.score - a.score).slice(0, 8);
   }
 }
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { isAutomatableConversationCommand, requiresConversationConfirmation } from "./intent-parser.js";
 import { ActionRegistry, type RegisteredAction } from "./action-registry.js";
 import { authorizeConversationTransition } from "./conversation-policy.js";

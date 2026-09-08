@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { authorizeConversationTransition, hasUserTextEvidence } from "./conversation-policy.js";
 
 /** The only learner intents accepted while a teaching checkpoint is active. */

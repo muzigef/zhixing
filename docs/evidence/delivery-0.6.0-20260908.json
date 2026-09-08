@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "recordedAt": "2026-09-08T07:54:02.576400+00:00",
+  "scope": "local macOS arm64 delivery validation; synthetic workspaces only",
+  "releaseVersion": "0.6.0",
+  "published": false,
+  "developerIdSigned": false,
+  "notarized": false,
+  "userInstallationModified": false,
+  "provenance": {
+    "version": 1,
+    "kind": "packaged_build",
+    "codeHash": "eed07f7f09dee78e17e1e57ad55c06c4698ca29f99b2e79b7ac56917fba26df1",
+    "commit": "a1ba9ac28c5ae7e2b44dad3e8e46ab8aed89baae",
+    "dirty": true,
+    "capturedAt": "2026-09-08T07:41:57.760Z",
+    "node": "v24.8.0",
+    "platform": "darwin-arm64"
+  },
+  "sourceFiles": 330,
+  "packageInspection": {
+    "appVersion": "0.6.0",
+    "appIdentifier": "com.zhixing.desktop",
+    "readonlyMount": true,
+    "applicationsShortcut": true,
+    "manifestMatchesBuiltApp": true,
+    "codeHash": "eed07f7f09dee78e17e1e57ad55c06c4698ca29f99b2e79b7ac56917fba26df1",
+    "sourceFiles": 330,
+    "artifacts": [
+      {
+        "path": "desktop/release/Zhixing-0.6.0-mac-arm64.dmg",
+        "bytes": 292954785,
+        "sha256": "5024c6801d3a2e0e155bff01806b481e67ec65e5f4dc23296a078776c4c3ed88"
+      },
+      {
+        "path": "desktop/release/Zhixing-0.6.0-mac-arm64.zip",
+        "bytes": 301193449,
+        "sha256": "efcfbc9ba7499b1491729b4fdf4aa135ea817ff78dabcee924ee4c123cb23276"
+      }
+    ],
+    "zipIntegrity": true,
+    "zipManifestMatchesBuiltApp": true,
+    "zipNativeExtraction": true,
+    "zipCoreBytesMatchTestedApp": true
+  },
+  "commands": [
+    {
+      "name": "qualityGates",
+      "command": "npm run verify",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-verify-complete.log",
+      "logSha256": "5949ad105abeeea3a95f84ef2dbd9c4dc1fc45383d84edc5fec214dc87cfeefe"
+    },
+    {
+      "name": "developmentUi",
+      "command": "npm --prefix desktop run test:ui",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-ui-1.log",
+      "logSha256": "c800f947a0015dab2c5e8366af1373f6ed58d963c362998640eecbe43526bc12"
+    },
+    {
+      "name": "packagedUi",
+      "command": "ZHIXING_DESKTOP_EXECUTABLE='<repo>/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行' npm --prefix desktop run test:ui",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-packaged-ui-complete.log",
+      "logSha256": "87a971ee628ea76b72b4e56092f68407a2b6953ac07dfd06086f7f7fe29d9d59"
+    },
+    {
+      "name": "build",
+      "command": "CSC_IDENTITY_AUTO_DISCOVERY=false npm --prefix desktop run dist:mac",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-dist-complete.log",
+      "logSha256": "0ea3ceeb41806c0f4a123268850328f7903b0cf8cc1841522c512414e22e315a"
+    },
+    {
+      "name": "dmgIntegrity",
+      "command": "hdiutil verify desktop/release/Zhixing-0.6.0-mac-arm64.dmg",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-dmg-verify-complete.log",
+      "logSha256": "a18ab0822a9a649bd5c7cf04f82f2b4af6656885f2650d42aef241389775f217"
+    },
+    {
+      "name": "rootProductionAudit",
+      "command": "npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-audit-root.log",
+      "logSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "desktopProductionAudit",
+      "command": "npm --prefix desktop audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-audit-desktop.log",
+      "logSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "qualityGatesAfterDocumentation",
+      "command": "npm run verify",
+      "exitCode": 0,
+      "localLog": "/tmp/zhixing-c12-verify-delivery.log",
+      "logSha256": "60b2ae20c57257b161d17e9c1d40cef874734e102ebb3c008c9ee93ee7d982d6"
+    }
+  ],
+  "automatedTests": {
+    "files": 110,
+    "tests": 553,
+    "integrationTests": 9,
+    "evalTests": 6,
+    "developmentUiGroups": 5,
+    "packagedUiGroups": 5,
+    "rootProductionVulnerabilities": 0,
+    "desktopProductionVulnerabilities": 0
+  },
+  "liveEvidence": {
+    "finalProjectPi": "agent-architecture-project-pi-final-20260908.json",
+    "finalProjectDeepSeek": "agent-architecture-project-deepseek-final-20260908.json",
+    "fullProductProtocolPi": "agent-architecture-outcome-pi-20260908.json",
+    "fullProductProtocolDeepSeek": "agent-architecture-outcome-deepseek-20260908.json",
+    "initialAnswers": "agent-architecture-live-20260908.json",
+    "groundingRecheck": "agent-architecture-grounding-check-20260908.json",
+    "schemaProbe": "agent-architecture-schema-probe-20260908.json"
+  },
+  "limitations": [
+    "No real learner outcome or 72-hour retention evidence.",
+    "No independent human scoring; initial six-answer sample completed 5/6 and retains the blocked response.",
+    "Initial DeepSeek R01 includes an overstatement about retraining; completed responses are not all quality passes.",
+    "Pi outcome smoke predates the final schema fix; its recorded source hash is preserved.",
+    "The four full-product protocol smoke replies used zero tools; separate project and automated tests cover actual tools and exposure.",
+    "No specified third-party MCP service, Windows or Intel hardware acceptance.",
+    "No Developer ID signing, notarization, formal release or remote CI run in this execution.",
+    "This working tree has uncommitted changes; the packaged code hash includes their content."
+  ],
+  "documentationChecks": {
+    "changedMarkdownFiles": 37,
+    "localLinks": 279,
+    "missingLinks": 0
+  },
+  "finalSourceMatchesPackage": true
+}

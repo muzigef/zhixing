@@ -1,4 +1,5 @@
-import type { Citation } from "./contracts.js";
+import { writePermission, type AgentPermissions, type WriteGrant } from "./agent-permissions.js";
+import type { Citation, SearchResult } from "./contracts.js";
 import { modelPhaseLabels, type ModelTiming } from "./model-telemetry.js";
 import { citationSchema } from "./learning-contracts.js";
 import type { LearningApplication } from "./learning-application.js";
@@ -18,8 +19,11 @@ import { citationMarker } from "./citation-marker.js";
 import { responseRepairReason } from "./response-quality.js";
 import type { ContextUsage } from "./context-window.js";
 import { attachProjectTools } from "./project-tools.js";
-import { attachMcpTools, McpSettings } from "./mcp-tools.js";
+import { lazyMcpTools } from "./lazy-mcp.js";
 import { onDemandTools } from "./agent-efficiency.js";
+import { inspectEvidenceSupport, evidenceRepairReason, type EvidenceSupport } from "./evidence-support.js";
+import { attachExecutionHistory, attachConversationHistory } from "./execution-history.js";
+import type { ChatMessage } from "./agent-session-contracts.js";
 
 export interface TaskActivity { label: string; status: "running" | "completed" | "failed"; at: string; }
 export function providerRuntime(providerId: string, client: ModelClient): ProviderRuntime {
@@ -33,10 +37,13 @@ export function providerRuntime(providerId: string, client: ModelClient): Provid
 export async function runAssistantTask(options: {
   runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
   messages?: readonly ModelMessage[];
+  conversationHistory?: readonly ChatMessage[];
+  permissions?: AgentPermissions; writeGrants?: WriteGrant[];
   taskId?: string; sessionId?: string; resumeInput?: string; steerId?: string; allowWrites?: boolean;
   reasoning?: ReasoningProfile; onUsage?: (usage: ModelUsage) => void;
   onTiming?: (timing: ModelTiming) => void;
   onContext?: (usage: ContextUsage) => void;
+  onEvidenceSupport?: (report: EvidenceSupport) => void;
   onItem?: (item: AssistantItem) => void;
   onInteraction?: (item: PendingInteraction) => Promise<void>;
   onTurn?: (text: string, kind: "progress" | "final") => void;
@@ -60,12 +67,18 @@ export async function runAssistantTask(options: {
   let toolSequence = 0;
   let toolMs = 0;
   const candidates = new Map<string, Citation>();
+  const sourceEvidence = new Map<string, SearchResult>();
+  const rememberEvidence = (item: SearchResult) => { if (sourceEvidence.size < 24) sourceEvidence.set(JSON.stringify(item.citation), item); };
   const candidate = (citation: Citation) => { const key = JSON.stringify(citation); if (!candidates.has(key) && candidates.size < 24) { candidates.set(key, citation); options.onCandidate?.(citation); } };
   const taskId = options.taskId ?? options.runId;
   const execution = options.application ? new AgentExecutionStore(options.application.database, { taskId, sessionId: options.sessionId ?? taskId, topicId: options.topicId ?? "general-chat" }) : undefined;
-  const tasks = options.application && options.topicId && options.contextAllowed ? new TaskExecutionStore(options.application.database) : undefined;
+  const projectAllowed = options.permissions ? Boolean(options.permissions.projectId) : options.contextAllowed;
+  const externalAllowed = options.permissions ? options.permissions.externalRevision !== undefined : options.contextAllowed;
+  const anyAccess = options.contextAllowed || projectAllowed || externalAllowed;
+  const tasks = options.application && options.topicId && anyAccess ? new TaskExecutionStore(options.application.database) : undefined;
   tasks?.begin(taskId, options.topicId!, options.question);
-  let tools = options.application && options.topicId && options.contextAllowed && isContinuableModelClient(options.client) ? options.application.tools(true, { taskId, allowWrites: options.allowWrites ?? false }) : undefined;
+  const retrievalActivity = (status: import("./learning-application.js").RetrievalStatus) => activity("retrieval", status.mode === "lexical_fallback" ? status.reason === "semantic_index_empty" ? "语义索引尚无有效片段，已使用关键词检索" : "语义服务暂不可用，已使用关键词检索" : status.mode === "hybrid" ? "已使用关键词与语义检索" : "已使用关键词与同义词检索", "completed");
+  let tools = options.application && options.topicId && anyAccess && isContinuableModelClient(options.client) ? options.application.tools(options.contextAllowed, { learningAccess: options.contextAllowed, taskId, allowWrites: options.allowWrites ?? false, onRetrieval: retrievalActivity }) : undefined;
   let waiting = false;
   const pause = (callId?: string) => {
     waiting = true;
@@ -73,45 +86,62 @@ export async function runAssistantTask(options: {
     if (checkpoint?.pending) { checkpoint.pending.phase = "waiting"; checkpoint.status = "waiting"; execution!.save(checkpoint, "interaction_requested", callId); }
   };
   if (options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { pause(item.callId); await options.onInteraction!({ ...item, id: interactionId(taskId, item.callId) }); });
-  let external: Awaited<ReturnType<typeof attachMcpTools>> | undefined;
+  if (tools && execution) tools = attachExecutionHistory(tools, execution, options.contextAllowed, options.permissions);
+  if (tools && options.conversationHistory?.length) tools = attachConversationHistory(tools, options.conversationHistory);
+  let external: ReturnType<typeof lazyMcpTools> | undefined;
   try {
-    if (tools && options.application && options.topicId && options.contextAllowed) {
-      tools = attachProjectTools(options.application, tools, options.topicId, taskId);
-      external = await attachMcpTools(tools, new McpSettings(options.application.database), options.topicId, signal); tools = external.tools;
+    if (tools && options.application && options.topicId && anyAccess) {
+      if (projectAllowed) tools = attachProjectTools(options.application, tools, options.topicId, taskId);
+      if (externalAllowed) { external = lazyMcpTools(tools, options.application.database, options.topicId, signal); tools = external.tools; }
     }
     const restored = execution?.read();
-    const catalog = tools ? onDemandTools(tools, [...(restored?.history ?? []).flatMap(turn => turn.events), ...(restored?.pending?.events ?? [])], Boolean(tasks?.snapshot(taskId, options.topicId!).plan.length)) : undefined;
+    const restoredCalls = [...(restored?.history ?? []).flatMap(turn => turn.events), ...(restored?.pending?.events ?? [])];
+    if (external && restoredCalls.some(event => event.type === "tool_call" && (event.tool?.startsWith("mcp_") || event.tool === "discover_tools" && (event.input as { category?: string })?.category === "external"))) await external.load(signal);
+    const catalog = tools ? onDemandTools(tools, restoredCalls, Boolean(tasks?.snapshot(taskId, options.topicId!).plan.length), external?.enabled ? { categories: ["external"], prepare: (_category, signal) => external!.load(signal) } : undefined) : undefined;
     tools = catalog ?? tools;
     if (options.application && options.topicId) {
       activity("context", options.contextAllowed ? "读取学习进度并检索当前主题资料" : "检查本会话的学习上下文授权", "running");
       const context = await options.application.context(options.topicId, options.question, options.contextAllowed, signal);
+      if (context.retrieval?.mode === "lexical_fallback") retrievalActivity(context.retrieval);
       signal.throwIfAborted();
       prompt += `\n\n${context.text}`;
       // Application observations stay below trusted instructions and before the current request.
       if (context.text) messages?.splice(Math.max(0, messages.length - 1), 0, { role: "observation", content: context.text });
       const snapshot = tasks?.snapshot(taskId, options.topicId!);
-      if (snapshot && (snapshot.plan.length || snapshot.operations.length)) {
+      if (snapshot && (snapshot.plan.length || snapshot.operations.length || snapshot.revision)) {
         const state = `应用执行记录（只描述工具操作，不代表对话解释是否正确）：${JSON.stringify(snapshot).slice(0, 12_000)}`;
         prompt += `\n${state}`;
         messages?.splice(Math.max(0, messages.length - 1), 0, { role: "observation", content: state });
       }
-      for (const evidence of context.evidence) candidate(evidence.citation);
+      for (const evidence of context.evidence) { candidate(evidence.citation); rememberEvidence(evidence); }
       activity("context", options.contextAllowed ? "已读取学习进度与资料依据" : "仅使用本轮对话内容", "completed");
     }
     contextMs = Date.now() - started;
     activity("answer", "组织回答", "running");
     const result = await collectInvocation(providerRuntime(options.providerId, options.client), {
-      execution, resumeInput: options.resumeInput, steerId: options.steerId, materialContext: options.contextAllowed,
+      execution, resumeInput: options.resumeInput, steerId: options.steerId, materialContext: options.contextAllowed, contextAccess: options.permissions,
+      freshObservations: messages?.filter(message => message.role === "observation"),
       canParallelTool: (name) => tools?.harness.isParallelSafe(name) ?? false,
       canReplayTool: (name) => tools?.harness.isReplaySafe(name) ?? false,
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
-      responseCheck: isContinuableModelClient(options.client) ? text => responseRepairReason(text, options.question) : undefined,
+      responseCheck: isContinuableModelClient(options.client) ? text => {
+        const support = inspectEvidenceSupport(text, [...sourceEvidence.values()]); options.onEvidenceSupport?.(support);
+        return (sourceEvidence.size ? evidenceRepairReason(support) : undefined) ?? responseRepairReason(text, options.question);
+      } : undefined,
       onTiming: options.onTiming,
       onContext: options.onContext,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
       onTurn: options.onTurn, shouldPause: () => waiting,
-      toolState: () => tasks?.snapshot(taskId, options.topicId!).operations.filter(item => item.status === "completed").map(item => item.key).sort().join(":") ?? "",
+      toolState: (name) => {
+        const resource = name ? tools?.harness.resource(name) : undefined;
+        const local = resource ? "" : tasks?.snapshot(taskId, options.topicId!).operations.filter(item => item.status === "completed").map(item => item.key).sort().join(":") ?? "";
+        const journal = execution?.read();
+        const effects = [...(journal?.history ?? []), ...(journal?.pending ? [journal.pending] : [])].flatMap(turn => turn.toolResults)
+          .filter(item => tools?.harness.resource(item.tool) && (!resource || tools.harness.resource(item.tool) === resource) && tools?.harness.risk(item.tool) !== "read" && (item.result as { ok?: boolean } | null)?.ok === true)
+          .map(item => item.callId).join(":");
+        return `${local}|${effects}`;
+      },
       completionCheck: async (signal) => {
         const snapshot = tasks ? await verifiedTaskSnapshot(options.application!, tasks, taskId, options.topicId!, signal) : undefined;
         const pending = snapshot?.plan.filter(step => !step.completed);
@@ -128,21 +158,26 @@ export async function runAssistantTask(options: {
         const decision = callId ? execution?.read()?.decisions[callId] : undefined;
         if (name === "ask_user" && decision) return { ok: true, output: { answer: decision.answer } };
         const risk = tools!.harness.preview(name, input, options.topicId ?? "general-chat").risk;
+        const journal = execution?.read();
+        const reportedExternal = risk !== "read" && [...(journal?.history ?? []), ...(journal?.pending ? [journal.pending] : [])].some(turn => turn.toolResults.some(result => result.tool === name && (result.result as { source?: string } | null)?.source === "user_report"));
         if (risk !== "read" && decision?.answer === "deny") return { ok: false, errorCode: "tool_policy_denied" };
         const labels: Record<string, string> = { learning_progress: "查看学习进度", list_materials: "查看资料目录", search_materials: "检索资料", task_status: "恢复任务进度", plan_task: "整理执行步骤", save_artifact: "保存学习产物", run_experiment: "运行实验测试" };
         const key = `tool-${++toolSequence}`;
         activity(key, labels[name] ?? "执行学习查询", "running");
-        if (risk !== "read" && !options.allowWrites && decision?.answer !== "allow" && options.onInteraction) {
+        const grant = writePermission(name, input, options.topicId ?? "general-chat");
+        const writeAllowed = decision?.answer === "allow" || !reportedExternal && (options.writeGrants?.some(item => item.key === grant.key) || options.allowWrites && grant.kind === "learning");
+        if (reportedExternal && decision?.answer !== "allow" && !options.onInteraction) return { ok: false, errorCode: "tool_policy_denied" };
+        if (risk !== "read" && !writeAllowed && options.onInteraction) {
           const preview = await tools!.harness.validatedPreview(name, input, { topicId: options.topicId!, signal: toolSignal, callId });
           pause(callId);
-          await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : name === "run_experiment" ? "运行当前实现与测试" : `执行 ${name}`, tool: name, input: preview.input as Record<string, unknown>, preview: preview.preview, status: "pending" });
+          await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : name === "run_experiment" ? "运行当前实现与测试" : `执行 ${name}`, tool: name, input: preview.input as Record<string, unknown>, preview: preview.preview, permissionLabel: grant.label, status: "pending" });
           waiting = true; activity(key, "等待你授权这项操作", "completed");
           return { ok: false, errorCode: "approval_required" };
         }
         activity("model", "模型请求已完成", "completed");
         const toolStarted = Date.now();
-        const harness = decision?.answer === "allow" && ["save_artifact", "run_experiment"].includes(name) && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
-        const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: options.allowWrites || decision?.answer === "allow" ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
+        const harness = writeAllowed && ["save_artifact", "run_experiment"].includes(name) && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
+        const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: writeAllowed ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
           options.onItem?.({ id: randomUUID(), kind: "artifact", artifactId: artifact.id, dayId: value.dayId, artifactKind: value.kind, text: value.text });
@@ -150,14 +185,20 @@ export async function runAssistantTask(options: {
         if (name === "search_materials" && result.ok && Array.isArray(result.output)) {
           for (const value of result.output) {
             const parsed = citationSchema.safeParse((value as { citation?: unknown }).citation);
-            if (parsed.success && parsed.data.topicId === options.topicId) candidate(parsed.data);
+            if (parsed.success && parsed.data.topicId === options.topicId) {
+              candidate(parsed.data);
+              const text = (value as { text?: unknown }).text;
+              if (typeof text === "string") rememberEvidence({ citation: parsed.data, text, score: 0 });
+            }
           }
         }
-        activity(key, labels[name] ?? "执行学习查询", result.ok ? "completed" : "failed");
+        const staleSkill = ["list_skills", "read_skill"].includes(name) && result.ok && (Array.isArray(result.output) ? result.output : [result.output]).some(item => (item as { status?: string } | null)?.status === "stale");
+        activity(key, staleSkill ? "技能更新未通过校验，使用上次有效的参考流程" : labels[name] ?? "执行学习查询", result.ok ? "completed" : "failed");
         return result;
       } : undefined,
     }, signal);
     if (!result.waiting && (result.partial || !(result.finalText ?? result.text).trim())) throw new Error(result.stopReason ?? "provider_incomplete");
+    if (!result.blocked) options.onEvidenceSupport?.(inspectEvidenceSupport(result.finalText ?? result.text, [...sourceEvidence.values()]));
     for (const citation of candidates.values()) if ((result.finalText ?? result.text).includes(citationMarker(citation))) options.onCitation(citation);
     activity("answer", result.waiting ? "等待你的回复" : "回答已完成", "completed");
     activity("model", result.waiting ? "等待你的回复" : "模型请求已完成", "completed");

@@ -1,7 +1,8 @@
+import { sourceProvenance } from "../src/build-provenance.js";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { evaluateQuality, qualitySeed } from "../src/quality-evaluation.js";
 import { LearningApplication } from "../src/learning-application.js";
@@ -21,9 +22,10 @@ const root = process.cwd();
 const outputArg = process.argv.find((arg) => arg.startsWith("--output="));
 const output = path.resolve(outputArg?.slice(9) ?? `docs/evidence/agent-quality-${Date.now()}.json`);
 const dataset = process.argv.includes("--heldout") ? "agent-quality-heldout.json" : "agent-quality-cases.json";
-const code = createHash("sha256");
-for (const folder of ["src", "desktop/core"]) for (const file of (await fs.readdir(path.join(root, folder))).filter(file => file.endsWith(".ts")).sort()) code.update(`${folder}/${file}\n`).update(await fs.readFile(path.join(root, folder, file)));
-const codeHash = code.digest("hex");
+const provenance = await sourceProvenance(root);
+const codeHash = provenance.codeHash;
+const repetitions = Number(process.argv.find(arg => arg.startsWith("--repetitions="))?.slice(14) ?? 2);
+if (![1, 2].includes(repetitions)) throw new Error("evaluation_budget_invalid");
 const cases = z.object({ cases: z.array(z.object({ id: z.string().min(1), prompt: z.string().min(1).max(20_000), criteria: z.array(z.string()).min(1).max(20), seed: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(6000), status: z.enum(["completed", "interrupted"]) })).max(4).optional() })).min(1).max(12) }).parse(JSON.parse(await fs.readFile(path.join(root, "docs", dataset), "utf8")));
 const selectedCase = process.argv.find((arg) => arg.startsWith("--case="))?.slice(7);
 const selectedProvider = process.argv.find((arg) => arg.startsWith("--provider="))?.slice(11);
@@ -45,17 +47,17 @@ try {
   const deepseek = new DeepSeekClient(new MacOSKeychainSecretStore());
   const store = new DesktopStore(path.join(temporary, "chats"));
   const service = new DesktopService(store, (provider) => provider === "pi-codex" ? pi : provider === "deepseek-api" ? deepseek : new DesktopDemoClient(), app);
-  await evaluateQuality(cases.cases.filter((task) => !selectedCase || selectedCase.split(",").includes(task.id)), providers, 2, async (provider, task, repetition) => {
+  await evaluateQuality(cases.cases.filter((task) => !selectedCase || selectedCase.split(",").includes(task.id)), providers, repetitions, async (provider, task, repetition) => {
     const session = await service.create();
     session.topicId = "rag";
     session.workspaceId = app!.summary().id;
     session.contextAllowed = true;
     session.messages = (task.seed ?? qualitySeed(task.id)).map((message) => ({ ...message, id: randomUUID(), createdAt: new Date().toISOString() }));
     await store.save(session);
-    await service.send({ sessionId: session.id, text: task.prompt, provider: provider as "pi-codex" | "deepseek-api" | "demo", style: "adaptive", reasoning: reasoning as "auto" | "quick" | "balanced" | "deep" });
+    await service.send({ sessionId: session.id, text: task.prompt, provider: provider as "pi-codex" | "deepseek-api" | "demo", style: "adaptive", access: { materials: true, project: false, external: false }, reasoning: reasoning as "auto" | "quick" | "balanced" | "deep" });
     await service.idle();
     const message = (await store.load(session.id)).messages.at(-1)!;
     console.log(JSON.stringify({ provider, id: task.id, repetition, status: message.status, durationMs: message.durationMs }));
-    return { status: message.status, text: message.text, items: message.items, usage: message.usage, reasoning: message.reasoning, error: message.error, durationMs: message.durationMs, firstTokenMs: message.firstTokenMs, timings: message.timings, quality: message.quality, modelTimings: message.modelTimings, model: message.model ?? (provider === "pi-codex" ? (await pi.selection().catch(() => undefined))?.model : provider === "deepseek-api" ? process.env.ZHIXING_DEEPSEEK_MODEL ?? "deepseek-v4-flash" : "demo") };
-  }, async (report) => { report.conditions = { dataset, codeHash, requestedReasoning: reasoning }; const next = `${output}.${randomUUID()}.tmp`; try { await fs.writeFile(next, JSON.stringify(report, null, 2) + "\n", { flag: "wx", mode: 0o600 }); await fs.rename(next, output); } finally { await fs.rm(next, { force: true }); } });
+    return { status: message.status, text: message.text, items: message.items, usage: message.usage, reasoning: message.reasoning, error: message.error, durationMs: message.durationMs, firstTokenMs: message.firstTokenMs, timings: message.timings, quality: message.quality, evidenceSupport: message.evidenceSupport, modelTimings: message.modelTimings, model: message.model ?? (provider === "pi-codex" ? (await pi.selection().catch(() => undefined))?.model : provider === "deepseek-api" ? process.env.ZHIXING_DEEPSEEK_MODEL ?? "deepseek-v4-flash" : "demo") };
+  }, async (report) => { report.conditions = { dataset, codeHash, provenance, requestedReasoning: reasoning }; const next = `${output}.${randomUUID()}.tmp`; try { await fs.writeFile(next, JSON.stringify(report, null, 2) + "\n", { flag: "wx", mode: 0o600 }); await fs.rename(next, output); } finally { await fs.rm(next, { force: true }); } });
 } finally { app?.close(); await fs.rm(temporary, { recursive: true, force: true }); }

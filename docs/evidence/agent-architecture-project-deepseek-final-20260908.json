@@ -1,0 +1,2604 @@
+{
+  "taskDurationMs": 30562,
+  "transport": [
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    },
+    {
+      "status": 200
+    }
+  ],
+  "provenance": {
+    "version": 1,
+    "kind": "source_snapshot",
+    "codeHash": "eed07f7f09dee78e17e1e57ad55c06c4698ca29f99b2e79b7ac56917fba26df1",
+    "commit": "a1ba9ac28c5ae7e2b44dad3e8e46ab8aed89baae",
+    "dirty": true,
+    "capturedAt": "2026-09-08T07:42:27.084Z",
+    "node": "v24.8.0",
+    "platform": "darwin-arm64",
+    "files": [
+      {
+        "path": ".github/workflows/desktop-release.yml",
+        "sha256": "b5e6818d3c5cbbc9461e2ebbac65d8f30f9f48f97d26606a8bb4a7bc8bf5a80b"
+      },
+      {
+        "path": ".github/workflows/verify.yml",
+        "sha256": "71678087e33de4bea0d2f7e37629f29ee3e5b6336a9a9046f192c4f83d1cf6ae"
+      },
+      {
+        "path": ".pi/extensions/zhixing-guard.ts",
+        "sha256": "a4a4158c0efa4c691b9f3c8f84eed60d5ea4439b1a051412f335f964ab3e8acf"
+      },
+      {
+        "path": "AGENTS.md",
+        "sha256": "ef7c3867abb594e49687310be8f667dad30cda18035911dfcd786efb270914c6"
+      },
+      {
+        "path": "desktop/core/contracts.ts",
+        "sha256": "76330425926946befd2d21291a20aeebcae018191cc3a564e9b9f81d5cb7484b"
+      },
+      {
+        "path": "desktop/core/demo-client.ts",
+        "sha256": "0cb9bea8e90fa894b3a035ae14faa104b7dee4e36a12b3a1d0d497a840a453e4"
+      },
+      {
+        "path": "desktop/core/diagnostics.ts",
+        "sha256": "4ef5aace826aeaa212626f691d197bd07c986720894924116672b4a52698631b"
+      },
+      {
+        "path": "desktop/core/pi-runner.ts",
+        "sha256": "2aa508b8da901ae33afd6192621e6568b114d3668bb521976d28f3ff500120d9"
+      },
+      {
+        "path": "desktop/core/secrets.ts",
+        "sha256": "a4f5283d346734c82f797c83b9f28f25346586233939ebfa44fe3c305bb959c2"
+      },
+      {
+        "path": "desktop/core/service.ts",
+        "sha256": "252558b6fabf9e3bc7b82a5ee5894af8a694eba39184aaa271b00f90930b4519"
+      },
+      {
+        "path": "desktop/core/store.ts",
+        "sha256": "0b56a2bc6639c94729259a713371dfaa257e366d2af76d8f44252bf129d577a7"
+      },
+      {
+        "path": "desktop/core/updates.ts",
+        "sha256": "66d13d80f36538110703dd7859c39a8c9ecb0f35068784b647de56c24b0ca95e"
+      },
+      {
+        "path": "desktop/core/workspace-backup.ts",
+        "sha256": "0be17d873e007fa4b59f9c88543351c289e87dd129165c54e55534020b3f6af2"
+      },
+      {
+        "path": "desktop/electron/main.ts",
+        "sha256": "e425e4dfa50d8f9c232bd3e70c554f46fdd607c4f3859a43cdbbf44db3bfb698"
+      },
+      {
+        "path": "desktop/electron/pi-model-worker.ts",
+        "sha256": "b1eb1dba191b95215b0d2544bbf31bdf1c17a33477ce41a9fe8200a0ee904d03"
+      },
+      {
+        "path": "desktop/electron/preload.ts",
+        "sha256": "ac13f0e4e052b3e68b0a24f9357652376bef0f3ee13f58b4d2c9bcd42180331d"
+      },
+      {
+        "path": "desktop/electron/secrets.ts",
+        "sha256": "d6f3ae28cde3a60bfe41411eaa1619dcc7285db24296539035dd396a6c4b3a58"
+      },
+      {
+        "path": "desktop/package-lock.json",
+        "sha256": "c5a573e0e7179ae37ec2b46ed322ca9267965853c0d00c428331cded2436dc24"
+      },
+      {
+        "path": "desktop/package.json",
+        "sha256": "2183f9df74b401147da52aebfb29dd3a023c823bb30894ec3fc069cb113db071"
+      },
+      {
+        "path": "desktop/renderer/assessment-panel.tsx",
+        "sha256": "4f66a7764428504b877c76a9336cc51b35c64216f5c09b6c7910582d89137534"
+      },
+      {
+        "path": "desktop/renderer/backup-panel.tsx",
+        "sha256": "f0087579b0acf34ed80d77ce5be4a16dda43405f805f4fdfe56439ea30b39674"
+      },
+      {
+        "path": "desktop/renderer/delta-batcher.ts",
+        "sha256": "012271cba7f025382e8226e6fe88c340a85814d3d0e43da11299a99add66d0ca"
+      },
+      {
+        "path": "desktop/renderer/diagnostics-panel.tsx",
+        "sha256": "d9d6429663ca5b1d53fca34b48920a6396d602b052fa4b61897fe856dff9e2d4"
+      },
+      {
+        "path": "desktop/renderer/evidence-panel.tsx",
+        "sha256": "d776d07e5f8536f0a3417494763c395d6a411ce5d79bd8e29cc984b5aa9440ae"
+      },
+      {
+        "path": "desktop/renderer/explanation-review.tsx",
+        "sha256": "3770a2dcc3f33bb1305994be5985f245321ae48b2b57e8877455d58afa67c217"
+      },
+      {
+        "path": "desktop/renderer/index.html",
+        "sha256": "6842085854a4acd710c80277b7325438f174fbdb5951342795f9b49728120b8b"
+      },
+      {
+        "path": "desktop/renderer/index.tsx",
+        "sha256": "9ffa268173f851041a0e76199e20bf7d1d9dc906b08268e4013b2c1c02a1fd18"
+      },
+      {
+        "path": "desktop/renderer/interaction-cards.tsx",
+        "sha256": "6d60f4e366ea91088da8d676c8319a414c8cb1afb850119591bf2d2f6887ca63"
+      },
+      {
+        "path": "desktop/renderer/learning-panel.tsx",
+        "sha256": "365ebd389a87a154f7a2e2777f9b2521dd8d069c5797db3417c7cab8840fb598"
+      },
+      {
+        "path": "desktop/renderer/mcp-panel.tsx",
+        "sha256": "f16e4fd7e2c57874fbb724e7fed67384272b40c748e06eb02a70c979bd7e1b40"
+      },
+      {
+        "path": "desktop/renderer/observation-panel.tsx",
+        "sha256": "01e8372fad3cf84276df3361fe60ba5fdd6a25d187be9cdd254f829a53ed4efa"
+      },
+      {
+        "path": "desktop/renderer/outcome-panel.tsx",
+        "sha256": "6f1d6158118494c45728dab91dc09e1acc5b5cfc905458d535a696abd7f6f1a2"
+      },
+      {
+        "path": "desktop/renderer/project-panel.tsx",
+        "sha256": "0324761816c20b1245e6d6080e06889307e7df8a1b5c8fc3e0ba462c499f2ba7"
+      },
+      {
+        "path": "desktop/renderer/skill-panel.tsx",
+        "sha256": "ad507102cb48ce6c7c50bd94edb85d3ce6b693deecefab851002456dcb551479"
+      },
+      {
+        "path": "desktop/renderer/styles.css",
+        "sha256": "c733cec284346556a8ebaeaa1c943062ea345255165ffb811fced033ebeb48e0"
+      },
+      {
+        "path": "desktop/renderer/task-panel.tsx",
+        "sha256": "08b60675a39dcaa1b2c3ce5dfa842c0b6cae5285040ba64d71a292db1316cec0"
+      },
+      {
+        "path": "desktop/runtime-AGENTS.md",
+        "sha256": "29d24478f5af73b8b29a98268a96ea41d6497b3fc58e6b9ed321d22ff247708c"
+      },
+      {
+        "path": "desktop/scripts/build.mjs",
+        "sha256": "ab43df4d8f5d3f2216e870ef2d55b9556f4f50cb32709a4709a5a3426aa483c9"
+      },
+      {
+        "path": "desktop/scripts/check-deepseek.mjs",
+        "sha256": "887b31004513073b91c25a996198dd3ced9ac83444e6fa11bafcb4ad28dedf8a"
+      },
+      {
+        "path": "desktop/scripts/check-pi-latency.mjs",
+        "sha256": "59c7fd78d5eaeb96f99c4f4a46cb61957cede6052ea5d87e000b2e91817f8658"
+      },
+      {
+        "path": "desktop/scripts/checksums.mjs",
+        "sha256": "7dc48e9b57df9af846df0d4bc7884a7e1945c8e11baaeef532af1b900c2e9f6a"
+      },
+      {
+        "path": "desktop/scripts/dist.mjs",
+        "sha256": "b0a1967b5454247bb12e02160cdb80118562715058007ae88baf7c617387b263"
+      },
+      {
+        "path": "desktop/scripts/icon.mjs",
+        "sha256": "add20e00f3ead78eb52998447cb6b103249fe9a612f9d70eaa48675ae28d5830"
+      },
+      {
+        "path": "desktop/scripts/prepare-runtime.mjs",
+        "sha256": "8c175f54b018d0262ef0b418ded97c18fc94b55afdfdc39bf704d80f04ef9c9f"
+      },
+      {
+        "path": "desktop/scripts/smoke-interactions.mjs",
+        "sha256": "a172d5815fb3e0fdd63f78ce91415c7a20eaa57dbfe2e21d122c38ea375fffad"
+      },
+      {
+        "path": "desktop/scripts/smoke-learning.mjs",
+        "sha256": "57dc97117a4fce99ae6dad2bcb56cc25a3a4d6540c0d9f77e046d97098895dfb"
+      },
+      {
+        "path": "desktop/scripts/smoke-outcomes.mjs",
+        "sha256": "f7602dd8e2d8ef09e994f8ce4d5d0bceebc4590c16031c9d0b770b76a33a06fd"
+      },
+      {
+        "path": "desktop/scripts/smoke-projects.mjs",
+        "sha256": "6870380a5d635ac4c93e396dd72dff090f490398a2e52b087e837ac36cbfcc24"
+      },
+      {
+        "path": "desktop/scripts/smoke.mjs",
+        "sha256": "6e47bce85bbaaed0cd71905e798d49afa82b4df38eb9f9f414072bfb05037825"
+      },
+      {
+        "path": "desktop/tsconfig.json",
+        "sha256": "adbcbbc944bad100d8dbd5b1f3e9f689fde372fd408569440ba5755d46dc796b"
+      },
+      {
+        "path": "docs/agent-quality-cases.json",
+        "sha256": "b28f2592c1490c19b0b790b41a241338478f7306e073a69290b29b59964cd5f4"
+      },
+      {
+        "path": "docs/agent-quality-heldout.json",
+        "sha256": "d736f2d6eb64483b0dcb6317cccabd813cafcb6a4694e9e36cc3c58cccb17967"
+      },
+      {
+        "path": "eslint.config.js",
+        "sha256": "51ac407ec26fd3f30f98fbc5d69447c0d718253f3a96f6d97915d5528bc82602"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "a0210a44565309069ffe098e9ac2f60c2560c9203fb9242e8b8c2b5b0fa786ce"
+      },
+      {
+        "path": "package.json",
+        "sha256": "110fb72e5af94c9445c9d3dc24e0ad2c049bd05ff370f2d1a38be0e987a937d1"
+      },
+      {
+        "path": "scripts/audit-agent-p0.ts",
+        "sha256": "4cbaf83444f36161ec8b86bccc1ad696d14d918f5280bab6be4676a63b64b39d"
+      },
+      {
+        "path": "scripts/benchmark-sessions.ts",
+        "sha256": "46f01c65cfaf3ff37968306e7732a3bd4d5e6b615a7700e3c66f58d70568d0bc"
+      },
+      {
+        "path": "scripts/check-learning-outcomes.ts",
+        "sha256": "b0551666dd585da6ebf69377a53438827af7e95a2d783ca3ca1de83d8405fb45"
+      },
+      {
+        "path": "scripts/check-lockfiles.mjs",
+        "sha256": "77d26587182e513c535e290d89513e1d1ef017bdc62a6f80fa9d87fddaae1037"
+      },
+      {
+        "path": "scripts/evaluate-agent.ts",
+        "sha256": "3549cc80541556d81e124f97b751359e86e6ea697f2baa6dcc0b992c9e9a2e34"
+      },
+      {
+        "path": "scripts/evaluate-practice-project.ts",
+        "sha256": "b36947cc5375089ffebbe1227cc8b0d4e45e30ea674c74cd79f64fa3175c1178"
+      },
+      {
+        "path": "scripts/generate-fixtures.mjs",
+        "sha256": "6a36d5370a3fb2ba378d6e3064c1142a2d4a55fe56252e1aa846b9f186761a9a"
+      },
+      {
+        "path": "scripts/measure-agent-performance.ts",
+        "sha256": "3f7aca2f9421a52a43250fed123809c8f2ee990849a40a4bda0e5003f8625135"
+      },
+      {
+        "path": "scripts/pi-latency-preload.mjs",
+        "sha256": "cc34dc0500554d985bc183b87850c25fe66ef40f0b8f4963796b87d95cb7043b"
+      },
+      {
+        "path": "scripts/pi-safe.sh",
+        "sha256": "08c5d6a5df90ab49d3b965fa9251db1be231ad58d197725c4a68f1da5fcf1092"
+      },
+      {
+        "path": "scripts/profile-pi-latency.ts",
+        "sha256": "384cfbd91ae49ff5ac1386f96afeebf6b553a5a93c326938df9515cce785b634"
+      },
+      {
+        "path": "scripts/review-agent-quality.ts",
+        "sha256": "dd34b39628580108bf3a75ab84958629959c02d7bf1a57a51120988e21ee331f"
+      },
+      {
+        "path": "scripts/smoke-mock.mjs",
+        "sha256": "eb6bc1a3c4b974dabf47f86acac7c748cc729505e6c9fbb2454f34c6ede98c91"
+      },
+      {
+        "path": "scripts/summarize-learning-outcomes.ts",
+        "sha256": "f843be7be33059ad2ac8010663056a0ce079107322b15ed5a7ca1f0467e96dd6"
+      },
+      {
+        "path": "scripts/verify-p0-live.ts",
+        "sha256": "09e719313662f8f9582fc19a20c171984f7b4d009f944a3706720f28b3e0d1cf"
+      },
+      {
+        "path": "scripts/verify.mjs",
+        "sha256": "d17c8b5c77594f2e5d1058a400a251337c02b3d93d4d772d42dd0b0011c6144d"
+      },
+      {
+        "path": "skills/interview-project/project-evidence/SKILL.md",
+        "sha256": "9a84b0a07bf27bb31251a24709b0ec2182020086abd5d91bacd0d769aae3936b"
+      },
+      {
+        "path": "skills/rag/rag-grounding/SKILL.md",
+        "sha256": "fe58c8311cf438f3e4e92ddf96c3374a0e16c07e15b83bda6a8dd7a22e73a02b"
+      },
+      {
+        "path": "skills/shared/learning-lab/SKILL.md",
+        "sha256": "eec2a9f66eecd612be23bcce2efe46841c79374f569a4e49a926169717b8ac5d"
+      },
+      {
+        "path": "skills/shared/learning-notebook/SKILL.md",
+        "sha256": "bc7969da12c5e48eddf51b8d7d2f18da3394acecea7c12e0109eaf437a27c55e"
+      },
+      {
+        "path": "skills/shared/learning-reviewer/SKILL.md",
+        "sha256": "d4d476109a1ef88fab18767ff0e36f8731da112f754c411c6a360d945d84cf1e"
+      },
+      {
+        "path": "skills/shared/learning-roadmap/SKILL.md",
+        "sha256": "c8852f75c1155fa1c199ff84903154a5318914df0bb0a49f82b995cfe7a2aee3"
+      },
+      {
+        "path": "skills/shared/learning-tutor/SKILL.md",
+        "sha256": "c61df45fe08c29673689295715decab35fbbc6f7ccae50b7f0807fe9981acb5c"
+      },
+      {
+        "path": "skills/tool-calling/tool-contract/SKILL.md",
+        "sha256": "9aac3acbab5b2f80646763e67f6261abd2dc92cdb8d63a3de6c231a72e136ba5"
+      },
+      {
+        "path": "src/abortable.ts",
+        "sha256": "4a2c4594f8d3f190dfc53b319568279e49c9dbbb5640256efcf93dd6a4217168"
+      },
+      {
+        "path": "src/action-registry.ts",
+        "sha256": "f3fbe916644b6926f2bddf3be5bfadb8942436831532c8890acd7c3045d74ded"
+      },
+      {
+        "path": "src/agent-efficiency.ts",
+        "sha256": "09d377af1ef13722d1908ea1c5d677cd62a4f1cf217419090320f2fe4ec06e12"
+      },
+      {
+        "path": "src/agent-errors.ts",
+        "sha256": "3120387e6666de074fbd3c260a087eca9cee4e32cafa2eef04f7950a72a3d1d7"
+      },
+      {
+        "path": "src/agent-events.ts",
+        "sha256": "2cf5a04e4e1b33d5bb3c6922d4b02e2cb756a04988e4adf7a76f2b6979e00168"
+      },
+      {
+        "path": "src/agent-execution-store.ts",
+        "sha256": "4f00b2ef2aad34ee67b6ab5b53c805fae66cd71eb6a12c3b604105363f3e74db"
+      },
+      {
+        "path": "src/agent-loop.ts",
+        "sha256": "8b847d3ca508eb74d13b767eb4dcdec8f52a7ec88979b8c62ca692ea82365493"
+      },
+      {
+        "path": "src/agent-permissions.ts",
+        "sha256": "d47a6be585c3e131a1e385838bba520914fb6d5c75a65cd73661bb6b47667cdb"
+      },
+      {
+        "path": "src/agent-service.ts",
+        "sha256": "ae08d2caf0eefdb71506bc6082227791a0970dc7768f083d4c248fac570fc97e"
+      },
+      {
+        "path": "src/agent-session-contracts.ts",
+        "sha256": "b36438271b4955f543a5f23067b85993528d24c3b143ec3794b441b9f1639b91"
+      },
+      {
+        "path": "src/agent-session-store.ts",
+        "sha256": "a29d711570d52ca801e732629ab0d35edfccd9fba871f31a47f07f2feea33b26"
+      },
+      {
+        "path": "src/application-tools.ts",
+        "sha256": "573d6c22fdfdd86e062de2e20f8d05109f57622d6902c400e783ec875da7e6b0"
+      },
+      {
+        "path": "src/assessment-variants.ts",
+        "sha256": "ada20acfb55afd807758ab14b1d3a44190517200b2b0f680e0a8507670fe48eb"
+      },
+      {
+        "path": "src/assistant-interactions.ts",
+        "sha256": "2b55b80a8045e89737762a813c5da048f2a7a958ba742e2f6a1451c541d14c7f"
+      },
+      {
+        "path": "src/assistant-runtime.ts",
+        "sha256": "86c28b170af228183291eb358c67c8a3da8aff9aff34bc40591e7bc95eff7d76"
+      },
+      {
+        "path": "src/audit.ts",
+        "sha256": "0a36fe2e079581306815201137c638bd8d9e6826dfe78096cec1b211f05e15d3"
+      },
+      {
+        "path": "src/backup-service.ts",
+        "sha256": "0b75bd2df49cea5d50f624c35fbf8512a25f35b413e384cd699dee0b43365684"
+      },
+      {
+        "path": "src/build-provenance-contracts.ts",
+        "sha256": "1ca28a5f9a3d8eb00c27b8c473accaf10168cafb4fdb39dc23cecd724b27ee3e"
+      },
+      {
+        "path": "src/build-provenance.ts",
+        "sha256": "d64db61b879554ed61be40874d6816684c1803a75b96448671a3713811dad751"
+      },
+      {
+        "path": "src/citation-marker.ts",
+        "sha256": "b053e359802cf8c53a5e9fb8906fb6a75eee7107aade8608fec4c76077a1aeef"
+      },
+      {
+        "path": "src/cli-agent-transport.ts",
+        "sha256": "12ec3261d82c86e16a4a633328291fb7e750bed1515783c70692fb7b403ef551"
+      },
+      {
+        "path": "src/cli.ts",
+        "sha256": "89cef62e50ea9a04924be0134bbcb86398ddc4e439c81e66bf5b1e890b7f6a2d"
+      },
+      {
+        "path": "src/codex-client.ts",
+        "sha256": "0b3456f10f025f53d9d828710cabbcf5bf8bca0961ad099fb0dc73e4406b9755"
+      },
+      {
+        "path": "src/context-window.ts",
+        "sha256": "85ec7f0ef3289be55cc0f8e4c79d514eb29b871f14554c9abc9115bf27664f7d"
+      },
+      {
+        "path": "src/contracts.ts",
+        "sha256": "b22a369af4847cd103655e3f7d63f792511db53e35065c3f5dca2cef54c018ad"
+      },
+      {
+        "path": "src/conversation-context.ts",
+        "sha256": "73a1d1b9e6180a1044ce7ae6d6d1999272f9416a28eece0476bfb16a07a39ca6"
+      },
+      {
+        "path": "src/conversation-policy.ts",
+        "sha256": "a5038006f43c0902f82d2fc992cb73ff261e843d5684ec0bad070f01f01161e7"
+      },
+      {
+        "path": "src/conversation-routing.ts",
+        "sha256": "43167b10db11c97c34234f2a57cb7e835640c37340cfdc0b62f5122f813fe24d"
+      },
+      {
+        "path": "src/conversation-session.ts",
+        "sha256": "5908142e80d19d247879834bb3527dcad6392ad67eae8e8203af5ed3d260ac4e"
+      },
+      {
+        "path": "src/current-topic-store.ts",
+        "sha256": "832e6213455be5c246f6ade6bee72f9f1aea204d5a26dbad6c3e3c3d3bc1ac27"
+      },
+      {
+        "path": "src/custom-course-store.ts",
+        "sha256": "5b97d2b77b138814a2c9064925b684621916b50c1090c0eb66fada09b812a34f"
+      },
+      {
+        "path": "src/database.ts",
+        "sha256": "6a8717b0e2fc240a69704baee11ef51e0cb8f983f83efacc8339c0fbddd7c10c"
+      },
+      {
+        "path": "src/deepseek-client.ts",
+        "sha256": "7f470579e92970382e195de3075a553da44d87dd787906c733b019859bad9422"
+      },
+      {
+        "path": "src/display-math.ts",
+        "sha256": "03c70c3ca415d637fb9891f958174c097bcfa9cb2faf79fe3ece48170a1f80d4"
+      },
+      {
+        "path": "src/embedding.ts",
+        "sha256": "952847dcfcaa909735d3c5a46b64c91141fdc47c7815a2fa6981fcfb24aa03d6"
+      },
+      {
+        "path": "src/evidence-store.ts",
+        "sha256": "86acfbc192fca1b31e2dd7831407dd64d319bb05130a2a50b43e0e9e97c7e987"
+      },
+      {
+        "path": "src/evidence-support.ts",
+        "sha256": "a9c6ba53bf1d9e84852b8446e31142df153330bed542dfa736fd023f3a56ed41"
+      },
+      {
+        "path": "src/execution-history.ts",
+        "sha256": "01975cc383b113b167adca74deb01403a22f96b6fca74fe6ea6f8a01fe85c87a"
+      },
+      {
+        "path": "src/external-content-gate.ts",
+        "sha256": "6c02c21bd2f4874f3e12046513667326ad2abd3ad9200f895beb70e1bbb9ab62"
+      },
+      {
+        "path": "src/generated-skill-store.ts",
+        "sha256": "fb5b2455f17e71c75f6c33423ab0673825f2c2026a73c79ad8e75d6d1388b3af"
+      },
+      {
+        "path": "src/grounded-answer.ts",
+        "sha256": "7f2a34d238ec42826574a9978e0c42f2530913fc92c835e123317c2c837f30c5"
+      },
+      {
+        "path": "src/hidden-secret-input.ts",
+        "sha256": "fa7c7860a97e45f32a0dfc750b35444ee9548f6674559785020bf8b36756d2a5"
+      },
+      {
+        "path": "src/import-command.ts",
+        "sha256": "c5d263ffdc10ec30ffaafcddb98910c524d09baf72ae9f0104baf5f5a89222be"
+      },
+      {
+        "path": "src/intent-parser.ts",
+        "sha256": "e027a3897d6cfa6e7c3d472d058b054aa2f9d31d7d23bd165390e937299ac280"
+      },
+      {
+        "path": "src/interaction-protocol.ts",
+        "sha256": "efb2d3b772a2097c0ba495339377d59e82eaf1c2efa1646ef6dbc30e2e688a02"
+      },
+      {
+        "path": "src/json-schema-worker.ts",
+        "sha256": "04f8f654c4e97a4d99243b999ec4e1ca0594ea9269261dcc608734304748e8b5"
+      },
+      {
+        "path": "src/lazy-mcp.ts",
+        "sha256": "063738c08870f751db9699d2e3fb0db3ab19d13942471b43f3a4fbc9ca14936d"
+      },
+      {
+        "path": "src/learning-agent-profile.ts",
+        "sha256": "ebed9449fbcc21bbe33e4f7d4e98dd925f88a24dbf49ce23f7015bf756767408"
+      },
+      {
+        "path": "src/learning-agent.ts",
+        "sha256": "350c6b2877adc73dbf833af16c053dfd301588dfa02370e5c641ca905d24252b"
+      },
+      {
+        "path": "src/learning-application.ts",
+        "sha256": "a428a364cd194796ce17ee45cb9e4c42e098211f1f161b8cbf4b0bd67687b786"
+      },
+      {
+        "path": "src/learning-assessment.ts",
+        "sha256": "6227aea1d9bb2575d7b5e2e2ed580f2653bce747fc00548e38afbc59db929df3"
+      },
+      {
+        "path": "src/learning-concepts.ts",
+        "sha256": "3116b21a4144ddb9c9d63e9e454123a3e00cf9ce75ef8f2db22f8baad62ae6b7"
+      },
+      {
+        "path": "src/learning-context.ts",
+        "sha256": "7c7b1564774497b38f153bb19c529db8622ab7e3e358fd9752a03e3b59a8b091"
+      },
+      {
+        "path": "src/learning-contracts.ts",
+        "sha256": "3254b5f13eb13a2f976b0d08271031e30e919aaf7116698cb9e1c2757300a14f"
+      },
+      {
+        "path": "src/learning-observations.ts",
+        "sha256": "83c970d2fe80eb8b581c49f084a2056c14ee73034118a3cfc8efbdbd75fbb204"
+      },
+      {
+        "path": "src/learning-outcomes.ts",
+        "sha256": "0bb5f9cb7d270411e3d21ca36e1536ce7fca21b4a3734b5847d19751d8cc6fc0"
+      },
+      {
+        "path": "src/learning-profile.ts",
+        "sha256": "d9645c373e4dd09d48027b9bdd21106ac83f33a55c23c200033fba123bfe3b5d"
+      },
+      {
+        "path": "src/library.ts",
+        "sha256": "421fca0f9a7e09591b30cb6142f587ec110888e5e2148f6689386631737cac45"
+      },
+      {
+        "path": "src/local-sandbox.ts",
+        "sha256": "9bf1aebf29956311bdc71153c9e25a6469a4fb8b4cc45e7e2a1ddfbd9b54fce9"
+      },
+      {
+        "path": "src/loop-guard.ts",
+        "sha256": "64e410c4b7cda1ad3a2e1d6b960afe65175a30e103764361e243398561296c0f"
+      },
+      {
+        "path": "src/macos-keychain.ts",
+        "sha256": "91a71bd58130782aa7200f1180fba9f2b68c58a53871cb91519839ad37b4bf5e"
+      },
+      {
+        "path": "src/mcp-connection.ts",
+        "sha256": "5c1b5a1cca5a61f4a95fd20e89965a3cd2592b01a817e52824d6787582d84e6f"
+      },
+      {
+        "path": "src/mcp-recovery.ts",
+        "sha256": "3ca5102208099b71dabfb0746e814f0b94dd8eb3b8c3d2b65355d6ea2a7fc2fc"
+      },
+      {
+        "path": "src/mcp-settings.ts",
+        "sha256": "2d699af36789098c3a3574a9d36f178905f67253be2e3f0cc83a5ba6ff3ca9f3"
+      },
+      {
+        "path": "src/mcp-tools.ts",
+        "sha256": "30266995c35a479ad02e44e40d8c492b616d5eaa7093db91fcdd645922f6fe9b"
+      },
+      {
+        "path": "src/model-audit.ts",
+        "sha256": "0c8cfebc42f36158dd99b55e45a14357958736fa6853d5d40465ebf4e479f493"
+      },
+      {
+        "path": "src/model-capabilities.ts",
+        "sha256": "23df82e88ae62987124287d47f4159548385ace3f3d7d889fa4bdecce35e5762"
+      },
+      {
+        "path": "src/model-invocation.ts",
+        "sha256": "6b1ba02c0b3e7014d3d6715860de7346aa5486442c90f3ced143c8269d9f57a7"
+      },
+      {
+        "path": "src/model-routing-store.ts",
+        "sha256": "c318d49e6e73543aa213475fe9f4eb6449a60165c2a9a7fe7e87e1fe4c4f2940"
+      },
+      {
+        "path": "src/model-telemetry.ts",
+        "sha256": "d87e63764b3b6e1bb306a49268abc9bdd4356fc3fb8723ae8ffab14487f7287e"
+      },
+      {
+        "path": "src/model.ts",
+        "sha256": "149a52118c83264383af13ef506f15c171fcd030550c73523520fb51d88f2468"
+      },
+      {
+        "path": "src/notebook.ts",
+        "sha256": "d1722ab4538d1ea5a09e94fef29695a965ff50a8ac119e6a82b7c48c87dfe021"
+      },
+      {
+        "path": "src/ocr.ts",
+        "sha256": "cd89f5a082f7c546c524a55d8d74fc1890fccd76b8f4275e8e47c7e8f42f51a0"
+      },
+      {
+        "path": "src/outcome-bank.ts",
+        "sha256": "1ffcd117c41799299b241bd5ab4d9e251b5617039db7b88596a16610d5ce5e81"
+      },
+      {
+        "path": "src/outcome-contracts.ts",
+        "sha256": "26b29cfdf4d18619213b86fddac750183da7f30bbae9c075befcef117dd292fd"
+      },
+      {
+        "path": "src/outcome-report.ts",
+        "sha256": "70aae5b91395468519f88518030651b6d775f3bb889ad464904d26684eca5b31"
+      },
+      {
+        "path": "src/paths.ts",
+        "sha256": "329b72d36104a14ad90f5cd7b8ddc2c0a0c4464fe55cc1c91c161663d69aa774"
+      },
+      {
+        "path": "src/pi-application-client.ts",
+        "sha256": "5d5c65ba7ff6a2ffa200978a9be6d97590ecd5f4793aaae7ceabc6fbc37a023f"
+      },
+      {
+        "path": "src/pi-client.ts",
+        "sha256": "67660f1e2314d1c68fba4f443d8db5dd372cc398f87a0109fb714ae67850fb61"
+      },
+      {
+        "path": "src/plan-loader.ts",
+        "sha256": "8d2f985c5e51ef87349240b5ae51b8e810e4e03167f324e1db6fbbeb2d53a929"
+      },
+      {
+        "path": "src/plan-schema.ts",
+        "sha256": "06a41ce53ef5e75056faf562d845f6c140def1d21689700efb061957c1d0a84c"
+      },
+      {
+        "path": "src/plan-store.ts",
+        "sha256": "12dda395b7da0ccb6a10a1b6b90d359626ddffb72b48b9cc4a5ed34a09ee331a"
+      },
+      {
+        "path": "src/practice-projects.ts",
+        "sha256": "e5ee3a054107b6f0525c4ccba0f4e3aeb22cad262f110855722c7d6746e2831f"
+      },
+      {
+        "path": "src/project-diff.ts",
+        "sha256": "78161d97b2fe2b73ed6d0e5b50b146807ec5eef24c7cbe0970ca9418ce8d66d8"
+      },
+      {
+        "path": "src/project-tools.ts",
+        "sha256": "3f82647a52f0362ed46171d883bd96bcd86ada6a5a648c7905fa5954da570db6"
+      },
+      {
+        "path": "src/provider-policy.ts",
+        "sha256": "20802e74613fb15476edd1ced1fab5b5978e3ebe0e0f2b58ac3b95a25b6c8642"
+      },
+      {
+        "path": "src/provider-registry.ts",
+        "sha256": "962306abc8c44a4fbb4fca80b96b58afd72994f7ed9b2fece6cd6d9e518d0f40"
+      },
+      {
+        "path": "src/provider-runtime.ts",
+        "sha256": "1aee5a5ff2491526c21bcd403cb5d6b37942dad804af9a12f7d9bf0f7e4083a0"
+      },
+      {
+        "path": "src/provider-setup.ts",
+        "sha256": "5944ca6c2e8ba4261c99ae93a043b674d9dad2a3804aa57ed3dcb89391dac8b5"
+      },
+      {
+        "path": "src/python-runner.ts",
+        "sha256": "44bbdbe2cab2908db8e6e08393f4b5e874079d645bd46d2d7724ac5fe4c7527d"
+      },
+      {
+        "path": "src/quality-evaluation.ts",
+        "sha256": "0a321e4a0ef34ee6ee0a6501918ba4acb23df71e51fcfe3596233480dbc0be62"
+      },
+      {
+        "path": "src/quality-review.ts",
+        "sha256": "362472c3294fcb831aa0ed923e94f12d51ed18c802025bb50e1c4334e63db7d2"
+      },
+      {
+        "path": "src/reminder-store.ts",
+        "sha256": "cf87c272621efa4b378438609ae5f952d978d50f611142d497d99a0aa2aec233"
+      },
+      {
+        "path": "src/repl-controller.ts",
+        "sha256": "f051aa31f5a86605fdada7b7d0ec5db9a03338dcaa1a9ab85232d345a8cc0a98"
+      },
+      {
+        "path": "src/repl-input.ts",
+        "sha256": "537a949090f3b7de0bb63f0054633e6252ab1e29ee5e2964d19a16fa6cc87758"
+      },
+      {
+        "path": "src/response-quality.ts",
+        "sha256": "9abdd81891e398cd45c1dbc76c9b738cf963cde14411db62725f40bd85a0da4c"
+      },
+      {
+        "path": "src/response-style.ts",
+        "sha256": "cf9d23a5b8d2962f5bb4843b9faea04ed98fec1b7f2c54d4047e3d131a8aaa3f"
+      },
+      {
+        "path": "src/retrieval-query.ts",
+        "sha256": "04fdd12a96e08fd62d8d8aabda0de6463982d9d67726570d1e4713c0a61dea9a"
+      },
+      {
+        "path": "src/reviewer.ts",
+        "sha256": "a77ef7696ca7388f48ad977d1eff2762e1d668c27584d14e897e23fb1395e59f"
+      },
+      {
+        "path": "src/run-context.ts",
+        "sha256": "3dded9d26194116b0eafdaed6e301531eb66ea07e181afe632febc6809fe0c77"
+      },
+      {
+        "path": "src/run-manager.ts",
+        "sha256": "ca747f81b192c6849dc3860517e23c33596ad5d27f2fe1c160483ac241dbe9fa"
+      },
+      {
+        "path": "src/runtime-version.ts",
+        "sha256": "7a1712566bdf86c651fef34dc957cf4275c814128dc8a89bee9003a16a0e465c"
+      },
+      {
+        "path": "src/runtime.ts",
+        "sha256": "934186e8ce89f590e0608017d4120d96d0e73250cf70aae790c06d0b78e8e2e3"
+      },
+      {
+        "path": "src/secret-store.ts",
+        "sha256": "35b4541271e255ad9251aac56b8d8b2404d00c27a40326b4e169a56cfab8d51f"
+      },
+      {
+        "path": "src/semantic-retrieval.ts",
+        "sha256": "5bb527a1668613d1b7eba6585223aa72cbe704159f8334bd3bc8452153402e5a"
+      },
+      {
+        "path": "src/session-store.ts",
+        "sha256": "1b3a9b29b436e4c9705b3636bda2b757640596f8d44b451d3e4eb83a278becff"
+      },
+      {
+        "path": "src/skill-catalog.ts",
+        "sha256": "71a7f61fae85e80588761e5447973b68b1b1782c21ef8def867ece487191afb4"
+      },
+      {
+        "path": "src/source-version.ts",
+        "sha256": "fd5fe50a6d192a52de613cc153dc00b1f0fb4a84906321949fdebe0da882d035"
+      },
+      {
+        "path": "src/sync-server.ts",
+        "sha256": "6bb2809bac489ca7f17c32bd1e67271df20ecb13a36988bb521c99ea0327c947"
+      },
+      {
+        "path": "src/task-continuity.ts",
+        "sha256": "fffda3b7e708bf35d8a0eeb9d0a16b25335bcf1514e652daa1e23e77bdccbbeb"
+      },
+      {
+        "path": "src/task-execution.ts",
+        "sha256": "901fb7404a114289e46e6b1ebf42c379c86ffe0e688c313f14d511f6e8e46e5b"
+      },
+      {
+        "path": "src/teaching-dialogue.ts",
+        "sha256": "8adc9534d0bfa4e94977fd3ce70031faeb26af272ea791edb963027820bb62a0"
+      },
+      {
+        "path": "src/teaching-policy.ts",
+        "sha256": "7529874ce6f828453f62a97a42c6e42a8c76cb180231d419e8b52e21d1df413a"
+      },
+      {
+        "path": "src/teaching-prompts.ts",
+        "sha256": "6ac50948b06fdfd76d89268d6f1e1402b0f3b82a0de165fbdfa42694502fad9a"
+      },
+      {
+        "path": "src/teaching-session-store.ts",
+        "sha256": "1d1e91695437338db7c6de47d676e9cd14ef1247fb19e2ea3e8bb36b6a74a67b"
+      },
+      {
+        "path": "src/teaching-turn.ts",
+        "sha256": "c8d787f0f917499be21e2baea13cb47f9bf35aa4acb5913ea54e347c8d5c38f8"
+      },
+      {
+        "path": "src/terminal-markdown.ts",
+        "sha256": "edcb734351b6a6e12594137477b60844f1faad60d1777417ea556ea8bc858883"
+      },
+      {
+        "path": "src/tool-dispatcher.ts",
+        "sha256": "058bab0fbe5fd4c9fdf05c00e0aaf84c47f9add296a93780854b42f8b3d7d9c2"
+      },
+      {
+        "path": "src/tool-harness.ts",
+        "sha256": "7ad702be88eb7aa92d67aee23d9d5fb406fc53f02a0a705683181be66d79e916"
+      },
+      {
+        "path": "src/tool-result-store.ts",
+        "sha256": "7f0c23909b9103e019f2389c6a4546c8e5b204c51527cd98f89467fac2094f11"
+      },
+      {
+        "path": "src/tool-results.ts",
+        "sha256": "eff919957db3eb2077ec0ed1fb24f04fae882570cf6ab1cd9ffa0ca99058cf27"
+      },
+      {
+        "path": "src/topic-store.ts",
+        "sha256": "634364d8c373ad882ef099da2181865d7e22a78cac5802e291e704721a709634"
+      },
+      {
+        "path": "src/topics.ts",
+        "sha256": "a63b21f6236aebe82027f36cd9945101495bc4aa1786a8e05ab3eb0af9567715"
+      },
+      {
+        "path": "src/workflow-ledger.ts",
+        "sha256": "b944830be36ec08ec4f5cdb7dc056bab536fae40ae27943777b8261c291016d7"
+      },
+      {
+        "path": "tests/action-registry.test.ts",
+        "sha256": "576e77a8a472c029c241f64e3a036a249c2699a318bed39e1afacb9bd9a8844d"
+      },
+      {
+        "path": "tests/agent-checkpoint.test.ts",
+        "sha256": "ab9a5078d53c64c1484e70969155feaf703ae6007729b5fabc3ad7a0d591cade"
+      },
+      {
+        "path": "tests/agent-cli-lifecycle.test.ts",
+        "sha256": "291ddea7c2654e6697451b218efcb68e89f6fa35a96221648bad9dcb63eb4150"
+      },
+      {
+        "path": "tests/agent-context-budget.test.ts",
+        "sha256": "115d97675d461b22088503e421f05b83e884b1a2c967ac790ccbf8ea82245616"
+      },
+      {
+        "path": "tests/agent-continuation.test.ts",
+        "sha256": "50af74acf92364654de199b00f87eb4a773715dd14154d17cb5577cec1fa76d5"
+      },
+      {
+        "path": "tests/agent-contract-edges.test.ts",
+        "sha256": "37f53f144e9ca406aa040e53e9fc75090ada78ec6f621204bcceed42d0c0c28c"
+      },
+      {
+        "path": "tests/agent-crash.test.ts",
+        "sha256": "f472352dcfc2b27c99ac1e266d9fe6e30007ac6852e638de40571e233ac8ab4e"
+      },
+      {
+        "path": "tests/agent-efficiency.test.ts",
+        "sha256": "72ba036c08aa7610d02a2aa99c15a1529d5394b85d73995db797e1b5b1333af6"
+      },
+      {
+        "path": "tests/agent-limits.test.ts",
+        "sha256": "3ffcbaf5eb9e57f6af3a93396ae8058c0533b4464c0fd7c4f27b5b77308c1a2d"
+      },
+      {
+        "path": "tests/agent-loop.test.ts",
+        "sha256": "eec9baaf3b20d8bb7a1dd271023357d9180c77acfb5a0180f5d5cb7b000f517f"
+      },
+      {
+        "path": "tests/agent-p0-execution.test.ts",
+        "sha256": "9507a355adf4a8f37615a9b5f078a5a9fa277afac4cfd90261b8a9a80434d219"
+      },
+      {
+        "path": "tests/agent-parallel.test.ts",
+        "sha256": "76ee10138355fd8cd202205f6993040f7b0d9d8ec60065b5c1c990aca37f4198"
+      },
+      {
+        "path": "tests/agent-permissions.test.ts",
+        "sha256": "a688d44edc1df70d96e1ec13caa0c886c42810d8489f044750888d8578b60e79"
+      },
+      {
+        "path": "tests/agent-quality-eval.test.ts",
+        "sha256": "cd0d913ad61eb90d92f7f5acded5cf74b0955387ea563d1704183af275aa37eb"
+      },
+      {
+        "path": "tests/agent-recovery-boundaries.test.ts",
+        "sha256": "f8989fdd1160aba78e090e231d731e271a07c64fd3c76d4082fdd79659980dc2"
+      },
+      {
+        "path": "tests/agent-service.test.ts",
+        "sha256": "44d0cab158e73a7ed462b815879146e69acdd9880954e9b54cec8b955f6fa89f"
+      },
+      {
+        "path": "tests/architecture-regressions.test.ts",
+        "sha256": "73d7925de99da2f0d3066227853b5aba6e99ec6c70854f9866188eb4065c773e"
+      },
+      {
+        "path": "tests/backup-service.test.ts",
+        "sha256": "f46787d0988cbb90b61951006570d15bd7d135d3167e78d0db8259c096415a5a"
+      },
+      {
+        "path": "tests/cli-external-gate.test.ts",
+        "sha256": "235a6e9c41e61f328dbfa812c3c5cbe05074843a17eedd97a49910e4d9c34209"
+      },
+      {
+        "path": "tests/cli-workflow.test.ts",
+        "sha256": "32fa46bdc6b05eb3d162c65aefaba669366b5067787644c9415d232e9a2b3698"
+      },
+      {
+        "path": "tests/codex-client.test.ts",
+        "sha256": "6a6291721e1858ea1673a1ae41432457473f5f937c5c66352e308b6655e8f636"
+      },
+      {
+        "path": "tests/conversation-session.test.ts",
+        "sha256": "f7c79933491af0646b03488c634b2ad61126eb0c2e45d0e55af3959dac8c9f02"
+      },
+      {
+        "path": "tests/current-topic-store.test.ts",
+        "sha256": "b99c89baf013f5be1d2d55773a3013d7938271671abb1e8b3cd4f979b84e0986"
+      },
+      {
+        "path": "tests/custom-course-store.test.ts",
+        "sha256": "3c885fbfc4619fe055ec88583d51be5dabc4acb42375e05a49c02efb44d45d30"
+      },
+      {
+        "path": "tests/deepseek-client.test.ts",
+        "sha256": "e96b459a05cce77523354d352827dffd27643add76a40daa611d8a1bc892c0a8"
+      },
+      {
+        "path": "tests/desktop-diagnostics.test.ts",
+        "sha256": "d093dab06a35d48f770268d5fd6b675ab27fe93751afe497545256dd20b13e52"
+      },
+      {
+        "path": "tests/desktop-interactions.test.ts",
+        "sha256": "457fc5a62d1d0cb4a96a6e9916c41f22ccc96b700a76dc7e377ac7742922dc86"
+      },
+      {
+        "path": "tests/desktop-migration.test.ts",
+        "sha256": "6c098f92fb84cabbfa36c7996ed24a0922889cfd1491f1bf767e55fd06f5feae"
+      },
+      {
+        "path": "tests/desktop-outcomes.test.ts",
+        "sha256": "7445bf370ff6f3613f8a0369011d11178bbcd8ac9a84cef30fa70b52431632d6"
+      },
+      {
+        "path": "tests/desktop-pi-runner.test.ts",
+        "sha256": "004d8047c5fb4159e06f50d58bbde018897cfd34be84cd83cee52a4642e75dc1"
+      },
+      {
+        "path": "tests/desktop-providers.test.ts",
+        "sha256": "7f05a3e1d1b4cd0e47d134818a3c3ae52fd5fb69d90b65e1deb71960ab38283f"
+      },
+      {
+        "path": "tests/desktop-service.test.ts",
+        "sha256": "78a5fb741a3f42f6fc7fa20eead9bdec7a8f47159f390e6d9e0d083acd1d59b6"
+      },
+      {
+        "path": "tests/desktop-storage.test.ts",
+        "sha256": "45e0214ad837ecc6dc069a044ebfc84a1da61f4dd64306d7386bffbd29e378e3"
+      },
+      {
+        "path": "tests/desktop-tasks.test.ts",
+        "sha256": "3d86f683d5c0259571147db1b1fd4ee533c4ac413c31af78aff509d12eda839d"
+      },
+      {
+        "path": "tests/display-math.test.ts",
+        "sha256": "0d141231dd9eced7fee7931e290c4dfa8422e3b979b0ce0b43fa0ff4707085db"
+      },
+      {
+        "path": "tests/eval.test.ts",
+        "sha256": "9b603f7d5c5415294c9b1bb4955cfa1769e051156ab4d5bc6d990a9abf19a937"
+      },
+      {
+        "path": "tests/evidence-application.test.ts",
+        "sha256": "986e551055d2b7498384361b5841651915d167ab4ece06540dac5c9ff936eb34"
+      },
+      {
+        "path": "tests/evidence-support.test.ts",
+        "sha256": "04c4ec16c3650f8cdbab0d0479448b1910349dc712b7f9cc690fadb94a0af53b"
+      },
+      {
+        "path": "tests/execution-history.test.ts",
+        "sha256": "1b3a5e444ce6a351221befc23fcb59ea9400bcd88a744243a06260cba38c6a20"
+      },
+      {
+        "path": "tests/fixtures/README.md",
+        "sha256": "ac4b49b9310964b3675cdc48ead432ebf104401103ff538bc9f610d36ef53304"
+      },
+      {
+        "path": "tests/fixtures/agent-crash-process.ts",
+        "sha256": "442860b013682a239595222c3a765a27b2493294b7a546d45752c443ea857050"
+      },
+      {
+        "path": "tests/fixtures/documents/encrypted.pdf",
+        "sha256": "95552e9f59961ecada99501ead22134f4b07bd450baec1af805694562b8eddac"
+      },
+      {
+        "path": "tests/fixtures/documents/invalid.pdf",
+        "sha256": "419db25c3c317e0ffb7153f183999ee0e66e7ef9c7107eb322333db3c30680c6"
+      },
+      {
+        "path": "tests/fixtures/documents/many-pages.pdf",
+        "sha256": "39c72a99b857abc3f76e9fea0bf35c00f127ebf456325de4805b3be3419705c4"
+      },
+      {
+        "path": "tests/fixtures/documents/notes.md",
+        "sha256": "67fbd8616c7730df9dfc8cff9074acf975027e17c7bd5ee8260e06b877b2d630"
+      },
+      {
+        "path": "tests/fixtures/documents/scanned.pdf",
+        "sha256": "a74d67f231b4898adc11fb01f1f63fa140b46841bb2635c925bee52e57dffd25"
+      },
+      {
+        "path": "tests/fixtures/documents/text.pdf",
+        "sha256": "910b46289c2b27b540acbbf4e01763a3ed3b0dceb1697d5500479f365db07731"
+      },
+      {
+        "path": "tests/fixtures/mcp-recovery-server.mjs",
+        "sha256": "1b4c4073501e6f467d4a38c8e9ebe9d999bbfe299456a30786e1e6975f3b2690"
+      },
+      {
+        "path": "tests/fixtures/mcp-server.mjs",
+        "sha256": "730a57a30d580a06237e7fc6caeaee22f7197d88523b7130cae98b26ac72d4e4"
+      },
+      {
+        "path": "tests/grounded-answer.test.ts",
+        "sha256": "1ea543f32c85ad695513ddcca3444b0716f2260156a65bc1f69f118d3b6d1fde"
+      },
+      {
+        "path": "tests/integration.test.ts",
+        "sha256": "55916cc5eb78689c94fbbd4c0cc050b80cc4cc427e0f4f9ba2c6bd9e237d2360"
+      },
+      {
+        "path": "tests/intent-parser.test.ts",
+        "sha256": "6e33d19644c0c63f16b8c94cc14559e1b098e8206f73d7ac3bb0f5f42ba6576e"
+      },
+      {
+        "path": "tests/interaction-cli.test.ts",
+        "sha256": "74b5a6ccf1d4221e0fec97479bd2b0c6a25709a0b4cac0e31ad0bd70556f98ad"
+      },
+      {
+        "path": "tests/interaction-guidance.test.ts",
+        "sha256": "6f05ab05a74dda0d85af1202b6312bba5f58c5d547062597b27ed36106b3c8eb"
+      },
+      {
+        "path": "tests/interaction-protocol.test.ts",
+        "sha256": "1e92f645c7235378890d44548a1dacc1fb0bad73404ed444a5cd3c59325da35c"
+      },
+      {
+        "path": "tests/lazy-mcp.test.ts",
+        "sha256": "6340146a0cd571e31d88d4dee305bc1108f8df335583ee7cc8df10b1b40dedce"
+      },
+      {
+        "path": "tests/learning-agent-cli.test.ts",
+        "sha256": "1d6e319343e2392b4f8e35ae1bf9b9f064bac5f2443e5eeca0bdb4f7944ae03c"
+      },
+      {
+        "path": "tests/learning-agent.test.ts",
+        "sha256": "ecd1639f79bcd2b8f2236a87bbb771bc79782b0705817ad1a5c358526573efbb"
+      },
+      {
+        "path": "tests/learning-application.test.ts",
+        "sha256": "0991da7cf1f1f3af9b24a42ebed8578ebedf9c255483ca89f7b682e1fd2ec8ee"
+      },
+      {
+        "path": "tests/learning-assessment.test.ts",
+        "sha256": "f280a31d7dc73fddf2fae10de26d3ef4b742792136fff2e2abbbdbf0bdfa3925"
+      },
+      {
+        "path": "tests/learning-context.test.ts",
+        "sha256": "b0ec5207f5d90db51a5b8b8165d53ce28cd604d664c9701c057c6011de66cee0"
+      },
+      {
+        "path": "tests/learning-observations.test.ts",
+        "sha256": "cb625a68e9e5152ecd0684a8b160bfb577c90b2b4624091abd5beef07aa1d203"
+      },
+      {
+        "path": "tests/learning-outcomes.test.ts",
+        "sha256": "8c13743fafe94136a919b4a56337e2a30684505b60fc83fa418035dbf6ed894b"
+      },
+      {
+        "path": "tests/loop-guard.test.ts",
+        "sha256": "8960e0b27a2422429a1b8432c85181b545325eb2ab972edb11cbb087120aad4b"
+      },
+      {
+        "path": "tests/macos-keychain.test.ts",
+        "sha256": "b6f5c2c4f72adc292faac6450c0b30030b2b36d0571c5833d9be7f0812d6da20"
+      },
+      {
+        "path": "tests/mcp-tools.test.ts",
+        "sha256": "af80637c10a10bb70cf5cc78fdaf90ce61abab6df1ddc507722ff8e10d6e451c"
+      },
+      {
+        "path": "tests/model-audit.test.ts",
+        "sha256": "7fb37502c27506614329c161a8e915550e453f01e484f401052ff0387260325d"
+      },
+      {
+        "path": "tests/model-capabilities.test.ts",
+        "sha256": "ea319a706b23c471c5901ebe2615377e236d2e8dd6e00dcd26035a904c7432be"
+      },
+      {
+        "path": "tests/model-invocation.test.ts",
+        "sha256": "630cec1abc1bb0ac11c20682bb450b85d64b84a9458f11ae266ab72f61cf4366"
+      },
+      {
+        "path": "tests/model-routing-store.test.ts",
+        "sha256": "52e584058fede91ff266d059e1da91f32e7451051f4f85ed91bd1fe83a271905"
+      },
+      {
+        "path": "tests/outcome-report.test.ts",
+        "sha256": "1a267818d04bcfd23854fd80c5b1c3222328171f9f7abeb3b657cd5f506943c0"
+      },
+      {
+        "path": "tests/p2.test.ts",
+        "sha256": "dc085757fe76dc1051a73561e537056b87aab3ceefd667402d83fae933cf2319"
+      },
+      {
+        "path": "tests/path-policy.test.ts",
+        "sha256": "95d415ef3436a11423fade8ac34fb3e5acd0180a53ab58a7915d340c4bb3b671"
+      },
+      {
+        "path": "tests/personal-learning.test.ts",
+        "sha256": "d9f97d717080aa4a5a00ee71b91efd675f360a2195cef77c1815033dff2cb297"
+      },
+      {
+        "path": "tests/pi-application-client.test.ts",
+        "sha256": "4b65074231d6f6052a3b02cdd77f7591efbc0c124b0bd1d1e892ad8bdf6edd15"
+      },
+      {
+        "path": "tests/pi-cli.test.ts",
+        "sha256": "af5f58c203c20b789078bce775716a3372c7deb8a4bfb22171dd0718d4082d44"
+      },
+      {
+        "path": "tests/pi-client.test.ts",
+        "sha256": "949a93b5f786c1b2e513517bf16e64e4c687d2fce49527e5377fb00bd1f62853"
+      },
+      {
+        "path": "tests/pi-latency.test.ts",
+        "sha256": "e42bc10672319dbc089d9f88218eff7b03ce687f37c468896bf82e074aca582c"
+      },
+      {
+        "path": "tests/plan-schema.test.ts",
+        "sha256": "72140c54e487e2dee73b23f13702f39a010aea79e1f696753f369928d068bd61"
+      },
+      {
+        "path": "tests/practice-projects.test.ts",
+        "sha256": "ca803919d9d9cb001100397a27d6f6d27f3b3f9ef036a87df1d2d705fce61ccd"
+      },
+      {
+        "path": "tests/product-validation.test.ts",
+        "sha256": "3d3b6d4bfc1dcc7ee2b776d057918e11e973d4fca56f4836716d59e46dcd7e3b"
+      },
+      {
+        "path": "tests/project-revisions.test.ts",
+        "sha256": "b23f4b4b385260a85a8ebce004df94622e2c718c1f3e74e5dcb8573fb4610924"
+      },
+      {
+        "path": "tests/provider-policy.test.ts",
+        "sha256": "0faec4c68e32b208b2a1426c36246ab4a00b71efbd2afc4086ef18fc641cfbf5"
+      },
+      {
+        "path": "tests/provider-reasoning.test.ts",
+        "sha256": "7f3dbb37507f71cc414709916d2829ea7dd19a4fd108df62066a188e996f78ff"
+      },
+      {
+        "path": "tests/provider-registry.test.ts",
+        "sha256": "937e9d8a58b4b2b7bdf80fe6ee143c7729f72f3a92f9317b83f68d0c311ec60f"
+      },
+      {
+        "path": "tests/provider-runtime.test.ts",
+        "sha256": "575bdc8946b1ad56be1c764139237ab67e5ab868d1263aef9275689931e36a2c"
+      },
+      {
+        "path": "tests/provider-setup.test.ts",
+        "sha256": "3341fbd92330c8f4763b2f71a7b8c037686035adcbf423cbd706c034ca096c2d"
+      },
+      {
+        "path": "tests/provider-tool-contract.test.ts",
+        "sha256": "1280c0e2869ca9cc2e370697e722bf94a9092b80d2cc8b125b603b024e00cdbf"
+      },
+      {
+        "path": "tests/quality-evaluation.test.ts",
+        "sha256": "350e0777f260e3303af0ffea19e43fac2411f2d77b5f4dfe66e4de7170ee1ec8"
+      },
+      {
+        "path": "tests/quality-review-cli.test.ts",
+        "sha256": "7a1fee50073dc54fd3c2afc6842e2c990e0dd14ae752b0fa61aa21fd93fd2bcf"
+      },
+      {
+        "path": "tests/quality-review.test.ts",
+        "sha256": "151d1b188a9e5552d346341efb9f05b43334f994540663488489ee9c39491d41"
+      },
+      {
+        "path": "tests/reminder-store.test.ts",
+        "sha256": "43b91501e912e3f425c99b8a47501cb5d47b927a0f36fc2090e2d1300d2a6573"
+      },
+      {
+        "path": "tests/repl-controller.test.ts",
+        "sha256": "04ea1eb278c7b9a3b924c74388a116e0f383c6973344fc04ff1a0a98fbea1c54"
+      },
+      {
+        "path": "tests/repl-input.test.ts",
+        "sha256": "07c836568f3e557cfbf7e2c053693aa6f9f3bab56dd5b3d843e29e6bc121c1a0"
+      },
+      {
+        "path": "tests/response-quality.test.ts",
+        "sha256": "cdb1e86823e0faf972257cabaa3b3b35fa4bac3255a6e1d97554c8ee39c653e3"
+      },
+      {
+        "path": "tests/retrieval-quality.test.ts",
+        "sha256": "aace40bcfeec0d16fae3d0d6adf46af48e7815fa1d7a73a856b003c9120683d4"
+      },
+      {
+        "path": "tests/run-context.test.ts",
+        "sha256": "87f0f550c260ef43a71d37a95209d315ee64dab3cc57a36a79920e9e9dfa16b2"
+      },
+      {
+        "path": "tests/run-manager.test.ts",
+        "sha256": "0692c2b4cb9000cabd0ab923a71e15948bbae0b631fbe3a4dc70e01c4a0f5999"
+      },
+      {
+        "path": "tests/runtime-version.test.ts",
+        "sha256": "b16b084f36984ff2e620651844ddfc53ac0843d449182b8ac1bd9811b459f432"
+      },
+      {
+        "path": "tests/session-scaling.test.ts",
+        "sha256": "d9cabf50a4e821fb9eff64a1036ad0f3cd4f5641c25399d7868b5b0c0425507b"
+      },
+      {
+        "path": "tests/session-store.test.ts",
+        "sha256": "5cfbef54cb47aa28750042fae8654a3b08f29ad5b32a3acf713099dac92936bb"
+      },
+      {
+        "path": "tests/skill-catalog.test.ts",
+        "sha256": "9bad4572a1a35767931032d9c9318f73216df2a99fb69f7a88dc71b1400b9318"
+      },
+      {
+        "path": "tests/stream-batcher.test.ts",
+        "sha256": "9a62ba205356295fee9f48ec46d6d5a8972d94cacca492e8b2c9aee817c406b2"
+      },
+      {
+        "path": "tests/structured-context.test.ts",
+        "sha256": "e9e96341a5c8a1cab4a5e383ac38f371e6ff3d114b98232194b071eddd33b287"
+      },
+      {
+        "path": "tests/task-continuity.test.ts",
+        "sha256": "7280c53c23984092ec64fd2b9b2dbacd1b4922efc23018792978de54d113db20"
+      },
+      {
+        "path": "tests/task-execution.test.ts",
+        "sha256": "7e22cc6da7229a7e486b6b96aec245df3b13a7ae246d3c12371277a94efea69a"
+      },
+      {
+        "path": "tests/teaching-dialogue.test.ts",
+        "sha256": "8b7a8dd0dbd3e2c277a20e17cb19380b64f5bcd14a331e1fe7bfd466f84be6f0"
+      },
+      {
+        "path": "tests/teaching-policy.test.ts",
+        "sha256": "2e93b11beb1d88e2a192d4472f28fc239e467ef3b3e6280dd57cd86844b0de92"
+      },
+      {
+        "path": "tests/teaching-session-store.test.ts",
+        "sha256": "c2340f126371975369e5a19a24d9a23547e50caa4839f0000ea04bf0c71ac8e3"
+      },
+      {
+        "path": "tests/teaching-turn.test.ts",
+        "sha256": "0dd7ce6f3605e726f6943d6ff6e939a50a8e681e21f7a21fe41d0f69912725d4"
+      },
+      {
+        "path": "tests/terminal-markdown.test.ts",
+        "sha256": "54b957a2fde0e559f03f0bba6a724b943e929c14d06f6a324e20c414f9d04876"
+      },
+      {
+        "path": "tests/tool-dispatcher.test.ts",
+        "sha256": "28dc792beb8df155e7a0f88316c80b484e02f2517cbecec410a33ba7fcd87654"
+      },
+      {
+        "path": "tests/tool-harness.test.ts",
+        "sha256": "0a75135c03eee9bb405a764e5e3f9e6a6567b69c332dec653555aedcfacfd3b3"
+      },
+      {
+        "path": "tests/tool-results.test.ts",
+        "sha256": "3a4038b8da5579c59322f2cd23b10b22a8c7294de430bb5683967ae28102e3be"
+      },
+      {
+        "path": "tests/tool-spec.test.ts",
+        "sha256": "4ec666e56d713c0c1749dc076bc66b48a7643837cb6d87b283f75adb693e57aa"
+      },
+      {
+        "path": "tests/topic-store.test.ts",
+        "sha256": "38c93dc9b64e01819fd184372c135a6e2c5ffc757f5309174af070ec04b1364d"
+      },
+      {
+        "path": "tests/upgrade-foundations.test.ts",
+        "sha256": "d7985165be3283e64623bb622bb4ddcc8962065df621750f7426f45973800900"
+      },
+      {
+        "path": "tests/workflow-ledger.test.ts",
+        "sha256": "6247e1b6e0176f96df0955ddbc38d7116cdff1bc6c881a249a5b2ae6b7f2ce53"
+      },
+      {
+        "path": "tests/workflow.test.ts",
+        "sha256": "3855681ee56095d8c2a63c59a825abced10487c3ae57d7e21f28777cfca8f31a"
+      },
+      {
+        "path": "tests/workspace-backup.test.ts",
+        "sha256": "66d11be6b7d332d575f3ff69329e8ae588558e958c29aab55da08ce3d441cb5a"
+      },
+      {
+        "path": "topics/3dgs/PLAN.md",
+        "sha256": "39e5b01636a6fab064342e5ae763ddc9fc51864dca938f41855f771542846721"
+      },
+      {
+        "path": "topics/agent-development/PLAN.md",
+        "sha256": "804b279bfefaf31e020d5b8cd7a2f2a2f286b3467c296628e30083706a73edb7"
+      },
+      {
+        "path": "topics/interview-project/PLAN.md",
+        "sha256": "8a03fbd682f38a761ed3543e51b1e89206bd040e315f4c60584de420ab951632"
+      },
+      {
+        "path": "topics/linear-algebra/PLAN.md",
+        "sha256": "3c7d03ea2619b02e351bb718db7bee821869dbf157672c3a0e244f1186c353cf"
+      },
+      {
+        "path": "topics/rag/PLAN.md",
+        "sha256": "5124891f104f6c4e52211ffd5c50679275167501d264414e5102685b16558301"
+      },
+      {
+        "path": "topics/tool-calling/PLAN.md",
+        "sha256": "926909b40e71f3fe3e84b76bf523438ef4365c095b9004e2ebe16b4f47b74a2e"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "4e679b9db526203958b88c1dc7fb5b117499ec9da0600093dcc90a5220e2ff59"
+      }
+    ]
+  },
+  "approvals": [
+    "project_edit",
+    "project_test",
+    "project_checkpoint"
+  ],
+  "generatedAt": "2026-09-08T07:42:27.084Z",
+  "scope": "One synthetic project; controlled configured provider; not a learning-effect or broad quality evaluation",
+  "provider": "deepseek-api",
+  "model": "deepseek-v4-flash",
+  "checks": {
+    "completed": true,
+    "preservedReadme": true,
+    "marker": true,
+    "otherFilesIntact": true,
+    "actualTestsPassed": true,
+    "newCheckpoint": true
+  },
+  "passed": true,
+  "answer": {
+    "id": "4d61b3c1-27ed-459d-a532-fbb23f548bbf",
+    "role": "assistant",
+    "text": "验收完成，步骤均成功：\n\n1. **修改**：在 `README.md` 末尾添加了一行“合成项目验证：已检查示例文件。”，原内容全部保留，未改动其他文件。\n2. **实际测试**：运行已有 `.test.mjs`，1 个测试通过、0 失败，退出码 0。\n3. **Git 检查点**：已保存本地检查点（commit `1825cc56`）。\n\n结果：接入验收成功。",
+    "status": "completed",
+    "items": [
+      {
+        "id": "63eea378-0caf-4f77-b322-9da975068d5f",
+        "kind": "final",
+        "text": "验收完成，步骤均成功：\n\n1. **修改**：在 `README.md` 末尾添加了一行“合成项目验证：已检查示例文件。”，原内容全部保留，未改动其他文件。\n2. **实际测试**：运行已有 `.test.mjs`，1 个测试通过、0 失败，退出码 0。\n3. **Git 检查点**：已保存本地检查点（commit `1825cc56`）。\n\n结果：接入验收成功。"
+      }
+    ],
+    "createdAt": "2026-09-08T07:42:25.023Z",
+    "provider": "deepseek-api",
+    "style": "adaptive",
+    "model": "deepseek-v4-flash",
+    "reasoning": "balanced",
+    "quality": [],
+    "evidenceSupport": {
+      "method": "deterministic_checks",
+      "version": 1,
+      "claims": [],
+      "issues": [],
+      "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+    },
+    "usage": {
+      "inputTokens": 8806,
+      "outputTokens": 104,
+      "cacheReadTokens": 4352,
+      "reasoningTokens": 0
+    },
+    "access": {
+      "materials": false,
+      "project": true,
+      "external": false
+    },
+    "profile": "application",
+    "taskId": "2266dc26-3d22-46a3-a261-08a58e0b6593",
+    "durationMs": 1840,
+    "firstTokenMs": 1082,
+    "contextUsage": {
+      "estimatedInputTokens": 13967,
+      "reservedOutputTokens": 16384,
+      "windowTokens": 48000,
+      "chars": 23784,
+      "omittedMessages": 0,
+      "omittedTurns": 0,
+      "estimateMultiplier": 1,
+      "reportedInputTokens": 8806
+    },
+    "activities": [
+      {
+        "label": "仅使用本轮对话内容",
+        "status": "completed",
+        "at": "2026-09-08T07:42:25.028Z"
+      },
+      {
+        "label": "回答已完成",
+        "status": "completed",
+        "at": "2026-09-08T07:42:26.864Z"
+      },
+      {
+        "label": "执行学习查询",
+        "status": "completed",
+        "at": "2026-09-08T07:42:25.220Z"
+      },
+      {
+        "label": "模型请求已完成",
+        "status": "completed",
+        "at": "2026-09-08T07:42:26.864Z"
+      }
+    ],
+    "timings": {
+      "contextMs": 2,
+      "modelMs": 1837,
+      "toolMs": 190,
+      "compactionMs": 0,
+      "turns": 1,
+      "toolCalls": 1,
+      "taskCompleted": true
+    }
+  },
+  "project": {
+    "id": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+    "topicId": "rag",
+    "title": "临时合成项目",
+    "createdAt": "2026-09-08T07:41:56.161Z",
+    "test": {
+      "id": "20213aea-268c-4696-a27d-0640216f7092",
+      "treeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+      "status": "completed",
+      "stdout": "✔ returns the supplied value (0.286875ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 6.650791\n",
+      "stderr": "",
+      "exitCode": 0,
+      "createdAt": "2026-09-08T07:42:21.448Z"
+    },
+    "files": [
+      {
+        "path": "README.md",
+        "hash": "bfd91ae99ff8fcacc1a425eddc3953a745eb74760c827e124479277a46d2629d",
+        "bytes": 233
+      },
+      {
+        "path": "src/implementation.mjs",
+        "hash": "7d6290d86872194e50401622443ab597aa40ba635487ed46b4f247d0ec508924",
+        "bytes": 37
+      },
+      {
+        "path": "test/implementation.test.mjs",
+        "hash": "17c773fb48b81c473c3de4fa0dae32ea3065e348fa7be4b78d3789d604d80fc0",
+        "bytes": 197
+      }
+    ],
+    "treeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+    "currentTestsPassed": true,
+    "branch": "practice/41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+    "head": "1825cc56f678348c4963f1ec76b0d5b259ec1350",
+    "diff": "",
+    "history": [
+      {
+        "commit": "1825cc56f678348c4963f1ec76b0d5b259ec1350",
+        "title": "README 添加合成项目验证行"
+      },
+      {
+        "commit": "6f7a038fd0d62424a39dd661236df688b525ab89",
+        "title": "创建独立实践项目"
+      }
+    ],
+    "snapshots": [
+      {
+        "id": "c6d1312b-c374-41cc-b5a1-58070b29dae0",
+        "treeHash": "0eb61a26ed5f84759b9afc77fdb893442eb220c33c4cb7bb2eb1ba8206f4757a",
+        "createdAt": "2026-09-08T07:42:16.839Z"
+      }
+    ]
+  },
+  "readme": {
+    "before": "# 实践项目\n\n这是独立的练习目录。修改实现和测试后运行项目测试，再保存 Git 检查点。测试通过只说明这些测试通过，不等于已掌握知识。\n",
+    "after": "# 实践项目\n\n这是独立的练习目录。修改实现和测试后运行项目测试，再保存 Git 检查点。测试通过只说明这些测试通过，不等于已掌握知识。\n合成项目验证：已检查示例文件。\n"
+  },
+  "trace": [
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "我先"
+        },
+        {
+          "type": "text_delta",
+          "text": "查看"
+        },
+        {
+          "type": "text_delta",
+          "text": "当前"
+        },
+        {
+          "type": "text_delta",
+          "text": "任务"
+        },
+        {
+          "type": "text_delta",
+          "text": "状态"
+        },
+        {
+          "type": "text_delta",
+          "text": "并"
+        },
+        {
+          "type": "text_delta",
+          "text": "加载"
+        },
+        {
+          "type": "text_delta",
+          "text": "项目"
+        },
+        {
+          "type": "text_delta",
+          "text": "工具"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "task_status",
+          "input": {},
+          "callId": "call_00_6B92uUTEimYhMJAHL3De4505"
+        },
+        {
+          "type": "tool_call",
+          "tool": "discover_tools",
+          "input": {
+            "category": "project"
+          },
+          "callId": "call_01_DFJYgGw0duO1WXM3Q2yY3681"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "task_status",
+          "result": {
+            "tool": "task_status",
+            "ok": true,
+            "output": {
+              "id": "2266dc26-3d22-46a3-a261-08a58e0b6593",
+              "goal": "这是临时合成项目的接入验收。请使用当前连接的项目工具，在 README.md 末尾添加一行“合成项目验证：已检查示例文件。”，保留原有内容。不要改其他文件。建立包含修改、实际测试、Git 检查点的项目计划，运行已有 .test.mjs，测试通过后保存本地 Git 检查点，再简短说明结果。无需查询学习资料或外部工具，不要只给出操作建议。",
+              "revision": 0,
+              "plan": [],
+              "completed": false,
+              "operations": []
+            },
+            "durationMs": 0
+          },
+          "callId": "call_00_6B92uUTEimYhMJAHL3De4505",
+          "toolState": "|"
+        },
+        {
+          "tool": "discover_tools",
+          "result": {
+            "tool": "discover_tools",
+            "ok": true,
+            "output": {
+              "category": "project",
+              "tools": [
+                {
+                  "name": "plan_task",
+                  "description": "建立执行步骤，完成状态由真实操作更新。项目步骤必须使用 project_* 完成条件和 projectId，不能填写课程产物 kind。只需保存课程产物时用 artifact_saved 和 kind；课程测试用 tests_passed。"
+                },
+                {
+                  "name": "project_status",
+                  "description": "查看用户选择的实践项目 41371fc2-791a-4f4c-a6e8-20b184a19eaf 的文件哈希、项目哈希、Git 差异和测试状态。文件列表每页十项，nextOffset 非空时继续读取。项目计划用 project_file_saved / project_tests_passed / project_checkpoint_saved，并绑定 projectId。"
+                },
+                {
+                  "name": "project_read",
+                  "description": "分段读取当前项目的文本文件，返回原文、完整文件哈希和 nextOffset。非空 nextOffset 表示尚未读完。修改前读完需要的内容，并确认各段哈希相同；不能把截断内容当作全文覆盖。"
+                },
+                {
+                  "name": "project_edit",
+                  "description": "创建或修改当前实践项目的一个文本文件。expectedHash 必须匹配刚读出的文件；新文件填 null。content 为完整新内容，审批展示实际差异。修改会使旧测试状态失效。"
+                },
+                {
+                  "name": "project_edit_many",
+                  "description": "统一校验并修改最多十个文件，失败恢复原状，修改前保留快照。content 为完整内容；null 表示删除该项目文件。expectedHash 匹配原文，新文件填 null。"
+                },
+                {
+                  "name": "project_patch",
+                  "description": "用唯一的原文片段修改文件，避免全文重写。每个 before 必须在原文件中恰好出现一次，片段不可重叠；仍校验完整文件哈希并展示实际差异。"
+                },
+                {
+                  "name": "project_restore",
+                  "description": "将当前项目恢复到修改前快照，先展示完整差异并取得授权。expectedTreeHash 绑定刚核对的当前项目；恢复不会移动 Git 检查点，恢复前也保留快照，需重新测试。"
+                },
+                {
+                  "name": "project_test",
+                  "description": "在本机已验证的隔离环境执行当前项目所有 .test.mjs 和 test_*.py（Python unittest 标准库），支持嵌套文件导入，返回真实退出码。expectedTreeHash 必须匹配项目状态；不运行 npm 安装、任意 shell 或网络命令。"
+                },
+                {
+                  "name": "project_checkpoint",
+                  "description": "为当前已经实际通过测试的项目哈希保存本地 Git 检查点。只影响知行独立仓库，不推送网络、不更改导入源。"
+                }
+              ],
+              "permission": "unchanged"
+            },
+            "durationMs": 0
+          },
+          "callId": "call_01_DFJYgGw0duO1WXM3Q2yY3681",
+          "toolState": "|"
+        }
+      ],
+      "toolState": "|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "我先"
+        },
+        {
+          "type": "text_delta",
+          "text": "查看"
+        },
+        {
+          "type": "text_delta",
+          "text": "项目"
+        },
+        {
+          "type": "text_delta",
+          "text": "状态"
+        },
+        {
+          "type": "text_delta",
+          "text": "并"
+        },
+        {
+          "type": "text_delta",
+          "text": "读取"
+        },
+        {
+          "type": "text_delta",
+          "text": " READ"
+        },
+        {
+          "type": "text_delta",
+          "text": "ME"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "内容"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "project_status",
+          "input": {
+            "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf"
+          },
+          "callId": "call_00_tBEdeYEojJnaiPzYXE1R1474"
+        },
+        {
+          "type": "tool_call",
+          "tool": "project_read",
+          "input": {
+            "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+            "path": "README.md"
+          },
+          "callId": "call_01_t5KhhXfSgoM0qGK3wKOv0879"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "project_status",
+          "result": {
+            "tool": "project_status",
+            "ok": true,
+            "output": {
+              "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+              "title": "临时合成项目",
+              "treeHash": "0eb61a26ed5f84759b9afc77fdb893442eb220c33c4cb7bb2eb1ba8206f4757a",
+              "files": [
+                {
+                  "path": "README.md",
+                  "hash": "f776f1f15a06dc38d88f393c25d73f390cda9306d61b0dea3763292df50e82d0",
+                  "bytes": 187
+                },
+                {
+                  "path": "src/implementation.mjs",
+                  "hash": "7d6290d86872194e50401622443ab597aa40ba635487ed46b4f247d0ec508924",
+                  "bytes": 37
+                },
+                {
+                  "path": "test/implementation.test.mjs",
+                  "hash": "17c773fb48b81c473c3de4fa0dae32ea3065e348fa7be4b78d3789d604d80fc0",
+                  "bytes": 197
+                }
+              ],
+              "totalFiles": 3,
+              "nextOffset": null,
+              "currentTestsPassed": false,
+              "head": "6f7a038fd0d62424a39dd661236df688b525ab89",
+              "branch": "practice/41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+              "test": null,
+              "diff": "",
+              "history": [
+                {
+                  "commit": "6f7a038fd0d62424a39dd661236df688b525ab89",
+                  "title": "创建独立实践项目"
+                }
+              ],
+              "snapshots": []
+            },
+            "durationMs": 79
+          },
+          "callId": "call_00_tBEdeYEojJnaiPzYXE1R1474",
+          "toolState": "|"
+        },
+        {
+          "tool": "project_read",
+          "result": {
+            "tool": "project_read",
+            "ok": true,
+            "output": {
+              "path": "README.md",
+              "hash": "f776f1f15a06dc38d88f393c25d73f390cda9306d61b0dea3763292df50e82d0",
+              "bytes": 187,
+              "totalChars": 69,
+              "offset": 0,
+              "content": "# 实践项目\n\n这是独立的练习目录。修改实现和测试后运行项目测试，再保存 Git 检查点。测试通过只说明这些测试通过，不等于已掌握知识。\n",
+              "nextOffset": null
+            },
+            "durationMs": 1
+          },
+          "callId": "call_01_t5KhhXfSgoM0qGK3wKOv0879",
+          "toolState": "|"
+        }
+      ],
+      "toolState": "|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "我先"
+        },
+        {
+          "type": "text_delta",
+          "text": "建立"
+        },
+        {
+          "type": "text_delta",
+          "text": "项目"
+        },
+        {
+          "type": "text_delta",
+          "text": "计划"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "然后"
+        },
+        {
+          "type": "text_delta",
+          "text": "修改"
+        },
+        {
+          "type": "text_delta",
+          "text": " READ"
+        },
+        {
+          "type": "text_delta",
+          "text": "ME"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "plan_task",
+          "input": {
+            "steps": [
+              {
+                "id": "readme_edit",
+                "title": "在 README.md 末尾添加验证行",
+                "doneWhen": "project_file_saved",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf"
+              },
+              {
+                "id": "run_test",
+                "title": "运行已有 .test.mjs 测试",
+                "doneWhen": "project_tests_passed",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf"
+              },
+              {
+                "id": "save_checkpoint",
+                "title": "保存本地 Git 检查点",
+                "doneWhen": "project_checkpoint_saved",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf"
+              }
+            ]
+          },
+          "callId": "call_00_ET_QJDWwPj8JPYraa0W4OS58499"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "plan_task",
+          "result": {
+            "tool": "plan_task",
+            "ok": true,
+            "output": [
+              {
+                "id": "readme_edit",
+                "title": "在 README.md 末尾添加验证行",
+                "doneWhen": "project_file_saved",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+                "completed": false
+              },
+              {
+                "id": "run_test",
+                "title": "运行已有 .test.mjs 测试",
+                "doneWhen": "project_tests_passed",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+                "completed": false
+              },
+              {
+                "id": "save_checkpoint",
+                "title": "保存本地 Git 检查点",
+                "doneWhen": "project_checkpoint_saved",
+                "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+                "completed": false
+              }
+            ],
+            "durationMs": 0
+          },
+          "callId": "call_00_ET_QJDWwPj8JPYraa0W4OS58499",
+          "toolState": "|"
+        }
+      ],
+      "toolState": "|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "现在"
+        },
+        {
+          "type": "text_delta",
+          "text": "在"
+        },
+        {
+          "type": "text_delta",
+          "text": " READ"
+        },
+        {
+          "type": "text_delta",
+          "text": "ME"
+        },
+        {
+          "type": "text_delta",
+          "text": ".md"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "末尾"
+        },
+        {
+          "type": "text_delta",
+          "text": "添加"
+        },
+        {
+          "type": "text_delta",
+          "text": "验证"
+        },
+        {
+          "type": "text_delta",
+          "text": "行"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "保留"
+        },
+        {
+          "type": "text_delta",
+          "text": "原"
+        },
+        {
+          "type": "text_delta",
+          "text": "内容"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "project_edit",
+          "input": {
+            "path": "README.md",
+            "expectedHash": "f776f1f15a06dc38d88f393c25d73f390cda9306d61b0dea3763292df50e82d0",
+            "content": "# 实践项目\n\n这是独立的练习目录。修改实现和测试后运行项目测试，再保存 Git 检查点。测试通过只说明这些测试通过，不等于已掌握知识。\n合成项目验证：已检查示例文件。\n",
+            "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+            "stepId": "readme_edit"
+          },
+          "callId": "call_00_ET_pYzEaibGm29lCpfMZoR14761"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "project_edit",
+          "result": {
+            "tool": "project_edit",
+            "ok": true,
+            "output": {
+              "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+              "path": "README.md",
+              "hash": "bfd91ae99ff8fcacc1a425eddc3953a745eb74760c827e124479277a46d2629d",
+              "treeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+              "snapshotId": "c6d1312b-c374-41cc-b5a1-58070b29dae0"
+            },
+            "durationMs": 7
+          },
+          "callId": "call_00_ET_pYzEaibGm29lCpfMZoR14761",
+          "toolState": "|"
+        }
+      ],
+      "feedback": "已授权：执行 project_edit",
+      "toolState": "|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "README"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "已"
+        },
+        {
+          "type": "text_delta",
+          "text": "添加"
+        },
+        {
+          "type": "text_delta",
+          "text": "验证"
+        },
+        {
+          "type": "text_delta",
+          "text": "行"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "text_delta",
+          "text": "现在"
+        },
+        {
+          "type": "text_delta",
+          "text": "运行"
+        },
+        {
+          "type": "text_delta",
+          "text": "项目"
+        },
+        {
+          "type": "text_delta",
+          "text": "测试"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "project_test",
+          "input": {
+            "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+            "expectedTreeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+            "stepId": "run_test"
+          },
+          "callId": "call_00_K5jgFj2gQJVhIZE2aOCv5746"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "project_test",
+          "result": {
+            "tool": "project_test",
+            "ok": true,
+            "output": {
+              "id": "20213aea-268c-4696-a27d-0640216f7092",
+              "treeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+              "status": "completed",
+              "stdout": "✔ returns the supplied value (0.286875ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 6.650791\n",
+              "stderr": "",
+              "exitCode": 0,
+              "createdAt": "2026-09-08T07:42:21.448Z",
+              "ok": true
+            },
+            "durationMs": 68
+          },
+          "callId": "call_00_K5jgFj2gQJVhIZE2aOCv5746",
+          "toolState": "d692c0c4a30bb4d5006445084de276c3c2cc54b1248b47e7110420a97d4b97e3|"
+        }
+      ],
+      "feedback": "已授权：执行 project_test",
+      "toolState": "d692c0c4a30bb4d5006445084de276c3c2cc54b1248b47e7110420a97d4b97e3|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "测试"
+        },
+        {
+          "type": "text_delta",
+          "text": "通过"
+        },
+        {
+          "type": "text_delta",
+          "text": "（"
+        },
+        {
+          "type": "text_delta",
+          "text": "1"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "个"
+        },
+        {
+          "type": "text_delta",
+          "text": "测试"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "0"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "失败"
+        },
+        {
+          "type": "text_delta",
+          "text": "）。"
+        },
+        {
+          "type": "text_delta",
+          "text": "现在"
+        },
+        {
+          "type": "text_delta",
+          "text": "保存"
+        },
+        {
+          "type": "text_delta",
+          "text": "本地"
+        },
+        {
+          "type": "text_delta",
+          "text": " Git"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "检查"
+        },
+        {
+          "type": "text_delta",
+          "text": "点"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        },
+        {
+          "type": "tool_call",
+          "tool": "project_checkpoint",
+          "input": {
+            "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+            "expectedTreeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+            "stepId": "save_checkpoint",
+            "title": "README 添加合成项目验证行"
+          },
+          "callId": "call_00_ET_9ytNhVvPOe129KirbD0t7696"
+        }
+      ],
+      "toolResults": [
+        {
+          "tool": "project_checkpoint",
+          "result": {
+            "tool": "project_checkpoint",
+            "ok": true,
+            "output": {
+              "projectId": "41371fc2-791a-4f4c-a6e8-20b184a19eaf",
+              "treeHash": "f5ec4c9f60cc865ae3788e7edbb3d01c72618ea2593ec3ef0d16b02d3b48202f",
+              "commit": "1825cc56f678348c4963f1ec76b0d5b259ec1350"
+            },
+            "durationMs": 190
+          },
+          "callId": "call_00_ET_9ytNhVvPOe129KirbD0t7696",
+          "toolState": "d692c0c4a30bb4d5006445084de276c3c2cc54b1248b47e7110420a97d4b97e3:f4e42c348d3fc477d6cee6ce85f72465be43d669a3705a7e45245e4855d65e2f|"
+        }
+      ],
+      "feedback": "已授权：执行 project_checkpoint",
+      "toolState": "d692c0c4a30bb4d5006445084de276c3c2cc54b1248b47e7110420a97d4b97e3:f4e42c348d3fc477d6cee6ce85f72465be43d669a3705a7e45245e4855d65e2f|"
+    },
+    {
+      "events": [
+        {
+          "type": "text_delta",
+          "text": "验收"
+        },
+        {
+          "type": "text_delta",
+          "text": "完成"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "步骤"
+        },
+        {
+          "type": "text_delta",
+          "text": "均"
+        },
+        {
+          "type": "text_delta",
+          "text": "成功"
+        },
+        {
+          "type": "text_delta",
+          "text": "：\n\n"
+        },
+        {
+          "type": "text_delta",
+          "text": "1"
+        },
+        {
+          "type": "text_delta",
+          "text": "."
+        },
+        {
+          "type": "text_delta",
+          "text": " **"
+        },
+        {
+          "type": "text_delta",
+          "text": "修改"
+        },
+        {
+          "type": "text_delta",
+          "text": "**"
+        },
+        {
+          "type": "text_delta",
+          "text": "："
+        },
+        {
+          "type": "text_delta",
+          "text": "在"
+        },
+        {
+          "type": "text_delta",
+          "text": " `"
+        },
+        {
+          "type": "text_delta",
+          "text": "README"
+        },
+        {
+          "type": "text_delta",
+          "text": ".md"
+        },
+        {
+          "type": "text_delta",
+          "text": "`"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "末尾"
+        },
+        {
+          "type": "text_delta",
+          "text": "添加"
+        },
+        {
+          "type": "text_delta",
+          "text": "了一"
+        },
+        {
+          "type": "text_delta",
+          "text": "行"
+        },
+        {
+          "type": "text_delta",
+          "text": "“"
+        },
+        {
+          "type": "text_delta",
+          "text": "合成"
+        },
+        {
+          "type": "text_delta",
+          "text": "项目"
+        },
+        {
+          "type": "text_delta",
+          "text": "验证"
+        },
+        {
+          "type": "text_delta",
+          "text": "："
+        },
+        {
+          "type": "text_delta",
+          "text": "已"
+        },
+        {
+          "type": "text_delta",
+          "text": "检查"
+        },
+        {
+          "type": "text_delta",
+          "text": "示例"
+        },
+        {
+          "type": "text_delta",
+          "text": "文件"
+        },
+        {
+          "type": "text_delta",
+          "text": "。”"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "原"
+        },
+        {
+          "type": "text_delta",
+          "text": "内容"
+        },
+        {
+          "type": "text_delta",
+          "text": "全部"
+        },
+        {
+          "type": "text_delta",
+          "text": "保留"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "未"
+        },
+        {
+          "type": "text_delta",
+          "text": "改动"
+        },
+        {
+          "type": "text_delta",
+          "text": "其他"
+        },
+        {
+          "type": "text_delta",
+          "text": "文件"
+        },
+        {
+          "type": "text_delta",
+          "text": "。\n"
+        },
+        {
+          "type": "text_delta",
+          "text": "2"
+        },
+        {
+          "type": "text_delta",
+          "text": "."
+        },
+        {
+          "type": "text_delta",
+          "text": " **"
+        },
+        {
+          "type": "text_delta",
+          "text": "实际"
+        },
+        {
+          "type": "text_delta",
+          "text": "测试"
+        },
+        {
+          "type": "text_delta",
+          "text": "**"
+        },
+        {
+          "type": "text_delta",
+          "text": "："
+        },
+        {
+          "type": "text_delta",
+          "text": "运行"
+        },
+        {
+          "type": "text_delta",
+          "text": "已有"
+        },
+        {
+          "type": "text_delta",
+          "text": " `."
+        },
+        {
+          "type": "text_delta",
+          "text": "test"
+        },
+        {
+          "type": "text_delta",
+          "text": ".m"
+        },
+        {
+          "type": "text_delta",
+          "text": "js"
+        },
+        {
+          "type": "text_delta",
+          "text": "`"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "1"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "个"
+        },
+        {
+          "type": "text_delta",
+          "text": "测试"
+        },
+        {
+          "type": "text_delta",
+          "text": "通过"
+        },
+        {
+          "type": "text_delta",
+          "text": "、"
+        },
+        {
+          "type": "text_delta",
+          "text": "0"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "失败"
+        },
+        {
+          "type": "text_delta",
+          "text": "，"
+        },
+        {
+          "type": "text_delta",
+          "text": "退出"
+        },
+        {
+          "type": "text_delta",
+          "text": "码"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "0"
+        },
+        {
+          "type": "text_delta",
+          "text": "。\n"
+        },
+        {
+          "type": "text_delta",
+          "text": "3"
+        },
+        {
+          "type": "text_delta",
+          "text": "."
+        },
+        {
+          "type": "text_delta",
+          "text": " **"
+        },
+        {
+          "type": "text_delta",
+          "text": "Git"
+        },
+        {
+          "type": "text_delta",
+          "text": " "
+        },
+        {
+          "type": "text_delta",
+          "text": "检查"
+        },
+        {
+          "type": "text_delta",
+          "text": "点"
+        },
+        {
+          "type": "text_delta",
+          "text": "**"
+        },
+        {
+          "type": "text_delta",
+          "text": "："
+        },
+        {
+          "type": "text_delta",
+          "text": "已"
+        },
+        {
+          "type": "text_delta",
+          "text": "保存"
+        },
+        {
+          "type": "text_delta",
+          "text": "本地"
+        },
+        {
+          "type": "text_delta",
+          "text": "检查"
+        },
+        {
+          "type": "text_delta",
+          "text": "点"
+        },
+        {
+          "type": "text_delta",
+          "text": "（"
+        },
+        {
+          "type": "text_delta",
+          "text": "commit"
+        },
+        {
+          "type": "text_delta",
+          "text": " `"
+        },
+        {
+          "type": "text_delta",
+          "text": "182"
+        },
+        {
+          "type": "text_delta",
+          "text": "5"
+        },
+        {
+          "type": "text_delta",
+          "text": "cc"
+        },
+        {
+          "type": "text_delta",
+          "text": "56"
+        },
+        {
+          "type": "text_delta",
+          "text": "`"
+        },
+        {
+          "type": "text_delta",
+          "text": "）。\n\n"
+        },
+        {
+          "type": "text_delta",
+          "text": "结果"
+        },
+        {
+          "type": "text_delta",
+          "text": "："
+        },
+        {
+          "type": "text_delta",
+          "text": "接入"
+        },
+        {
+          "type": "text_delta",
+          "text": "验收"
+        },
+        {
+          "type": "text_delta",
+          "text": "成功"
+        },
+        {
+          "type": "text_delta",
+          "text": "。"
+        }
+      ],
+      "toolResults": [],
+      "toolState": "a268aefdd6d95095ac0f4c96b26d5127c37cdb92b55203910edaeab2040ac2a4:d692c0c4a30bb4d5006445084de276c3c2cc54b1248b47e7110420a97d4b97e3:f4e42c348d3fc477d6cee6ce85f72465be43d669a3705a7e45245e4855d65e2f|"
+    }
+  ]
+}

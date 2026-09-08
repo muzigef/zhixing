@@ -18,11 +18,13 @@ export function mergeOutcomeExports(raw: unknown[]) {
       if (previous) {
         duplicates++;
         for (const key of ["topicId", "mode", "bankVersion", "createdAt", "repeated"] as const) if (previous.trial[key] !== trial[key]) throw new Error("outcome_export_conflict");
+        if ((previous.trial.protocol ?? "prompt_only") !== (trial.protocol ?? "prompt_only") || previous.trial.provenance && trial.provenance && JSON.stringify(previous.trial.provenance) !== JSON.stringify(trial.provenance) || previous.trial.lesson && trial.lesson && JSON.stringify(previous.trial.lesson) !== JSON.stringify(trial.lesson)) throw new Error("outcome_export_conflict");
         for (const phase of ["pre", "post", "delayed"] as const) {
           const before = previous.trial.results[phase]; const after = trial.results[phase];
           if (before && after && JSON.stringify(before) !== JSON.stringify(after)) throw new Error("outcome_export_conflict");
         }
         if (Date.parse(previous.exportedAt) >= Date.parse(file.exportedAt)) continue;
+        if (previous.trial.provenance && !trial.provenance || previous.trial.lesson && !trial.lesson) throw new Error("outcome_export_conflict");
         if (Object.keys(previous.trial.results).some(phase => !trial.results[phase as keyof typeof trial.results])) throw new Error("outcome_export_conflict");
       }
       records.set(trial.id, { trial, exportedAt: file.exportedAt });

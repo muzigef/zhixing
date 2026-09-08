@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { topicIdSchema } from "./contracts.js";
 
 export const topicPlanSchema = z.object({

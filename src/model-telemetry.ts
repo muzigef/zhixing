@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export const modelPhaseSchema = z.enum(["initializing", "requesting", "waiting", "responding", "tool_preparing", "finishing"]);
 export type ModelPhase = z.infer<typeof modelPhaseSchema>;

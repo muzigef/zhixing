@@ -1,6 +1,7 @@
+import type { BuildProvenance } from "./build-provenance-contracts.js";
 import { createHash } from "node:crypto";
 export interface QualityCase { id: string; prompt: string; criteria: string[]; seed?: { role: "user" | "assistant"; text: string; status: "completed" | "interrupted" }[]; }
-export interface QualityAnswer { status: string; text: string; error?: string; durationMs?: number; firstTokenMs?: number; model?: string; items?: unknown[]; usage?: unknown; reasoning?: string; timings?: { turns: number; toolCalls: number; [key: string]: unknown }; quality?: unknown; modelTimings?: unknown; }
+export interface QualityAnswer { status: string; text: string; error?: string; durationMs?: number; firstTokenMs?: number; model?: string; items?: unknown[]; usage?: unknown; reasoning?: string; timings?: { turns: number; toolCalls: number; [key: string]: unknown }; quality?: unknown; evidenceSupport?: unknown; modelTimings?: unknown; }
 export function qualitySeed(id: string): { role: "user" | "assistant"; text: string; status: "completed" | "interrupted" }[] {
   const pair = (user: string, assistant: string, status: "completed" | "interrupted" = "completed") => [{ role: "user" as const, text: user, status: "completed" as const }, { role: "assistant" as const, text: assistant, status }];
   if (id === "R03") return pair("解释缓存的好处与更新代价，举网页例子。", "缓存能减少重复工作、降低延迟，但更新后可能读到过期结果，需要失效策略。网页缓存是一个例子。");
@@ -32,4 +33,4 @@ export async function evaluateQuality(cases: QualityCase[], providers: string[],
   }
   return report;
 }
-export interface QualityReport { version: number; syntheticOnly: boolean; startedAt: string; datasetHash?: string; expectedResults?: number; conditions?: { dataset: string; codeHash: string; requestedReasoning: string }; results: (QualityCase & QualityAnswer & { provider: string; repetition: number; attempted: boolean; review: "pending_human_review" | "unavailable" })[]; }
+export interface QualityReport { version: number; syntheticOnly: boolean; startedAt: string; datasetHash?: string; expectedResults?: number; conditions?: { provenance?: BuildProvenance; dataset: string; codeHash: string; requestedReasoning: string }; results: (QualityCase & QualityAnswer & { provider: string; repetition: number; attempted: boolean; review: "pending_human_review" | "unavailable" })[]; }

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { settingsSchema, type DesktopSettings } from "./contracts.js";
 import { AgentSessionStore, readJson, atomicJson } from "../../src/agent-session-store.js";
 /** Desktop preferences stay in the transport adapter; conversations use the shared store. */

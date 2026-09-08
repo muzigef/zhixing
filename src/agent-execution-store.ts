@@ -1,6 +1,7 @@
+import { permissionSchema, type AgentPermissions } from "./agent-permissions.js";
 import { topicIdSchema } from "./contracts.js";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { ZhixingDatabase } from "./database.js";
 import type { ModelMessage, ModelTurn } from "./model.js";
 
@@ -15,9 +16,10 @@ const checkpointSchema = z.object({
   prompt: z.string().max(128_000), messages: z.array(z.object({ role: z.enum(["system", "user", "assistant", "observation"]), content: z.string().max(128_000) })).max(200).optional(),
   history: z.array(turnSchema).max(128),
   pending: turnSchema.extend({ next: z.number().int().min(0).max(128), phase: z.enum(["ready", "executing", "waiting"]), executingUntil: z.number().int().min(1).max(128).optional() }).optional(),
-  decisions: z.record(decisionSchema).default({}),
+  decisions: z.record(z.string(), decisionSchema).default({}),
   partialText: z.string().max(64_000).optional(),
   containsMaterials: z.boolean().default(false),
+  contextAccess: permissionSchema.optional(),
   steerId: z.string().uuid().optional(),
 });
 export interface ExecutionCheckpoint {
@@ -30,9 +32,11 @@ export interface ExecutionCheckpoint {
   decisions: Record<string, z.infer<typeof decisionSchema>>;
   partialText?: string;
   containsMaterials: boolean;
+  contextAccess?: AgentPermissions;
   steerId?: string;
 }
 export interface ExecutionIdentity { taskId: string; sessionId: string; topicId: string; }
+export interface TaskUsage { segments: number; modelTurns: number; toolCalls: number; inputTokens: number; outputTokens: number; elapsedMs: number; lastStopReason: string; }
 type Row = { session_id: string; topic_id: string; checkpoint: string | null; lease: string | null; pid: number | null };
 
 /** Local execution journal. Canonical transcripts exclude provider-private reasoning.
@@ -49,6 +53,18 @@ export class AgentExecutionStore {
       CREATE TABLE IF NOT EXISTS agent_execution_events (
       task_id TEXT NOT NULL REFERENCES agent_executions(task_id), sequence INTEGER NOT NULL,
       type TEXT NOT NULL, call_id TEXT, at TEXT NOT NULL, PRIMARY KEY(task_id, sequence));`);
+    database.db.exec("CREATE TABLE IF NOT EXISTS agent_task_usage (task_id TEXT PRIMARY KEY REFERENCES agent_executions(task_id), value TEXT NOT NULL)");
+  }
+  usage(): TaskUsage {
+    this.row();
+    const row = this.database.db.prepare("SELECT value FROM agent_task_usage WHERE task_id=?").get(this.identity.taskId) as { value: string } | undefined;
+    return row ? JSON.parse(row.value) as TaskUsage : { segments: 0, modelTurns: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0, elapsedMs: 0, lastStopReason: "not_started" };
+  }
+  recordUsage(segment: TaskUsage): void {
+    if (!this.lease || this.row()?.lease !== this.lease) throw new Error("execution_lease_required");
+    const previous = this.usage(); const next = { ...segment };
+    for (const key of ["segments", "modelTurns", "toolCalls", "inputTokens", "outputTokens", "elapsedMs"] as const) next[key] = previous[key] + z.number().finite().nonnegative().parse(segment[key]);
+    this.database.db.prepare("INSERT INTO agent_task_usage VALUES (?,?) ON CONFLICT(task_id) DO UPDATE SET value=excluded.value").run(this.identity.taskId, JSON.stringify(next));
   }
   static claimSession(database: ZhixingDatabase, sessionId: string): () => void {
     z.string().uuid().parse(sessionId);

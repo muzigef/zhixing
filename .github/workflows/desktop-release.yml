@@ -26,7 +26,8 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             desktop/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: node scripts/check-lockfiles.mjs
+      - run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
       - run: npm ci --prefix desktop --no-audit --no-fund
       - name: Audit CLI production dependencies
         run: npm audit --omit=dev --audit-level=high

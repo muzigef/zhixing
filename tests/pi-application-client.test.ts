@@ -14,12 +14,13 @@ it("bridges native structured tool turns through stdin without enabling any nati
     const runner: PiProcessRunner = async function* (request) { requests.push(request); yield { type: "stdout", data: Buffer.from([ { type: "tool_call", tool: "learning_progress", input: {}, callId: "1" }, { type: "provider_state", result: { provider: "openai-codex", model: "fixture", role: "assistant" } }, { type: "done" } ].map((event) => JSON.stringify(event)).join("\n")) }; yield { type: "exit", code: 0 }; };
     const client = new PiApplicationClient({ projectDir: root, executable: "node", worker: "worker.mjs", sdk: "sdk.js", environment: { PI_CODING_AGENT_DIR: root }, runner });
     const events: ModelEvent[] = [];
-    for await (const event of client.stream("问", new AbortController().signal, { messages: [{ role: "system", content: "规则" }, { role: "user", content: "问" }], tools: [{ name: "learning_progress", description: "进度", inputSchema: { type: "object" } }] })) events.push(event);
+    for await (const event of client.stream("问", new AbortController().signal, { maxOutputTokens: 1024, messages: [{ role: "system", content: "规则" }, { role: "user", content: "问" }], tools: [{ name: "learning_progress", description: "进度", inputSchema: { type: "object" } }] })) events.push(event);
     expect(events.map((event) => event.type)).toEqual(["progress", "tool_call", "provider_state", "done"]);
     expect(requests[0]?.args).toEqual(["worker.mjs", "sdk.js"]);
     const payload = JSON.parse(requests[0]!.input);
     expect(payload.options.messages[0].role).toBe("system");
     expect(payload.options.tools[0].name).toBe("learning_progress");
+    expect(payload.options.maxOutputTokens).toBe(1024);
     expect(payload.selection.model).toBe("fixture");
     expect(requests[0]?.args.join(" ")).not.toContain("问");
   } finally { await fs.rm(root, { recursive: true, force: true }); }

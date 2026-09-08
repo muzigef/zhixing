@@ -29,7 +29,7 @@ days:
 
 ## 2. SQLite Schema
 
-数据库位于 `<ZHIXING_ROOT>/zhixing/db/zhixing.sqlite`，启用 foreign keys、WAL；当前迁移记录为 1、2、3。CLI 默认根为代码仓库的父目录，见 [配置](CONFIGURATION.md)。主要业务数据表带 `topic_id`；`workflow_steps` 经 `run_id` 关联运行所属主题，`schema_migrations` 是全局元数据。显式全局记忆查询是跨主题读取入口。
+数据库位于 `<ZHIXING_ROOT>/zhixing/db/zhixing.sqlite`，启用 foreign keys、WAL；当前迁移记录为 1、2、3、4、5。CLI 默认根为代码仓库的父目录，见 [配置](CONFIGURATION.md)。主要业务数据表带 `topic_id`；`workflow_steps` 经 `run_id` 关联运行所属主题，`schema_migrations` 是全局元数据。显式全局记忆查询是跨主题读取入口。
 
 | 表 | 核心字段 | 用途与索引 |
 | --- | --- | --- |
@@ -117,6 +117,14 @@ EvidenceStore 在 `learning-notes/topics/<topicId>/evidence/<DNN>/` 保存带哈
 
 ## 0.4 数据追加
 
-会话 v2 增加 taskId、items（progress/final/question/approval/artifact）、usage、reasoning、retrievedCitations 和分支关系；原 v1 首次保存前备份，不接受未来版本。SQLite v4 兼容已有数据，执行任务/操作、独立课程作答与可选语义向量分别由对应 Store 建表。`assistant_operations` 最多 64 项/任务，计划最多 12 步；正文与工具结果保留在本地执行数据中，全量备份包含这些用户数据。
+会话 v2 增加 taskId、items（progress/final/question/approval/artifact）、usage、reasoning、retrievedCitations 和分支关系；原 v1 首次保存前备份，不接受未来版本。SQLite v5 兼容已有数据，执行任务/操作、独立课程作答与可选语义向量分别由对应 Store 建表。`assistant_operations` 最多 64 项/任务，计划最多 12 步；正文与工具结果保留在本地执行数据中，全量备份包含这些用户数据。
 
 `semantic_embeddings`按模型 digest、chunk id、content hash 隔离。引用 marker 命中与检索候选分开，不等于事实核实。独立检查的成功、证据完整性和测试成功互不替代；复习为 1/3/7 天。备份 v1 清单逐文件保存 path/bytes/SHA-256，拒绝越界、符号链接、大小超限与未来数据库版本，恢复不覆盖原工作区。见 [0.4 指南](agent-0.4.md)。
+
+## 0.6 持久化补充
+
+会话格式 v5 保存三类访问绑定、限定写入授权、完整产品试验协议、逐轮构建/预算/授权证据。读取 v1–v4 不改写，首次保存前保留原文件；SQLite 标记 5 使旧应用拒绝新语义。存储中的原始历史和未知操作不因模型上下文裁剪而删除。
+
+课程检查题库 `2026-09-08.2` 在每主题/学习日交替下发两种情境，题目、答案键、知识点、题库版本、题卷 ID 先持久保存；提交按该次原题评分，旧记录缺失新版本字段时仍用原题。帮助方式仍分别记录。效果验证保留原三份情境卷 v1，另用 `prompt_only` / `full_product` 区分试验协议，不能混为同一处理组。
+
+新增表由所属 Store 创建：`tool_result_payloads`（有界工具原文）、`agent_task_usage`（累计用量）、项目快照/修改日志/回执表；会话索引为可重建缓存。导出、备份和实际数据契约见 [0.6 指南](agent-0.6.md)。

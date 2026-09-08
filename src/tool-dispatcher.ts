@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { AgentLoop } from "./agent-loop.js";
 import type { TopicId } from "./contracts.js";
 import { RunContext } from "./run-context.js";

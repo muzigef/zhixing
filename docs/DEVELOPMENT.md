@@ -13,7 +13,7 @@ npm ci --prefix desktop
 npm run smoke:mock
 ```
 
-根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.5.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
+根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.6.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
 
 CLI 使用 `better-sqlite3` 原生模块，真实 Keychain 集成和 `LocalSandbox` 的 `sandbox-exec` 封装依赖 macOS；本地扫描 PDF OCR 另外需要 `pdftoppm` 与 `tesseract`，普通 Markdown/文字 PDF 和模拟 OCR 测试不要求安装它们。桌面源码开发仍使用上述 Node 环境；安装后的桌面应用内附 Electron Node 和 Pi，不要求用户安装系统 Node/Pi 可执行文件，但 Pi 认证仍需单独配置。平台交付范围见[桌面说明](../desktop/README.md)。
 
@@ -118,3 +118,5 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 0.5 的增量契约见 [冻结计划](agent-p1-p2-plan.md)。根目录与桌面分别依赖固定版本 Ajv/ajv-formats，校验在工作线程执行；修改外部工具时要同时验证普通 Node 和实际 ASAR 应用中的模块解析。实践项目测试使用临时独立 Git 仓库，不可使用开发仓库代替夹具。发布工作流在 macOS 构建前追加完整 `verify`，所有平台继续验证开发和实际包 UI；Windows 的隔离执行仍明确不可用。
 
 真实质量评测与评分导入见 [评测指南](agent-quality-evaluation.md)，项目双 Provider 合成脚本见 [项目指南](practice-projects.md)。不将这两类可选联网检查放进默认 CI；保存失败报告和评分来源，不能用 mock 回答证明模型能力。
+
+0.6 验收按 [C01–C12](agent-architecture-next-plan.md) 执行：每切片完整 verify 和适用 UI。构建自动生成来源 manifest，真实评测使用合成工作区并保存同一来源字段；两套锁文件必须只用公共 npm registry，可运行 `node scripts/check-lockfiles.mjs`。会话 v5 / 数据库 5 的迁移兼容要用临时夹具验证，不能用真实工作区测试。

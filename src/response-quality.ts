@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export const responseObservationSchema = z.object({
   code: z.enum(["continuation_repeat_removed", "unclosed_code", "unclosed_math", "math_layout", "bare_latex", "unverified_citation", "paragraph_count"]),

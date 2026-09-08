@@ -2,6 +2,7 @@ import type { ContinuableModelClient, ModelEvent, ModelRequestOptions, ModelUsag
 import { assertLiveProviderAllowed } from "./provider-policy.js";
 import type { SecretStore } from "./secret-store.js";
 import { abortable } from "./abortable.js";
+import { adapterCapabilities, outputTokenLimit } from "./model-capabilities.js";
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 const MAX_SSE_FRAME_BYTES = 64 * 1024;
@@ -13,6 +14,7 @@ type Payload = { error?: unknown; usage?: { prompt_tokens?: number; completion_t
 
 /** Stateless, bounded text/tool adapter. Every request carries its own conversation. */
 export class DeepSeekClient implements ContinuableModelClient {
+  readonly capabilities = adapterCapabilities(true, "configurable");
   constructor(
     private readonly secrets: SecretStore,
     private readonly fetcher: FetchLike = fetch,
@@ -44,7 +46,7 @@ export class DeepSeekClient implements ContinuableModelClient {
       const response = await abortable(() => this.fetcher(this.endpoint, {
         method: "POST", signal,
         headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model: this.model, messages, stream: true, stream_options: { include_usage: true }, max_tokens: 16384,
+        body: JSON.stringify({ model: this.model, messages, stream: true, stream_options: { include_usage: true }, max_tokens: outputTokenLimit(options?.maxOutputTokens),
           thinking: { type: options?.reasoning && options.reasoning !== "quick" ? "enabled" : "disabled" },
           ...(options?.reasoning && options.reasoning !== "quick" ? { reasoning_effort: options.reasoning === "deep" ? "high" : "low" } : {}),
           ...(options?.tools?.length ? { tools: options.tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.inputSchema } })) } : {}),

@@ -54,6 +54,8 @@ try {
   assert.equal(await page.getByRole("button", { name: "开始延迟复习", exact: true }).isDisabled(), true);
   const snapshot = await page.evaluate(async () => window.zhixing.invoke({ type: "outcome-list", topicId: "rag" }));
   assert.equal(snapshot.ok, true); const trial = snapshot.data.trials[0];
+  assert.equal(trial.protocol, "full_product"); assert.match(trial.provenance.codeHash, /^[a-f0-9]{64}$/);
+  assert.equal(trial.lesson.conditions[0].codeHash, trial.provenance.codeHash);
   assert.equal(trial.stage, "waiting"); assert.equal(trial.results.pre.correctCount, 0);
   assert.equal(trial.results.post.assistance, "hint"); assert.equal(trial.feedback, undefined);
   assert.equal(snapshot.data.report.exclusions.demo, 1);
@@ -86,6 +88,17 @@ try {
   await page.getByRole("combobox", { name: "验证学习方式" }).selectOption("zhixing");
   await page.getByRole("button", { name: "开始学习验证", exact: true }).click();
   await page.getByText(/本次作为重复练习保留/).waitFor();
+  await answer(page, "学前检查", "independent");
+  await page.getByRole("button", { name: "进入本次学习对话", exact: true }).click();
+  await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).check();
+  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "课程与资料", exact: true }).click();
+  await page.getByRole("button", { name: "结束学习，开始学后检查", exact: true }).click();
+  await page.getByRole("button", { name: "保存学后检查", exact: true }).waitFor();
+  const product = await page.evaluate(async () => window.zhixing.invoke({ type: "outcome-list", topicId: "rag" }));
+  assert.equal(product.data.trials[0].lesson.access[0].materials, true);
+  assert.equal(product.data.trials[0].protocol, "full_product");
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("combobox", { name: "学习主题", exact: true }).selectOption("agent-development");
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();

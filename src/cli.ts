@@ -200,6 +200,27 @@ async function execute(line: string): Promise<string> {
   let command = line.trim();
   if (!command) return "";
   if (command.length > 8_000) return "这条消息太长，请拆成几条发送（每条最多 8,000 字符）。";
+  if (command === "/task" || command.startsWith("/task ")) {
+    await cliAgent.ensure(chat); const session = await cliAgent.service.load(chat.id);
+    const taskId = session.messages.findLast(message => message.taskId)?.taskId;
+    if (!taskId) return "当前对话还没有任务。";
+    const info = await cliAgent.service.taskInfo(chat.id, taskId);
+    const goal = command.startsWith("/task revise ") ? command.slice(13).trim() : undefined;
+    if (goal) { await cliAgent.service.reviseTask(chat.id, taskId, info.task?.revision ?? 0, goal); await cliAgent.service.idle(); chat = await chats.save(await cliAgent.projection(chat)); conversation.splice(0, conversation.length, ...conversationHistory(chat)); return "已保存目标修订并继续，旧计划与实际操作均保留。"; }
+    if (command === "/task verify") {
+      if (!info.recovery) return "当前没有待核对的外部操作。";
+      const verified = await cliAgent.service.verifyRecovery(chat.id, taskId, info.recovery.callId);
+      const receipt = verified.receipts.at(-1)?.result as { outcome?: string } | undefined;
+      return receipt?.outcome === "succeeded" ? "服务确认该操作已执行。原响应未取得，核对记录已保存，可以继续任务。" : "服务确认该操作未执行。核对记录已保存，可以继续任务。";
+    }
+    const report = /^\/task report (reported_success|reported_not_executed|abandoned) ([\s\S]+)$/.exec(command);
+    if (report) {
+      if (!info.recovery) return "当前没有待核对的外部操作。";
+      await cliAgent.service.reportRecovery(chat.id, taskId, info.recovery.callId, { outcome: report[1] as "reported_success" | "reported_not_executed" | "abandoned", note: report[2]! });
+      return "已记录你的观察，未将其标记为服务核验。可以继续原任务；后续外部写入需重新授权。";
+    }
+    return `当前目标：${info.task?.goal ?? "自由对话"}\n计划修订：${info.task?.revision ?? 0}\n累计 ${info.usage.modelTurns} 轮模型请求、${info.usage.toolCalls} 次工具请求\n${info.task?.plan.map(step => `${step.completed ? "✓" : "○"} ${step.title}`).join("\n") ?? "尚无执行计划"}\n${info.recovery ? "外部操作结果待核对；/task verify 可使用配置的只读核验规则。" : "没有待核对的外部操作。"}\n/task revise <新目标> 保存修订并继续\n/task report reported_success|reported_not_executed|abandoned <核对说明> 记录用户观察`;
+  }
   if (["/queue", "/queue resume", "/queue clear"].includes(command)) {
     await cliAgent.ensure(chat);
     if (command === "/queue resume") { await cliAgent.service.resumeQueue(chat.id); await cliAgent.service.idle(); chat = await chats.save(await cliAgent.projection(chat)); conversation.splice(0, conversation.length, ...conversationHistory(chat)); }
@@ -207,13 +228,19 @@ async function execute(line: string): Promise<string> {
     const state = await cliAgent.service.load(chat.id);
     return `待发送 ${state.pendingRequests?.length ?? 0} 条${state.queuePaused ? "（已暂停，/queue resume 继续）" : ""}\n${state.pendingRequests?.map(item => item.text).join("\n") ?? ""}`;
   }
+  if (command === "/permissions" || command.startsWith("/permissions ")) {
+    await cliAgent.ensure(chat);
+    const selection = { materials: /(?:^|\s)--允许外发(?:\s|$)/.test(command), project: /(?:^|\s)--允许项目(?:\s|$)/.test(command), external: /(?:^|\s)--允许外部(?:\s|$)/.test(command) };
+    const state = command === "/permissions" ? await cliAgent.service.load(chat.id) : await cliAgent.service.updatePermissions(chat.id, selection, command.includes("--撤回操作"));
+    return `当前授权：${JSON.stringify(state.permissions ?? { materials: state.contextAllowed ?? false })}\n记住的操作：${state.writeGrants?.map(grant => grant.label).join("；") || "无"}\n/permissions --撤回全部 可撤回访问与操作权限；按需组合 --允许外发、--允许项目、--允许外部。`;
+  }
   if (command.startsWith("/agent ") || command.startsWith("/answer ")) {
     if (!providers.supportsTools("tutor")) throw new Error("provider_tools_unsupported");
     chat = await chats.save(chat);
     await cliAgent.ensure(chat);
     const answer = /^\/answer\s+([0-9a-f-]{36})\s+([\s\S]+)$/.exec(command);
     if (answer) await cliAgent.service.answerInteraction(chat.id, answer[1]!, answer[2]!);
-    else if (command.startsWith("/agent ")) await cliAgent.service.send({ sessionId: chat.id, text: command, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle, topicId: activeTopic, contextAllowed: /\s+--允许外发$/.test(command) });
+    else if (command.startsWith("/agent ")) await cliAgent.service.send({ sessionId: chat.id, text: command, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle, topicId: activeTopic, access: { materials: /(?:^|\s)--允许外发(?:\s|$)/.test(command), project: /(?:^|\s)--允许项目(?:\s|$)/.test(command), external: /(?:^|\s)--允许外部(?:\s|$)/.test(command) } });
     else return "用法：/answer <卡片 ID> allow|deny|回答内容";
     await cliAgent.service.idle();
     const session = await cliAgent.service.load(chat.id); const message = session.messages.at(-1)!;
@@ -264,6 +291,7 @@ async function execute(line: string): Promise<string> {
 - 会话：/new 开启新对话，/resume 找回旧对话，继续 / 重试
 - 多行输入：/paste 后粘贴，单独 /send 发送；也可用反斜杠换行
 - 排队：/queue 查看，/queue clear 撤回，/queue resume 继续持久队列
+- 任务：/task 查看计划与累计用量；/task revise <新目标> 保留旧计划并继续；/task verify 核对未知外部操作
 - 应用任务：/agent <任务> --允许外发；/answer <卡片 ID> allow|deny|回答内容
 - 调整计划：直接描述需求；确认草案后执行
 - 取消草案：/cancel-plan

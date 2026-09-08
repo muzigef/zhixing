@@ -19,7 +19,7 @@
 | 全局控制层 | 每轮输入先归为确定性命令、计划确认、教学输入或自然输入；随后才进入对应状态机和内容生成。 | `tests/interaction-protocol.test.ts` |
 | 全局对话策略 | 命令、模型计划和教学分类共用授权/确认/用户原文证据策略；模型输出只能作为提议，不能单独触发状态写入或批改。 | `tests/interaction-protocol.test.ts`、`tests/teaching-dialogue.test.ts` |
 | 运行账本 | 经过 RunManager 的前台业务操作有脱敏审计和 SQLite 运行/步骤账本；帮助、即时状态等控制命令不逐一记入账本。遗留运行启动时标记为中断，不自动重放写操作。 | `tests/run-manager.test.ts`、`tests/workflow-ledger.test.ts` |
-| 工具执行契约 | DeepSeek 的普通自由问答与显式学习助手可多轮调用当前主题进度、资料目录、按次授权正文检索；完整维护 call ID 与工具历史。ToolHarness 校验 schema、主题、风险、截止时间与结果上限；教学阶段和两个 Codex adapter 仍走文本协议。 | `tests/agent-continuation.test.ts`、`tests/learning-agent-cli.test.ts`、`tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
+| 工具执行契约 | DeepSeek 的普通自由问答与显式学习助手可多轮调用当前主题进度、资料目录、按次授权正文检索；完整维护 call ID 与工具历史。ToolHarness 校验 schema、主题、风险、截止时间与结果上限；旧 CLI 教学与 Pi/Codex CLI 保留文本协议；桌面 Pi SDK 与 DeepSeek 支持原生工具续接。 | `tests/agent-continuation.test.ts`、`tests/learning-agent-cli.test.ts`、`tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
 | 数据生命周期 | 可确认写入记忆、按 ID 忘记当前主题记忆、预览/确认删除资料、手动备份与确认恢复数据库。CLI 没有主题删除、自动每日备份、学习数据整体导出或迁移前自动备份。 | `tests/backup-service.test.ts`、`tests/cli-workflow.test.ts` |
 | 连续对话 | 每主题保存最近 6 轮及独立初始目标；新建/恢复会话、继续/重试、生成时排队输入、即时状态/停止/调整、每主题回答风格及终端 Markdown。 | `tests/conversation-session.test.ts`、`tests/repl-controller.test.ts`、`tests/repl-input.test.ts`、`tests/terminal-markdown.test.ts` |
 
@@ -56,3 +56,7 @@ CLI 真实 Provider 使用当前主题的必要信息：资料问答发送检索
 本轮本地回归、实包与 12 项真实回答结果见 [0.4 Evidence](evidence/agent-next.md)；旧记录是历史基线。
 
 0.4 已增加结构化角色、双 Provider 应用工具、幂等恢复、推理档位/usage、审批/提问卡、编辑分支与比较、中文同义词与可选语义索引、独立课程检查、桌面技能及全量备份迁移。能力范围和外部验收见 [0.4 指南](agent-0.4.md)。
+
+## 0.6 增量验收索引
+
+C01–C12 的完整任务和验收条件见 [计划](agent-architecture-next-plan.md)，实际结果见 [本轮 Evidence](evidence/agent-architecture-next.md)。代表性回归包括 `provider-tool-contract`（双模型协议）、`task-continuity`（未知结果与修订）、`agent-permissions`（独立授权与撤回）、`teaching-policy`（实际知识点证据）、`evidence-support`（来源版本与主张）、`model-capabilities`（预算/模态）、`lazy-mcp`、`project-revisions`、`session-scaling`、`skill-catalog`、`product-validation` 和 `desktop-migration`。这些是 `tests/` 中同名 `.test.ts` 文件，完整 verify 还包含既有回归。

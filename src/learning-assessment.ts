@@ -1,11 +1,13 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import crypto from "node:crypto";
 import type { ZhixingDatabase } from "./database.js";
 import { dayIdSchema } from "./evidence-store.js";
 import { topicIdSchema } from "./contracts.js";
-import { assistanceSchema, type Assistance } from "./learning-observations.js";
+import { assistanceSchema, conceptEvidenceSchema, type Assistance } from "./learning-observations.js";
+import { CONCEPT_VERSION, topicConcepts } from "./learning-concepts.js";
+import { ASSESSMENT_BANK_VERSION, assessmentVariants } from "./assessment-variants.js";
 
-interface Check { title: string; choices: string[]; correct: number; explanation: string; }
+interface Check { title: string; choices: string[]; correct: number; explanation: string; conceptId?: string; catalogVersion?: string; bankVersion?: string; formId?: number; }
 const check = (title: string, choices: string[], correct: number, explanation: string): Check => ({ title, choices, correct, explanation });
 /** Instructor-owned checks, including counterexamples; never copied from learner test scripts. */
 const catalog: Record<string, Check[][]> = {
@@ -30,17 +32,22 @@ const catalog: Record<string, Check[][]> = {
     [check("遇到不确定的追问，怎样回答更可核验？", ["编造细节", "明确已知边界，并说明验证方法", "重复产品口号"], 1, "不确定性需要明确边界与验证路径。"), check("复盘一次失败，最有价值的内容是什么？", ["失败触发条件、原因、修复与回归证据", "只有成功截图", "泛泛总结经验"], 0, "可复现的失败和修复证据能支持后续改进。")],
   ],
 };
-export interface AssessmentResult { id: string; topicId: string; dayId: string; status: "practice_needed" | "checks_passed"; correctCount: number; total: number; errorCauses: string[]; explanations: string[]; reflection: string; assistance?: Assistance; reviewAt: string; submittedAt: string; }
+export interface AssessmentResult { id: string; topicId: string; dayId: string; status: "practice_needed" | "checks_passed"; correctCount: number; total: number; errorCauses: string[]; explanations: string[]; reflection: string; assistance?: Assistance; concepts?: z.infer<typeof conceptEvidenceSchema>[]; bankVersion?: string; formId?: number; reviewAt: string; submittedAt: string; }
 export class AssessmentStore {
   constructor(private readonly database: ZhixingDatabase) {
     database.db.exec("CREATE TABLE IF NOT EXISTS learning_assessments(id TEXT PRIMARY KEY, topic TEXT NOT NULL, day TEXT NOT NULL, checks TEXT NOT NULL, answers TEXT, result TEXT, created_at TEXT NOT NULL)");
   }
   issue(topic: string, day: string) {
     topicIdSchema.parse(topic); dayIdSchema.parse(day);
-    const checks = catalog[topic]?.[Number(day.slice(1)) - 1]; if (!checks) throw new Error("assessment_not_available");
+    return this.database.db.transaction(() => {
+    const count = this.database.db.prepare("SELECT COUNT(*) AS count FROM learning_assessments WHERE topic=? AND day=?").get(topic, day) as { count: number };
+    const formId = count.count % 2;
+    const authored = (formId ? assessmentVariants : catalog)[topic]?.[Number(day.slice(1)) - 1]; if (!authored) throw new Error("assessment_not_available");
+    const checks = authored.map((item, index) => ({ ...item, conceptId: topicConcepts(topic).find(concept => concept.dayId === day && concept.questionIndex === index)?.id, catalogVersion: CONCEPT_VERSION, bankVersion: ASSESSMENT_BANK_VERSION, formId }));
     const id = crypto.randomUUID();
     this.database.db.prepare("INSERT INTO learning_assessments(id,topic,day,checks,created_at) VALUES(?,?,?,?,?)").run(id, topic, day, JSON.stringify(checks), new Date().toISOString());
-    return { id, topicId: topic, dayId: day, questions: checks.map(({ title, choices }) => ({ title, choices })) };
+    return { id, topicId: topic, dayId: day, bankVersion: ASSESSMENT_BANK_VERSION, formId, questions: checks.map(({ title, choices }) => ({ title, choices })) };
+    })();
   }
   submit(topic: string, day: string, id: string, raw: number[], reflection: string, now = new Date(), assistance: Assistance = "unknown"): AssessmentResult {
     assistanceSchema.parse(assistance);
@@ -57,6 +64,8 @@ export class AssessmentStore {
     const days = errors.length || assisted ? 1 : previous?.status === "checks_passed" && comparablePrevious ? 7 : 3;
     const result: AssessmentResult = { id, topicId: topic, dayId: day, status: errors.length ? "practice_needed" : "checks_passed", correctCount: checks.length - errors.length, total: checks.length, errorCauses: errors.map((item) => item.explanation), explanations: checks.map((item) => item.explanation), reflection, reviewAt: new Date(now.getTime() + days * 86400000).toISOString(), submittedAt: now.toISOString() };
     result.assistance = assistance;
+    result.bankVersion = checks[0]?.bankVersion; result.formId = checks[0]?.formId;
+    result.concepts = checks.flatMap((item, questionIndex) => item.conceptId && item.catalogVersion ? [conceptEvidenceSchema.parse({ conceptId: item.conceptId, catalogVersion: item.catalogVersion, questionIndex, correct: item.correct === answers[questionIndex], explanation: item.explanation })] : []);
     this.database.db.prepare("UPDATE learning_assessments SET answers=?,result=? WHERE id=? AND result IS NULL").run(JSON.stringify(answers), JSON.stringify(result), id);
     return result;
   }

@@ -15,6 +15,7 @@ export function InteractionCards({ items, disabled, onAnswer, onCopy }: { items:
     return <section key={item.id} className="interaction-card" aria-label={item.kind === "approval" ? "操作授权" : "待回答问题"}>
       <strong>{item.title}</strong>
       {item.kind === "approval" && <details><summary>查看具体操作</summary><pre>{item.preview ?? (typeof item.input.text === "string" ? `${item.input.dayId} · ${item.input.kind}\n\n${item.input.text}` : JSON.stringify(item.input, null, 2))}</pre></details>}
+      {item.kind === "approval" && item.permissionLabel && <p>记住授权的范围：{item.permissionLabel}</p>}
       {item.status === "answered" ? <p>已处理：{item.answer === "allow" ? "允许" : item.answer === "deny" ? "拒绝" : item.answer}</p> : item.kind === "approval" ? <div className="interaction-actions">
         <button disabled={disabled} onClick={() => onAnswer(item.id, "allow", "once")}>允许这一次</button>
         <button disabled={disabled} onClick={() => onAnswer(item.id, "allow", "session")}>本会话允许</button>

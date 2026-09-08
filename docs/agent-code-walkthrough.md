@@ -116,11 +116,11 @@ if (input.requiresExplicitConfirmation && !(input.explicitlyConfirmed ?? input.u
 }
 ```
 
-执行时校验注册、主题边界、风险和 schema，并通过 `AbortSignal` 控制等待时限与取消，输出最多保留 12,000 字符的有界结果。`idempotent` 是声明字段，不代表自动实现跨请求去重；底层操作仍需配合取消信号。
+执行时校验注册、主题边界、风险和 schema，并通过 `AbortSignal` 控制等待时限与取消，结果采用约 11,000 字符正文/12,000 字符外层信封预算，保留执行状态；大结果按任务有界归档，并可用 `read_tool_result` 续读。`idempotent` 是声明字段，不代表自动实现跨请求去重；底层操作仍需配合取消信号。
 
 CLI 普通自由问答在 DeepSeek 路由下会通过 [`src/learning-agent.ts`](../src/learning-agent.ts) 提供 `learning_progress`、`list_materials`，本次允许正文外发时再加入 `search_materials`。这三个工具均为只读；写操作仍回到确定性命令与授权链。
 
-`collectInvocation` 会先校验完整模型回合，再执行该回合的工具请求。`DeepSeekClient.continue` 携带完整 assistant/tool 历史及 call ID 继续生成，调用期间固定 Provider，不因设置改变而转交另一模型。预算包括最多 6 回合、32 次工具请求和 180 秒总时限，工具失败作为结果返回模型；已经产生文本或工具事件后不能拼接 mock 回答。Pi Codex 和 Codex CLI 是文本适配器，不支持这套多轮工具协议。
+`collectInvocation` 会先校验完整模型回合，再执行该回合的工具请求。`DeepSeekClient.continue` 携带完整 assistant/tool 历史及 call ID 继续生成，调用期间固定 Provider，不因设置改变而转交另一模型。预算包括最多 6 回合、32 次工具请求和 180 秒总时限，工具失败作为结果返回模型；已经产生文本或工具事件后不能拼接 mock 回答。桌面 Pi Codex SDK 和 DeepSeek 支持该协议；CLI Pi/Codex CLI 保留文本适配。
 
 ## 6. Workflow Ledger 提供可恢复性
 
@@ -200,3 +200,5 @@ Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-code
 ## 共享内核的最新入口
 
 阅读 `agent-service.ts` 的 send/invoke/generate，再读 `model-invocation.ts` 的检查点和工具游标、`agent-execution-store.ts` 的租约与授权决定。`task-execution.ts` 继续负责实际操作去重，`learning-agent-profile.ts` 负责教学提示词。具体恢复边界和限制见 [Agent 内核](agent-kernel.md)。
+
+0.6 新模块的调用关系和实际边界见 [架构增量](architecture.md#06-增量结构与数据契约)，包括权限、教学策略、证据支持、项目恢复、Skill 版本和试验版本追踪。

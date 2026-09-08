@@ -1,4 +1,6 @@
 import type { ModelPhase, ModelTiming } from "./model-telemetry.js";
+import type { ModelCapabilities } from "./model-capabilities.js";
+import type { ContextBudget } from "./context-window.js";
 export type ModelRole = "tutor" | "reviewer" | "lab";
 export type ReasoningProfile = "quick" | "balanced" | "deep";
 export interface ModelUsage { inputTokens: number; outputTokens: number; cacheReadTokens?: number; reasoningTokens?: number; model?: string; startupMs?: number; }
@@ -10,8 +12,8 @@ export interface ModelToolDefinition { readonly name: string; readonly descripti
 /** Complete prior turns are owned by the invocation, never shared by provider instances. */
 export interface ModelTurn { readonly events: readonly ModelEvent[]; readonly toolResults: readonly ToolResultMessage[]; readonly feedback?: string; readonly toolState?: string; }
 /** Per-request context required for protocol-correct, isolated tool continuation. */
-export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; readonly messages?: readonly ModelMessage[]; readonly reasoning?: ReasoningProfile; }
-export interface ModelClient { stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
+export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; readonly messages?: readonly ModelMessage[]; readonly reasoning?: ReasoningProfile; readonly maxOutputTokens?: number; }
+export interface ModelClient { readonly capabilities?: ModelCapabilities; readonly contextBudget?: ContextBudget; stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
 export interface ToolResultMessage {
   readonly tool: string;
   readonly result: unknown;
@@ -25,7 +27,7 @@ export interface ContinuableModelClient extends ModelClient {
   continue(prompt: string, toolResults: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>;
 }
 export function isContinuableModelClient(client: ModelClient): client is ContinuableModelClient {
-  return typeof (client as Partial<ContinuableModelClient>).continue === "function";
+  return client.capabilities?.toolCalling !== false && client.capabilities?.continuation !== false && typeof (client as Partial<ContinuableModelClient>).continue === "function";
 }
 
 /** Offline deterministic provider used by all mandatory tests. */

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { topicIdSchema, type TopicDefinition, type TopicId } from "./contracts.js";
 import { TopicRegistry } from "./topics.js";
 

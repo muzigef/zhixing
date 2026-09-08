@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { TopicId } from "./contracts.js";
 import { PathPolicy } from "./paths.js";
 

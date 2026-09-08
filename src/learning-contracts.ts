@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { topicIdSchema } from "./contracts.js";
 import type { TopicPlanDay } from "./plan-loader.js";
 import type { AssessmentResult } from "./learning-assessment.js";
@@ -11,6 +11,7 @@ export const citationSchema = z.object({
   pageNumber: z.number().int().positive().nullable(),
   anchor: z.string().max(1000).nullable(),
   chunkId: z.string().uuid().optional(),
+  contentHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 });
 export interface LearningOverview {
   topicId: string;

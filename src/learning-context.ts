@@ -4,6 +4,7 @@ import { DocumentLibrary } from "./library.js";
 import { LearningProfileStore } from "./learning-profile.js";
 import type { TeachingSession } from "./teaching-session-store.js";
 import { LearningObservations } from "./learning-observations.js";
+import { TeachingPolicy } from "./teaching-policy.js";
 
 /** Builds a bounded, topic-scoped prompt context instead of concatenating all history. */
 export class LearningContextBuilder {
@@ -14,6 +15,7 @@ export class LearningContextBuilder {
     const matchingMemories = this.database.searchMemories(topicId, query);
     const memories = (matchingMemories.length ? matchingMemories : this.database.searchMemories(topicId, "")).slice(0, 3);
     return [
+      `教学建议（服从本轮要求）：${JSON.stringify(new TeachingPolicy(new LearningObservations(this.database)).decide(topicId, query))}`,
       ...new LearningObservations(this.database).context(topicId, query).map(item => `实际作答记录（不是掌握结论）：${JSON.stringify(item)}`),
       `当前主题：${topicId}`,
       profile ? `学习画像：目标=${profile.goal}；水平=${profile.level}；每天=${profile.dailyMinutes} 分钟；周期=${profile.totalDays} 天` : "学习画像：未设置",

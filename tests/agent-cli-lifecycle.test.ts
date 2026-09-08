@@ -30,6 +30,10 @@ globalThis.fetch = async (_url, init) => {
     expect(wire[1].messages.find((message: {role: string}) => message.role === "tool")).toMatchObject({ tool_call_id: "ask-one", content: expect.stringContaining("数组") });
     const store = new AgentSessionStore(path.join(root, "zhixing/agent")); const summary = (await store.list())[0]!; const session = await store.load(summary.id);
     expect(session.messages[1]?.taskId).toBe(session.messages[3]?.taskId); expect(session.messages.at(-1)?.status).toBe("completed");
+    expect((await invoke("/task")).stdout).toContain("累计 2 轮模型请求");
+    expect((await invoke("/task revise 直接用数组说明复杂度")).stdout).toContain("已保存目标修订并继续");
+    expect((await invoke("/task")).stdout).toContain("计划修订：1");
+    expect((await invoke("/task verify")).stdout).toContain("当前没有待核对的外部操作");
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 
@@ -50,7 +54,7 @@ globalThis.fetch = async (_url, init) => {
   return new Response(JSON.stringify({choices:[{message,finish_reason:answered?'stop':'tool_calls'}]}));
 };`);
     const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "--import", preload, "src/cli.ts", command], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1" } });
-    const first = await invoke("/agent 修改当前项目 --允许外发");
+    const first = await invoke("/agent 修改当前项目 --允许项目");
     expect(first.stdout).toContain("--- a/src/implementation.mjs"); expect(first.stdout).toContain("+export const solve = value => value + 0;");
     const id = /\/answer ([0-9a-f-]{36})/.exec(first.stdout)?.[1]; expect(id).toBeTruthy();
     expect((await invoke(`/answer ${id} deny`)).stdout).toContain("文件未修改");

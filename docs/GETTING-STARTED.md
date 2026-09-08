@@ -158,3 +158,5 @@ npm --prefix desktop run test:ui
 更多问题见 [故障排查](TROUBLESHOOTING.md)。修改代码前继续阅读 [开发指南](DEVELOPMENT.md)、[测试指南](TESTING.md) 和 [架构](architecture.md)。
 
 桌面 0.3 可选择主题并打开“课程与资料”，共用课程、资料、进度和实际证据；支持排队与立即调整。完整步骤见 [升级使用指南](agent-upgrade.md)。
+
+0.6 的项目快照/Python、独立授权、任务核对、Skill 版本和完整产品学习验证，按 [更新指南](agent-0.6.md) 使用。学习资料授权不再自动包括项目或外部工具；升级前可在设置中导出完整备份。

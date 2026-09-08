@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 export interface ReleaseInfo { available: boolean; version?: string; url?: string; message: string; }
 /** User-initiated public metadata check; no credentials, automatic download or execution. */
 export async function checkRelease(current: string, fetcher: typeof fetch = fetch): Promise<ReleaseInfo> {

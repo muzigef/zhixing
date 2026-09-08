@@ -1,6 +1,10 @@
-import { z } from "zod";
+import { z } from "zod/v4";
+import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
 
 export const outcomeModeSchema = z.enum(["zhixing", "direct"]);
+export const outcomeProtocolSchema = z.enum(["prompt_only", "full_product"]);
+export type OutcomeProtocol = z.infer<typeof outcomeProtocolSchema>;
+export function restrictedStudy(study?: { mode: OutcomeMode; protocol?: OutcomeProtocol }): boolean { return Boolean(study && !(study.protocol === "full_product" && study.mode === "zhixing")); }
 export const outcomePhaseSchema = z.enum(["pre", "post", "delayed"]);
 export const outcomeSubmissionSchema = z.object({
   answers: z.array(z.number().int().min(-1).max(2)).length(3),
@@ -21,11 +25,13 @@ export interface OutcomeResult extends OutcomeSubmission {
 }
 export interface LessonEvidence {
   sessionId: string;
-  conditions: { provider: string; model?: string; reasoning: string; style: string }[];
+  conditions: { provider: string; model?: string; reasoning: string; style: string; codeHash?: string; windowTokens?: number; reserveOutputTokens?: number }[];
+  toolCalls?: number; access?: { materials: boolean; project: boolean; external: boolean }[];
   completedTurns: number; failedTurns: number; durationMs: number;
 }
 export interface OutcomeView {
   id: string; topicId: string; mode: OutcomeMode; bankVersion: number; title: string;
+  protocol?: OutcomeProtocol; provenance?: BuildProvenance;
   stage: OutcomePhase | "lesson" | "waiting" | "complete" | "abandoned";
   repeated: boolean; createdAt: string; reviewAt?: string; sessionId?: string;
   questions: { title: string; choices: string[] }[];
@@ -40,7 +46,8 @@ export interface OutcomeSummary {
 
 export const lessonEvidenceSchema = z.object({
   sessionId: z.string().uuid(),
-  conditions: z.array(z.object({ provider: z.string().min(1).max(128), model: z.string().min(1).max(128).optional(), reasoning: z.string().max(32), style: z.string().max(32) })).min(1).max(1000),
+  conditions: z.array(z.object({ provider: z.string().min(1).max(128), model: z.string().min(1).max(128).optional(), reasoning: z.string().max(32), style: z.string().max(32), codeHash: z.string().regex(/^[a-f0-9]{64}$/).optional(), windowTokens: z.number().positive().optional(), reserveOutputTokens: z.number().positive().optional() })).min(1).max(1000),
+  toolCalls: z.number().int().nonnegative().optional(), access: z.array(z.object({ materials: z.boolean(), project: z.boolean(), external: z.boolean() }).strict()).max(1000).optional(),
   completedTurns: z.number().int().nonnegative(), failedTurns: z.number().int().nonnegative(), durationMs: z.number().finite().nonnegative(),
 });
 export const outcomeResultSchema = outcomeSubmissionSchema.extend({
@@ -49,6 +56,7 @@ export const outcomeResultSchema = outcomeSubmissionSchema.extend({
 });
 export const outcomeViewSchema = z.object({
   id: z.string().uuid(), topicId: z.enum(["agent-development", "rag"]), mode: outcomeModeSchema, bankVersion: z.literal(1), title: z.string().min(1).max(200),
+  protocol: outcomeProtocolSchema.optional(), provenance: buildProvenanceSchema.optional(),
   stage: z.enum(["pre", "lesson", "post", "waiting", "delayed", "complete", "abandoned"]), repeated: z.boolean(),
   createdAt: z.string().datetime(), reviewAt: z.string().datetime().optional(), sessionId: z.string().uuid().optional(),
   questions: z.array(z.object({ title: z.string().max(500), choices: z.array(z.string().max(500)).length(3) })).max(3),

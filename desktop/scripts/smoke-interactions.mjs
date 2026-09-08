@@ -39,15 +39,41 @@ try {
   await page.locator(".user-bubble").getByText("改用另一种解释", { exact: true }).waitFor();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
   assert.equal(await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).isChecked(), false);
+  const currentSession = await page.evaluate(() => localStorage.getItem("last-session"));
+  const scopedProject = await page.evaluate(async () => (await window.zhixing.invoke({ type: "project-create", topicId: "agent-development", title: "合成授权项目" })).data);
+  await page.evaluate(async id => window.zhixing.invoke({ type: "project-select", topicId: "agent-development", projectId: id }), scopedProject.id);
+  await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).check();
+  await page.waitForFunction(async id => Boolean((await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId), currentSession);
+  await page.reload();
+  await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).waitFor();
+  assert.equal(await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).isChecked(), true);
+  assert.equal(await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).isChecked(), false);
+  assert.equal(await page.getByRole("checkbox", { name: "本会话使用已配置的外部工具", exact: true }).isChecked(), false);
+  await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).uncheck();
+  await page.waitForFunction(async id => !(await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId, currentSession);
   await page.getByRole("button", { name: "对比回答", exact: true }).click();
   await page.getByRole("dialog", { name: "对比回答", exact: true }).waitFor();
   assert.equal(await page.getByRole("combobox", { name: "左侧回答", exact: true }).locator("option").count(), 3);
   await page.getByRole("button", { name: "关闭对比", exact: true }).click();
   await page.getByRole("combobox", { name: "学习主题", exact: true }).selectOption("agent-development");
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();
+  await page.locator(".project-panel > summary").click();
+  await page.getByRole("combobox", { name: "当前实践项目", exact: true }).waitFor();
   const skill = page.getByRole("combobox", { name: "学习技能", exact: true });
   await skill.locator("option").nth(1).waitFor({ state: "attached" });
   await skill.selectOption({ index: 1 });
+  await page.locator(".skill-version").getByText(/内容/).waitFor();
+  const skillName = await skill.inputValue();
+  const skillDetails = await page.evaluate(async name => (await window.zhixing.invoke({ type: "skill-read", topicId: "agent-development", name })).data, skillName);
+  assert.ok(skillDetails.path.startsWith(state.boot.workspace.path));
+  const originalSkill = await fs.readFile(skillDetails.path, "utf8");
+  await fs.writeFile(skillDetails.path, "synthetic invalid update");
+  await skill.selectOption(""); await skill.selectOption(skillName);
+  await page.getByText("当前显示旧缓存，请核对后使用。", { exact: true }).waitFor();
+  assert.equal(await page.locator(".skill-preview").innerText(), skillDetails.workflow);
+  await fs.writeFile(skillDetails.path, originalSkill);
+  await skill.selectOption(""); await skill.selectOption(skillName);
+  await page.getByText("当前显示旧缓存，请核对后使用。", { exact: true }).waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "使用这个技能", exact: true }).click();
   assert.match(await page.getByRole("textbox", { name: "发送给知行", exact: true }).inputValue(), /学习技能/);
   await page.getByRole("button", { name: "设置", exact: true }).click();
@@ -79,6 +105,20 @@ try {
   const retried = await page.evaluate(async id => (await window.zhixing.invoke({ type: "load", sessionId: id })).data, blocked.id);
   assert.equal(retried.messages.at(-1).taskId, blockedTaskId);
   assert.equal(retried.messages.at(-1).status, "completed");
+  await page.getByRole("button", { name: "任务详情", exact: true }).last().click();
+  const taskDialog = page.getByRole("dialog", { name: "任务详情", exact: true });
+  await taskDialog.getByRole("textbox", { name: "修订任务目标", exact: true }).fill("改成先解释例子中的输入和输出");
+  await taskDialog.getByRole("button", { name: "保存新目标并继续", exact: true }).click();
+  await page.waitForFunction(async ({ sessionId, taskId }) => {
+    const result = await window.zhixing.invoke({ type: "task-info", sessionId, taskId });
+    return result.ok && result.data.usage.segments === 2;
+  }, { sessionId: blocked.id, taskId: blockedTaskId });
+  await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  await taskDialog.getByText("目标修订记录 · 1", { exact: true }).waitFor();
+  const taskInfo = await page.evaluate(async ({ sessionId, taskId }) => (await window.zhixing.invoke({ type: "task-info", sessionId, taskId })).data, { sessionId: blocked.id, taskId: blockedTaskId });
+  assert.equal(taskInfo.task.goal, "改成先解释例子中的输入和输出");
+  assert.equal(taskInfo.usage.segments, 2);
+  await page.keyboard.press("Escape");
   // A persisted reply without a subsequent run must still expose a continuation action.
   const answered = await page.evaluate(async () => (await window.zhixing.invoke({ type: "new" })).data);
   const answeredTaskId = randomUUID();
@@ -93,4 +133,4 @@ try {
   assert.equal(continued.messages.at(-1).status, "completed");
   assert.deepEqual(errors, []);
   console.log("Interactions UI passed: concrete approval, exact-once artifact, question reply, edit-and-fork, reset permissions and comparison with the parent conversation, skill preview, full backup, non-destructive restore, blocked-task retry identity, and recovery after a persisted reply.");
-} finally { await app?.close(); await fs.rm(data, { recursive: true, force: true }); }
+} catch (problem) { if (app) console.error((await (await app.firstWindow()).locator("body").innerText()).slice(-5000)); throw problem; } finally { await app?.close(); await fs.rm(data, { recursive: true, force: true }); }

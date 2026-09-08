@@ -155,7 +155,7 @@ node_modules/.bin/tsx scripts/profile-pi-latency.ts --live --repetitions=3 --cas
 
 脚本现通过正式 adapter 参数选择传输，不修改 worker 副本。历史对照及其旧脚本方法保留在 [原因分析](evidence/pi-latency-analysis-20260907.md)。本轮完成情况见 [修复记录](evidence/pi-latency-fix-20260907.md)。
 
-`npm run eval:quality -- --live --output=docs/evidence/agent-quality-latest.json` 在临时合成工作区运行固定 12 题 × 两次独立会话 × 双 Provider；可加 `--provider=deepseek-api` 或 `--case=R02,R08`，用 `--reasoning=balanced` 检查默认思考档位。无 `--live` 为 demo。首个完全不可用的 Provider 停止后续尝试，并明确记录 attempted=false。waiting 代表真实澄清或审批，不能当作连接失败；答案待审并不代表质量通过。相同输入、快速思考，记录原文、interaction、usage、首字与总耗时；复核者身份和理由另存。题目已用于开发回归，不能视为盲测。
+`npm run eval:quality -- --live --output=docs/evidence/agent-quality-latest.json` 在临时合成工作区运行固定 12 题 × 两次独立会话 × 双 Provider；可加 `--provider=deepseek-api` 或 `--case=R02,R08`，用 `--reasoning=balanced` 检查默认思考档位；`--repetitions=1` 可缩小连通检查。无 `--live` 为 demo。首个完全不可用的 Provider 停止后续尝试，并明确记录 attempted=false。waiting 代表真实澄清或审批，不能当作连接失败；答案待审并不代表质量通过。相同输入、快速思考，记录原文、interaction、usage、首字与总耗时；复核者身份和理由另存。题目已用于开发回归，不能视为盲测。
 
 远端发布矩阵包含 macos-15、macos-15-intel、windows-2022；手动签名分支缺少配置时失败，实际签名/公证依赖账户，不由 mock 证明。
 
@@ -199,3 +199,16 @@ node --import tsx scripts/verify-p0-live.ts --live --output=/tmp/zhixing-p0-live
 ```
 
 专项脚本的八项失败会返回非零退出码。真实验收需先构建桌面 worker，仅经已配置 Provider 发送临时合成代码，验证审批后新服务续接及实际产物数量；普通质量门不依赖联网。结果见 [本轮 Evidence](evidence/p0-development-20260907.md)。
+
+## 0.6 验证入口
+
+```bash
+npx vitest run tests/provider-tool-contract.test.ts tests/product-validation.test.ts tests/agent-permissions.test.ts tests/project-revisions.test.ts tests/desktop-migration.test.ts
+node --import tsx scripts/benchmark-sessions.ts
+npm run verify
+npm --prefix desktop run test:ui
+```
+
+新增测试含原生双 Provider 的错误参数修正/断流不执行、撤回与崩溃组合、完整产品授权与检查作答隔离、变式题/旧卷评分、构建和协议分组、SQLite/会话版本、防止批量写权限变成删除权限、Python 文件/网络隔离及超时。历史报告的测试数量保持原时点；当前命令退出码和安装包验证见 [C01–C12 Evidence](evidence/agent-architecture-next.md)。
+
+真实合成效果流程可用 `node --import tsx scripts/check-learning-outcomes.ts --live --provider=pi-codex --output=/tmp/zhixing-outcomes-new.json`，Provider 也可选择 `deepseek-api`。它只证明实际模型与协议衔接，脚本作答和演示都不能代表真实学习效果。完整产品默认记录构建来源、权限、调用数与逐轮模型条件。

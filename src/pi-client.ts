@@ -6,6 +6,7 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import type { ModelClient, ModelEvent, ModelRequestOptions } from "./model.js";
 import { assertLiveProviderAllowed } from "./provider-policy.js";
+import { adapterCapabilities } from "./model-capabilities.js";
 
 const projectDirectory = fileURLToPath(new URL("..", import.meta.url));
 const thinkingLevels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
@@ -37,6 +38,7 @@ export async function readPiModelSelection(projectDir = projectDirectory, enviro
 
 /** Text-only adapter through the reviewed Pi launcher, using Pi's configured Codex model. */
 export class PiCodexClient implements ModelClient {
+  readonly capabilities = adapterCapabilities(false, "adapter_default");
   private readonly environment: NodeJS.ProcessEnv;
   private readonly projectDir: string;
   private readonly runner: PiProcessRunner;

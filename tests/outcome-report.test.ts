@@ -16,6 +16,7 @@ it("deduplicates repeated exports and backup copies rather than inventing extra 
 it("rejects conflicting identities, future formats and cross-topic imported records", () => {
   const report = sample();
   expect(() => mergeOutcomeExports([report, { ...report, trials: [{ ...report.trials[0], mode: "direct" }] }])).toThrow("outcome_export_conflict");
+  expect(() => mergeOutcomeExports([report, { ...report, trials: [{ ...report.trials[0], protocol: "full_product" }] }])).toThrow("outcome_export_conflict");
   expect(() => mergeOutcomeExports([{ ...report, version: 2 }])).toThrow();
   expect(() => mergeOutcomeExports([{ ...report, topicId: "agent-development" }])).toThrow("cross_topic_denied");
 });

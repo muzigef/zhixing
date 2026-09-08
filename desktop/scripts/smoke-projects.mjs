@@ -38,12 +38,34 @@ try {
     await page.locator(".project-panel").getByText(/unavailable · 退出码 无/).waitFor();
     assert.equal(await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).isDisabled(), true);
   }
+  await page.locator(".project-snapshots > summary").click();
+  await page.locator(".project-snapshots").getByRole("button", { name: "预览恢复", exact: true }).first().click();
+  assert.match(await page.locator(".project-snapshots .interaction-card pre").innerText(), /value \+ 1/);
+  await page.getByRole("button", { name: "恢复到这个快照", exact: true }).click();
+  await page.getByRole("button", { name: "src/implementation.mjs", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "实践文件内容", exact: true }).inputValue(), "export const solve = value => value + 1;\n");
+  assert.equal(await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).isDisabled(), true);
+  await page.locator(".project-snapshots").getByRole("button", { name: "预览恢复", exact: true }).first().click();
+  await page.getByRole("button", { name: "恢复到这个快照", exact: true }).click();
+  // Closing before the restore IPC settles intentionally cancels an in-flight operation.
+  await page.getByRole("button", { name: "src/implementation.mjs", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "实践文件内容", exact: true }).inputValue(), "export const solve = value => value + 0;\n");
   const selected = await page.getByRole("combobox", { name: "当前实践项目", exact: true }).inputValue();
   await running.app.close(); running = await launch(); page = running.page;
   await page.getByRole("combobox", { name: "当前实践项目", exact: true }).waitFor();
   assert.equal(await page.getByRole("combobox", { name: "当前实践项目", exact: true }).inputValue(), selected);
   await page.getByRole("button", { name: "src/implementation.mjs", exact: true }).click();
   assert.equal(await page.getByRole("textbox", { name: "实践文件内容", exact: true }).inputValue(), "export const solve = value => value + 0;\n");
+  await page.getByRole("combobox", { name: "实践项目语言", exact: true }).selectOption("python");
+  await page.getByRole("textbox", { name: "实践项目名称", exact: true }).fill("Python 合成实践");
+  await page.getByRole("button", { name: "创建独立项目", exact: true }).click();
+  await page.getByRole("button", { name: "test_example.py", exact: true }).waitFor();
+  await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
+  if (process.platform === "darwin") {
+    await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
+    await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
+    assert.match(await page.locator(".project-panel details").filter({ hasText: "最近实际测试结果" }).innerText(), /Ran 1 test/);
+  } else await page.locator(".project-panel").getByText(/当前文件尚无有效的通过记录/).waitFor();
   await page.getByRole("combobox", { name: "当前实践项目", exact: true }).selectOption("");
   await page.getByRole("button", { name: "运行项目测试", exact: true }).waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "关闭", exact: true }).click();

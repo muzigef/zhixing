@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { createLearningTools, runLearningAgent } from "../src/learning-agent.js";
 import { MockModelClient, type ContinuableModelClient } from "../src/model.js";
 import { ProviderRegistry } from "../src/provider-registry.js";

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export const topicIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "topicId 必须为 kebab-case");
 export type TopicId = z.infer<typeof topicIdSchema>;
@@ -18,6 +18,7 @@ export interface TopicDefinition {
 }
 
 export interface Citation {
+  readonly contentHash?: string;
   readonly chunkId?: string;
   readonly topicId: TopicId;
   readonly documentId: string;

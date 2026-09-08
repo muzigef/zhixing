@@ -1,9 +1,17 @@
 import crypto from "node:crypto";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { ZhixingDatabase } from "./database.js";
 
-export const taskPlanSchema = z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), title: z.string().min(1).max(120), doneWhen: z.enum(["artifact_saved", "tests_passed", "project_file_saved", "project_tests_passed", "project_checkpoint_saved"]), kind: z.enum(["implementation", "testScript", "testOutput", "failureCase", "reflection"]).optional(), projectId: z.string().uuid().optional() }).strict()).min(1).max(12);
-const storedPlanSchema = z.array(taskPlanSchema.element.extend({ completed: z.boolean(), operationKey: z.string().regex(/^[a-f0-9]{64}$/).optional() })).max(12);
+const stepIdentity = { id: z.string().regex(/^[a-z0-9_-]{1,40}$/), title: z.string().min(1).max(120) };
+const artifactKind = z.enum(["implementation", "testScript", "testOutput", "failureCase", "reflection"]);
+const completionKind = z.enum(["artifact_saved", "tests_passed", "project_file_saved", "project_tests_passed", "project_checkpoint_saved"]);
+export const taskPlanSchema = z.array(z.union([
+  z.object({ ...stepIdentity, doneWhen: z.enum(["project_file_saved", "project_tests_passed", "project_checkpoint_saved"]), projectId: z.string().uuid() }).strict(),
+  z.object({ ...stepIdentity, doneWhen: z.literal("artifact_saved"), kind: artifactKind.optional() }).strict(),
+  z.object({ ...stepIdentity, doneWhen: z.literal("tests_passed") }).strict(),
+])).min(1).max(12);
+// Historical snapshots retain the broad shape; new model plans use the strict union above.
+const storedPlanSchema = z.array(z.object({ ...stepIdentity, doneWhen: completionKind, kind: artifactKind.optional(), projectId: z.string().uuid().optional(), completed: z.boolean(), operationKey: z.string().regex(/^[a-f0-9]{64}$/).optional() })).max(12);
 export type TaskPlanStep = z.infer<typeof storedPlanSchema>[number];
 export const operationKey = (tool: string, input: unknown) => crypto.createHash("sha256").update(`${tool}:${JSON.stringify(input, (_key, value) => value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value)}`).digest("hex");
 export function operationArtifactId(key: string): string { return `${key.slice(0, 8)}-${key.slice(8, 12)}-4${key.slice(13, 16)}-a${key.slice(17, 20)}-${key.slice(20, 32)}`; }
@@ -13,6 +21,7 @@ const active = new WeakMap<ZhixingDatabase, Map<string, Promise<unknown>>>();
 export class TaskExecutionStore {
   constructor(private readonly database: ZhixingDatabase) {
     database.db.exec(`CREATE TABLE IF NOT EXISTS assistant_tasks (id TEXT PRIMARY KEY, topic TEXT NOT NULL, goal TEXT NOT NULL, plan TEXT NOT NULL DEFAULT '[]');
+      CREATE TABLE IF NOT EXISTS assistant_task_revisions (task_id TEXT NOT NULL REFERENCES assistant_tasks(id), revision INTEGER NOT NULL, goal TEXT NOT NULL, plan TEXT NOT NULL, replacement_goal TEXT NOT NULL, at TEXT NOT NULL, PRIMARY KEY(task_id,revision));
       CREATE TABLE IF NOT EXISTS assistant_operations (task_id TEXT NOT NULL REFERENCES assistant_tasks(id), key TEXT NOT NULL, tool TEXT NOT NULL, input TEXT NOT NULL, status TEXT NOT NULL, result TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(task_id, key));`);
   }
   begin(id: string, topic: string, goal: string) {
@@ -26,11 +35,27 @@ export class TaskExecutionStore {
     if (row.topic !== topic) throw new Error("cross_topic_denied");
     const plan = storedPlanSchema.parse(JSON.parse(row.plan));
     const operations = this.database.db.prepare("SELECT key, tool, status, result, input FROM assistant_operations WHERE task_id = ? ORDER BY updated_at").all(id) as { key: string; tool: string; status: string; result: string | null; input: string }[];
-    return { id, goal: row.goal, plan, completed: plan.length > 0 && plan.every((step) => step.completed), operations: operations.map((item) => ({ ...item, input: JSON.parse(item.input) as unknown, result: item.result ? JSON.parse(item.result) as unknown : null })) };
+    const revision = (this.database.db.prepare("SELECT COALESCE(MAX(revision),0) AS revision FROM assistant_task_revisions WHERE task_id=?").get(id) as { revision: number }).revision;
+    return { id, goal: row.goal, revision, plan, completed: plan.length > 0 && plan.every((step) => step.completed), operations: operations.map((item) => ({ ...item, input: JSON.parse(item.input) as unknown, result: item.result ? JSON.parse(item.result) as unknown : null })) };
+  }
+  /** Called by explicit user commands, never exposed as an automatically authorized model write. */
+  revise(id: string, topic: string, expected: number, goal: string): void {
+    z.number().int().nonnegative().parse(expected); z.string().trim().min(1).max(4000).parse(goal);
+    this.database.db.transaction(() => {
+      const previous = this.snapshot(id, topic);
+      if (previous.revision !== expected || expected >= 50) throw new Error("task_revision_conflict");
+      this.database.db.prepare("INSERT INTO assistant_task_revisions VALUES (?,?,?,?,?,?)").run(id, expected + 1, previous.goal, JSON.stringify(previous.plan), goal, new Date().toISOString());
+      this.database.db.prepare("UPDATE assistant_tasks SET goal=?,plan='[]' WHERE id=?").run(goal, id);
+    })();
+  }
+  revisions(id: string, topic: string) {
+    this.snapshot(id, topic);
+    const rows = this.database.db.prepare("SELECT revision,goal,plan,replacement_goal AS replacementGoal,at FROM assistant_task_revisions WHERE task_id=? ORDER BY revision DESC LIMIT 50").all(id) as { revision: number; goal: string; plan: string; replacementGoal: string; at: string }[];
+    return rows.map(row => ({ ...row, plan: storedPlanSchema.parse(JSON.parse(row.plan)) }));
   }
   plan(id: string, topic: string, raw: unknown) {
     const previous = this.snapshot(id, topic).plan;
-    const steps = taskPlanSchema.parse(raw);
+    const steps: Omit<TaskPlanStep, "completed" | "operationKey">[] = taskPlanSchema.parse(raw);
     if (steps.some(step => step.doneWhen.startsWith("project_") ? !step.projectId || step.kind : step.projectId) || new Set(steps.map((step) => step.id)).size !== steps.length) throw new Error("task_plan_invalid");
     // The model may clarify/reorder/add steps, but cannot silently remove or lower an accepted requirement.
     if (previous.some(old => !steps.some(step => step.id === old.id && step.doneWhen === old.doneWhen && step.kind === old.kind && step.projectId === old.projectId))) throw new Error("task_plan_requirement_changed");
@@ -92,7 +117,7 @@ export class TaskExecutionStore {
     const validation = result as { status?: string; exitCode?: number };
     if (step.doneWhen === "artifact_saved" && tool === "save_artifact" && (!step.kind || step.kind === data.kind)
       || step.doneWhen === "tests_passed" && tool === "run_experiment" && validation.status === "completed" && validation.exitCode === 0
-      || step.projectId === data.projectId && (step.doneWhen === "project_file_saved" && tool === "project_edit"
+      || step.projectId === data.projectId && (step.doneWhen === "project_file_saved" && ["project_edit", "project_edit_many", "project_patch"].includes(tool)
         || step.doneWhen === "project_tests_passed" && tool === "project_test" && validation.status === "completed" && validation.exitCode === 0
         || step.doneWhen === "project_checkpoint_saved" && tool === "project_checkpoint")) {
       step.completed = true;

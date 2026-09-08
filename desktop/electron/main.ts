@@ -1,3 +1,5 @@
+import { skillMetadata } from "../../src/skill-catalog.js";
+import { AgentEventCoalescer } from "../../src/agent-events.js";
 import { McpSettings, McpConnection } from "../../src/mcp-tools.js";
 import {
   app,
@@ -34,6 +36,8 @@ import { LearningApplication } from "../../src/learning-application.js";
 import { summarizeOutcomes } from "../../src/learning-outcomes.js";
 import { summarizePerformance } from "../core/diagnostics.js";
 import { checkRelease } from "../core/updates.js";
+import { withModelBudget } from "../../src/model-capabilities.js";
+import type { ContextBudget } from "../../src/context-window.js";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const origin = "zhixing://app";
@@ -55,6 +59,7 @@ let pi: PiApplicationClient;
 let secrets: EncryptedDesktopSecrets;
 let deepseekModel = "deepseek-v4-flash";
 let semanticModel = "";
+let contextBudget: ContextBudget | undefined;
 let quitting = false;
 let learning: LearningApplication;
 let learningController: AbortController | undefined;
@@ -65,9 +70,10 @@ function endLearning(): void { learningController = undefined; finishLearning?.(
 
 function connectService(store: DesktopStore): void {
   learning.configureSemantic(semanticModel);
-  service = new DesktopService(store, (provider) => provider === "demo" ? new DesktopDemoClient() : provider === "deepseek-api"
-    ? new DeepSeekClient(secrets, (url, options) => net.fetch(url, options), process.env, deepseekModel) : pi, learning);
-  service.subscribe((event) => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
+  service = new DesktopService(store, (provider) => withModelBudget(provider === "demo" ? new DesktopDemoClient() : provider === "deepseek-api"
+    ? new DeepSeekClient(secrets, (url, options) => net.fetch(url, options), process.env, deepseekModel) : pi, contextBudget), learning);
+  const events = new AgentEventCoalescer(event => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
+  service.subscribe(event => events.push(event));
 }
 
 async function modelStatus(): Promise<ModelStatus> {
@@ -95,9 +101,10 @@ async function boot(): Promise<BootState> {
   } catch {
     status = { configured: false };
   }
+  const page = await service.store.page();
   return {
     workspace: learning.summary(),
-    sessions: await service.store.list(),
+    sessions: page.sessions, nextSessionCursor: page.nextCursor,
     settings,
     model: await modelStatus(),
     activeSessionId: service.activeSessionId,
@@ -181,6 +188,7 @@ else {
       const store = new DesktopStore(root);
       deepseekModel = (await store.settings()).deepseekModel;
       semanticModel = (await store.settings()).semanticModel ?? "";
+      contextBudget = (await store.settings()).contextBudget;
       learning = await LearningApplication.open(await store.workspace() ?? path.join(root, "workspace"), resources);
       connectService(store);
       protocol.handle("zhixing", (request) => {
@@ -204,7 +212,7 @@ else {
           )
             throw new Error("invalid_sender");
           const command = desktopCommandSchema.parse(raw);
-          if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "rename", "settings", "configure-deepseek", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
+          if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
             case "diagnostics": {
@@ -270,7 +278,7 @@ else {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               learning.registry.get(command.topicId); beginLearning();
               try {
-                if (command.type === "outcome-start") data = learning.outcomes.start(command.topicId, command.mode);
+                if (command.type === "outcome-start") data = learning.outcomes.start(command.topicId, command.mode, command.protocol);
                 else if (command.type === "outcome-submit") data = learning.outcomes.submit(command.topicId, command.id, command.phase, command.submission);
                 else if (command.type === "outcome-lesson") data = await service.openOutcomeLesson(command.topicId, command.id);
                 else if (command.type === "outcome-finish-lesson") data = await service.finishOutcomeLesson(command.topicId, command.id);
@@ -296,6 +304,16 @@ else {
             case "learning-source":
               data = await learning.source(command.topicId, command.citation);
               break;
+            case "task-info": data = await service.taskInfo(command.sessionId, command.taskId); break;
+            case "task-report":
+              if (learningController) throw new Error("learning_busy");
+              data = await service.reportRecovery(command.sessionId, command.taskId, command.callId, command.report); break;
+            case "task-verify":
+              if (learningController) throw new Error("learning_busy");
+              data = await service.verifyRecovery(command.sessionId, command.taskId, command.callId); break;
+            case "task-revise":
+              if (learningController) throw new Error("learning_busy");
+              data = await service.reviseTask(command.sessionId, command.taskId, command.revision, command.goal); break;
             case "project-list":
               learning.registry.get(command.topicId); data = { projects: learning.projects.list(command.topicId), selected: learning.projects.selected(command.topicId) }; break;
             case "project-select":
@@ -308,6 +326,8 @@ else {
             case "project-preview":
             case "project-write":
             case "project-test":
+            case "project-restore-preview":
+            case "project-restore":
             case "project-checkpoint": {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               learning.registry.get(command.topicId); beginLearning();
@@ -316,11 +336,13 @@ else {
                 if (command.type === "project-create" || command.type === "project-import") {
                   let directory: string | undefined;
                   if (command.type === "project-import") { const choice = await dialog.showOpenDialog(window, { title: "复制文本文件为独立实践项目", properties: ["openDirectory"] }); if (choice.canceled || !choice.filePaths[0]) { data = { cancelled: true }; break; } directory = choice.filePaths[0]; }
-                  const project = await learning.projects.create(command.topicId, command.title, signal, directory); learning.projects.select(command.topicId, project.id); data = project;
+                  const project = await learning.projects.create(command.topicId, command.title, signal, directory, command.type === "project-create" ? command.language : undefined); learning.projects.select(command.topicId, project.id); data = project;
                 } else if (command.type === "project-view") data = await learning.projects.snapshot(command.topicId, command.projectId, signal);
                 else if (command.type === "project-read") data = await learning.projects.read(command.topicId, command.projectId, command.path);
                 else if (command.type === "project-preview") data = { preview: await learning.projects.preview(command.topicId, command.projectId, command.edit) };
                 else if (command.type === "project-write") data = await learning.projects.write(command.topicId, command.projectId, command.edit, signal);
+                else if (command.type === "project-restore-preview") data = { preview: await learning.projects.previewRestore(command.topicId, command.projectId, command.snapshotId, command.expectedTreeHash) };
+                else if (command.type === "project-restore") data = await learning.projects.restore(command.topicId, command.projectId, command.snapshotId, command.expectedTreeHash, signal);
                 else if (command.type === "project-test") data = await learning.projects.test(command.topicId, command.projectId, command.expectedTreeHash, signal);
                 else data = await learning.projects.checkpoint(command.topicId, command.projectId, command.expectedTreeHash, command.title, signal);
               } finally { endLearning(); }
@@ -343,11 +365,11 @@ else {
             }
             case "skills-list":
               learning.registry.get(command.topicId);
-              data = (await learning.skills.list(command.topicId)).map(({ name, description, scope }) => ({ name, description, scope }));
+              data = (await learning.skills.list(command.topicId)).map(skillMetadata);
               break;
             case "skill-read":
               learning.registry.get(command.topicId);
-              data = await learning.skills.read(command.topicId, command.name);
+              data = await learning.skills.details(command.topicId, command.name);
               break;
             case "semantic-index":
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
@@ -415,6 +437,8 @@ else {
               data = await boot();
               break;
             }
+            case "sessions":
+              data = await service.store.page({ query: command.query, cursor: command.cursor }); break;
             case "boot":
               data = await boot();
               break;
@@ -446,6 +470,9 @@ else {
               await service.resumeQueue(command.sessionId);
               data = null;
               break;
+            case "permissions":
+              data = await service.updatePermissions(command.sessionId, command.access, command.clearWriteGrants);
+              break;
             case "context":
               data = await service.updateContext(command.sessionId, command.goal, command.notes);
               break;
@@ -460,6 +487,7 @@ else {
               await service.store.saveSettings(command.settings);
               deepseekModel = command.settings.deepseekModel;
               semanticModel = command.settings.semanticModel ?? "";
+              contextBudget = command.settings.contextBudget;
               learning.configureSemantic(semanticModel);
               data = await boot();
               break;

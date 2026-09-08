@@ -1,7 +1,7 @@
 import type { ModelMessage, ModelToolDefinition, ModelTurn } from "./model.js";
 
 export interface ContextBudget { windowTokens: number; reserveOutputTokens: number; }
-export interface ContextUsage { estimatedInputTokens: number; reservedOutputTokens: number; windowTokens: number; chars: number; omittedMessages: number; omittedTurns: number; }
+export interface ContextUsage { estimatedInputTokens: number; reservedOutputTokens: number; windowTokens: number; chars: number; omittedMessages: number; omittedTurns: number; estimateMultiplier?: number; reportedInputTokens?: number; }
 /** Provider-independent planning estimate, not a tokenizer or billing measurement. */
 export function estimateTokens(text: string): number {
   let units = 0;
@@ -10,7 +10,8 @@ export function estimateTokens(text: string): number {
 }
 
 /** Select a disposable model view. Durable messages, tool pairs and decisions are never rewritten. */
-export function modelContextWindow(input: { prompt: string; messages?: readonly ModelMessage[]; history: readonly ModelTurn[]; tools?: readonly ModelToolDefinition[]; pending?: ModelTurn }, maxChars: number, budget: ContextBudget = { windowTokens: 48_000, reserveOutputTokens: 16_384 }) {
+export function modelContextWindow(input: { prompt: string; messages?: readonly ModelMessage[]; history: readonly ModelTurn[]; tools?: readonly ModelToolDefinition[]; pending?: ModelTurn }, maxChars: number, budget: ContextBudget = { windowTokens: 48_000, reserveOutputTokens: 16_384 }, estimateMultiplier = 1) {
+  if (!Number.isFinite(estimateMultiplier) || estimateMultiplier < 1 || estimateMultiplier > 4) throw new Error("context_budget_invalid");
   if (![budget.windowTokens, budget.reserveOutputTokens].every(value => Number.isSafeInteger(value) && value > 0) || budget.reserveOutputTokens >= budget.windowTokens) throw new Error("context_budget_invalid");
   const base = input.messages?.length ? input.messages : [{ role: "user" as const, content: input.prompt }];
   const firstUser = base.findIndex(message => message.role === "user");
@@ -23,7 +24,7 @@ export function modelContextWindow(input: { prompt: string; messages?: readonly 
     const selected = messages.map(item => item.message);
     if (omittedMessages || omittedTurns) selected.splice(Math.max(0, selected.length - 1), 0, { role: "observation", content: JSON.stringify({ omittedMessages, omittedTurns, notice: "较早记录已从本次模型上下文移除，原文仍保存在本地。缺少的事实不可猜测；可查询实际任务状态或说明缺失。", ...(feedback.length ? { priorUserFeedback: feedback } : {}) }) });
     const serialized = JSON.stringify({ messages: selected, history, tools: input.tools ?? [], ...(input.pending ? { pending: input.pending } : {}) });
-    return { messages: selected, usage: { estimatedInputTokens: estimateTokens(serialized), reservedOutputTokens: budget.reserveOutputTokens, windowTokens: budget.windowTokens, chars: serialized.length, omittedMessages, omittedTurns } };
+    return { messages: selected, usage: { estimatedInputTokens: Math.ceil(estimateTokens(serialized) * estimateMultiplier), reservedOutputTokens: budget.reserveOutputTokens, windowTokens: budget.windowTokens, chars: serialized.length, omittedMessages, omittedTurns, estimateMultiplier } };
   };
   for (;;) {
     const view = project();
@@ -33,7 +34,7 @@ export function modelContextWindow(input: { prompt: string; messages?: readonly 
     // Whole completed turns only. The latest result and every pending call remain available.
     if (history.length > 1) {
       const removed = history.shift()!; omittedTurns++;
-      if (removed.feedback) feedback.push(removed.feedback);
+      if (removed.feedback) { feedback.push(removed.feedback.slice(-4000)); if (feedback.length > 4) feedback.shift(); }
       continue;
     }
     const removable = messages.findIndex(({ message, index }) => message.role !== "system" && message.role !== "observation" && ![firstUser, lastUser, lastAssistant].includes(index));

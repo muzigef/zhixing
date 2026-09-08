@@ -21,7 +21,7 @@ async function fixture() {
   return { root, app };
 }
 
-it.each(["read", "no_context"])("retains a queued %s restriction through stop and restart", async restriction => {
+it.each(["read", "no_context", "revoked"])("retains a queued %s restriction through stop and restart", async restriction => {
   const { root, app } = await fixture(); const store = new AgentSessionStore(path.join(root, "chats"));
   let ready!: () => void; const started = new Promise<void>(resolve => { ready = resolve; });
   const first = new AgentService(store, () => ({ async *stream(_prompt, signal) {
@@ -37,6 +37,7 @@ it.each(["read", "no_context"])("retains a queued %s restriction through stop an
     async *continue() { yield { type: "text_delta", text: "当前请求已处理。" }; yield { type: "done" }; },
   };
   const second = new AgentService(new AgentSessionStore(store.root), () => client, app);
+  if (restriction === "revoked") await second.updatePermissions(session.id, { materials: false, project: false, external: false }, true);
   await second.resumeQueue(session.id); await second.idle();
   const saved = await second.load(session.id);
   expect((await app.evidence.list(topic, "D01")).artifacts).toHaveLength(0);

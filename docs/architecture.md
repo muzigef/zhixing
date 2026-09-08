@@ -78,7 +78,7 @@ CLI / REPL
 | codex-cli | 仅 CLI；`codex exec --sandbox read-only --ephemeral --json` | CLI 注入 150 秒；类构造默认值为 60 秒 |
 | pi-codex | CLI 使用安全脚本，桌面使用仅模型能力的 Pi SDK worker；均显式指定 Pi 的 Codex 模型与推理强度 | 默认 150 秒 |
 
-CLI 资料问答发送检索证据；学习建议发送画像和资料名称；教学发送学习卡与受限主题上下文。桌面发送目标、约束、受限历史和可选摘要；勾选会话授权后加入当前主题进度与检索片段。凭据不进入提示词，其他主题资料与审计原文不加入上下文。
+CLI 资料问答发送检索证据；学习建议发送画像和资料名称；教学发送学习卡与受限主题上下文。桌面发送目标、约束、受限历史和可选摘要；勾选会话授权后加入当前主题进度与检索片段。项目和外部 MCP 另有独立会话授权，绑定实际资源与配置版本。凭据不进入提示词，其他主题资料与审计原文不加入上下文。
 
 `ProviderRuntime` 仅在调用允许 fallback、尚无事件外发且错误属于可回退类别时使用 mock；CLI 教学和自然交互显式关闭静默 fallback。桌面没有自动回退：失败保留状态和部分回答，用户可以点击切换到 DeepSeek 重试。
 
@@ -92,7 +92,7 @@ CLI Pi JSON 的 assistant `text_delta` 映射为知行文本事件；适配器�
 
 `ActionRegistry` 为已识别命令声明稳定动作 ID、风险级别与确认要求；`InteractionProtocol` 先把每轮输入归为命令、待执行草案、教学输入或自然输入。共享的 `ConversationPolicy` 统一校验用户授权、高风险显式确认与用户原文证据：模型文本只能提出动作或事实建议，不能单独改变状态、触发批改或写入记忆。CLI 仍是组合根，尚未完全由注册表分派每一个旧命令处理器。
 
-`ModelEvent` 包含文本、工具请求、工具结果与终止事件；工具请求带 `callId`。模型发出的 `tool_result` 不可信，只有控制面实际执行的结果会进入续写。`collectInvocation` 在单个调用内持有完整的模型/工具历史，固定 Provider 路由，并在收到整个合法工具批次后顺序执行。工具失败作为结构化观察反馈，模型可以调整下一步；未知工具和写权限不因模型要求而开放。
+`ModelEvent` 包含文本、工具请求、工具结果与终止事件；工具请求带 `callId`。模型发出的 `tool_result` 不可信，只有控制面实际执行的结果会进入续写。`collectInvocation` 在单个调用内持有完整的模型/工具历史，固定 Provider 路由，并在收到整个合法工具批次后执行；显式纯只读工具最多两个并行，结果仍按请求顺序记录。工具失败作为结构化观察反馈，模型可以调整下一步；未知工具和写权限不因模型要求而开放。
 
 DeepSeek 实现 `ContinuableModelClient`：工具 schema、分片参数、assistant tool_calls 和 tool_call_id 成对传输，连续多次检索不会丢失早期轮次。普通自由问答在 Provider 支持工具时，以及显式 `学习助手` 命令，通过同一个 `ToolHarness` 注册进度、资料目录与按次授权的资料正文检索；每次调用保持当前主题不变。原有教学和自然计划协调器仍走文本协议，Codex CLI 与 Pi Codex 均为文本适配器。
 
@@ -112,7 +112,7 @@ CLI 和桌面均使用共享 `collectInvocation`，入口的历史投影和适�
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
 2. `DesktopService` 兼容导出实际使用 `AgentService.send`，以会话租约拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
-3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK 与 DeepSeek 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`delta`、`settled` 事件按会话隔离。
+3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK 与 DeepSeek 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`message_patch`、`delta`、`settled` 事件按会话隔离。
 4. 收到非空文本和明确 `done`，且应用计划已完成才标记 `completed`；提前结束会有界继续或返回 `blocked`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
 5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
@@ -138,7 +138,7 @@ CLI 和桌面均使用共享 `collectInvocation`，入口的历史投影和适�
 | 保存的会话 | 最多 1000 条消息；单文件最多 12,000,000 字节 | `src/agent-session-contracts.ts`、`src/agent-session-store.ts` |
 | 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `src/agent-service.ts` |
 
-本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。此外，`context-window.ts` 在每次请求和工具分发前约束估算 token：默认 48,000 窗口、预留 16,384 输出 token，保留必须消息、裁剪完整旧工具轮次。该估算不是模型精确计费值；必须内容超限时停止，不截断工具配对或继续执行副作用。
+本地完整历史不因裁剪而删除。长消息使用首尾摘录；长期目标与约束各 4,000 字符独立保存。至少 20 条历史时尝试整理较早轮次为最多 4,000 字符摘要，最多等待 20 秒；失败继续使用原文摘录，后续间隔尝试，最新纠正优先。摘要不作为执行成功的证据。此外，`context-window.ts` 在每次请求和工具分发前约束估算 token：默认 48,000 窗口、预留 16,384 输出 token，可配置更小预算并传给实际 Provider；保留必须消息、裁剪完整旧工具轮次。该估算不是模型精确计费值；必须内容超限时停止，不截断工具配对或继续执行副作用。
 
 ## 安全与质量
 
@@ -196,3 +196,20 @@ CLI 和桌面均使用共享 `collectInvocation`，入口的历史投影和适�
 - `PracticeProjects` 持有项目文件、独立裸 Git 仓库、项目选择和进程租约；`project-tools.ts` 将读写、实际测试及检查点绑定主题/项目/哈希。没有连接任意用户工作树，导入仅复制允许文本。完成计划依赖实际文件、测试和提交状态，见 [项目指南](practice-projects.md)。
 
 当前聊天版本 v4 兼容读旧版并在首次保存前备份；执行检查点 v1/v2 是独立版本。完整备份新增项目文件/Git、学习观察和解释复核；恢复清除项目选择、MCP 启用状态和会话权限。验证与真实模型残余问题见 [本轮证据](evidence/agent-p1-p2-20260907.md)。
+
+## 0.6 增量结构与数据契约
+
+| 模块 | 实际职责与边界 |
+| --- | --- |
+| `TaskContinuity` / `McpRecovery` | 目标修订、累计用量、未知操作只读核对与用户观察；用户报告不伪造服务成功，也不授予重放许可。 |
+| `AgentPermissions` | 三类访问独立；具体写入绑定操作目标，撤回清除尚未执行的批准，原未知副作用仍保留。 |
+| `ToolHarness` / `ToolResultStore` | 原生 Zod v4 输入是本地工具契约唯一来源；返回正文约 11k 字符并保留状态，超出可归档到任务内 SQLite 后分页读取。每结果 256 KB、每任务最多 64 条/1 MB，归档失败明确显示。 |
+| `ExecutionHistory` / `ModelCapabilities` | 以哈希和作用域分页读取原始转录；能力声明、显式不支持的图片、预算和真实 usage 保守校准。 |
+| `TeachingPolicy` / `LearningConcepts` | 24 知识点关联实际作答，帮助/独立证据与撤回影响教学决策；不将自报理解当掌握。 |
+| `EvidenceSupport` / `SourceVersion` | 原文与来源版本校验、部分可确定的主张支持检查，保持格式检查独立，不声称完整语义验证。 |
+| `LazyMcp` / `SkillCatalog` | 按需目录加载，配置/schema 缓存；Skill 的内容版本、条件、评测关联及旧缓存状态可见。 |
+| `PracticeProjects` / `ProjectDiff` / `PythonRunner` | 批量预校验、修改日志、快照和回执；精确差异与恢复；Python 标准库测试及明确平台限制。 |
+| `AgentSessionStore` / `AgentEventCoalescer` | 正文外元数据索引、游标分页；16 ms 合并文本增量、活动增量补丁、最终事件前清空缓冲；UI 分段加载消息。 |
+| `LearningOutcomeStore` / `BuildProvenance` | 独立题目和作答存储、两种试验协议；源码/安装包来源绑定，按构建和真实模型条件分组。 |
+
+会话当前写入 v5，首次保存 v1–v4 前保留原文件；SQLite 标记 5，旧应用拒绝打开。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。

@@ -1,7 +1,10 @@
+import { restrictedStudy } from "../../src/outcome-contracts.js";
+import type { AccessSelection } from "../../src/agent-permissions.js";
 import { DeltaBatcher } from "./delta-batcher.js";
 import { displayMath } from "../../src/display-math.js";
 import { BackupPanel } from "./backup-panel.js";
 import { DiagnosticsPanel } from "./diagnostics-panel.js";
+import { TaskPanel } from "./task-panel.js";
 import {
   StrictMode,
   memo,
@@ -161,10 +164,19 @@ function App() {
   const [atBottom, setAtBottom] = useState(true);
   const [elapsed, setElapsed] = useState(0);
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [visibleMessages, setVisibleMessages] = useState(40);
+  const [searchPage, setSearchPage] = useState<{ sessions: SessionSummary[]; nextCursor: string | null }>();
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const historyRequest = useRef(0);
+  const patchSequence = useRef(new Map<string, number>());
   const [contextAllowed, setContextAllowed] = useState(false);
+  const [projectAllowed, setProjectAllowed] = useState(false);
+  const [externalAllowed, setExternalAllowed] = useState(false);
+  const [permissionBusy, setPermissionBusy] = useState(false);
   const [execution, setExecution] = useState<"read" | "once" | "session">("read");
   const [comparison, setComparison] = useState<ChatMessage[] | null>(null);
   const [learningOpen, setLearningOpen] = useState(false);
+  const [taskView, setTaskView] = useState<{ sessionId: string; taskId: string }>();
   const [source, setSource] = useState<LearningSource>();
   const [contextOpen, setContextOpen] = useState(false);
   const currentId = useRef<string | null>(null);
@@ -204,10 +216,13 @@ function App() {
       if (serial !== selecting.current) return;
       deltas.current?.dispose();
       currentId.current = id;
+      setTaskView(undefined);
       localStorage.setItem("last-session", id);
-      setSession(value);
+      setSession(value); setVisibleMessages(40); patchSequence.current.clear();
       setSelectedTopic(value.topicId ?? "");
       setContextAllowed(value.contextAllowed ?? false);
+      setProjectAllowed(Boolean(value.permissions?.projectId));
+      setExternalAllowed(value.permissions?.externalRevision !== undefined);
       setExecution(value.executionAllowed ? "session" : "read");
       setDraft(drafts.current[id] ?? "");
       setError("");
@@ -236,6 +251,11 @@ function App() {
       if (event.type === "session") {
         updateSession(event.session);
         if (event.session.messages.at(-1)?.status === "running") setActiveId(event.session.id);
+      } else if (event.type === "message_patch") {
+        if (event.sessionId !== currentId.current || event.sequence <= (patchSequence.current.get(event.messageId) ?? 0)) return;
+        patchSequence.current.set(event.messageId, event.sequence);
+        if (event.changes.text !== undefined) batcher.discard(event.sessionId); else batcher.flush(event.sessionId);
+        setSession(previous => previous?.id === event.sessionId ? { ...previous, messages: previous.messages.map(message => message.id === event.messageId ? { ...message, ...event.changes } : message) } : previous);
       } else if (event.type === "delta") {
         if (event.sessionId === currentId.current) batcher.add(event.sessionId, event.messageId, event.text);
       } else {
@@ -247,7 +267,7 @@ function App() {
       .then((value) => {
         const last = localStorage.getItem("last-session");
         const id =
-          value.sessions.find((item) => item.id === last)?.id ??
+          last && /^[0-9a-f-]{36}$/i.test(last) ? last :
           value.sessions[0]?.id;
         if (id) void select(id);
         else setDraft(drafts.current.new ?? "");
@@ -296,11 +316,23 @@ function App() {
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
   }, [isCurrentRunning, session?.id, session?.messages.length]);
+  const changePermissions = async (access: AccessSelection, clearWriteGrants = false) => {
+    if (permissionBusy) return;
+    const before = { materials: contextAllowed, project: projectAllowed, external: externalAllowed };
+    setContextAllowed(access.materials); setProjectAllowed(access.project); setExternalAllowed(access.external); setPermissionBusy(true);
+    try {
+      if (session?.topicId) await invoke({ type: "permissions", sessionId: session.id, access, clearWriteGrants });
+      if (!access.materials) setExecution("read");
+    } catch (problem) {
+      setContextAllowed(before.materials); setProjectAllowed(before.project); setExternalAllowed(before.external); setError(messageOf(problem));
+    } finally { setPermissionBusy(false); }
+  };
   const newChat = useCallback(() => {
     selecting.current++;
     currentId.current = null;
     localStorage.removeItem("last-session");
-    setSession(null);
+    setSession(null); setVisibleMessages(40); patchSequence.current.clear();
+    setContextAllowed(false); setProjectAllowed(false); setExternalAllowed(false); setExecution("read");
     setDraft(drafts.current.new ?? "");
     setError("");
     setMenuOpen(false);
@@ -332,12 +364,12 @@ function App() {
     steer = false,
     resumeTaskId?: string,
   ) {
-    if (!text.trim() || sending) return;
+    if (!text.trim() || sending || permissionBusy) return;
     if (activeId) {
       if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
       setSending(true); setDraft("");
       try {
-        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, contextAllowed } : {}), steer });
+        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}), steer });
         if (execution === "once") setExecution("read");
         notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
       } catch (problem) { setError(messageOf(problem)); setDraft((previous) => previous || text); }
@@ -376,7 +408,7 @@ function App() {
         reasoning: settings.reasoning,
         execution,
         resumeTaskId,
-        ...(selectedTopic ? { topicId: selectedTopic, contextAllowed } : {}),
+        ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}),
       });
       if (execution === "once") setExecution("read");
     } catch (problem) {
@@ -413,8 +445,26 @@ function App() {
       setError(messageOf(problem));
     }
   }
+  useEffect(() => {
+    const serial = ++historyRequest.current;
+    if (!search) { setSearchPage(undefined); setHistoryBusy(false); return; }
+    setHistoryBusy(true);
+    const timer = setTimeout(() => { void invoke<{ sessions: SessionSummary[]; nextCursor: string | null }>({ type: "sessions", query: search }).then(page => { if (serial === historyRequest.current) setSearchPage(page); }).catch(problem => { if (serial === historyRequest.current) setError(messageOf(problem)); }).finally(() => { if (serial === historyRequest.current) setHistoryBusy(false); }); }, 180);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const moreHistory = async () => {
+    const cursor = search ? searchPage?.nextCursor : boot?.nextSessionCursor; if (!cursor || historyBusy) return;
+    const serial = ++historyRequest.current; setHistoryBusy(true);
+    try {
+      const page = await invoke<{ sessions: SessionSummary[]; nextCursor: string | null }>({ type: "sessions", query: search, cursor });
+      if (serial !== historyRequest.current) return;
+      if (search) setSearchPage(previous => ({ sessions: [...new Map([...(previous?.sessions ?? []), ...page.sessions].map(item => [item.id, item])).values()], nextCursor: page.nextCursor }));
+      else setBoot(previous => previous ? { ...previous, sessions: [...new Map([...previous.sessions, ...page.sessions].map(item => [item.id, item])).values()], nextSessionCursor: page.nextCursor } : previous);
+    } catch (problem) { if (serial === historyRequest.current) setError(messageOf(problem)); }
+    finally { if (serial === historyRequest.current) setHistoryBusy(false); }
+  };
   const sessions =
-    boot?.sessions.filter((item) =>
+    (search ? searchPage?.sessions ?? boot?.sessions : boot?.sessions)?.filter((item) =>
       item.title.toLowerCase().includes(search.toLowerCase()),
     ) ?? [];
   const today = new Date().toDateString();
@@ -475,6 +525,7 @@ function App() {
         <nav className="session-list" aria-label="历史会话">
           {sessionGroup("今天", recent)}
           {sessionGroup("更早", older)}
+          {(search ? searchPage?.nextCursor : boot?.nextSessionCursor) && <button disabled={historyBusy} onClick={() => void moreHistory()}>加载更多对话</button>}
           {!sessions.length && (
             <div className="empty-history">
               {search ? (
@@ -574,7 +625,9 @@ function App() {
             setSelectedTopic(event.target.value); setContextAllowed(false);
           }}><option value="">自由对话</option>{boot.workspace.topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}</select></label>
           <button onClick={() => setLearningOpen(true)}><BookOpen size={14} />课程与资料</button>
-          {selectedTopic && !session?.study && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId} onChange={(event) => setContextAllowed(event.target.checked)} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
+          {selectedTopic && !restrictedStudy(session?.study) && <label className="context-permission"><input type="checkbox" checked={contextAllowed} disabled={!!activeId || permissionBusy} onChange={(event) => void changePermissions({ materials: event.target.checked, project: projectAllowed, external: externalAllowed })} />本会话使用学习上下文<span title="将当前主题的进度和检索片段提供给你选择的模型。授权仅适用于这段对话。">ⓘ</span></label>}
+          {selectedTopic && !restrictedStudy(session?.study) && <><label className="context-permission"><input type="checkbox" checked={projectAllowed} disabled={!!activeId || permissionBusy} onChange={event => void changePermissions({ materials: contextAllowed, project: event.target.checked, external: externalAllowed })} />本会话使用当前实践项目</label><label className="context-permission"><input type="checkbox" checked={externalAllowed} disabled={!!activeId || permissionBusy} onChange={event => void changePermissions({ materials: contextAllowed, project: projectAllowed, external: event.target.checked })} />本会话使用已配置的外部工具</label></>}
+          {Boolean(session?.writeGrants?.length) && <button disabled={!!activeId} onClick={() => void changePermissions({ materials: contextAllowed, project: projectAllowed, external: externalAllowed }, true)}>撤回已记住的操作授权（{session!.writeGrants!.length}）</button>}
           {selectedTopic && contextAllowed && <label className="context-permission">学习操作<select aria-label="学习操作权限" value={execution} disabled={!!activeId} onChange={(event) => setExecution(event.target.value as typeof execution)}><option value="read">仅查看</option><option value="once">本轮允许保存产物与测试</option><option value="session">本会话允许保存产物与测试</option></select></label>}
         </div>}
         {session?.study && <div className="study-banner">学习验证 · {session.study.mode === "zhixing" ? "知行引导教学" : "同模型直接聊天"} · 完成后打开「课程与资料」进行学后检查。</div>}
@@ -635,7 +688,8 @@ function App() {
             <div className="messages" aria-label="对话内容">
               <button className="compare-trigger" disabled={!!activeId} onClick={() => { if (session?.parent) void invoke<ChatSession>({ type: "load", sessionId: session.parent.sessionId }).then((parent) => setComparison([...new Map([...parent.messages, ...session.messages].map((item) => [item.id, item])).values()])).catch((problem) => setError(messageOf(problem))); else setComparison(session?.messages ?? []); }}>对比回答</button>
               {comparison && <CompareAnswers messages={comparison} onClose={() => setComparison(null)} />}
-              {session?.messages.map((message, index) => (
+              {session && session.messages.length > visibleMessages && <button onClick={() => { const node = scroll.current; if (!node) return; const height = node.scrollHeight; const top = node.scrollTop; stickToBottom.current = false; setAtBottom(false); setVisibleMessages(count => count + 40); requestAnimationFrame(() => { node.scrollTop = top + node.scrollHeight - height; }); }}>加载更早的消息（还剩 {session.messages.length - visibleMessages} 条）</button>}
+              {session?.messages.slice(-visibleMessages).map((message, index) => (
                 <Message
                   key={message.id}
                   message={message}
@@ -648,12 +702,13 @@ function App() {
                   onRetry={() =>
                     void send(
                       session.messages
-                        .slice(0, index)
+                        .slice(0, Math.max(0, session.messages.length - visibleMessages) + index)
                         .reverse()
                         .find((item) => item.role === "user")?.text ?? "请继续", undefined, false, message.taskId,
                     )
                   }
                   onFork={() => void forkConversation(message)}
+                  onTask={() => { if (message.taskId) setTaskView({ sessionId: session.id, taskId: message.taskId }); }}
                   onEdit={(text) => void forkConversation(message, text)}
                   onAnswer={(id, answer, scope) => { setSending(true); void invoke({ type: "answer", sessionId: session.id, itemId: id, answer, scope }).catch((problem) => setError(messageOf(problem))).finally(() => setSending(false)); }}
                   onContinue={() =>
@@ -666,7 +721,7 @@ function App() {
                     }).then(() =>
                       send(
                         session.messages
-                          .slice(0, index)
+                          .slice(0, Math.max(0, session.messages.length - visibleMessages) + index)
                           .reverse()
                           .find((item) => item.role === "user")?.text ??
                           "请继续",
@@ -730,6 +785,9 @@ function App() {
               maxLength={20_000}
               rows={2}
               aria-label="发送给知行"
+              onPaste={event => { if ([...event.clipboardData.files].some(file => file.type.startsWith("image/"))) { event.preventDefault(); setError("当前模型通道只接收文字，暂不支持图片输入。请粘贴需要讨论的文字。"); } }}
+              onDragOver={event => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
+              onDrop={event => { if (event.dataTransfer.files.length) { event.preventDefault(); setError("聊天暂不接收文件附件。PDF 和 Markdown 可从课程与资料导入，图片请提供文字内容。"); } }}
               placeholder={
                 hasMessages
                   ? "继续追问，或者换个思路…"
@@ -876,6 +934,7 @@ function App() {
           }}
         />
       )}
+      {taskView && <Modal title="任务详情" className="learning-modal" onClose={() => setTaskView(undefined)}><TaskPanel {...taskView} active={!!activeId} onReported={() => setExecution("read")} onContinue={() => { const taskId = taskView.taskId; setTaskView(undefined); void send("结合最新任务目标和核对记录继续，明确区分服务核验与用户自报。", undefined, false, taskId); }} /></Modal>}
       {learningOpen && boot?.workspace && <Modal title="课程与资料" className="learning-modal" onClose={() => setLearningOpen(false)}>
         <LearningPanel workspace={boot.workspace} topicId={selectedTopic} busy={!!activeId} onLesson={(value) => {
           updateSession(value); setLearningOpen(false);
@@ -906,6 +965,7 @@ const Message = memo(
     onFork,
     onEdit,
     onAnswer,
+    onTask,
   }: {
     message: ChatMessage;
     elapsed: number;
@@ -919,6 +979,7 @@ const Message = memo(
     onFork: () => void;
     onEdit: (text: string) => void;
     onAnswer: (id: string, answer: string, scope?: "once" | "session") => void;
+    onTask: () => void;
   }) {
     if (message.role === "user")
       return (
@@ -942,12 +1003,14 @@ const Message = memo(
           )}
         </div>
         {!!message.activities?.length && <details className="task-activities"><summary>任务进展 · {message.activities.length} 项活动</summary><ul>{message.activities.map((activity, index) => <li key={index}>{activity.status === "completed" ? "✓" : activity.status === "failed" ? "!" : "…"} {activity.label}</li>)}</ul></details>}
+        {message.taskId && <button className="compare-trigger" disabled={!canSend} onClick={onTask}>任务详情</button>}
         {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}
         {message.status === "waiting" && <p role="status">等待你的回复，任务和已完成结果已保存。</p>}
         {message.timings?.taskCompleted === false && <p>执行计划仍有未完成步骤。</p>}
         {!!message.quality?.length && <details className="task-activities"><summary>回答检查提示</summary><p>以下是格式和来源提示，内容正确性仍需核对。</p>{message.quality.map(item => <p key={item.code}>{item.detail}</p>)}</details>}
+        {!!message.evidenceSupport?.claims.length && <details className="task-activities"><summary>证据支持检查 · {message.evidenceSupport.issues.length ? `${message.evidenceSupport.issues.length} 项待核对` : "规则未发现问题"}</summary><p>{message.evidenceSupport.notice}</p>{message.evidenceSupport.issues.map((issue, index) => <p key={index}>{issue.detail} 对应内容：{message.evidenceSupport!.claims[issue.claimIndex]?.text}</p>)}{message.evidenceSupport.claims.map((claim, index) => <div key={index}><p>{claim.text}</p>{claim.sources.map((source, index) => <button className="compare-trigger" key={index} onClick={() => onSource(source.citation)}>{source.citation.documentName} · 本次检索片段 {source.excerptStart + 1}–{source.excerptEnd} 字符</button>)}</div>)}</details>}
         {message.reasoningMode === "auto" && <p className="message-meta">本轮自动选择：{message.reasoning === "deep" ? "深入思考" : message.reasoning === "quick" ? "快速" : "均衡"}</p>}
-        {message.contextUsage && <details className="task-activities"><summary>本轮上下文范围</summary><p>模型本轮省略了 {message.contextUsage.omittedMessages} 条旧消息、{message.contextUsage.omittedTurns} 轮旧执行记录。完整记录仍保存在本地。</p><p>输入估算 {message.contextUsage.estimatedInputTokens} Token，输出预留 {message.contextUsage.reservedOutputTokens} Token。估算用于控制上下文，不作为计费用量。</p></details>}
+        {message.contextUsage && <details className="task-activities"><summary>本轮上下文范围</summary><p>模型本轮省略了 {message.contextUsage.omittedMessages} 条旧消息、{message.contextUsage.omittedTurns} 轮旧执行记录。完整记录仍保存在本地，可按需查询。</p><p>输入估算 {message.contextUsage.estimatedInputTokens} Token，输出预留 {message.contextUsage.reservedOutputTokens} Token。估算用于控制上下文，不作为计费用量。</p>{message.contextUsage.reportedInputTokens !== undefined && <p>该次请求报告输入 {message.contextUsage.reportedInputTokens} Token；后续估算会保守校准，上下文上限保持不变。</p>}</details>}
         <MarkdownBody text={message.text} onCopy={onCopy} onOpenLink={onOpenLink} />
         {!!message.citations?.length && <div className="source-list" aria-label="已引用资料">{message.citations.map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{index + 1}. {citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</div>}
         {!!message.retrievedCitations?.length && <details className="source-list" aria-label="检索候选资料"><summary>检索到的资料 · 不表示回答已引用</summary>{message.retrievedCitations.filter((citation) => !message.citations?.some((used) => used.chunkId === citation.chunkId)).map((citation, index) => <button key={index} onClick={() => onSource(citation)}>{citation.documentName} · {citation.pageNumber ? `第 ${citation.pageNumber} 页` : citation.anchor ?? "原文"}</button>)}</details>}
@@ -1082,6 +1145,7 @@ function Modal({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const pressedBackdrop = useRef(false);
   useEffect(() => {
     ref.current?.showModal();
     const element = ref.current;
@@ -1092,12 +1156,18 @@ function Modal({
       ref={ref}
       className={`modal ${className}`}
       aria-label={title}
+      onPointerDown={(event) => {
+        const rect = ref.current?.getBoundingClientRect();
+        pressedBackdrop.current = event.target === ref.current && !!rect && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom);
+      }}
+      onPointerCancel={() => { pressedBackdrop.current = false; }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
       onClick={(event) => {
-        if (event.target === ref.current) {
+        const outsidePress = pressedBackdrop.current; pressedBackdrop.current = false;
+        if (outsidePress && event.target === ref.current) {
           const rect = ref.current.getBoundingClientRect();
           if (
             event.clientX < rect.left ||
@@ -1308,6 +1378,8 @@ function SettingsDialog({
       </div>
       <div className="setting-section">
         <h3>偏好</h3>
+        <label className="setting-row"><span><strong>单轮上下文预算</strong><small>包含输入估算和回答预留；上限保持 48,000 Token。实际计费以模型报告为准。</small></span><select aria-label="上下文预算" value={settings.contextBudget?.windowTokens ?? 48000} onChange={event => void onSave({ ...settings, contextBudget: { windowTokens: Number(event.target.value), reserveOutputTokens: Math.min(settings.contextBudget?.reserveOutputTokens ?? 16384, Number(event.target.value) / 2) } })}><option value={48000}>48,000 Token</option><option value={24000}>24,000 Token</option><option value={8000}>8,000 Token</option></select></label>
+        <label className="setting-row"><span><strong>回答预留</strong><small>较小上限适合短回答；长推导可能需要继续。Pi 桌面与 DeepSeek 均传递此上限。</small></span><select aria-label="回答预留" value={settings.contextBudget?.reserveOutputTokens ?? 16384} onChange={event => void onSave({ ...settings, contextBudget: { windowTokens: settings.contextBudget?.windowTokens ?? 48000, reserveOutputTokens: Number(event.target.value) } })}>{[1024, 4096, 16384, ...(settings.contextBudget ? [settings.contextBudget.reserveOutputTokens] : [])].filter((value, index, values) => values.indexOf(value) === index && value < (settings.contextBudget?.windowTokens ?? 48000)).sort((a, b) => a - b).map(value => <option key={value} value={value}>{value.toLocaleString()} Token</option>)}</select></label>
         <label className="setting-row"><span><strong>本机语义检索</strong><small>填写已安装的 Ollama 嵌入模型（如 bge-m3），再到课程与资料构建索引。留空使用关键词与同义词。</small></span><input aria-label="Ollama 嵌入模型" defaultValue={settings.semanticModel ?? ""} placeholder="未启用" onBlur={(event) => { const value = event.target.value.trim(); if (/^(?:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127})?$/.test(value)) void onSave({ ...settings, semanticModel: value }); }} /></label>
         <label className="setting-row">
           <span>

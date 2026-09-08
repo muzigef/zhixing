@@ -1,9 +1,10 @@
 import { StringDecoder } from "node:string_decoder";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { PiCodexClient, runPiProcess, type PiProcessRunner } from "./pi-client.js";
 import { assertLiveProviderAllowed } from "./provider-policy.js";
 import { modelPhaseSchema, piTransportSchema, workerTimingSchema } from "./model-telemetry.js";
 import type { ContinuableModelClient, ModelEvent, ModelRequestOptions, ToolResultMessage } from "./model.js";
+import { adapterCapabilities, outputTokenLimit } from "./model-capabilities.js";
 
 const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("progress"), phase: modelPhaseSchema }).strict(),
@@ -13,12 +14,13 @@ const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("provider_state"), result: z.unknown() }).strict(),
   z.object({ type: z.literal("done") }).strict(),
   z.object({ type: z.literal("usage"), usage: z.object({ inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), cacheReadTokens: z.number().int().nonnegative().optional(), reasoningTokens: z.number().int().nonnegative().optional(), model: z.string().max(128).optional(), startupMs: z.number().nonnegative().optional() }).strict() }).strict(),
-  z.object({ type: z.literal("error"), code: z.enum(["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "provider_unavailable", "live_provider_disabled"]) }).strict(),
+  z.object({ type: z.literal("error"), code: z.enum(["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "model_input_limit", "provider_unavailable", "live_provider_disabled"]) }).strict(),
 ]);
 export interface PiApplicationOptions { projectDir: string; executable: string; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; }
 
 /** One provider turn per isolated process. The SDK generates calls; only our ToolHarness executes them. */
 export class PiApplicationClient extends PiCodexClient implements ContinuableModelClient {
+  override readonly capabilities = adapterCapabilities(true, "configurable");
   constructor(private readonly bridge: PiApplicationOptions) { super(bridge); }
   async *continue(prompt: string, _results: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent> {
     if (!options?.history?.length) throw new Error("provider_continuation_context_required");
@@ -28,6 +30,7 @@ export class PiApplicationClient extends PiCodexClient implements ContinuableMod
     const started = Date.now();
     const environment = this.bridge.environment ?? process.env;
     assertLiveProviderAllowed(environment); parent.throwIfAborted();
+    outputTokenLimit(options?.maxOutputTokens);
     const selectedTransport = piTransportSchema.safeParse(this.bridge.transport ?? environment.ZHIXING_PI_TRANSPORT ?? "sse");
     if (!selectedTransport.success) throw new Error("provider_transport_invalid");
     const transport = selectedTransport.data;

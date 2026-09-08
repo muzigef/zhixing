@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 
 const root = process.cwd();
 const commands = [
+  ["node", ["scripts/check-lockfiles.mjs"]],
   ["npm", ["run", "lint"]],
   ["npm", ["run", "typecheck"]],
   ["npm", ["--prefix", "desktop", "run", "typecheck"]],

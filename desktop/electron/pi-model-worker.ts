@@ -3,7 +3,9 @@ import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { ModelEvent, ModelRequestOptions } from "../../src/model.js";
 import type { PiModelSelection } from "../../src/pi-client.js";
 import { piTransportSchema, type ModelPhase, type workerTimingSchema } from "../../src/model-telemetry.js";
-import type { z } from "zod";
+import type { z } from "zod/v4";
+import { outputTokenLimit, piReportedUsage } from "../../src/model-capabilities.js";
+import { estimateTokens } from "../../src/context-window.js";
 
 type Context = Parameters<ModelRuntime["streamSimple"]>[1];
 const emit = (event: ModelEvent | { type: "timing"; timing: z.infer<typeof workerTimingSchema> } | { type: "error"; code: string }) => process.stdout.write(JSON.stringify(event) + "\n");
@@ -48,6 +50,8 @@ try {
     }
     // No AgentSession or native tools exist in this worker. Tool definitions are data only.
     const context: Context = { systemPrompt: base.filter((message) => message.role === "system").map((message) => message.content).join("\n\n"), messages, tools: request.options?.tools?.map((tool) => ({ name: tool.name, description: tool.description, parameters: tool.inputSchema as NonNullable<Context["tools"]>[number]["parameters"] })) };
+    const maxTokens = Math.min(model.maxTokens, outputTokenLimit(request.options?.maxOutputTokens));
+    if (estimateTokens(JSON.stringify(context)) + maxTokens > Math.min(model.contextWindow, 48_000)) throw new Error("model_input_limit");
     let size = 0; let done = false;
     const phases = new Set<ModelPhase>();
     const phase = (value: ModelPhase) => { if (!phases.has(value)) { phases.add(value); emit({ type: "progress", phase: value }); } };
@@ -55,7 +59,7 @@ try {
     let firstEventMs: number | undefined; let firstTextMs: number | undefined;
     phase("requesting");
     const reasoning = request.selection.thinking === "off" ? undefined : request.selection.thinking as NonNullable<Parameters<ModelRuntime["streamSimple"]>[2]>["reasoning"];
-    for await (const event of runtime.streamSimple(model, context, { signal, reasoning, maxTokens: 16_384, transport })) {
+    for await (const event of runtime.streamSimple(model, context, { signal, reasoning, maxTokens, transport })) {
       firstEventMs ??= Date.now() - requestedAt;
       if (event.type === "start") phase("waiting");
       if (event.type === "toolcall_start") phase("tool_preparing");
@@ -69,7 +73,7 @@ try {
         for (const part of event.message.content) if (part.type === "toolCall") emit({ type: "tool_call", tool: part.name, input: part.arguments, callId: part.id });
         emit({ type: "provider_state", result: event.message });
         const usage = event.message.usage;
-        emit({ type: "usage", usage: { inputTokens: usage.input, outputTokens: usage.output, cacheReadTokens: usage.cacheRead, reasoningTokens: usage.reasoning, model: model.id, startupMs } });
+        emit({ type: "usage", usage: { ...piReportedUsage(usage), model: model.id, startupMs } });
         done = true;
       }
     }
@@ -78,6 +82,6 @@ try {
     emit({ type: "done" });
   }
 } catch (error) {
-  const allowed = ["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "live_provider_disabled"];
+  const allowed = ["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "model_input_limit", "live_provider_disabled"];
   emit({ type: "error", code: error instanceof Error && allowed.includes(error.message) ? error.message : "provider_unavailable" });
 }

@@ -1,3 +1,6 @@
+import { restrictedStudy } from "./outcome-contracts.js";
+import { accessSelection, bindPermissions, retainGrants, writePermission, type AccessSelection } from "./agent-permissions.js";
+import { McpSettings } from "./mcp-settings.js";
 import { randomUUID } from "node:crypto";
 import type { ModelClient } from "./model.js";
 import { excerpt } from "./conversation-context.js";
@@ -19,8 +22,12 @@ import type { ProviderRuntime } from "./provider-runtime.js";
 import { selectReasoning } from "./agent-efficiency.js";
 import { ContinuationText, inspectResponse, normalizeDisplayMath } from "./response-quality.js";
 import { citationMarker } from "./citation-marker.js";
+import { TaskContinuity, type RecoveryReport } from "./task-continuity.js";
+import { TaskExecutionStore } from "./task-execution.js";
+import { verifyMcpRecovery } from "./mcp-recovery.js";
 export interface AgentInvocation { runtime: ProviderRuntime; request: InvocationRequest; signal?: AbortSignal; result?: InvocationResult; error?: unknown; }
 export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
+  private eventSequence = 0;
   private listeners = new Set<(event: AgentEvent) => void>();
   private active: { session: ChatSession; controller: AbortController } | null =
     null;
@@ -52,6 +59,52 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     if (!this.learning) throw new Error("workspace_unavailable");
     return new AgentExecutionStore(this.learning.database, { taskId, sessionId, topicId }).events();
   }
+  private taskIdentity(session: ChatSession, taskId: string) {
+    if (!this.learning || session.workspaceId && session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
+    if (!session.messages.some(message => message.taskId === taskId)) throw new Error("task_not_found");
+    return { taskId, sessionId: session.id, topicId: session.topicId ?? "general-chat" };
+  }
+  async taskInfo(sessionId: string, taskId: string) {
+    const session = await this.load(sessionId); const identity = this.taskIdentity(session, taskId);
+    return new TaskContinuity(this.learning!.database).inspect(identity);
+  }
+  async reportRecovery(sessionId: string, taskId: string, callId: string, report: RecoveryReport) {
+    if (this.activeSessionId || this.starting) throw new Error("run_active");
+    await this.pauseMaintenance();
+    return this.withStoredSession(sessionId, async session => {
+      const identity = this.taskIdentity(session, taskId); const continuity = new TaskContinuity(this.learning!.database);
+      continuity.report(identity, callId, report); session.executionAllowed = false; session.writeGrants = [];
+      await this.store.save(session); this.emit({ type: "session", session }); return continuity.inspect(identity);
+    });
+  }
+  async verifyRecovery(sessionId: string, taskId: string, callId: string) {
+    if (this.activeSessionId || this.starting) throw new Error("run_active");
+    await this.pauseMaintenance(); this.starting = true; this.startingSessionId = sessionId;
+    const controller = new AbortController(); this.interactionController = controller;
+    try {
+      return await this.withStoredSession(sessionId, async session => {
+        const identity = this.taskIdentity(session, taskId);
+        if (session.permissions) {
+          if (session.permissions.externalRevision === undefined) throw new Error("execution_context_required");
+          bindPermissions(this.learning!, identity.topicId, accessSelection(session.permissions), session.permissions);
+        }
+        return verifyMcpRecovery(this.learning!.database, identity, callId, controller.signal);
+      });
+    } finally { this.starting = false; this.startingSessionId = null; this.interactionController = undefined; }
+  }
+  async reviseTask(sessionId: string, taskId: string, revision: number, goal: string): Promise<ChatSession> {
+    if (this.activeSessionId || this.starting) throw new Error("run_active");
+    await this.pauseMaintenance();
+    const request = await this.withStoredSession(sessionId, async session => {
+      const identity = this.taskIdentity(session, taskId); const continuity = new TaskContinuity(this.learning!.database);
+      if (continuity.inspect(identity).recovery) throw new Error("tool_recovery_required");
+      const tasks = new TaskExecutionStore(this.learning!.database); tasks.begin(taskId, identity.topicId, session.context?.goal ?? goal);
+      tasks.revise(taskId, identity.topicId, revision, goal);
+      const message = session.messages.findLast(item => item.taskId === taskId)!;
+      return { sessionId, text: `用户已明确修订本任务目标：${goal}\n旧计划已归档，以新目标重新规划，实际已发生的操作仍保留。`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, resumeTaskId: taskId, steerId: randomUUID() } satisfies SendRequest;
+    });
+    return this.send(request);
+  }
   get activeTaskId(): string | undefined { return this.active?.session.messages.at(-1)?.taskId; }
   get activeSessionId(): string | null {
     return this.active?.session.id ?? this.draining ?? this.startingSessionId;
@@ -61,6 +114,9 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+  private patch(session: ChatSession, changes: Partial<Omit<ChatSession["messages"][number], "id">>): void {
+    this.emit({ type: "message_patch", sessionId: session.id, messageId: session.messages.at(-1)!.id, sequence: ++this.eventSequence, changes });
   }
   private emit(event: AgentEvent): void {
     // A disconnected transport must not own task execution or prevent delivery to others.
@@ -80,13 +136,14 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
     this.starting = true; this.startingSessionId = id;
     try {
+      if (trial.protocol === "full_product") this.learning.outcomes.bindProvenance(topicId, id, await this.learning.provenance());
       if (trial.sessionId) {
         const session = await this.load(trial.sessionId);
-        if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode) throw new Error("outcome_session_mismatch");
+        if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode || (session.study.protocol ?? "prompt_only") !== (trial.protocol ?? "prompt_only")) throw new Error("outcome_session_mismatch");
         return session;
       }
       const session = await this.create();
-      session.study = { id, mode: trial.mode }; session.topicId = topicId;
+      session.study = { id, mode: trial.mode, protocol: trial.protocol ?? "prompt_only" }; session.topicId = topicId;
       session.workspaceId = this.learning.summary().id;
       session.contextAllowed = false; session.executionAllowed = false;
       session.title = `${trial.title} · ${trial.mode === "zhixing" ? "引导教学" : "直接聊天"}`; session.customTitle = true;
@@ -101,11 +158,12 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     const trial = this.learning.outcomes.get(topicId, id);
     if (!trial.sessionId) throw new Error("outcome_lesson_incomplete");
     const session = await this.load(trial.sessionId);
-    if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode) throw new Error("outcome_session_mismatch");
+    if (session.workspaceId !== this.learning.summary().id || session.topicId !== topicId || session.study?.id !== id || session.study.mode !== trial.mode || (session.study.protocol ?? "prompt_only") !== (trial.protocol ?? "prompt_only")) throw new Error("outcome_session_mismatch");
     if (session.pendingRequests?.length || session.messages.at(-1)?.status !== "completed") throw new Error("outcome_lesson_incomplete");
     const messages = session.messages.filter(m => m.role === "assistant");
     return this.learning.outcomes.finishLesson(topicId, id, { sessionId: session.id,
-      conditions: messages.map(m => ({ provider: m.provider ?? "unknown", model: m.model, reasoning: m.reasoning ?? "unknown", style: m.style ?? "unknown" })),
+      conditions: messages.map(m => ({ provider: m.provider ?? "unknown", model: m.model, reasoning: m.reasoning ?? "unknown", style: m.style ?? "unknown", codeHash: m.codeHash, windowTokens: m.contextUsage?.windowTokens, reserveOutputTokens: m.contextUsage?.reservedOutputTokens })),
+      toolCalls: messages.reduce((total, m) => total + (m.timings?.toolCalls ?? 0), 0), access: messages.flatMap(m => m.access ? [m.access] : []),
       completedTurns: messages.filter(m => m.status === "completed" && m.text.trim()).length,
       failedTurns: messages.filter(m => m.status !== "completed").length,
       durationMs: messages.reduce((total, m) => total + (m.durationMs ?? 0), 0),
@@ -164,7 +222,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     const fork = await this.store.create();
     fork.title = `${source.title.slice(0, 70)} · 分支`; fork.customTitle = true;
     fork.parent = { sessionId: id, messageId };
-    fork.topicId = source.topicId; fork.workspaceId = source.workspaceId; fork.contextAllowed = false; fork.executionAllowed = false;
+    fork.topicId = source.topicId; fork.workspaceId = source.workspaceId; fork.contextAllowed = false; fork.executionAllowed = false; fork.permissions = { version: 1, materials: false }; fork.writeGrants = [];
     fork.messages = source.messages.slice(0, index + (edit ? 0 : 1)).map((item) => ({ ...item, taskId: undefined, items: item.items?.filter((entry) => !["approval", "question"].includes(entry.kind)) }));
     fork.context = source.context ? { goal: edit && index === 0 ? "" : source.context.goal, notes: source.context.notes } : undefined;
     await this.store.save(fork); return fork;
@@ -190,8 +248,13 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (!this.learning || !message.taskId || session.workspaceId && session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
       if (item.kind === "approval" && !["allow", "deny"].includes(answer)) throw new Error("interaction_invalid");
       const execution = new AgentExecutionStore(this.learning.database, { taskId: message.taskId, sessionId, topicId: session.topicId ?? "general-chat" });
+      if (session.permissions && session.topicId) bindPermissions(this.learning, session.topicId, accessSelection(session.permissions), session.permissions);
+      if (item.kind === "approval" && answer === "allow" && session.permissions) {
+        const kind = writePermission(item.tool, item.input, session.topicId ?? "general-chat").kind;
+        if (kind === "learning" ? !session.permissions.materials : kind === "project" ? !session.permissions.projectId : session.permissions.externalRevision === undefined) throw new Error("execution_context_required");
+      }
       execution.decide(item.callId, answer, scope);
-      if (item.kind === "approval" && answer === "allow" && scope === "session") session.executionAllowed = true;
+      if (item.kind === "approval" && answer === "allow" && scope === "session") this.rememberPermission(session, item.tool, item.input);
       item.status = "answered"; item.answer = answer; session.queuePaused = false;
       await this.store.save(session);
       return { sessionId, text: item.kind === "question" ? answer : answer === "allow" ? `已授权：${item.title}` : `已拒绝：${item.title}`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, resumeTaskId: message.taskId };
@@ -206,7 +269,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         const result = await tools.harness.execute(item.tool, item.input, { topicId: session.topicId, maxRisk: "write", signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]) });
         signal.throwIfAborted();
         text = `已授权 ${item.title}。应用执行结果：${JSON.stringify(result).slice(0, 12_000)}。接着完成原任务，已完成操作不要重复。`;
-        if (scope === "session") session.executionAllowed = true;
+        if (scope === "session") this.rememberPermission(session, item.tool, item.input);
         if (item.tool === "save_artifact" && result.ok) message.items!.push({ id: randomUUID(), kind: "artifact", artifactId: (result.output as { id: string }).id, dayId: String(item.input.dayId), artifactKind: String(item.input.kind), text: String(item.input.text) });
       } else text = `我拒绝“${item.title}”，不要执行这项操作。继续能完成的其余部分。`;
     }
@@ -232,9 +295,9 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (session.study) {
         if (!this.learning || !session.topicId || session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
         const trial = this.learning.outcomes.get(session.topicId, session.study.id);
-        if (trial.sessionId !== session.id || trial.mode !== session.study.mode) throw new Error("outcome_session_mismatch");
+        if (trial.sessionId !== session.id || trial.mode !== session.study.mode || (trial.protocol ?? "prompt_only") !== (session.study.protocol ?? "prompt_only")) throw new Error("outcome_session_mismatch");
         if (trial.stage !== "lesson") throw new Error("outcome_stage_invalid");
-        request.contextAllowed = false; request.execution = "read";
+        if (restrictedStudy(session.study)) { request.contextAllowed = false; request.execution = "read"; request.access = { materials: false, project: false, external: false }; }
       }
       if (fromQueue && (this.drainingSession?.queuePaused || generation !== this.stopGeneration)) throw new Error("queue_paused");
       session.pendingRequests ??= [];
@@ -249,11 +312,19 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (session.topicId) {
         if (!this.learning || session.workspaceId && session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
         session.workspaceId = this.learning.summary().id;
-        session.contextAllowed = request.contextAllowed ?? session.contextAllowed ?? false;
+        const legacyMaterials = request.contextAllowed ?? session.contextAllowed ?? false;
+        const selection = fromQueue && session.permissions ? { materials: session.permissions.materials && request.contextAllowed !== false && request.access?.materials !== false, project: Boolean(session.permissions.projectId) && request.access?.project !== false, external: session.permissions.externalRevision !== undefined && request.access?.external !== false } : request.access ?? (session.permissions ? { ...accessSelection(session.permissions), materials: request.contextAllowed ?? session.permissions.materials } : { materials: legacyMaterials, project: legacyMaterials && Boolean(this.learning.projects.selected(session.topicId)), external: legacyMaterials && new McpSettings(this.learning.database).read(session.topicId).servers.some(server => server.enabled) });
+        const permissions = bindPermissions(this.learning, session.topicId, selection, session.permissions);
+        this.revokePendingApprovals(session, permissions);
+        session.writeGrants = retainGrants(session.writeGrants, session.permissions, permissions);
+        session.permissions = permissions;
+        session.contextAllowed = permissions.materials;
       }
       if (session.messages.length > 998) throw new Error("session_full");
       if (request.resumeTaskId && !session.messages.some((item) => item.taskId === request.resumeTaskId)) throw new Error("task_not_found");
       if (request.resumeTaskId) request.steerId ??= session.messages.findLast(item => item.taskId === request.resumeTaskId)?.steerId;
+      if (fromQueue) request.execution = session.executionAllowed && request.execution !== "read" ? "session" : "read";
+      if (!session.contextAllowed) request.execution = "read";
       if (request.execution === "session") session.executionAllowed = true;
       if (request.execution === "read") session.executionAllowed = false;
       if (!session.messages.length && !session.customTitle)
@@ -310,7 +381,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     if (request.topicId && request.topicId !== active.session.topicId) throw new Error("topic_change_requires_new_session");
     const pending = active.session.pendingRequests ??= [];
     if (pending.length >= 10 || active.session.messages.length + (pending.length + 1) * 2 > 1000) throw new Error("queue_full");
-    const item = { id: randomUUID(), text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
+    const item = { id: randomUUID(), text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
     if (steer) pending.unshift(item); else pending.push(item);
     active.session.queuePaused = false;
     active.session.queueError = undefined;
@@ -348,6 +419,50 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     this.work = this.drain(session);
     await this.work;
   }
+  private rememberPermission(session: ChatSession, tool: string, input: unknown): void {
+    const grant = writePermission(tool, input, session.topicId ?? "general-chat");
+    session.writeGrants = [...(session.writeGrants ?? []).filter(item => item.key !== grant.key).slice(-63), grant];
+  }
+  private revokePendingApprovals(session: ChatSession, after: NonNullable<ChatSession["permissions"]>): void {
+    if (!this.learning || !session.topicId) return;
+    const revoked = new Set<string>();
+    const before = session.permissions;
+    if ((before?.materials ?? session.contextAllowed) && !after.materials) revoked.add("learning");
+    if (before ? before.projectId && before.projectId !== after.projectId : session.contextAllowed && !after.projectId) revoked.add("project");
+    if (before ? before.externalRevision !== undefined && before.externalRevision !== after.externalRevision : session.contextAllowed && after.externalRevision === undefined) revoked.add("external");
+    if (!revoked.size) return;
+    for (const taskId of new Set(session.messages.flatMap(message => message.taskId ? [message.taskId] : []))) {
+      const execution = new AgentExecutionStore(this.learning.database, { taskId, sessionId: session.id, topicId: session.topicId });
+      const checkpoint = execution.read();
+      if (!checkpoint?.pending || checkpoint.status === "completed") continue;
+      const calls = checkpoint.pending.events.filter(event => event.type === "tool_call").slice(checkpoint.pending.next);
+      const ids = calls.flatMap(call => call.callId && call.tool && checkpoint.decisions[call.callId]?.answer === "allow" && revoked.has(writePermission(call.tool, call.input, session.topicId!).kind) ? [call.callId] : []);
+      if (!ids.length) continue;
+      const release = execution.claim();
+      try {
+        for (const id of ids) delete checkpoint.decisions[id];
+        // Keep executing/unknown state and actual receipts intact; revocation is not rollback.
+        execution.save(checkpoint, "permissions_revoked");
+      } finally { release(); }
+      for (const message of session.messages.filter(message => message.taskId === taskId)) for (const item of message.items ?? []) {
+        if (item.kind === "approval" && item.callId && ids.includes(item.callId)) { item.status = "pending"; delete item.answer; }
+      }
+    }
+  }
+  async updatePermissions(sessionId: string, selection: AccessSelection, clearWriteGrants = false): Promise<ChatSession> {
+    if (this.activeSessionId || this.starting) throw new Error("run_active");
+    await this.pauseMaintenance();
+    return this.withStoredSession(sessionId, async session => {
+      if (!this.learning || !session.topicId || restrictedStudy(session.study)) throw new Error("workspace_unavailable");
+      if (session.workspaceId && session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
+      const permissions = bindPermissions(this.learning, session.topicId, selection, session.permissions);
+      this.revokePendingApprovals(session, permissions);
+      session.writeGrants = clearWriteGrants ? [] : retainGrants(session.writeGrants, session.permissions, permissions);
+      session.permissions = permissions; session.contextAllowed = permissions.materials;
+      if (!permissions.materials) session.executionAllowed = false;
+      await this.store.save(session); this.emit({ type: "session", session }); return session;
+    });
+  }
   async updateContext(sessionId: string, goal: string, notes: string): Promise<ChatSession> {
     if (this.activeSessionId === sessionId || this.starting) throw new Error("run_active");
     if (goal.length > 4000 || notes.length > 4000) throw new Error("context_limit");
@@ -363,7 +478,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     this.drainingSession = session;
     const item = session.pendingRequests[0]!;
     try {
-      await this.send({ sessionId: session.id, text: item.text, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, execution: item.execution, resumeTaskId: item.resumeTaskId, steerId: item.steerId }, true, item.id);
+      await this.send({ sessionId: session.id, text: item.text, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, access: item.access, execution: item.execution, resumeTaskId: item.resumeTaskId, steerId: item.steerId }, true, item.id);
       this.draining = null;
       this.drainingSession = null;
       await this.work;
@@ -430,17 +545,21 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     supplied?.signal?.addEventListener("abort", cancel, { once: true });
     if (supplied?.signal?.aborted) controller.abort();
     try {
+      if (session.study?.protocol === "full_product" && this.learning) message.codeHash = (await this.learning.provenance()).codeHash;
+      message.access = session.permissions ? accessSelection(session.permissions) : { materials: false, project: false, external: false };
       const prompt = buildPrompt({ ...session, messages: session.messages.slice(0, -2) }, request);
       const taskOptions: Parameters<typeof runAssistantTask>[0] = {
         runId: message.id, providerId: request.provider, client, prompt, question: request.text,
         messages: buildMessages({ ...session, messages: session.messages.slice(0, -2) }, request),
+        conversationHistory: restrictedStudy(session.study) ? undefined : session.messages.slice(0, -2),
         taskId: message.taskId, sessionId: session.id, resumeInput: request.resumeTaskId ? request.text : undefined, steerId: request.steerId, allowWrites: request.execution === "once" || session.executionAllowed === true,
-        reasoning: message.reasoning,
+        reasoning: message.reasoning, permissions: session.permissions, writeGrants: session.writeGrants,
         onTiming: (timing) => { (message.modelTimings ??= []).push(timing); },
         onContext: (usage) => { message.contextUsage = usage; },
-        onItem: (item) => { if (item.kind !== "artifact" || !session.messages.some(entry => entry.items?.some(previous => previous.kind === "artifact" && previous.artifactId === item.artifactId))) (message.items ??= []).push(item); this.emit({ type: "session", session }); },
-        onInteraction: session.study ? undefined : async (item) => { const existing = session.messages.flatMap(entry => entry.items ?? []).find(entry => (entry.kind === "question" || entry.kind === "approval") && entry.id === item.id && entry.status === "pending");
-          if (!existing) (message.items ??= []).push(item); await this.store.save(session); this.emit({ type: "session", session }); },
+        onEvidenceSupport: (report) => { message.evidenceSupport = report; },
+        onItem: (item) => { if (item.kind !== "artifact" || !session.messages.some(entry => entry.items?.some(previous => previous.kind === "artifact" && previous.artifactId === item.artifactId))) (message.items ??= []).push(item); this.patch(session, { items: message.items }); },
+        onInteraction: restrictedStudy(session.study) ? undefined : async (item) => { const existing = session.messages.flatMap(entry => entry.items ?? []).find(entry => (entry.kind === "question" || entry.kind === "approval") && entry.id === item.id && entry.status === "pending");
+          if (!existing) (message.items ??= []).push(item); await this.store.save(session); this.patch(session, { items: message.items }); },
         onTurn: (text, kind) => {
           display(continuation.finish());
           text = continuation.clean(text); removedRepeat += continuation.removed;
@@ -448,7 +567,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
           continuation = new ContinuationText();
           if (text) (message.items ??= []).push({ id: randomUUID(), kind, text });
           message.text = kind === "final" ? text : "";
-          this.emit({ type: "session", session });
+          this.patch(session, { text: message.text, items: message.items });
         },
         onUsage: (usage) => {
           message.model = usage.model ?? message.model;
@@ -456,7 +575,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
           const sumKnown = (before: number | undefined, current: number | undefined) => current === undefined || previous && before === undefined ? undefined : (before ?? 0) + current;
           message.usage = { inputTokens: (previous?.inputTokens ?? 0) + usage.inputTokens, outputTokens: (previous?.outputTokens ?? 0) + usage.outputTokens, cacheReadTokens: sumKnown(previous?.cacheReadTokens, usage.cacheReadTokens), reasoningTokens: sumKnown(previous?.reasoningTokens, usage.reasoningTokens), startupMs: sumKnown(previous?.startupMs, usage.startupMs) };
         },
-        application: session.study ? undefined : this.learning, topicId: session.study ? undefined : session.topicId, contextAllowed: session.contextAllowed ?? false,
+        application: restrictedStudy(session.study) ? undefined : this.learning, topicId: restrictedStudy(session.study) ? undefined : session.topicId, contextAllowed: session.contextAllowed ?? false,
         onText: (text) => {
           display(continuation.push(text));
           if (Date.now() - savedAt > 750) {
@@ -469,7 +588,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
           const index = activities.get(key);
           if (index !== undefined) message.activities[index] = activity;
           else { activities.set(key, message.activities.length); message.activities.push(activity); }
-          this.emit({ type: "session", session });
+          this.patch(session, { activities: message.activities });
         },
         onCitation: (citation) => {
           message.citations ??= [];
@@ -482,6 +601,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       let result: Awaited<ReturnType<typeof runAssistantTask>>;
       if (invocation) {
         const custom = invocation.request;
+        let customTurns = 0; let customToolCalls = 0; let customToolMs = 0;
         const output = await collectInvocation(invocation.runtime, {
           ...custom,
           reasoning: custom.reasoning ?? message.reasoning,
@@ -491,9 +611,13 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
           onText: (text, providerId) => { taskOptions.onText(text); custom.onText?.(text, providerId); },
           onTurn: (text, kind) => { taskOptions.onTurn?.(text, kind); custom.onTurn?.(text, kind); },
           onContext: (usage) => { taskOptions.onContext?.(usage); custom.onContext?.(usage); },
+          onUsage: (usage) => { taskOptions.onUsage?.(usage); custom.onUsage?.(usage); },
+          onTiming: (timing) => { taskOptions.onTiming?.(timing); custom.onTiming?.(timing); },
+          onAudit: (audit) => { customTurns = audit.turns; customToolCalls = audit.toolCalls; return custom.onAudit?.(audit); },
+          onToolCall: custom.onToolCall ? async (...args) => { const started = Date.now(); try { return await custom.onToolCall!(...args); } finally { customToolMs += Date.now() - started; } } : undefined,
         }, signal);
         invocation.result = output;
-        result = { contextMs: 0, modelMs: Date.now() - started, turns: 0, toolMs: 0, toolCalls: output.toolResults.length, waiting: output.waiting, ...(output.blocked ? { blocked: true } : {}) };
+        result = { contextMs: 0, modelMs: Date.now() - started, turns: customTurns, toolMs: customToolMs, toolCalls: customToolCalls, waiting: output.waiting, ...(output.blocked ? { blocked: true } : {}) };
         if (output.partial) { message.error = publicError(new Error(output.stopReason)); message.status = "failed"; session.queuePaused = true; }
       } else result = await runAssistantTask(taskOptions, signal);
       message.timings = result;

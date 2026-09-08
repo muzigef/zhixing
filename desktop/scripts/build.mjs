@@ -57,4 +57,7 @@ await fs.copyFile(
   path.join(root, "renderer/index.html"),
   path.join(root, "build/renderer/index.html"),
 );
+const identityModule = await build({ entryPoints: [path.join(root, "../src/build-provenance.ts")], bundle: true, platform: "node", format: "esm", write: false });
+const { sourceProvenance } = await import(`data:text/javascript;base64,${Buffer.from(identityModule.outputFiles[0].text).toString("base64")}`);
+await fs.writeFile(path.join(root, "build/runtime/build-provenance.json"), JSON.stringify(await sourceProvenance(path.join(root, ".."), "packaged_build"), null, 2) + "\n");
 console.log("Desktop built: main, sandboxed preload, renderer and Pi guard.");

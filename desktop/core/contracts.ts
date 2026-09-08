@@ -1,16 +1,20 @@
+import { accessSelectionSchema } from "../../src/agent-permissions.js";
 import { projectEditSchema, projectPathSchema } from "../../src/practice-projects.js";
 import { mcpServerSchema } from "../../src/mcp-settings.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { topicIdSchema } from "../../src/contracts.js";
 import { citationSchema, type WorkspaceSummary } from "../../src/learning-contracts.js";
 import { dayIdSchema, evidenceKindSchema } from "../../src/evidence-store.js";
-import { outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema, explanationReviewInputSchema } from "../../src/outcome-contracts.js";
+import { outcomeProtocolSchema, outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema, explanationReviewInputSchema } from "../../src/outcome-contracts.js";
 import { assistanceSchema } from "../../src/learning-observations.js";
+import { recoveryReportSchema } from "../../src/task-continuity.js";
+import { contextBudgetSchema } from "../../src/model-capabilities.js";
 
 export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const settingsSchema = z.object({
+  contextBudget: contextBudgetSchema.optional(),
   provider: providerSchema.default("pi-codex"),
   style: styleSchema.default("adaptive"),
   reasoning: reasoningSchema.optional(),
@@ -28,7 +32,12 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("task-info"), sessionId: z.string().uuid(), taskId: z.string().uuid() }),
+  z.object({ type: z.literal("task-report"), sessionId: z.string().uuid(), taskId: z.string().uuid(), callId: z.string().min(1).max(300), report: recoveryReportSchema }),
+  z.object({ type: z.literal("task-verify"), sessionId: z.string().uuid(), taskId: z.string().uuid(), callId: z.string().min(1).max(300) }),
+  z.object({ type: z.literal("task-revise"), sessionId: z.string().uuid(), taskId: z.string().uuid(), revision: z.number().int().nonnegative(), goal: z.string().trim().min(1).max(4000) }),
   z.object({ type: z.literal("boot") }),
+  z.object({ type: z.literal("sessions"), query: z.string().max(200).optional(), cursor: z.string().max(500).optional() }),
   z.object({ type: z.literal("new") }),
   z.object({ type: z.literal("fork"), sessionId: z.string().uuid(), messageId: z.string().uuid().optional(), edit: z.boolean().optional() }),
   z.object({ type: z.literal("answer"), sessionId: z.string().uuid(), itemId: z.string().uuid(), answer: z.string().trim().min(1).max(4000), scope: z.enum(["once", "session"]).optional() }),
@@ -37,6 +46,7 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   sendSchema.extend({ type: z.literal("enqueue"), steer: z.boolean().optional() }),
   z.object({ type: z.literal("resume-queue"), sessionId: z.string().uuid() }),
   z.object({ type: z.literal("withdraw"), sessionId: z.string().uuid(), requestId: z.string().uuid() }),
+  z.object({ type: z.literal("permissions"), sessionId: z.string().uuid(), access: accessSelectionSchema, clearWriteGrants: z.boolean().optional() }),
   z.object({ type: z.literal("context"), sessionId: z.string().uuid(), goal: z.string().max(4000), notes: z.string().max(4000) }),
   z.object({ type: z.literal("stop") }),
   z.object({
@@ -54,13 +64,15 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
   z.object({ type: z.literal("learning-overview"), topicId: topicIdSchema }),
   z.object({ type: z.literal("project-list"), topicId: topicIdSchema }),
-  z.object({ type: z.literal("project-create"), topicId: topicIdSchema, title: z.string().trim().min(1).max(80) }),
+  z.object({ type: z.literal("project-create"), topicId: topicIdSchema, title: z.string().trim().min(1).max(80), language: z.enum(["javascript", "python"]).optional() }),
   z.object({ type: z.literal("project-import"), topicId: topicIdSchema, title: z.string().trim().min(1).max(80) }),
   z.object({ type: z.literal("project-select"), topicId: topicIdSchema, projectId: z.string().uuid().nullable() }),
   z.object({ type: z.literal("project-view"), topicId: topicIdSchema, projectId: z.string().uuid() }),
   z.object({ type: z.literal("project-read"), topicId: topicIdSchema, projectId: z.string().uuid(), path: projectPathSchema }),
   z.object({ type: z.literal("project-preview"), topicId: topicIdSchema, projectId: z.string().uuid(), edit: projectEditSchema }),
   z.object({ type: z.literal("project-write"), topicId: topicIdSchema, projectId: z.string().uuid(), edit: projectEditSchema }),
+  z.object({ type: z.literal("project-restore-preview"), topicId: topicIdSchema, projectId: z.string().uuid(), snapshotId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/) }),
+  z.object({ type: z.literal("project-restore"), topicId: topicIdSchema, projectId: z.string().uuid(), snapshotId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/) }),
   z.object({ type: z.literal("project-test"), topicId: topicIdSchema, projectId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/) }),
   z.object({ type: z.literal("project-checkpoint"), topicId: topicIdSchema, projectId: z.string().uuid(), expectedTreeHash: z.string().regex(/^[a-f0-9]{64}$/), title: z.string().trim().min(1).max(120) }),
   z.object({ type: z.literal("mcp-settings"), topicId: topicIdSchema }),
@@ -70,7 +82,7 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("outcome-review-explanation"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, review: explanationReviewInputSchema }),
   z.object({ type: z.literal("observation-update"), topicId: topicIdSchema, id: z.string().uuid(), revision: z.number().int().positive(), annotation: z.string().max(2000), withdrawn: z.boolean() }),
   z.object({ type: z.literal("outcome-export"), topicId: topicIdSchema }),
-  z.object({ type: z.literal("outcome-start"), topicId: topicIdSchema, mode: outcomeModeSchema }),
+  z.object({ type: z.literal("outcome-start"), topicId: topicIdSchema, mode: outcomeModeSchema, protocol: outcomeProtocolSchema.optional() }),
   z.object({ type: z.literal("outcome-submit"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, submission: outcomeSubmissionSchema }),
   z.object({ type: z.literal("outcome-lesson"), topicId: topicIdSchema, id: z.string().uuid() }),
   z.object({ type: z.literal("outcome-finish-lesson"), topicId: topicIdSchema, id: z.string().uuid() }),
@@ -114,6 +126,7 @@ export interface BootState {
   workspace?: WorkspaceSummary;
   api: ApiStatus;
   sessions: SessionSummary[];
+  nextSessionCursor?: string | null;
   settings: DesktopSettings;
   model: ModelStatus;
   activeSessionId: string | null;

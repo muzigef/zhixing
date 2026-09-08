@@ -2,7 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { ToolHarness } from "../src/tool-harness.js";
 import { collectInvocation, type InvocationRequest } from "../src/model-invocation.js";
 import { providerRuntime } from "../src/assistant-runtime.js";

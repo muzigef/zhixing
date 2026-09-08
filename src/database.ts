@@ -3,8 +3,9 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import type { MemoryInput, SearchResult, TopicId } from "./contracts.js";
 import { cosineSimilarity } from "./embedding.js";
+import { withSourceVersion } from "./source-version.js";
 interface RetrievalRow { chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; }
-function retrievalResult(topicId: string, row: RetrievalRow): SearchResult { return { text: row.text, score: 0, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }; }
+function retrievalResult(topicId: string, row: RetrievalRow): SearchResult { return withSourceVersion({ text: row.text, score: 0, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }); }
 
 export class ZhixingDatabase {
   readonly db: Database.Database;
@@ -17,7 +18,7 @@ export class ZhixingDatabase {
     try {
       const hasVersions = this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get();
       const version = hasVersions ? (this.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number }).version : 0;
-      if (version > 4) throw new Error("storage_version_unsupported");
+      if (version > 5) throw new Error("storage_version_unsupported");
     } catch (error) { this.db.close(); throw error; }
     this.db.pragma("foreign_keys = ON");
     this.db.pragma("journal_mode = WAL");
@@ -73,6 +74,7 @@ export class ZhixingDatabase {
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(2, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(3, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(4, new Date().toISOString());
+    this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(5, new Date().toISOString());
   }
 
   addDocument(id: string, topicId: TopicId, sha256: string, name: string, mimeType: string, status = "indexed"): boolean {
@@ -119,7 +121,7 @@ export class ZhixingDatabase {
     const rows = this.db.prepare(`SELECT c.id AS chunkId, c.text, d.id AS documentId, d.name AS documentName, c.page_number AS pageNumber, c.anchor AS anchor, bm25(chunks_fts) AS score
       FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.chunk_id JOIN documents d ON d.id = c.document_id
       WHERE chunks_fts MATCH ? AND chunks_fts.topic_id = ? ORDER BY score LIMIT 8`).all(query, topicId) as Array<{ chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; score: number }>;
-    return rows.map((row) => ({ text: row.text, score: row.score, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }));
+    return rows.map((row) => withSourceVersion({ text: row.text, score: row.score, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }));
   }
 
   hybridSearch(topicId: TopicId, query: string, queryVector: readonly number[]): SearchResult[] {
@@ -132,7 +134,7 @@ export class ZhixingDatabase {
       const vector = row.vectorJson ? JSON.parse(row.vectorJson) as number[] : [];
       const semantic = Math.max(0, cosineSimilarity(queryVector, vector));
       const lexicalScore = lexicalRank.get(row.documentId + row.text) ?? 0;
-      return { text: row.text, score: lexicalScore * 0.65 + semantic * 0.35, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } };
+      return withSourceVersion({ text: row.text, score: lexicalScore * 0.65 + semantic * 0.35, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } });
     }).filter((item) => item.score > 0).sort((left, right) => right.score - left.score).slice(0, 8);
   }
   retrievalCandidates(topicId: TopicId, terms: string[]): SearchResult[] {
@@ -185,7 +187,7 @@ export function inspectDatabaseSnapshot(file: string): void {
   const db = new Database(file, { readonly: true, fileMustExist: true });
   try {
     const row = db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number };
-    if (row.version > 4) throw new Error("storage_version_unsupported");
+    if (row.version > 5) throw new Error("storage_version_unsupported");
     if (db.pragma("quick_check", { simple: true }) !== "ok") throw new Error("backup_integrity_failed");
   } finally { db.close(); }
 }

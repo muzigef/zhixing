@@ -98,6 +98,11 @@ try {
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.locator(".model-picker").filter({ hasText: "离线演示" }).waitFor();
   await page.getByRole("combobox", { name: "思考强度", exact: true }).selectOption("auto");
+  await page.getByRole("textbox", { name: "发送给知行", exact: true }).evaluate(element => {
+    const clipboard = new DataTransfer(); clipboard.items.add(new File(["synthetic"], "fixture.png", { type: "image/png" }));
+    element.dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  });
+  await page.getByText("当前模型通道只接收文字，暂不支持图片输入。请粘贴需要讨论的文字。", { exact: true }).waitFor();
   await page
     .getByRole("textbox", { name: "发送给知行" })
     .fill("请用两段直观例子解释梯度下降，并展示公式和代码。");
@@ -243,6 +248,10 @@ try {
   await page
     .getByRole("combobox", { name: "DeepSeek 模型", exact: true })
     .selectOption("deepseek-v4-pro");
+  await page.getByRole("combobox", { name: "上下文预算", exact: true }).selectOption("24000");
+  await page.getByRole("combobox", { name: "回答预留", exact: true }).selectOption("4096");
+  const budgetSettings = await page.evaluate(async () => (await window.zhixing.invoke({ type: "boot" })).data.settings);
+  assert.deepEqual(budgetSettings.contextBudget, { windowTokens: 24000, reserveOutputTokens: 4096 });
   await running.app.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows()[0].setSize(1260, 840),
   );
@@ -277,6 +286,13 @@ try {
     contents.send("zhixing:event", { type: "settled", sessionId: session.id });
   }, current);
   await page.waitForFunction(expected => [...document.querySelectorAll(".assistant-message .markdown")].at(-1)?.textContent === expected, burstText);
+  await running.app.evaluate(({ BrowserWindow }, session) => {
+    const contents = BrowserWindow.getAllWindows()[0].webContents;
+    contents.send("zhixing:event", { type: "message_patch", sessionId: session.id, messageId: session.messages.at(-1).id, sequence: 99, changes: { activities: [{ label: "合成增量活动", status: "completed", at: new Date().toISOString() }] } });
+    contents.send("zhixing:event", { type: "message_patch", sessionId: session.id, messageId: session.messages.at(-1).id, sequence: 98, changes: { text: "不能覆盖的旧补丁" } });
+    contents.send("zhixing:event", { type: "message_patch", sessionId: "other-session", messageId: session.messages.at(-1).id, sequence: 100, changes: { text: "不可串入" } });
+  }, current);
+  await page.waitForFunction(() => document.body.textContent.includes("合成增量活动"));
   current.messages.at(-1).text = burstText;
   current.messages.at(-1).status = "completed";
   await running.app.evaluate(({ BrowserWindow }, session) => {
@@ -286,9 +302,31 @@ try {
     contents.send("zhixing:event", { type: "delta", sessionId: "other-session", messageId: session.messages.at(-1).id, text: "不可串入" });
     contents.send("zhixing:event", { type: "settled", sessionId: session.id });
   }, current);
-  await page.getByRole("button", { name: "复制回答", exact: true }).last().click();
+  await page.locator(".assistant-message").last().getByRole("button", { name: "复制回答", exact: true }).click();
   assert.equal(await running.app.evaluate(({ clipboard }) => clipboard.readText()), burstText);
   console.log(`Renderer burst passed: 1001 IPC deltas, exact final/copy text, snapshot precedence and session isolation; ${Date.now() - burstStart} ms including UI assertions.`);
+  // Metadata pages find an older conversation outside the initial page; its full text renders in bounded batches.
+  let oldestId;
+  for (let index = 0; index < 65; index++) {
+    const id = crypto.randomUUID(); if (!index) oldestId = id;
+    const at = new Date(946684800000 + index * 1000).toISOString();
+    const session = { version: 4, id, title: index ? `分页合成 ${index}` : "唯一最早合成", customTitle: true, createdAt: at, updatedAt: at, messages: Array.from({ length: index ? 2 : 100 }, (_, n) => ({ id: crypto.randomUUID(), role: n % 2 ? "assistant" : "user", text: `合成历史消息 ${n}`, status: "completed", createdAt: at })) };
+    await fs.writeFile(path.join(data, "conversations", `${id}.json`), JSON.stringify(session));
+  }
+  await page.reload();
+  await page.getByRole("textbox", { name: "搜索对话", exact: true }).fill("唯一最早合成");
+  await page.getByRole("navigation", { name: "历史会话", exact: true }).getByText("唯一最早合成", { exact: true }).click();
+  await page.getByRole("button", { name: /加载更早的消息/ }).waitFor();
+  assert.equal(await page.locator(".messages > article").count(), 40);
+  await page.getByRole("button", { name: /加载更早的消息/ }).click();
+  await page.waitForFunction(() => document.querySelectorAll(".messages > article").length === 80);
+  await page.getByRole("button", { name: /加载更早的消息/ }).click();
+  await page.waitForFunction(() => document.querySelectorAll(".messages > article").length === 100);
+  const full = await page.evaluate(async id => (await window.zhixing.invoke({ type: "load", sessionId: id })).data, oldestId);
+  assert.equal(full.messages.length, 100);
+  await page.getByRole("button", { name: "清除搜索", exact: true }).click();
+  await page.getByRole("button", { name: "加载更多对话", exact: true }).click();
+  await page.getByRole("navigation", { name: "历史会话", exact: true }).getByText("分页合成 1", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
     "Desktop UI passed: sandbox bridge, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
