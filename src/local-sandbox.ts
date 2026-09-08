@@ -3,16 +3,19 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { sandboxProfile } from "./sandbox-profile.js";
+import { runWindowsSandbox } from "./windows-sandbox.js";
 
 export type SandboxResult = { status: "completed" | "timed_out" | "unavailable" | "cancelled"; stdout: string; stderr: string; exitCode: number | null };
+export type SandboxOptions = { timeoutMs?: number; allowedCommands?: readonly string[]; files?: Readonly<Record<string, string>>; signal?: AbortSignal; runtimeReadPath?: string; electronNode?: boolean };
 
 /** macOS sandbox-exec wrapper. No shell, no inherited working directory, no network rule. */
 export class LocalSandbox {
   constructor(private readonly executable = "sandbox-exec") {}
-  async run(command: string, args: readonly string[], options: { timeoutMs?: number; allowedCommands?: readonly string[]; files?: Readonly<Record<string, string>>; signal?: AbortSignal; runtimeReadPath?: string; electronNode?: boolean } = {}): Promise<SandboxResult> {
+  async run(command: string, args: readonly string[], options: SandboxOptions = {}): Promise<SandboxResult> {
     if (!(options.allowedCommands ?? []).includes(command)) throw new Error("sandbox_command_denied");
     if (!path.isAbsolute(command)) throw new Error("sandbox_command_denied");
     options.signal?.throwIfAborted();
+    if (process.platform === "win32") return runWindowsSandbox(command, args, options);
     if (process.platform !== "darwin") return { status: "unavailable", stdout: "", stderr: "本平台尚无已验证的代码沙箱。", exitCode: null };
     const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-sandbox-")));
     const profile = sandboxProfile(command, directory, options.runtimeReadPath ? [{ path: options.runtimeReadPath, directory: true }] : []);

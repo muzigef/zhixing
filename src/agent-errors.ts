@@ -89,7 +89,8 @@ export function publicError(error: unknown): string {
     outcome_lesson_incomplete: "请先在本次学习对话中完成至少一轮回答，并处理或撤回待发送消息。",
     outcome_limit: "这个主题已保存 50 次验证记录，暂不再创建新记录。",
   };
-  if (["platform_execution_unavailable", "mcp_isolation_unavailable"].includes(code)) return "本平台暂时没有可用的系统执行沙箱；请在受支持的 macOS 上运行，或继续使用对话与资料功能。";
+  if (code === "platform_execution_unavailable") return "本机暂时没有可用的系统执行沙箱；请使用包含沙箱的 macOS 或 Windows 安装包，或继续使用对话与资料功能。";
+  if (code === "mcp_isolation_unavailable") return "受限 MCP 当前需要 macOS 系统沙箱；本机可继续使用对话与资料功能。";
   if (learningErrors[code]) return learningErrors[code];
   if (code.includes("deepseek-api 未配置"))
     return "尚未配置 DeepSeek API Key，请在设置中添加。";

@@ -23,3 +23,4 @@ desktop/test-results/
 
 # CLI canonical agent conversations are private local application state.
 /agent/
+/.build/

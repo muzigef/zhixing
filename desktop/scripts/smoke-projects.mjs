@@ -22,7 +22,7 @@ try {
   await page.getByRole("button", { name: "预览文件更改", exact: true }).click();
   assert.ok((await page.locator(".project-panel .interaction-card pre").innerText()).includes("+export const solve"));
   await page.getByRole("button", { name: "保存本次文件更改", exact: true }).click();
-  if (process.platform === "darwin") {
+  if (["darwin", "win32"].includes(process.platform)) {
     await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
     await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
     await page.locator(".project-panel").getByText(/completed · 退出码 1/).waitFor();
@@ -34,7 +34,7 @@ try {
   await page.getByRole("textbox", { name: "实践文件内容", exact: true }).fill("export const solve = value => value + 0;\n");
   await page.getByRole("button", { name: "预览文件更改", exact: true }).click();
   await page.getByRole("button", { name: "保存本次文件更改", exact: true }).click();
-  if (process.platform === "darwin") {
+  if (["darwin", "win32"].includes(process.platform)) {
     await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
     await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
     await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).click();
@@ -65,7 +65,7 @@ try {
   await page.getByRole("textbox", { name: "实践项目名称", exact: true }).fill("Python 合成实践");
   await page.getByRole("button", { name: "创建独立项目", exact: true }).click();
   await page.getByRole("button", { name: "test_example.py", exact: true }).waitFor();
-  if (process.platform === "darwin") {
+  if (["darwin", "win32"].includes(process.platform)) {
     await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
     await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
     await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
@@ -78,7 +78,7 @@ try {
   await page.getByRole("button", { name: "课程与资料", exact: true }).click();
   await page.getByText("项目实践 · 0", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
-  console.log(`Projects UI passed: isolated multi-file Git project, exact diff, stale-test invalidation, ${process.platform === "darwin" ? "real failing/passing sandbox tests and verified Git checkpoint" : "unavailable sandbox explicitly blocks checkpoint"}, restart and topic/selection isolation.`);
+  console.log(`Projects UI passed: isolated multi-file Git project, exact diff, stale-test invalidation, ${["darwin", "win32"].includes(process.platform) ? "real failing/passing sandbox tests and verified Git checkpoint" : "unavailable sandbox explicitly blocks checkpoint"}, restart and topic/selection isolation.`);
 } catch (error) {
   if (running) console.error((await running.page.locator("body").innerText()).slice(-5000)); throw error;
 } finally { if (running) await running.app.close(); await fs.rm(data, { recursive: true, force: true }); }

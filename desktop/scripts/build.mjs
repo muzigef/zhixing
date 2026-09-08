@@ -1,8 +1,10 @@
 import { build } from "esbuild";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { buildWindowsSandbox } from "../../scripts/build-windows-sandbox.mjs";
 const root = path.resolve(import.meta.dirname, "..");
 await fs.mkdir(path.join(root, "build/runtime"), { recursive: true });
+await buildWindowsSandbox(path.join(root, "build/runtime/windows-sandbox.exe"));
 await build({ entryPoints: [path.join(root, "../src/pi-model-worker.ts")], outfile: path.join(root, "build/runtime/pi-model-worker.mjs"), bundle: true, platform: "node", target: "node24", format: "esm" });
 await build({
   entryPoints: [path.join(root, "electron/main.ts")],
