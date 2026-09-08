@@ -32,7 +32,7 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.8.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.9.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
@@ -52,11 +52,14 @@
 
 0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
 
+0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。用户明确延期的两项是 Pi Codex 故障排查、独立子 Agent。
+
+
 ## 快速开始
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.8.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.9.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
@@ -194,7 +197,7 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 ### 桌面设置
 
 - **Pi · Codex**：读取 Pi 的模型偏好，由 Pi 自己处理认证和刷新；知行不读取认证文件。设置页「已读取 Pi 模型配置」仅代表偏好可用，登录有效性在发送时检查。
-- **DeepSeek API**：默认模型 `deepseek-v4-flash`，界面也提供 `deepseek-v4-pro`。优先使用桌面保存的配置；macOS 上没有桌面配置时，可复用原 CLI 写入的知行 Keychain 项。新 Key 通过主进程使用系统加密后保存，不能从界面读取回原值。找到配置不代表 API 已连通。
+- **DeepSeek API**：默认模型 `deepseek-v4-flash`，界面也提供 `deepseek-v4-pro` 和实验性图片模型 `deepseek-v4-flash-vision-exp`。优先使用桌面保存的配置；macOS 上没有桌面配置时，可复用原 CLI 写入的知行 Keychain 项。新 Key 通过主进程使用系统加密后保存，不能从界面读取回原值。找到配置不代表 API 已连通。
 - **离线演示**：本地固定演示内容，不调用真实模型。
 
 桌面 Provider、模型和回答风格保存在独立的 `preferences.json`，不会改变 CLI 的角色路由。桌面内新增的加密 Key 也不会同步写入 CLI Keychain。两端回答风格均保存为 `concise` / `adaptive` / `detailed`；CLI 还接受 `balanced` 作为 `adaptive` 的输入别名。桌面风格按应用保存，CLI 风格按学习主题保存。

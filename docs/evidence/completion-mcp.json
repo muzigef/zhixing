@@ -1,0 +1,1 @@
+{"passed":true,"server":"@modelcontextprotocol/server-filesystem@2026.8.31","isolation":"restricted","checks":["real upstream handshake and schema","ToolHarness whitelisted read","unlisted write denied","source intact"]}

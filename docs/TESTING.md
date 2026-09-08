@@ -98,7 +98,7 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/ma
 hdiutil verify desktop/release/Zhixing-0.5.0-mac-arm64.dmg
 ```
 
-安装包文件名中的版本来自桌面包，升级后需同步替换。当前配置和已有验收针对 macOS Apple Silicon；Windows NSIS 构建配置不等于 Windows 实机测试通过，Intel Mac 同样尚未验收。
+安装包文件名中的版本来自桌面包，升级后需同步替换。当前各平台结果见 [0.9 验收记录](evidence/completion-0.9.md)；Windows NSIS 构建配置不等于运行隔离或实包测试通过。
 
 ## 新测试与夹具
 
@@ -124,11 +124,11 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 当前没有配置 lines、branches、functions、statements 的最低覆盖率，也没有专用 coverage 脚本。质量门以测试行为和失败退出码为准；不要将测试总数解释为覆盖率。
 
-[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-latest`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录与桌面两套 npm ci、两套生产依赖 audit、`npm run verify` 和 `npm --prefix desktop run test:ui`。[`desktop-release.yml`](../.github/workflows/desktop-release.yml) 也在构建前检查两套生产依赖；不忽略漏洞退出码。
+[`verify.yml`](../.github/workflows/verify.yml) 中的 `verify` 工作流在 `push`、`pull_request` 触发，`quality` job 使用 `macos-15`，依次安装 Node `24.8.0`、npm `10.9.2`，执行根目录与桌面两套 npm ci、两套生产依赖 audit、`npm run verify` 和 `npm --prefix desktop run test:ui`。[`desktop-release.yml`](../.github/workflows/desktop-release.yml) 也在构建前检查两套生产依赖；不忽略漏洞退出码。
 
 本地 npm registry 不可达时，可以在安装/审计命令末尾临时添加 `--registry=https://registry.npmjs.org`，无需修改全局配置。依赖升级同时更新 `package.json` 与对应锁文件，再用 `npm ci` 验证可复现安装；PDF.js 和内附 Pi 的修复记录见 [依赖安全 Evidence](evidence/dependency-security.md)。
 
-CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。基线 `b2874db` 的远端 verify 已成功；本轮未提交改动尚无远端执行，不能用基线结果或工作流配置代替当前提交与平台验收。
+CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。既有基线保留历史含义；最新提交与平台运行链接见 [0.9 验收记录](evidence/completion-0.9.md)，不能用配置代替实际结果。
 
 [`scripts/verify.mjs`](../scripts/verify.mjs) 还扫描源码/文档中的疑似凭证及 focused/skipped 测试，并执行 `git diff --check`。扫描排除依赖、用户 data/db/inbox、编译与发布产物等目录，是有限规则检查，不等于完整秘密检测或安全审计。
 
@@ -231,3 +231,15 @@ npm --prefix desktop run test:ui
 `npm run verify` 覆盖连续摘要、相关记忆、会话分段/备份、独立教学检查点、真实回复契约、SDK 能力预算、同步访问码/活跃 SSE 关闭、提醒去重和跨平台预检。`tests/mcp-isolation.test.ts` 在本机实际启动沙箱子进程验证文件与网络拒绝，不只是断言参数。新增文件索引与每次执行结果见[架构修复证据](evidence/architecture-remediation.md)。
 
 桌面五组 smoke 包含提醒设置/关闭、学习流程、MCP 连接、项目测试、任务恢复及效果报告。实际安装包验收使用 `ZHIXING_DESKTOP_EXECUTABLE` 指向打包后的应用可执行文件再运行同一 UI 命令；不能用开发目录启动替代。UI 全部采用临时数据和演示模型，不证明 OS 通知一定送达、真实学习效果、Apple 签名或其他平台已通过。
+
+## 0.9 新增验收
+
+- `tests/image-input.test.ts`、实际 CLI 图片协议及桌面 UI：格式/配额、无图模型拒绝、失败保留、v8 历史/分支/导出和预算。`node desktop/scripts/check-vision.mjs --live` 只发合成图片到 DeepSeek Vision。
+- `node --import tsx scripts/check-deepseek-sequences.ts --live --output=new-report.json`：2400 条历史、实际回读、停止与后续恢复。
+- `tests/outcome-blind-review.test.ts` 与 `scripts/create-outcome-review-pack.ts`：独立评阅准备，不生成真人评分。
+- Windows 先运行 `node scripts/build-windows-sandbox.mjs`，再执行 `npx vitest run tests/windows-sandbox.test.ts tests/platform-preflight.test.ts`；macOS 不能代替 Windows 分支验收。
+- `node --import tsx scripts/check-mcp-upstream.ts --mcp-root=/absolute/path/node_modules`：显式安装官方文件 MCP 服务后，实际 restricted 连接、白名单查询和未注册写操作拒绝。
+- `node --import tsx scripts/check-semantic-model.ts --model=embeddinggemma --output=new-report.json`：本机已有真实模型时，检查中英文相关查询、隔离、取消和词法回退；不会自动下载模型。
+- `node desktop/scripts/check-notification.mjs --native`：真实调度与原生通知事件；使用 `ZHIXING_DESKTOP_EXECUTABLE` 选择实包。若 OS 回调失败，验收应报告失败，不能以调用 show 代替显示成功。
+
+本轮不运行真实 Pi 排障；Pi 相关 Vitest 使用离线 SDK/协议夹具。旧留出集 H03 已用于修复，整个旧集合按回归集记录，不再称为未见盲测。独立人工评分及真实学习效果仍需外部人员。

@@ -1,5 +1,7 @@
 > 本文保留 2026-09-08 修复前的架构评审快照。后续 N01–N10 的修复与条件性扩展结论见[实施计划](architecture-remediation-plan.md)和[执行证据](evidence/architecture-remediation.md)；当前设计以[统一记忆文档](agent-memory.md)等维护文档为准。
 
+> 后续实现与当前验收见[0.9 收口记录](evidence/completion-0.9.md)；本文保留评审时点，不将已完成项目重新标为待开发。
+
 # 知行核心设计评审：与 Codex、Claude Code 的架构对比
 
 > 核对日期：2026-09-08。对象：本地 Zhixing 源码，桌面包 0.7.0、根包 0.1.0。

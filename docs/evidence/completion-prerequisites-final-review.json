@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "reportHash": "7cfbc8648503b5f43329e7fa6c179e36dcc95d89c7d53cc69e62b49ea66cd96c",
+  "reviewer": {
+    "name": "Codex development review 2026-09-09",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "scores": [
+    {
+      "provider": "deepseek-api",
+      "id": "R06",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "当前 rag/D01 与两门 agent-development 前置课名称/120、240 分钟分别正确，未宣称完成。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R06",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "正确区分三个课程条目、真实尚未开始和前置门槛，最小下一步对应正确课程。",
+      "failures": []
+    }
+  ]
+}

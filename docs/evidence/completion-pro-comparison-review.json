@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "reportHash": "3f1910baef8c660ef8403e46dbeb48d99caa7fd85fdfac7811287e1bddfec14e",
+  "reviewer": {
+    "name": "Codex development review 2026-09-09",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "scores": [
+    {
+      "provider": "deepseek-api",
+      "id": "R01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "partial",
+        "pass"
+      ],
+      "rationale": "结构正确，但 RAG 能保证最新和训练成本比较仍过于绝对。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R02",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "链式求导、矩阵形状和负梯度数值例子均正确；偏导固定其他变量的解释清楚。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R10",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "partial",
+        "partial"
+      ],
+      "rationale": "表格清楚，但即时生效、检索能保证新鲜与微调降低延迟仍没有条件依据。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R11",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "准确指出漏乘系数并把导数值修正为 6。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R01",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "partial",
+        "pass"
+      ],
+      "rationale": "场景对应且两段；延迟、知识更新成本与小模型稳定性的比较仍缺少实测条件。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R02",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "从单样本到向量的系数一致，偏置与权重分开处理，没有混淆形状或符号。",
+      "failures": []
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R10",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "partial",
+        "partial"
+      ],
+      "rationale": "支持按需组合，但事实准确性高/中及计算成本低/高没有测量依据。",
+      "failures": [
+        "accuracy"
+      ]
+    },
+    {
+      "provider": "deepseek-api",
+      "id": "R11",
+      "repetition": 2,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "公式、代入与导数定义互相一致，纠错清楚。",
+      "failures": []
+    }
+  ]
+}

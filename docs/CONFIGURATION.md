@@ -102,7 +102,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 | `provider` | `pi-codex`、`deepseek-api`、`demo`；桌面没有 `codex-cli` 选项。 |
 | `style` | `concise`、`adaptive`、`detailed`；桌面是全局偏好，不按 CLI 主题分组。 |
 | `theme` | `system`、`light`、`dark`。 |
-| `deepseekModel` | 设置界面提供 `deepseek-v4-flash`、`deepseek-v4-pro`；底层 schema 接受 1–128 字符、以字母/数字开头、其余为字母/数字/点/下划线/连字符的模型标识。格式有效不代表远端支持该模型。 |
+| `deepseekModel` | 设置界面提供 `deepseek-v4-flash`、`deepseek-v4-pro`、实验性 `deepseek-v4-flash-vision-exp`（图片需此模型）；底层 schema 接受 1–128 字符、以字母/数字开头、其余为字母/数字/点/下划线/连字符的模型标识。格式有效不代表远端支持该模型。 |
 
 已有偏好文件优先于首次默认值。因此本机上次选择了 DeepSeek 时，重启会继续使用 DeepSeek，这不意味着应用的默认 Provider 已改为 DeepSeek。缺失字段使用 schema 默认值；损坏或字段值无效的文件会报 `settings_invalid`，不会静默清除用户文件。
 
@@ -208,7 +208,7 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 MCP 在主题面板中显式配置本地可执行程序、工具白名单、风险与信任确认，默认关闭，不通过 `.env` 自动注入密钥。实际协议和配置例子见 [MCP 指南](mcp-tools.md)。项目通过原生目录选择器导入副本或创建，模型不能选择用户目录；Git 需要本机可用，测试沙箱当前仅支持 macOS。见 [项目指南](practice-projects.md)。
 
-当前会话 v7 读取 v1–v6 时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 6，旧应用拒绝新数据。其他本地数据边界见 [0.6 指南](agent-0.6.md)。
+当前会话 v8 读取 v1–v7 时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 6，旧应用拒绝新数据。其他本地数据边界见 [0.6 指南](agent-0.6.md)。
 
 ## 0.6 会话权限、预算与版本
 
@@ -223,3 +223,5 @@ MCP 五分钟目录缓存绑定配置和 schema，普通问答不启动外部进
 MCP 配置可指定 `isolation: "restricted"` 和 `readPaths`（最多八条绝对路径），只在具备系统沙箱的 macOS 上启用；读取目录代表允许其全部子目录，写入只限临时工作目录，网络禁止。不支持的平台拒绝连接。省略 isolation 兼容为 `trusted`，服务以账户权限运行；工具 read 标签并不能阻止其副作用。隔离模式/路径改动同样使旧工具授权失效，见 [MCP 指南](mcp-tools.md)。
 
 同步服务启动后显示临时访问码；调用时携带 `Authorization: Bearer <临时访问码>` 请求头，不放 URL、不持久化。重启后旧访问码失效，网页请求被拒绝。提醒每日领取标记保存在主题笔记的 `reminder-delivery/`，属于完整备份内容；已领取但通知前崩溃可能漏发。
+
+0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。

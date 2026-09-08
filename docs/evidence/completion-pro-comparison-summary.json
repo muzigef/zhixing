@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "reportHash": "3f1910baef8c660ef8403e46dbeb48d99caa7fd85fdfac7811287e1bddfec14e",
+  "datasetHash": "ed914e69cdff7d64d3d3daf51d22c6ba2ce0c0c74f8ef6ccd5f928477fe6d3ee",
+  "planned": 8,
+  "recorded": 8,
+  "attempted": 8,
+  "completed": 8,
+  "reviewed": 8,
+  "unreviewed": 0,
+  "passed": 4,
+  "passRate": 0.5,
+  "independentHumanReviewed": 0,
+  "reviewer": {
+    "name": "Codex development review 2026-09-09",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "failures": {},
+  "qualityFailures": {
+    "accuracy": 4
+  },
+  "groups": [
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-pro",
+      "reasoning": "balanced",
+      "planned": 8,
+      "attempted": 8,
+      "completed": 8,
+      "waiting": 0,
+      "latency": {
+        "samples": 8,
+        "p50": 7602,
+        "p95": 22413
+      },
+      "firstToken": {
+        "samples": 8,
+        "p50": 1520,
+        "p95": 5647
+      }
+    }
+  ],
+  "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+}

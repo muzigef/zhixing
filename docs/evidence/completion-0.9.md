@@ -29,7 +29,7 @@
 - Windows 分支使用 AppContainer 无能力 SID、白名单继承句柄和禁止子进程属性；进程先挂起，绑定 Job Object 的单进程、512 MB 内存、关闭即终止限制后恢复。测试代码只获得独立临时运行时读权限及临时工作目录写权限；标准输入关闭、超时和取消均终止 Job。未安装 helper 时明确不可用，不降级为普通进程。
 - CLI 构建命令 `node scripts/build-windows-sandbox.mjs`；桌面自动构建并装入 runtime。系统 .NET 编译器缺失即构建失败。Python 标准库以独立副本加载，排除 site-packages；未安装 Python 不冒充通过。
 - 本机 `CI=1 npm run verify`、五组 UI 均退出 0（`/tmp/zhixing-r03-verify.log`、`/tmp/zhixing-r03-ui.log`）。macOS 本机测试不能验证 Windows 原生分支；远端 Windows 实际越界/网络/子进程/超时/取消及 Windows、Intel 实包 UI 仍待 Actions 结果。
-- 首轮远端 34248279002 三个平台均真实暴露问题：Windows 创建 AppContainer 进程时报 203；ARM 打包将空 CSC_LINK 当目录；Intel 的 Python 发现规则未覆盖版本化 Xcode 与 Intel Homebrew。修复分别为：仅向可信 helper 传必需的 LOCALAPPDATA（不会进入沙箱子进程）；未签名构建删除空签名环境项；支持受限的版本化 Xcode/Intel Homebrew Python 路径。`CI=1 npm run verify` 再次通过，日志 `/tmp/zhixing-r03-fixed-verify.log`；远端复跑待结果。
+- 首轮远端 34248279002 三个平台均真实暴露问题：Windows 创建 AppContainer 进程时报 203；ARM 打包将空 CSC_LINK 当目录；Intel 的 Python 发现规则未覆盖版本化 Xcode 与 Intel Homebrew。修复分别为：为可信 helper 及显式子进程环境保留必需的 LOCALAPPDATA 路径元数据（不传令牌或其他认证环境；路径元数据不授予目录读取权限）；未签名构建删除空签名环境项；支持受限的版本化 Xcode/Intel Homebrew Python 路径。`CI=1 npm run verify` 再次通过，日志 `/tmp/zhixing-r03-fixed-verify.log`；远端复跑待结果。
 
 ## R04 · DeepSeek 真实任务与质量回归
 
@@ -51,10 +51,25 @@
 
 - 实际运行官方 `@modelcontextprotocol/server-filesystem@2026.8.31`，在 macOS restricted 沙箱内完成握手、Schema 校验和 ToolHarness 白名单读取。未注册的写工具被拒绝，合成原文件保持不变。发现并修复 Draft-07 / 2020-12 方言兼容，未知方言、远程引用和非法输入仍拒绝；不把转换方言当作移除校验。可复现脚本 `scripts/check-mcp-upstream.ts --mcp-root=<已安装服务的 node_modules>`。
 - `CI=1 npm run verify` 退出 0（`/tmp/zhixing-r06-verify.log`），实际 MCP 日志 `/tmp/zhixing-r06-mcp-final.json`。
-- Ollama v0.33.3 官方归档 SHA-256 校验一致。真实 embeddinggemma 下载尚未完成；不把 HashEmbedding 或缺失模型降级当成真实语义验收。
-- 系统通知经过共享调度器调用一次，开发 Electron 的真实回调为 failed；待实际安装包再查验，未宣称已显示通知。
+- Ollama v0.33.3 官方归档 SHA-256 校验一致；真实 embeddinggemma 已完成下载、索引和语义/混合检索验收，见下文及 [原始结果](completion-semantic.json)。
+- 系统通知最初在开发 Electron 中实际 failed，随后经完整 ad-hoc 签名实包观察到 show；原因、修复及正式签名边界见下文。
 
 ## R07 · 常驻 worker 评估
 
 - DeepSeek 现有 30 次真实模型轮次：准备阶段中位数 18 ms，请求中位数 2730.5 ms，总计中位数 2753 ms。该链路已直接流式请求，不需要额外常驻 worker；即使完全消除准备阶段，可节省的量级也小于一次请求的百分之一。
 - Pi 的常驻方案需在连通性稳定后测量冷/热启动、每轮请求、取消回收、内存和会话隔离。用户明确不处理 Pi 故障，本轮不启动真实 Pi 测量，也不引入未经收益验证的常驻进程。当前决策为维持按需进程；重新评估随 Pi 故障任务一并进行，不另建子 Agent。
+
+
+## 后续实际复核
+
+- Windows 第三轮已消除 CreateProcess 203，暴露 0xC0000142。改为无控制台的 DETACHED_PROCESS 后，真实 Node 输出、超时/取消和输出上限测试通过，复合越界用例仍在诊断，不能宣称 Windows 已验收。
+- 远端桌面测试暴露设置读写竞态。新增真实文件回归先失败；读取等待已提交偏好写入，写失败后可读取最后提交状态，退出应用前等待保存。129 文件 / 618 测试的完整 verify 和五组开发 UI 通过；后续课程上下文修复再完整验证。
+- 课程上下文将前置课名称混用的模型输出转成具体结构化回归。前置课程单独提供自己的名称、时长和要求，当前课程包含 topicId；其他主题私有记忆不进入上下文。真实 R06 两次复跑全部准确。
+- 回答质量已逐条开发助手评分，严格门槛没有全通过。完整原答、评分与局限见[内容复核](completion-quality-review.md)，不得以完成状态、提高思考档位或程序测试冒充语义正确率。
+- 真实 Ollama embeddinggemma 已实际索引与检索：模型 digest `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`，4 个中英文问题的语义与混合 Top-1 全部正确；索引 1619 ms，单题 68–97 ms；跨主题空结果、取消和缺失模型显式回退通过。报告 [completion-semantic.json](completion-semantic.json)。临时测试服务已关闭，没有修改应用的默认模型或全局安装配置。
+- 通知根因：Electron 42 起使用 UNNotification，要求应用被完整签名（[官方变更说明](https://www.electronjs.org/docs/latest/breaking-changes#behavior-changed-macos-notifications-now-use-unnotification-api)）。原包只有链接器临时签名且 Info.plist 未绑定，实际报 UNErrorDomain 1。对应用完整 ad-hoc 签名并严格校验后，共享调度器触发一次通知，实际收到 show，无 failed。已加入 afterPack；正式 Developer ID 与公证仍未配置。
+- Git 直连推送遇到连接故障后，使用 GitHub Git 数据 API 上传相同对象；逐个核对 blob/tree/commit SHA，并在确认远端为祖先后非强制更新 main。没有改写历史或假设远端已收到代码。
+
+- macOS ARM64 在 12b40c4 的 [desktop-release 34254548206](https://github.com/muzigef/zhixing/actions/runs/34254548206/job/102156923461) 实际 success：完整 verify、开发/实包五组 UI、DMG/ZIP 和校验和上传均通过。该轮 Windows、Intel 失败记录不被 ARM 通过覆盖。
+- Windows 使用继承标准句柄后，越界读写、私有目录写读与联网断言均通过，子进程创建立即返回 UNKNOWN；测试原仅接受 EPERM/EACCES 因而失败。[libuv 1.51 的错误映射](https://github.com/libuv/libuv/blob/v1.51.0/src/win/error.c) 对未列举的 Win32 错误返回 UNKNOWN；新回归同时要求子进程 PID 为 0、退出状态为 null，且相同解释器在宿主控制组确实启动成功，超时不算拒绝。
+- Intel 实际日志显示多次 CLI / Python 执行组合超过原 5 秒默认总时限。只将这些组合任务的总期限改为 15 秒，每个 CLI 子进程另加 8 秒期限，Python 自身执行期限保持不变；不跳过断言或增加自动重试。

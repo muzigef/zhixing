@@ -3,9 +3,9 @@
 
 0.7 将桌面和 CLI 的记忆、教学状态、历史与摘要策略收敛到同一执行链，详见 [统一记忆设计](../docs/agent-memory.md)与[本轮验证](../docs/evidence/unified-agent.md)。
 
-独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.8 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
+独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.9 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.8.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.9.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
 
 本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
 
@@ -13,7 +13,7 @@
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/Zhixing-0.8.0-mac-arm64.dmg`。
+1. 打开本目录下的 `release/Zhixing-0.9.0-mac-arm64.dmg`。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
@@ -26,7 +26,7 @@
 | 方式 | 配置与当前行为 |
 | --- | --- |
 | **Pi · Codex** | 读取 Pi 的 Codex 模型偏好，认证和刷新由 Pi 自己处理；知行不读取认证文件。 |
-| **DeepSeek API** | 默认 `deepseek-v4-flash`，界面还提供 `deepseek-v4-pro`。可复用原知行的 macOS Keychain 项，或在设置中添加桌面独立 Key。 |
+| **DeepSeek API** | 默认 `deepseek-v4-flash`，界面还提供 `deepseek-v4-pro` 和实验性 `deepseek-v4-flash-vision-exp`。可复用原知行的 macOS Keychain 项，或在设置中添加桌面独立 Key。 |
 | **离线演示** | 固定的本地演示内容，不调用真实模型。 |
 
 首次使用且没有偏好文件时默认选择 `pi-codex`；已有偏好优先，重启会恢复上次选择。因此本机保存为 DeepSeek 并不意味着产品默认值是 DeepSeek。找到 Pi 模型偏好或 API 配置只代表配置存在，认证、余额和网络在真实请求时检查。
@@ -121,7 +121,7 @@ npm --prefix desktop run test:ui
 npm --prefix desktop run dist:mac
 ```
 
-该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.8.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
+该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.9.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
 
 验证实际 `.app` 时，在 `desktop/` 内执行：
 
@@ -173,10 +173,16 @@ node desktop/scripts/check-deepseek.mjs --live
 
 ## 当前源码的 Agent 内核更新
 
-桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v5，v1/v2/v3/v4 首次保存前保留对应原文件备份；读取本身不改写旧文件。旧版拒绝新格式，避免丢失审批和诊断字段。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。
+桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v8，v1–v7 首次保存前保留对应原文件备份；读取本身不改写旧文件。旧版拒绝新格式，避免丢失审批和诊断字段。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。
 
 0.6 会话列表使用元数据索引和每页四十条加载，标题搜索覆盖完整历史；长对话默认呈现末四十条，可加载更早消息。学习资料、当前项目、外部工具分别授权，设置与恢复规则见 [会话权限](../docs/session-permissions.md)。
 
 ## 0.8 行为变化
 
 教学练习状态绑定当前会话；新对话和分支从空检查点开始。课程面板可设置/关闭每日复习提醒，只在应用运行时检查；操作系统可能静音，错过五分钟不补发。MCP 支持 macOS restricted 隔离，其他平台明确拒绝此模式；项目测试按钮按实际平台能力禁用。性能诊断分离提交推理、输出上限、输入规模及传输条件，不混合不同比较条件。完整实现与本机验收见[修复记录](../docs/evidence/architecture-remediation.md)。
+
+## 0.9 行为变化
+
+桌面支持选择、粘贴或拖入 PNG/JPEG，CLI 使用 `/image`；两端通过共享图像契约，限制和视觉模型选择见[图片输入](../docs/image-input.md)。真实语义检索、第三方 MCP、系统通知和跨平台验收见[0.9 记录](../docs/evidence/completion-0.9.md)。
+
+macOS 预览包现在绑定并校验完整应用的 ad-hoc 签名，以满足 Electron 原生通知要求；这不是 Developer ID 签名或公证。应用退出前等待偏好写入，连续设置修改后的读取也等待已提交写入。真实教学研究仍需参与者、独立评阅者及实际 72 小时延迟。

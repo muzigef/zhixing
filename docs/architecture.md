@@ -214,4 +214,6 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 | `AgentSessionStore` / `AgentEventCoalescer` | 正文外元数据索引、游标分页；16 ms 合并文本增量、活动增量补丁、最终事件前清空缓冲；UI 分段加载消息。 |
 | `LearningOutcomeStore` / `BuildProvenance` | 独立题目和作答存储、两种试验协议；源码/安装包来源绑定，按构建和真实模型条件分组。 |
 
-会话当前写入 v7，首次保存 v1–v6 前保留原文件；SQLite 标记 6，旧应用拒绝打开。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。
+会话当前写入 v8，首次保存 v1–v7 前保留原文件；SQLite 标记 6，旧应用拒绝打开。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。
+
+0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。

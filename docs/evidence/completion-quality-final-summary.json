@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "reportHash": "7427ac716b58db459767e1e7de6fa9cfc02827ab21093774af754f5df7675349",
+  "datasetHash": "44f0c27c76854b08b66344fe064d34945124959c6114731dc220949f8c57cee7",
+  "planned": 24,
+  "recorded": 24,
+  "attempted": 24,
+  "completed": 22,
+  "reviewed": 24,
+  "unreviewed": 0,
+  "passed": 9,
+  "passRate": 0.375,
+  "independentHumanReviewed": 0,
+  "reviewer": {
+    "name": "Codex development review 2026-09-09",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "failures": {
+    "waiting": 2
+  },
+  "qualityFailures": {
+    "accuracy": 9,
+    "grounding": 3,
+    "unnecessary_question": 2,
+    "other": 2,
+    "repetition": 1
+  },
+  "groups": [
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-flash",
+      "reasoning": "balanced",
+      "planned": 24,
+      "attempted": 24,
+      "completed": 22,
+      "waiting": 2,
+      "latency": {
+        "samples": 22,
+        "p50": 4286,
+        "p95": 9280
+      },
+      "firstToken": {
+        "samples": 22,
+        "p50": 1547,
+        "p95": 3870
+      }
+    }
+  ],
+  "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+}
