@@ -174,7 +174,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 `desktop/scripts/build.mjs` 用 esbuild 分别生成主进程 ESM、preload CJS、renderer 静态资源以及守卫模块。electron-builder 将内附 Pi 依赖展开到 `app.asar.unpacked/node_modules/`，并将 runtime 规则与守卫放入额外资源；桌面独立安装 SQLite/PDF 依赖；prepare-runtime 先安装项目内 Electron 并探测/重建 Electron ABI，根包 SQLite 保持 Node ABI。只将四个内置课程与运行规则打包，不收集用户主题。
 
-`desktop/package.json` 提供 macOS arm64 DMG/ZIP 和 Windows x64 NSIS 配置。当前实际验收覆盖 macOS Apple Silicon 应用及安装包；Windows 与 Intel Mac 未完成平台验收。已提供 macOS/Windows 构建、实际包 UI 与 draft release 流水线，以及用户主动检查公开新版本；Developer ID 签名、公证和远端执行另行验收。本轮 Pi Codex 与 DeepSeek 均经配置的产品接口执行真实合成评测，结果见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)；历史安装器证据见 [桌面验收记录](evidence/desktop-app.md)。
+`desktop/package.json` 提供 macOS arm64/x64 DMG/ZIP 和 Windows x64 NSIS 配置。0.9 的两个 Mac 架构已通过远端构建及实际包五组 UI，本机 ARM64 已安装；Windows AppContainer 原生隔离通过，完整桌面/安装验收继续收口。Windows 流水线实际安装 NSIS 并核对安装文件后运行 UI；手动运行可选择平台，tag 发行始终检查全部平台。macOS 预览包完整 ad-hoc 签名，Developer ID 与公证条件仍缺失。0.9 未执行真实 Pi 排障；DeepSeek 真实样本、内容评分、安装与各平台结果见 [当前验收](evidence/completion-0.9.md)，早期双 Provider 记录保留为 [P1/P2 历史证据](evidence/agent-p1-p2-20260907.md)。
 
 ## 后续设计（未实现）
 

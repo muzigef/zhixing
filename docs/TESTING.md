@@ -21,9 +21,9 @@ npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learnin
 
 ## 框架与准备
 
-根目录使用 Vitest（声明版本 `^3.0.0`，实际解析版本由 `package-lock.json` 锁定），桌面 UI 使用 Playwright（声明 `^1.55.0`）的 Electron API。仓库没有独立 Vitest 配置、全局测试 setup 或覆盖率阈值配置。
+根目录使用 Vitest（声明版本 `^3.0.0`，实际解析版本由 `package-lock.json` 锁定），桌面 UI 使用 Playwright（声明 `^1.55.0`）的 Electron API。`vitest.config.ts` 在 CI 中串行运行测试文件；没有全局测试 setup 或覆盖率阈值配置。组合进程流程有显式总期限，每个执行器保留自己的超时与取消约束。
 
-使用 Node.js `24.8.x`；CI 固定 `24.8.0`、npm `10.9.2`，本地建议使用一致版本。先在仓库根目录安装两套依赖：
+使用 Node.js `24.8.x`；CI 固定 `24.8.0`，verify 工作流固定 npm `10.9.2`，本地建议使用一致版本。先在仓库根目录安装两套依赖：
 
 ```bash
 npm ci
@@ -95,14 +95,14 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.5.0-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.9.0-mac-arm64.dmg
 ```
 
 安装包文件名中的版本来自桌面包，升级后需同步替换。当前各平台结果见 [0.9 验收记录](evidence/completion-0.9.md)；Windows NSIS 构建配置不等于运行隔离或实包测试通过。
 
 ## 新测试与夹具
 
-测试文件统一放在 `tests/` 下并使用 `*.test.ts`。已有测试通常直接从 Vitest 导入 `describe`、`it`、`expect`，在文件内建立小型 helper；使用 `fs.mkdtemp` 创建根目录，在 `afterEach` 清理，SQLite 连接先关闭再删除文件。不要把临时根设为实际学习数据目录。
+测试文件放在 `tests/` 下，主要使用 `*.test.ts`；MJS 验收 helper 的异步行为使用 `*.test.js`。已有测试通常直接从 Vitest 导入 `describe`、`it`、`expect`，在文件内建立小型 helper；使用 `fs.mkdtemp` 创建根目录，在 `afterEach` 清理，SQLite 连接先关闭再删除文件。不要把临时根设为实际学习数据目录。
 
 Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、`learning-agent-cli`、`tool-harness`、`provider-runtime`、`deepseek-client`、`run-manager`、`path-policy`、`teaching-turn` 与 `teaching-session-store`。其中 CLI 工具验收通过 Node preload 注入假 Keychain 和 fetch，使用临时 SQLite 夹具，验证真实入口和适配器而不访问真实凭证或网络。
 
@@ -243,3 +243,5 @@ npm --prefix desktop run test:ui
 - `node desktop/scripts/check-notification.mjs --native`：真实调度与原生通知事件；使用 `ZHIXING_DESKTOP_EXECUTABLE` 选择实包。若 OS 回调失败，验收应报告失败，不能以调用 show 代替显示成功。
 
 本轮不运行真实 Pi 排障；Pi 相关 Vitest 使用离线 SDK/协议夹具。旧留出集 H03 已用于修复，整个旧集合按回归集记录，不再称为未见盲测。独立人工评分及真实学习效果仍需外部人员。
+
+Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目录，核对 6 个关键运行文件，再针对安装路径执行五组 UI；安装回执作为 artifact 保留。手动定位可选 platform，tag 发布始终运行全部平台。异步 IPC 条件使用有总期限的 `waitForIpc` 逐次等待，不能把 Promise 对象当成条件已满足。

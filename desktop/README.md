@@ -17,7 +17,7 @@
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
-`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，Windows 与 Intel Mac 尚未实机验收。当前产物及已验证范围见 [P1/P2 验收记录](../docs/evidence/agent-p1-p2-20260907.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
+`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离通过，完整安装验收仍在收口。当前产物及已验证范围见 [0.9 验收记录](../docs/evidence/completion-0.9.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
 
 当前源码内附 Electron 和 Pi `0.85.0`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。项目检查点需要本机 Git；用户配置的 MCP 服务可能另有运行环境要求。更新源码不会修改既有安装包，安全更新需重新构建并安装，见 [依赖安全修复](../docs/evidence/dependency-security.md)。
 

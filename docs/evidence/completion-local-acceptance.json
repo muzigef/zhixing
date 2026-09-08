@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-09-08T17:26:48.853674+00:00",
+  "scope": "local macOS ARM64; platform CI and model semantic quality are separate gates",
+  "tests": {
+    "files": 129,
+    "tests": 619,
+    "integration": 9,
+    "eval": 6
+  },
+  "checks": [
+    {
+      "log": "/tmp/zhixing-r03-installer-verify.log",
+      "requiredMarker": "verify passed",
+      "sha256": "26c741fecc74686d62c9bff70876ae000f5def7096a8e811705bde68886e7bb4",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-current-ui.log",
+      "requiredMarker": "Projects UI passed",
+      "sha256": "d912a73a2fb7ab64156993f46ddd5d526b406077cffacd523edf44839fde09d4",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-frozen-package-ui.log",
+      "requiredMarker": "Projects UI passed",
+      "sha256": "8e457e31e687ad10772a776d8a6fcb301bfa41146dd1aec233c171634a43ead2",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-installed-smoke.log",
+      "requiredMarker": "Desktop UI passed",
+      "sha256": "e336b62970944aecb800774c36009772bd34e004dcdc7e0a936b47d20ece34cc",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-installed-learning.log",
+      "requiredMarker": "Learning UI passed",
+      "sha256": "7eb0b72679d9bdc7a03ed83600760c4ac6283c20edfc413413c707166aaf4f5b",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-audit-root.log",
+      "requiredMarker": "found 0 vulnerabilities",
+      "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "passed": true
+    },
+    {
+      "log": "/tmp/zhixing-r08-audit-desktop.log",
+      "requiredMarker": "found 0 vulnerabilities",
+      "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "passed": true
+    }
+  ],
+  "installation": {
+    "passed": true,
+    "installedAt": "2026-09-08T17:18:17.128420+00:00",
+    "installed": "/Users/liqing93/Applications/知行.app",
+    "version": "0.9.0",
+    "previousVersion": "0.6.0",
+    "backup": "/Users/liqing93/Library/Application Support/Zhixing-install-backups/0.6.0-20260909-011815/知行.app",
+    "userData": "preserved; no application data files replaced or removed",
+    "codeHash": "647370133b547813edf65c7f75dea8c7ef609dead5ff46ed0f4ee9dda0d2b462",
+    "commit": "222a1488c6936981e80038595323427533396ac1",
+    "dirty": false,
+    "checks": [
+      {
+        "file": "Contents/Info.plist",
+        "sha256": "d6d08a157a40d95e93db08e20834e417530f47ef868849f77b097d466831f336",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/app.asar",
+        "sha256": "b845deec93146b76885853c8c16468e527c861c3861ebd04558f926fc8f4d59f",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/runtime/pi-model-worker.mjs",
+        "sha256": "8d5eaec35431620be7887fbc0b343a2ad0ca48dcf6c0ad474a18ed2e4254e2a4",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/runtime/build-provenance.json",
+        "sha256": "dd5699821c71bcd1fb84397e14a40eb9c9f42424d30ab2e4bfd543525a9d184a",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+        "sha256": "51e85004e432a212ce14e94c6202247e300c0efeb65bd394e940ac168d1eeb4a",
+        "same": true
+      }
+    ]
+  },
+  "image": {
+    "passed": true,
+    "verifiedAt": "2026-09-08T17:18:49.177978+00:00",
+    "version": "0.9.0",
+    "minimumMacOS": "13.0",
+    "codeHash": "647370133b547813edf65c7f75dea8c7ef609dead5ff46ed0f4ee9dda0d2b462",
+    "commit": "222a1488c6936981e80038595323427533396ac1",
+    "dirty": false,
+    "sourceFilesMatched": 375,
+    "checks": [
+      {
+        "file": "Contents/Info.plist",
+        "sha256": "d6d08a157a40d95e93db08e20834e417530f47ef868849f77b097d466831f336",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/app.asar",
+        "sha256": "b845deec93146b76885853c8c16468e527c861c3861ebd04558f926fc8f4d59f",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/runtime/pi-model-worker.mjs",
+        "sha256": "8d5eaec35431620be7887fbc0b343a2ad0ca48dcf6c0ad474a18ed2e4254e2a4",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/runtime/build-provenance.json",
+        "sha256": "dd5699821c71bcd1fb84397e14a40eb9c9f42424d30ab2e4bfd543525a9d184a",
+        "same": true
+      },
+      {
+        "file": "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+        "sha256": "51e85004e432a212ce14e94c6202247e300c0efeb65bd394e940ac168d1eeb4a",
+        "same": true
+      }
+    ],
+    "artifacts": [
+      {
+        "name": "Zhixing-0.9.0-mac-arm64.dmg",
+        "bytes": 293935209,
+        "sha256": "ef6a8cb06c222e426166a8030beaac5b9f49d7a79433022f663a1da614b56d63"
+      },
+      {
+        "name": "Zhixing-0.9.0-mac-arm64.zip",
+        "bytes": 302227857,
+        "sha256": "43bb555c461df44800329a5c4816e9b607206eee8b0f075138c1d84ebcfa9cdc"
+      }
+    ]
+  },
+  "nativeNotification": {
+    "syntheticOnly": true,
+    "supported": true,
+    "calls": 1,
+    "events": [
+      "show"
+    ],
+    "errors": [],
+    "passed": true,
+    "interpretation": "Actual shared scheduler and native Notification.show; show event is OS delivery observation, visual appearance depends on OS notification settings."
+  },
+  "explicitlyDeferred": [
+    "Pi Codex connection fault",
+    "Independent sub-agent"
+  ],
+  "notCertified": [
+    "All open response content correct",
+    "Independent human review",
+    "Real learner effects and 72-hour retention",
+    "Apple Developer ID signing and notarization"
+  ]
+}

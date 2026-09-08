@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 当前任务：2026-09-09 [0.9 剩余任务收口](docs/completion-plan.md)。图片、长历史回读、回答检查、盲评包和真实 MCP 兼容已开发并验证，真实语义模型与签名实包系统通知通过，Windows/Intel 远端与最终安装继续验收；详细状态见 [本轮证据](docs/evidence/completion-0.9.md)。明确延期 Pi Codex 故障、独立子 Agent。真实参与者/72 小时结果与正式签名条件不由合成测试替代。
+> 当前任务：2026-09-09 [0.9 剩余任务收口](docs/completion-plan.md)。图片、长历史回读、回答检查、盲评包和真实 MCP 兼容已开发并验证，真实语义模型与签名实包系统通知通过，两个 Mac 架构实包与本机 0.9 安装通过，Windows 桌面/安装继续验收；详细状态见 [本轮证据](docs/evidence/completion-0.9.md)。明确延期 Pi Codex 故障、独立子 Agent。真实参与者/72 小时结果与正式签名条件不由合成测试替代。
 
 > 0.8 历史基线：2026-09-08 [架构评审修复 N01–N10](docs/architecture-remediation-plan.md)工程修复与 macOS ARM64 本机验收完成，桌面 0.8.0：603 测试、开发/实包各五组 UI、两套生产依赖审计、DMG 关键内容及源码来源核对通过。DeepSeek 合成请求成功；Pi 两次 HTTP 请求阶段失败，真实连接待复测。图像/独立子 Agent 为未启用的条件性扩展，真实教学效果、其他平台及签名未验收。详见 [执行记录](docs/evidence/architecture-remediation.md)。
 

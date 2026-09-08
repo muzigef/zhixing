@@ -73,3 +73,14 @@
 - macOS ARM64 在 12b40c4 的 [desktop-release 34254548206](https://github.com/muzigef/zhixing/actions/runs/34254548206/job/102156923461) 实际 success：完整 verify、开发/实包五组 UI、DMG/ZIP 和校验和上传均通过。该轮 Windows、Intel 失败记录不被 ARM 通过覆盖。
 - Windows 使用继承标准句柄后，越界读写、私有目录写读与联网断言均通过，子进程创建立即返回 UNKNOWN；测试原仅接受 EPERM/EACCES 因而失败。[libuv 1.51 的错误映射](https://github.com/libuv/libuv/blob/v1.51.0/src/win/error.c) 对未列举的 Win32 错误返回 UNKNOWN；新回归同时要求子进程 PID 为 0、退出状态为 null，且相同解释器在宿主控制组确实启动成功，超时不算拒绝。
 - Intel 实际日志显示多次 CLI / Python 执行组合超过原 5 秒默认总时限。只将这些组合任务的总期限改为 15 秒，每个 CLI 子进程另加 8 秒期限，Python 自身执行期限保持不变；不跳过断言或增加自动重试。
+
+## macOS 安装与跨平台后续验收
+
+- 本机安装版本由 0.6.0 升为 0.9.0，旧应用备份留在 `~/Library/Application Support/Zhixing-install-backups/0.6.0-20260909-011815/知行.app`；用户会话、资料、偏好和数据库没有被安装过程覆盖或删除。安装后主流程、学习流程与真实通知通过，见 [本机安装回执](completion-local-acceptance.json)。
+- 本机冻结包来自干净提交 222a148，375 个源码输入与 provenance 逐个比对一致；DMG 只读挂载后核对应用元数据、app.asar、模型 worker、构建来源和 SQLite 原生模块；完整 ad-hoc 签名校验、DMG 校验通过。此后新增的验收脚本与用例另按对应提交记录，不冒充该包重新构建过。
+- [34256012612 的 Intel job](https://github.com/muzigef/zhixing/actions/runs/34256012612/job/102161888490) 和 [ARM job](https://github.com/muzigef/zhixing/actions/runs/34256012612/job/102161888764) 均实际 success：全套 verify、开发/实包各五组 UI、DMG/ZIP、校验和与 artifact 上传。Windows 同轮仅原生隔离通过，桌面实践仍失败，继续收口。
+- 远端 UI 的累计段数偶发断言失败已定位到验收脚本：Playwright 的同步谓词轮询将 Promise 对象当作真值，未等到异步 IPC 返回 true。三处改为逐次 await 且带总期限；新增 3 条测试覆盖异步 false、悬挂 IPC 超时和异常传播，失败到通过；完整 130 文件 / 622 测试及实际安装应用的交互流程通过。
+- 实际安装应用的系统加密接口完成仅内存中的合成字符串加解密与不含明文检查；没有读取既有凭证或认证文件。该检查现纳入各平台主 UI 流程。
+
+- Windows 运行时对照明确定位两处真实兼容问题：Node ESM 默认 realpath 查询盘符根目录被拒；Electron Node 模式主动重开 NUL 被拒。仅为私有常规文件副本启用 preserve-symlinks 参数，Electron 使用官方支持的 no-stdio-init 继承既有句柄；没有修改盘符/用户目录 ACL 或放开子进程/网络。5911b77 的原生 6 项检查及五组 Windows 开发 UI 实际通过，后续安装器步骤另行记录。[Electron 实现依据](https://github.com/electron/electron/blob/v44.2.0/shell/app/node_main.cc)。
+- 取消测试加强为先观察当前隔离进程在自身工作目录生成的合成标记，再触发取消，最后确认进程回收后的临时目录已删除；只取消初始化中的复制不能冒充已运行容器被终止。对应远端复测仍待结果。

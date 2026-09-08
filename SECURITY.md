@@ -30,7 +30,7 @@ npm audit --prefix desktop --omit=dev --audit-level=high
 
 CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均有充分依据；桌面引用元数据经主题/文档/页码/锚点/片段 ID 校验，但不保证每句回答均得到引用支持。loopback 同步服务只提供本机 progress JSON/SSE，不是云同步。历史 Provider smoke 只证明当次请求结果，不证明当前登录持续有效。
 
-桌面 macOS arm64 包目前为本地预览，没有 Developer ID 签名、公证。版本检查只在用户点击后查询 GitHub 公开元数据，不自动下载/执行更新。已有 macOS/Windows 构建与 draft release 工作流；Windows 系统密钥存储和运行行为尚未实机验收。详见 [桌面证据](docs/evidence/desktop-app.md)。
+桌面 macOS arm64 包目前为本地预览，没有 Developer ID 签名、公证。版本检查只在用户点击后查询 GitHub 公开元数据，不自动下载/执行更新。已有 macOS/Windows 构建与 draft release 工作流；两个 Mac 架构实包通过，Windows 的原生隔离、内存合成加密与安装 UI 按独立检查结果记录，不用配置代替通过。详见 [当前证据](docs/evidence/completion-0.9.md)。
 
 ## 报告问题
 
