@@ -28,3 +28,18 @@ it("recalls confirmed memories, profile and teaching checkpoint through the appl
   expect(revoked.text).not.toContain("如何判断引用支持结论？");
   expect(revoked.evidence).toEqual([]);
 });
+
+it("binds prerequisite course metadata to its own topic instead of the current day's title", async () => {
+  const app = await LearningApplication.open(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-prerequisite-context-")), process.cwd()); apps.push(app);
+  app.database.writeMemory("private-other", { topicId: "agent-development", type: "learning_fact", content: "前置主题的私有学习记忆", sourceKind: "user", sourceRef: "user", confidence: 1, confirmed: true });
+  const snapshot = await app.progressSnapshot("rag");
+  expect(snapshot).toMatchObject({ prerequisiteCourses: [
+    { topicId: "agent-development", dayId: "D01", title: "Agent 契约与状态边界", estimatedMinutes: 240 },
+    { topicId: "agent-development", dayId: "D02", title: "受控工具与运行生命周期", estimatedMinutes: 240 },
+  ] });
+  const context = await app.context("rag", "检查我的进度，建议最小下一步", true, new AbortController().signal);
+  const value = JSON.parse(context.text.slice(context.text.indexOf("\n") + 1));
+  expect(value.course).toMatchObject({ topicId: "rag", id: "D01", title: "本地资料导入与引用" });
+  expect(value.prerequisiteCourses).toEqual(snapshot.prerequisiteCourses);
+  expect(context.text).not.toContain("前置主题的私有学习记忆");
+});
