@@ -18,11 +18,14 @@ if (process.platform === "win32") {
     try {
       const code = `const fs=require('node:fs'),net=require('node:net'),cp=require('node:child_process');
 let read=false,write=false;try{fs.readFileSync(${JSON.stringify(secret)});read=true}catch{}try{fs.writeFileSync(${JSON.stringify(outside)},'escape');write=true}catch{}
-const child=cp.spawnSync(process.execPath,['-e','console.log(123)']);fs.writeFileSync('ok.txt','owned');
-const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('connect',()=>{connected=true;socket.destroy()});socket.on('error',()=>{});setTimeout(()=>{socket.destroy();console.log(JSON.stringify({read,write,child:child.status===0,connected,owned:fs.readFileSync('ok.txt','utf8')}))},300);`;
+const child=cp.spawnSync(process.execPath,['-e','console.log(123)'],{windowsHide:true,timeout:750});fs.writeFileSync('ok.txt','owned');
+const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('connect',()=>{connected=true;socket.destroy()});socket.on('error',()=>{});setTimeout(()=>{socket.destroy();console.log(JSON.stringify({read,write,child:child.status===0,childError:child.error?.code,connected,owned:fs.readFileSync('ok.txt','utf8')}))},300);`;
       const result = await new LocalSandbox().run(process.execPath, ["-e", code], { allowedCommands: [process.execPath], timeoutMs: 5000 });
-      expect(result, result.stderr).toMatchObject({ status: "completed", exitCode: 0 });
-      expect(JSON.parse(result.stdout.trim())).toEqual({ read: false, write: false, child: false, connected: false, owned: "owned" });
+      expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
+      const { childError, ...outcome } = JSON.parse(result.stdout.trim());
+      expect(outcome).toEqual({ read: false, write: false, child: false, connected: false, owned: "owned" });
+      // A hung child or the test's timeout is not proof of sandbox denial.
+      expect(["EPERM", "EACCES"]).toContain(childError);
       await expect(fs.stat(outside)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { server.close(); await fs.rm(root, { recursive: true, force: true }); }
   }, 30_000);

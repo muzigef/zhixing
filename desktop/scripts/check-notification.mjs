@@ -10,12 +10,12 @@ const app = await electron.launch({ ...(executablePath ? { executablePath } : {}
 try {
   const page = await app.firstWindow(); await page.getByRole("button", { name: "发送消息", exact: true }).waitFor();
   await app.evaluate(({ Notification }) => {
-    globalThis.zhixingNotificationProbe = { supported: Notification.isSupported(), calls: 0, events: [], notifications: [] };
+    globalThis.zhixingNotificationProbe = { supported: Notification.isSupported(), calls: 0, events: [], errors: [], notifications: [] };
     const show = Notification.prototype.show;
     Notification.prototype.show = function () {
       globalThis.zhixingNotificationProbe.calls++; globalThis.zhixingNotificationProbe.notifications.push(this);
       this.on("show", () => globalThis.zhixingNotificationProbe.events.push("show"));
-      this.on("failed", () => globalThis.zhixingNotificationProbe.events.push("failed"));
+      this.on("failed", (_event, error) => { globalThis.zhixingNotificationProbe.events.push("failed"); globalThis.zhixingNotificationProbe.errors.push(String(error).slice(0, 1000)); });
       return show.call(this);
     };
   });
@@ -27,7 +27,7 @@ try {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].minimize());
   const end = Date.now() + 35000; let result;
   while (Date.now() < end) {
-    result = await app.evaluate(() => { const p = globalThis.zhixingNotificationProbe; return { supported: p.supported, calls: p.calls, events: p.events }; });
+    result = await app.evaluate(() => { const p = globalThis.zhixingNotificationProbe; return { supported: p.supported, calls: p.calls, events: p.events, errors: p.errors }; });
     if (result.events.length) break;
     await new Promise(resolve => setTimeout(resolve, 500));
   }

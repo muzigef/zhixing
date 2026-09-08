@@ -1,6 +1,6 @@
 {
   "name": "zhixing-desktop",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "知行 · 让学习成为连续的对话",
   "author": "Zhixing",
   "license": "UNLICENSED",
@@ -47,6 +47,7 @@
     "remark-math": "^6.0.0"
   },
   "build": {
+    "afterPack": "scripts/sign-preview.mjs",
     "appId": "com.zhixing.desktop",
     "productName": "知行",
     "directories": {

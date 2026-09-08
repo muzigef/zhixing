@@ -78,6 +78,7 @@ function connectService(store: DesktopStore): void {
   reminderScheduler = new ReminderScheduler(new ReminderStore(workspace.paths), () => workspace.registry.list().map(topic => topic.topicId), topics => {
     if (!Notification.isSupported()) return;
     const notification = new Notification({ title: "知行 · 复习时间到了", body: `${topics.length} 个主题到了复习时间。用自己的话回忆一个概念，再试一道题。` });
+    notification.on("failed", () => console.warn("reminder_delivery_unavailable"));
     notification.on("click", () => {
       if (window && !window.isDestroyed()) { window.show(); window.focus(); }
       else void createWindow().catch(() => console.warn("reminder_window_unavailable"));
@@ -625,11 +626,14 @@ else {
   app.on("before-quit", (event) => {
     reminderScheduler?.stop();
     if (quitting) return;
-    if (!service?.activeSessionId && !learningController) { learning?.close(); return; }
+    if (!service) { learning?.close(); return; }
     event.preventDefault();
     quitting = true;
     service.stop(); learningController?.abort();
-    void Promise.allSettled([service.idle(), learningIdle]).finally(() => { learning?.close(); app.quit(); });
+    void Promise.allSettled([service.idle(), learningIdle])
+      .then(() => service.store.flush())
+      .catch(() => console.warn("desktop_flush_unavailable"))
+      .finally(() => { learning?.close(); app.quit(); });
   });
 }
 

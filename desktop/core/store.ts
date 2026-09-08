@@ -6,6 +6,9 @@ import { AgentSessionStore, readJson, atomicJson } from "../../src/agent-session
 export class DesktopStore extends AgentSessionStore {
   private preferenceWrites: Promise<void> = Promise.resolve();
   async settings(): Promise<DesktopSettings> {
+    // IPC handlers overlap. A boot/read after a submitted save must not observe
+    // the old file while its atomic rename is still queued.
+    await this.preferenceWrites.catch(() => undefined); // Save callers receive errors; reads can recover the last committed file.
     try {
       return settingsSchema.parse(
         await readJson(path.join(this.root, "preferences.json"), 16_000),
