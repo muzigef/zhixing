@@ -2,6 +2,11 @@ name: desktop-release
 on:
   workflow_dispatch:
     inputs:
+      platform:
+        description: Platform to verify (tag releases always verify all platforms)
+        type: choice
+        default: all
+        options: [all, macos-15, macos-15-intel, windows-2022]
       sign_macos:
         description: Sign and notarize macOS builds using configured repository secrets
         type: boolean
@@ -15,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-15-intel, windows-2022]
+        os: ${{ fromJSON(inputs.platform && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["macos-15","macos-15-intel","windows-2022"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

@@ -150,6 +150,7 @@ try {
   if (running) {
     await running.page.screenshot({ path: path.join(os.tmpdir(), "zhixing-learning-failure.png") });
     console.error("UI failure state", await running.page.getByRole("textbox", { name: "发送给知行" }).inputValue(), await running.page.getByRole("button", { name: "停止生成", exact: true }).count());
+    console.error((await running.page.locator("body").innerText()).slice(-5000));
   }
   throw error;
 } finally {

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { strict as assert } from "node:assert";
+import { waitForIpc } from "./wait-for-ipc.mjs";
 const root = path.resolve(import.meta.dirname, "..");
 const data = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-interactions-ui-"));
 let app;
@@ -43,14 +44,14 @@ try {
   const scopedProject = await page.evaluate(async () => (await window.zhixing.invoke({ type: "project-create", topicId: "agent-development", title: "合成授权项目" })).data);
   await page.evaluate(async id => window.zhixing.invoke({ type: "project-select", topicId: "agent-development", projectId: id }), scopedProject.id);
   await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).check();
-  await page.waitForFunction(async id => Boolean((await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId), currentSession);
+  await waitForIpc(page, async id => Boolean((await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId), currentSession);
   await page.reload();
   await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).waitFor();
   assert.equal(await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).isChecked(), true);
   assert.equal(await page.getByRole("checkbox", { name: /本会话使用学习上下文/ }).isChecked(), false);
   assert.equal(await page.getByRole("checkbox", { name: "本会话使用已配置的外部工具", exact: true }).isChecked(), false);
   await page.getByRole("checkbox", { name: "本会话使用当前实践项目", exact: true }).uncheck();
-  await page.waitForFunction(async id => !(await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId, currentSession);
+  await waitForIpc(page, async id => !(await window.zhixing.invoke({ type: "load", sessionId: id })).data.permissions?.projectId, currentSession);
   await page.getByRole("button", { name: "对比回答", exact: true }).click();
   await page.getByRole("dialog", { name: "对比回答", exact: true }).waitFor();
   assert.equal(await page.getByRole("combobox", { name: "左侧回答", exact: true }).locator("option").count(), 3);
@@ -109,7 +110,7 @@ try {
   const taskDialog = page.getByRole("dialog", { name: "任务详情", exact: true });
   await taskDialog.getByRole("textbox", { name: "修订任务目标", exact: true }).fill("改成先解释例子中的输入和输出");
   await taskDialog.getByRole("button", { name: "保存新目标并继续", exact: true }).click();
-  await page.waitForFunction(async ({ sessionId, taskId }) => {
+  await waitForIpc(page, async ({ sessionId, taskId }) => {
     const result = await window.zhixing.invoke({ type: "task-info", sessionId, taskId });
     return result.ok && result.data.usage.segments === 2;
   }, { sessionId: blocked.id, taskId: blockedTaskId });

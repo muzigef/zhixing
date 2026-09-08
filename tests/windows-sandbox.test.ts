@@ -33,6 +33,15 @@ const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('con
       await expect(fs.stat(outside)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { server.close(); await fs.rm(root, { recursive: true, force: true }); }
   }, 30_000);
+  it("runs the actual Electron Node-mode test runtime under the same AppContainer policy", async () => {
+    const executable = path.resolve("desktop/node_modules/electron/dist/electron.exe");
+    const result = await new LocalSandbox().run(executable, ["--test", "--test-isolation=none", "checks.test.mjs"], {
+      allowedCommands: [executable], electronNode: true, timeoutMs: 5000,
+      files: { "checks.test.mjs": "import {test} from 'node:test';import assert from 'node:assert/strict';test('sandboxed Electron',()=>assert.equal(2+2,4));" },
+    });
+    expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
+    expect(result.stdout).toMatch(/pass 1/);
+  }, 30_000);
   it("kills a timed out or cancelled container and bounds stdout", async () => {
     const sandbox = new LocalSandbox();
     const timed = await sandbox.run(process.execPath, ["-e", "setInterval(()=>{},1000)"], { allowedCommands: [process.execPath], timeoutMs: 500 });
