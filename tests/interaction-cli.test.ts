@@ -1,3 +1,7 @@
+import { DesktopService } from "../desktop/core/service.js";
+import { LearningApplication } from "../src/learning-application.js";
+import { DeepSeekClient } from "../src/deepseek-client.js";
+import { MemorySecretStore } from "../src/secret-store.js";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -5,7 +9,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { TeachingSessionStore } from "../src/teaching-session-store.js";
-import { ConversationSessionStore } from "../src/conversation-session.js";
+import { emptyConversation, ConversationSessionStore } from "../src/conversation-session.js";
 import { AgentSessionStore } from "../src/agent-session-store.js";
 import { ZhixingDatabase } from "../src/database.js";
 import { PathPolicy } from "../src/paths.js";
@@ -20,6 +24,10 @@ async function setup(teaching: "answer_questions" | "practice" | false = false, 
   await fs.writeFile(path.join(settings, "model-routing.local.json"), JSON.stringify({ routes: { tutor: "deepseek-api", reviewer: "mock", lab: "mock" } }));
   const sessions = new TeachingSessionStore(new PathPolicy(root));
   if (teaching) await sessions.save("agent-development", { dayId: "D01", dayCard: "第1天：理解注意力", stage: teaching, quizRound: teaching === "practice" ? 1 : 0, currentExercise: teaching === "practice" ? "第一题：解释注意力。" : undefined, transcript: ["教师：上次只解释了查询向量。"] });
+  const chat = emptyConversation("agent-development", teaching ? "lesson" : "chat");
+  await new ConversationSessionStore(new PathPolicy(root)).save(chat);
+  const agentStore = new AgentSessionStore(path.join(root, "zhixing", "agent"));
+  await agentStore.save({ version: 6, id: chat.id, mode: chat.mode, title: "合成授权会话", customTitle: false, topicId: "agent-development", contextAllowed: true, messages: [], createdAt: chat.updatedAt, updatedAt: chat.updatedAt });
   const fixture = path.join(root, "provider-fixture.mjs");
   const requestsFile = path.join(root, "requests.json");
   const keychainModule = new URL("../src/macos-keychain.ts", import.meta.url).href;
@@ -45,7 +53,7 @@ globalThis.fetch = async (_url, init) => {
   const args = ["--import", "tsx", "--import", fixture, "src/cli.ts"];
   const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1", NO_COLOR: "1" } };
   return {
-    root, sessions, chats: new ConversationSessionStore(new PathPolicy(root)),
+    root, sessions, currentTeaching: async () => { const active = await new ConversationSessionStore(new PathPolicy(root)).current("agent-development"); return active ? (await agentStore.load(active.id)).teaching : undefined; }, chats: new ConversationSessionStore(new PathPolicy(root)),
     controlledRepl: (initial: string, trigger: string, next: string[]) => new Promise<string>((resolve, reject) => {
       const child = spawn(process.execPath, [...args, "--repl"], { ...options, stdio: ["pipe", "pipe", "pipe"] });
       let output = ""; let errors = ""; let sent = false;
@@ -98,6 +106,51 @@ globalThis.fetch = async (_url, init) => {
 }
 
 describe("natural interaction through the actual CLI", () => {
+  it.each(["chat", "lesson"] as const)("sends the same DeepSeek request as the desktop for a long %s session", async mode => {
+    const fixture = await setup(mode === "lesson" ? "practice" : false);
+    const chat = (await fixture.chats.current("agent-development"))!;
+    const store = new AgentSessionStore(path.join(fixture.root, "zhixing", "agent"));
+    const base = await store.load(chat.id);
+    for (let index = 0; index < 28; index++) base.messages.push({ id: crypto.randomUUID(), role: index % 2 ? "assistant" : "user", text: `共享原文 ${index}`, status: "completed", createdAt: base.createdAt });
+    base.context = { goal: "理解注意力", notes: "使用生活例子", summary: "旧摘要只讲过查询向量", summaryThroughId: base.messages[5]!.id };
+    await store.save(base);
+    const originalTeaching = await fixture.sessions.load("agent-development");
+    await fixture.invoke("解释一下恢复流程");
+    const actualCli = (await fixture.requests())[0];
+    const app = await LearningApplication.open(fixture.root);
+    const desktopStore = new AgentSessionStore(path.join(fixture.root, "desktop-synthetic"));
+    const bodies: unknown[] = [];
+    const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "fixture-key");
+    const client = new DeepSeekClient(secrets, async (_url, init) => { bodies.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ choices: [{ message: { content: answer }, finish_reason: "stop" }] })); }, { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
+    const desktop = new DesktopService(desktopStore, () => client, app);
+    try {
+      if (originalTeaching) await app.teaching.save("agent-development", originalTeaching);
+      await desktopStore.save(structuredClone(base));
+      await desktop.send({ sessionId: base.id, text: "解释一下恢复流程", provider: "deepseek-api", style: "adaptive" }); await desktop.idle(); await desktop.pauseMaintenance();
+      expect(bodies[0]).toEqual(actualCli);
+      expect(JSON.stringify(actualCli)).toContain("旧摘要只讲过查询向量");
+      expect(JSON.stringify(actualCli)).toContain("read_conversation_history");
+      expect((await desktop.load(base.id)).messages.at(-1)?.status).toBe("completed");
+    } finally { await desktop.pauseMaintenance(); app.close(); }
+  });
+
+  it("uses full shared history instead of the six-turn compatibility projection", async () => {
+    const fixture = await setup();
+    const session = await new AgentSessionStore(path.join(fixture.root, "zhixing", "agent")).create();
+    session.topicId = "agent-development";
+    for (let index = 0; index < 8; index++) session.messages.push(
+      { id: crypto.randomUUID(), role: "user", text: `完整会话问题 ${index}`, status: "completed", createdAt: session.createdAt },
+      { id: crypto.randomUUID(), role: "assistant", text: `完整会话回答 ${index}`, status: "completed", createdAt: session.createdAt },
+    );
+    await new AgentSessionStore(path.join(fixture.root, "zhixing", "agent")).save(session);
+    await fixture.chats.save({ version: 1, id: session.id, topicId: "agent-development", mode: "chat", turns: [], updatedAt: session.updatedAt });
+    await fixture.invoke("举个例子");
+    const prompt = (await fixture.requests())[0]!.messages.map(message => message.content).join("\n");
+    expect(prompt).toContain("完整会话回答 1");
+    expect(prompt).toContain("read_conversation_history");
+    expect(prompt.split("举个例子")).toHaveLength(2);
+  });
+
   it("answers a knowledge question without requiring a learning plan", async () => {
     const fixture = await setup();
     const result = await fixture.invoke("解释大语言模型的注意力机制");
@@ -114,22 +167,24 @@ describe("natural interaction through the actual CLI", () => {
     expect(prompt.split(question)).toHaveLength(2);
     expect(prompt).toContain("上次只解释了查询向量");
     expect(prompt).not.toContain("结尾必须询问");
-    expect(await fixture.sessions.load("agent-development")).toMatchObject({ stage: "answer_questions", quizRound: 0, transcript: expect.arrayContaining([`用户：${question}`]) });
+    expect(await fixture.currentTeaching()).toMatchObject({ stage: "answer_questions", quizRound: 0, transcript: expect.arrayContaining([`用户：${question}`]) });
   });
   it("starts an exercise directly and retains it after a solution request", async () => {
     const fixture = await setup("answer_questions", ["第一题：用自己的话解释注意力。", "参考答案：注意力按相关性加权信息。"]);
     expect((await fixture.invoke("来一道题")).stdout).toContain("第一题");
     expect((await fixture.invoke("直接给出第一题答案")).stdout).toContain("参考答案");
     expect(await fixture.requests()).toHaveLength(2);
-    expect(await fixture.sessions.load("agent-development")).toMatchObject({ stage: "practice", quizRound: 1, currentExercise: "第一题：用自己的话解释注意力。", learnerAttempts: [] });
+    expect(await fixture.currentTeaching()).toMatchObject({ stage: "practice", quizRound: 1, currentExercise: "第一题：用自己的话解释注意力。", learnerAttempts: [] });
   });
-  it("keeps a restored teaching mode across restart after opening a new chat", async () => {
+  it("starts an independent lesson after opening a new chat and retains its mode across restart", async () => {
     const fixture = await setup("answer_questions");
     await fixture.invoke("/new");
-    expect((await fixture.invoke("开始任务")).stdout).toContain("当前教学已在 D01");
+    await fixture.invoke("/permissions --允许外发");
+    expect((await fixture.invoke("开始第 1 天")).stdout).toContain("注意力");
     expect((await fixture.chats.current("agent-development"))?.mode).toBe("lesson");
     await fixture.invoke("举个例子");
-    expect((await fixture.requests())[0]!.messages.map(message => message.content).join("\n")).toContain("上次只解释了查询向量");
+    expect((await fixture.requests())[0]!.messages.map(message => message.content).join("\n")).not.toContain("上次只解释了查询向量");
+    expect((await fixture.currentTeaching())?.dayId).toBe("D01");
   });
   it("remembers explicit style per topic across CLI processes", async () => {
     const fixture = await setup();
@@ -159,7 +214,7 @@ describe("natural interaction through the actual CLI", () => {
     expect(output).toContain("已取消待执行草案");
     expect(output).toContain("没有待执行草案");
     expect(await fixture.requests()).toHaveLength(2);
-    expect(await fixture.sessions.load("agent-development")).toMatchObject({ stage: "answer_questions", quizRound: 0 });
+    expect(await fixture.currentTeaching()).toMatchObject({ stage: "answer_questions", quizRound: 0 });
   });
   it("starts a lesson with adaptive depth and mathematical formatting instructions", async () => {
     const fixture = await setup();
@@ -188,14 +243,14 @@ describe("natural interaction through the actual CLI", () => {
     const output = await fixture.repl(["开始练习", "退出"]);
     expect(output.split("尚未生成完整题目")).toHaveLength(2);
     expect(output).toContain("回答未完成");
-    expect(await fixture.sessions.load("agent-development")).toMatchObject({ stage: "answer_questions", quizRound: 0 });
+    expect(await fixture.currentTeaching()).toMatchObject({ stage: "answer_questions", quizRound: 0 });
   });
   it("cancels a streaming reply and accepts another turn in the same REPL", async () => {
     const fixture = await setup("answer_questions", [{ text: "未完成的段落。\n", stall: true }, "新的具体例子。"]);
     const output = await fixture.interruptedRepl();
     expect(output).toContain("已停止本轮回答");
     expect(output).toContain("新的具体例子");
-    const session = await fixture.sessions.load("agent-development");
+    const session = await fixture.currentTeaching();
     expect(session?.transcript.join("\n")).not.toContain("未完成的段落");
     expect(session?.transcript.join("\n")).toContain("新的具体例子");
   });

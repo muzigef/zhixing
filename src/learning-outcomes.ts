@@ -1,4 +1,5 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
+import { outcomeCalibration, scoreDistribution } from "./outcome-calibration.js";
 import { explanationReviewInputSchema } from "./outcome-contracts.js";
 import { outcomeProtocolSchema, type OutcomeProtocol } from "./outcome-contracts.js";
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance.js";
@@ -149,7 +150,7 @@ export class LearningOutcomeStore {
 
 /** Paired score differences are descriptive observations, never causal/mastery claims. */
 export function summarizeOutcomes(trials: OutcomeView[]): OutcomeSummary {
-  const report: OutcomeSummary = { conclusion: "descriptive_only", total: trials.length, incomplete: 0, exclusions: {}, groups: [] };
+  const report: OutcomeSummary = { conclusion: "descriptive_only", total: trials.length, incomplete: 0, exclusions: {}, groups: [], calibration: outcomeCalibration(trials) };
   const values = new Map<string, { group: OutcomeSummary["groups"][number]; immediate: number[]; delayed: number[] }>();
   const exclude = (reason: string) => { report.exclusions[reason] = (report.exclusions[reason] ?? 0) + 1; };
   const independent = (result?: OutcomeResult) => result?.assistance === "independent";
@@ -168,7 +169,7 @@ export function summarizeOutcomes(trials: OutcomeView[]): OutcomeSummary {
     if (trial.protocol === "full_product" && (!trial.provenance || conditions.some(c => c.codeHash !== trial.provenance?.codeHash))) { exclude("unknown_or_changed_build"); continue; }
     const c = conditions[0]!; const label = `${trial.topicId} · ${trial.protocol === "full_product" ? "完整产品" : "提示方式"} · v${trial.bankVersion} · ${c.provider}/${c.model} · ${c.reasoning}/${c.style}${c.codeHash ? ` · ${c.codeHash.slice(0, 12)}` : ""}${c.windowTokens ? ` · ${c.windowTokens}/${c.reserveOutputTokens}` : ""}`;
     const key = JSON.stringify([trial.topicId, trial.bankVersion, trial.protocol ?? "prompt_only", c, trial.mode]);
-    const entry = values.get(key) ?? { group: { label, mode: trial.mode, independentPairs: 0, retentionPairs: 0, scoreChange: null, retentionChange: null }, immediate: [], delayed: [] };
+    const entry = values.get(key) ?? { group: { label, mode: trial.mode, independentPairs: 0, retentionPairs: 0, scoreChange: null, retentionChange: null, missingRetention: 0, scoreDistribution: scoreDistribution([]), retentionDistribution: scoreDistribution([]) }, immediate: [], delayed: [] };
     entry.immediate.push(difference(trial.results.pre, trial.results.post));
     if (trial.results.delayed) {
       if (independent(trial.results.delayed)) entry.delayed.push(difference(trial.results.pre, trial.results.delayed));
@@ -180,6 +181,8 @@ export function summarizeOutcomes(trials: OutcomeView[]): OutcomeSummary {
     group.independentPairs = immediate.length; group.retentionPairs = delayed.length;
     group.scoreChange = immediate.length ? immediate.reduce((a, b) => a + b, 0) / immediate.length : null;
     group.retentionChange = delayed.length ? delayed.reduce((a, b) => a + b, 0) / delayed.length : null;
+    group.missingRetention = immediate.length - delayed.length;
+    group.scoreDistribution = scoreDistribution(immediate); group.retentionDistribution = scoreDistribution(delayed);
     report.groups.push(group);
   }
   return report;

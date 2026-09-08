@@ -77,6 +77,18 @@ export class AgentExecutionStore {
     })();
     return () => { database.db.prepare("DELETE FROM agent_session_leases WHERE session_id=? AND lease=?").run(sessionId, token); };
   }
+  /** One topic checkpoint can be advanced by only one conversation at a time. */
+  static claimTeaching(database: ZhixingDatabase, topicId: string): () => void {
+    z.string().regex(/^[a-z0-9][a-z0-9-]*$/).parse(topicId);
+    database.db.exec("CREATE TABLE IF NOT EXISTS agent_teaching_leases (topic_id TEXT PRIMARY KEY, lease TEXT NOT NULL, pid INTEGER NOT NULL)");
+    const token = randomUUID();
+    database.db.transaction(() => {
+      const owner = database.db.prepare("SELECT pid FROM agent_teaching_leases WHERE topic_id=?").get(topicId) as { pid: number } | undefined;
+      if (owner && isAlive(owner.pid)) throw new Error("learning_busy");
+      database.db.prepare("INSERT INTO agent_teaching_leases VALUES (?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET lease=excluded.lease, pid=excluded.pid").run(topicId, token, process.pid);
+    })();
+    return () => { database.db.prepare("DELETE FROM agent_teaching_leases WHERE topic_id=? AND lease=?").run(topicId, token); };
+  }
   private row(): Row | undefined {
     const row = this.database.db.prepare("SELECT * FROM agent_executions WHERE task_id = ?").get(this.identity.taskId) as Row | undefined;
     if (row && (row.session_id !== this.identity.sessionId || row.topic_id !== this.identity.topicId)) throw new Error("execution_scope_mismatch");
@@ -134,6 +146,7 @@ export class AgentExecutionStore {
     return this.database.db.prepare("SELECT sequence, type, call_id AS callId FROM agent_execution_events WHERE task_id=? ORDER BY sequence").all(this.identity.taskId) as Array<{ sequence: number; type: string; callId: string | null }>;
   }
   static remapSessions(database: ZhixingDatabase, ids: ReadonlyMap<string, string>): void {
+    if (database.db.prepare("SELECT name FROM sqlite_master WHERE name='agent_teaching_leases'").get()) database.db.exec("DELETE FROM agent_teaching_leases");
     if (database.db.prepare("SELECT name FROM sqlite_master WHERE name='agent_session_leases'").get()) database.db.exec("DELETE FROM agent_session_leases");
     if (!database.db.prepare("SELECT name FROM sqlite_master WHERE name='agent_executions'").get()) return;
     database.db.transaction(() => {

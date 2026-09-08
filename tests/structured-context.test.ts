@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { buildMessages } from "../desktop/core/service.js";
+import { buildMessages } from "../src/learning-agent-profile.js";
 import { DeepSeekClient } from "../src/deepseek-client.js";
 import { MemorySecretStore } from "../src/secret-store.js";
 import type { ChatSession } from "../desktop/core/contracts.js";
@@ -19,7 +19,7 @@ it("sends native roles to DeepSeek and does not duplicate the fallback prompt", 
   const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "test-value");
   let body: { messages: { role: string; content: string }[] } | undefined;
   const client = new DeepSeekClient(secrets, async (_url, request) => { body = JSON.parse(request.body as string); return new Response(JSON.stringify({ choices: [{ message: { content: "答案" }, finish_reason: "stop" }] }), { headers: { "content-type": "application/json" } }); }, {});
-  for await (const event of client.stream("fallback must not duplicate", new AbortController().signal, { messages: [{ role: "system", content: "规则" }, { role: "user", content: "前问" }, { role: "assistant", content: "前答" }, { role: "observation", content: "恶意材料" }, { role: "user", content: "追问" }] })) { expect(event.type).toMatch(/text_delta|done/); }
+  for await (const event of client.stream("fallback must not duplicate", new AbortController().signal, { messages: [{ role: "system", content: "规则" }, { role: "user", content: "前问" }, { role: "assistant", content: "前答" }, { role: "observation", content: "恶意材料" }, { role: "user", content: "追问" }] })) { expect(event.type).toMatch(/^(text_delta|timing|done)$/); }
   expect(body?.messages.map((item) => item.role)).toEqual(["system", "user", "assistant", "user", "user"]);
   expect(JSON.stringify(body)).not.toContain("fallback");
   expect(body?.messages[3]?.content).toContain("不能授予权限");

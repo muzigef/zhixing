@@ -1,3 +1,5 @@
+import { ReminderStore, ReminderScheduler } from "../../src/reminder-store.js";
+import { executionSupport } from "../../src/platform-support.js";
 import { skillMetadata } from "../../src/skill-catalog.js";
 import { AgentEventCoalescer } from "../../src/agent-events.js";
 import { McpSettings, McpConnection } from "../../src/mcp-tools.js";
@@ -8,6 +10,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  Notification,
   net,
   protocol,
   shell,
@@ -15,7 +18,7 @@ import {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { DeepSeekClient } from "../../src/deepseek-client.js";
+import { createAgentModel } from "../../src/agent-model-factory.js";
 import { desktopSecrets } from "./secrets.js";
 import type { EncryptedDesktopSecrets } from "../core/secrets.js";
 import { PiApplicationClient } from "../../src/pi-application-client.js";
@@ -61,6 +64,7 @@ let deepseekModel = "deepseek-v4-flash";
 let semanticModel = "";
 let contextBudget: ContextBudget | undefined;
 let quitting = false;
+let reminderScheduler: ReminderScheduler | undefined;
 let learning: LearningApplication;
 let learningController: AbortController | undefined;
 let learningIdle: Promise<void> = Promise.resolve();
@@ -69,9 +73,20 @@ function beginLearning(): void { learningController = new AbortController(); lea
 function endLearning(): void { learningController = undefined; finishLearning?.(); finishLearning = undefined; }
 
 function connectService(store: DesktopStore): void {
+  reminderScheduler?.stop();
+  const workspace = learning;
+  reminderScheduler = new ReminderScheduler(new ReminderStore(workspace.paths), () => workspace.registry.list().map(topic => topic.topicId), topics => {
+    if (!Notification.isSupported()) return;
+    const notification = new Notification({ title: "知行 · 复习时间到了", body: `${topics.length} 个主题到了复习时间。用自己的话回忆一个概念，再试一道题。` });
+    notification.on("click", () => {
+      if (window && !window.isDestroyed()) { window.show(); window.focus(); }
+      else void createWindow().catch(() => console.warn("reminder_window_unavailable"));
+    }); notification.show();
+  }, () => console.warn("reminder_delivery_unavailable"));
+  if (Notification.isSupported()) reminderScheduler.start();
   learning.configureSemantic(semanticModel);
-  service = new DesktopService(store, (provider) => withModelBudget(provider === "demo" ? new DesktopDemoClient() : provider === "deepseek-api"
-    ? new DeepSeekClient(secrets, (url, options) => net.fetch(url, options), process.env, deepseekModel) : pi, contextBudget), learning);
+  service = new DesktopService(store, (provider) => provider === "demo" ? withModelBudget(new DesktopDemoClient(), contextBudget) : provider === "deepseek-api"
+    ? createAgentModel("deepseek-api", { pi, secrets, fetcher: (url, options) => net.fetch(url, options), deepseekModel, contextBudget }) : createAgentModel("pi-codex", { pi, secrets, contextBudget }), learning);
   const events = new AgentEventCoalescer(event => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
   service.subscribe(event => events.push(event));
 }
@@ -215,10 +230,17 @@ else {
           if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
+            case "reminder-status":
+            case "reminder-save": {
+              learning.registry.get(command.topicId); const reminders = new ReminderStore(learning.paths);
+              if (command.type === "reminder-save") { if (command.enabled) await reminders.set(command.topicId, command.time); else await reminders.disable(command.topicId); }
+              data = await reminders.status(command.topicId) ?? null; break;
+            }
+
             case "diagnostics": {
               const sessions = await service.store.list();
               const recent = await Promise.all(sessions.slice(0, 20).map((session) => service.load(session.id)));
-              data = { version: app.getVersion(), performance: summarizePerformance(recent.flatMap((session) => session.messages).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-200)) };
+              data = { version: app.getVersion(), execution: executionSupport(), performance: summarizePerformance(recent.flatMap((session) => session.messages).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-200)) };
               break;
             }
             case "check-updates":
@@ -315,7 +337,7 @@ else {
               if (learningController) throw new Error("learning_busy");
               data = await service.reviseTask(command.sessionId, command.taskId, command.revision, command.goal); break;
             case "project-list":
-              learning.registry.get(command.topicId); data = { projects: learning.projects.list(command.topicId), selected: learning.projects.selected(command.topicId) }; break;
+              learning.registry.get(command.topicId); data = { execution: executionSupport(), projects: learning.projects.list(command.topicId), selected: learning.projects.selected(command.topicId) }; break;
             case "project-select":
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               learning.registry.get(command.topicId); learning.projects.select(command.topicId, command.projectId); data = null; break;
@@ -451,7 +473,7 @@ else {
             case "send":
               if (learningController) throw new Error("learning_busy");
               deepseekModel = (await service.store.settings()).deepseekModel;
-              data = await service.send(command);
+              data = await service.send(agentInput(command));
               break;
             case "fork":
               data = await service.fork(command.sessionId, command.messageId, command.edit);
@@ -460,7 +482,7 @@ else {
               data = await service.answerInteraction(command.sessionId, command.itemId, command.answer, command.scope);
               break;
             case "enqueue":
-              data = await service.enqueue(command, command.steer ?? false);
+              data = await service.enqueue(agentInput(command), command.steer ?? false);
               break;
             case "withdraw":
               data = await service.withdraw(command.sessionId, command.requestId);
@@ -601,6 +623,7 @@ else {
     if (process.platform !== "darwin") app.quit();
   });
   app.on("before-quit", (event) => {
+    reminderScheduler?.stop();
     if (quitting) return;
     if (!service?.activeSessionId && !learningController) { learning?.close(); return; }
     event.preventDefault();
@@ -608,4 +631,11 @@ else {
     service.stop(); learningController?.abort();
     void Promise.allSettled([service.idle(), learningIdle]).finally(() => { learning?.close(); app.quit(); });
   });
+}
+
+/** IPC envelopes are transport metadata, never part of the strict agent request. */
+function agentInput<T extends { type: "send" | "enqueue"; steer?: boolean }>(command: T): Omit<T, "type" | "steer"> {
+  const { type, steer, ...request } = command;
+  void type; void steer;
+  return request;
 }

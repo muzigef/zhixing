@@ -1,3 +1,4 @@
+import { MAX_INPUT_CHARACTERS } from "../../src/input-limits.js";
 import { restrictedStudy } from "../../src/outcome-contracts.js";
 import type { AccessSelection } from "../../src/agent-permissions.js";
 import { DeltaBatcher } from "./delta-batcher.js";
@@ -688,6 +689,7 @@ function App() {
             <div className="messages" aria-label="对话内容">
               <button className="compare-trigger" disabled={!!activeId} onClick={() => { if (session?.parent) void invoke<ChatSession>({ type: "load", sessionId: session.parent.sessionId }).then((parent) => setComparison([...new Map([...parent.messages, ...session.messages].map((item) => [item.id, item])).values()])).catch((problem) => setError(messageOf(problem))); else setComparison(session?.messages ?? []); }}>对比回答</button>
               {comparison && <CompareAnswers messages={comparison} onClose={() => setComparison(null)} />}
+              {session && session.messages.length >= 19_000 && <p role="status">已保存 {session.messages.length} 条消息，接近本段对话的 20,000 条上限。请导出留存，并在新对话中继续。</p>}
               {session && session.messages.length > visibleMessages && <button onClick={() => { const node = scroll.current; if (!node) return; const height = node.scrollHeight; const top = node.scrollTop; stickToBottom.current = false; setAtBottom(false); setVisibleMessages(count => count + 40); requestAnimationFrame(() => { node.scrollTop = top + node.scrollHeight - height; }); }}>加载更早的消息（还剩 {session.messages.length - visibleMessages} 条）</button>}
               {session?.messages.slice(-visibleMessages).map((message, index) => (
                 <Message
@@ -782,7 +784,7 @@ function App() {
               ref={input}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              maxLength={20_000}
+              maxLength={MAX_INPUT_CHARACTERS}
               rows={2}
               aria-label="发送给知行"
               onPaste={event => { if ([...event.clipboardData.files].some(file => file.type.startsWith("image/"))) { event.preventDefault(); setError("当前模型通道只接收文字，暂不支持图片输入。请粘贴需要讨论的文字。"); } }}

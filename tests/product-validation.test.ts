@@ -36,7 +36,7 @@ it.each(["zhixing", "direct"] as const)("runs the full-product %s protocol witho
 });
 it("fingerprints renderer, worker, dependencies, skills and evaluation data", async () => {
   const { root } = await fixture(); const repo = path.join(root, "synthetic-source");
-  const files = ["src/main.ts", "desktop/renderer/index.tsx", "desktop/electron/pi-model-worker.ts", "desktop/package-lock.json", "package-lock.json", "skills/shared/demo/SKILL.md", "docs/agent-quality-cases.json"];
+  const files = ["src/main.ts", "desktop/renderer/index.tsx", "src/pi-model-worker.ts", "desktop/package-lock.json", "package-lock.json", "skills/shared/demo/SKILL.md", "docs/agent-quality-cases.json"];
   for (const name of files) { await fs.mkdir(path.dirname(path.join(repo, name)), { recursive: true }); await fs.writeFile(path.join(repo, name), "synthetic source"); }
   let previous = await sourceProvenance(repo);
   for (const name of files) { await fs.appendFile(path.join(repo, name), " changed"); const next = await sourceProvenance(repo); expect(next.codeHash, name).not.toBe(previous.codeHash); previous = next; }

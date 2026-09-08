@@ -6,7 +6,6 @@ import { LearningApplication } from "../src/learning-application.js";
 import { AgentService } from "../src/agent-service.js";
 import { AgentSessionStore } from "../src/agent-session-store.js";
 import { McpSettings } from "../src/mcp-tools.js";
-import { providerRuntime } from "../src/assistant-runtime.js";
 import type { ContinuableModelClient, ModelClient, ToolResultMessage } from "../src/model.js";
 
 const cleanup: (() => Promise<void>)[] = [];
@@ -61,12 +60,12 @@ it("preserves actionable schema errors through the actual agent dispatcher witho
   expect(result?.result).toMatchObject({ ok: false, errorCode: "tool_input_invalid", issues: [{ path: "query", code: "invalid_type" }] });
   expect(JSON.stringify(result?.result)).not.toContain("42");
 });
-it("projects custom provider timing and usage into the shared session with real turn counts", async () => {
+it("projects shared provider timing and usage into the shared session with real turn counts", async () => {
   const timing = { transport: "sse" as const, startupMs: 1, requestMs: 2, selectionMs: 0, totalMs: 3, processTailMs: 0 };
   const usage = { inputTokens: 10, outputTokens: 3, model: "synthetic" }; let auditedTurns = 0;
   const client: ModelClient = { async *stream() { yield { type: "timing", timing }; yield { type: "usage", usage }; yield { type: "text_delta", text: "合成回答。" }; yield { type: "done" }; } };
   const { service, session, request } = await fixture(client);
-  await service.invoke(request, { runtime: providerRuntime("mock", client), request: { role: "tutor", providerId: "mock", prompt: "synthetic", containsUserMaterials: false, confirmed: false, onAudit: value => { auditedTurns = value.turns; } } });
+  await service.invoke(request, { onAudit: value => { auditedTurns = value.turns; } });
   const saved = (await service.load(session.id)).messages.at(-1)!;
   expect(saved.usage).toMatchObject({ inputTokens: 10, outputTokens: 3 }); expect(saved.model).toBe("synthetic");
   expect(saved.modelTimings).toEqual([timing]); expect(saved.timings?.turns).toBe(1); expect(auditedTurns).toBe(1);

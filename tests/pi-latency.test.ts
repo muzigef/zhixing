@@ -60,17 +60,17 @@ it("runs the real worker against a fake public SDK with SSE, phase events, and n
   const sdk = path.join(root, "sdk.mjs");
   await fs.writeFile(sdk, `export class ModelRuntime {
     static async create(){ return new ModelRuntime(); }
-    getModel(){return {provider:'openai-codex',id:'fixture',api:'openai-codex-responses'};}
+    getModel(){return {provider:'openai-codex',id:'fixture',api:'openai-codex-responses',contextWindow:48000,maxTokens:16384,reasoning:true};}
     hasConfiguredAuth(){return true;}
     async *streamSimple(model,context,options){
       if(options.transport!=='sse'||options.reasoning!=='medium') throw Error('wrong options');
       yield {type:'start'}; yield {type:'thinking_delta',delta:'private thought'};
       yield {type:'text_delta',delta:'4'};
-      yield {type:'done',reason:'stop',message:{provider:model.provider,model:model.id,role:'assistant',content:[{type:'text',text:'4'}],usage:{input:1,output:1}}};
+      yield {type:'done',reason:'stop',message:{provider:model.provider,model:model.id,role:'assistant',content:[{type:'text',text:'4'}],usage:{input:1,output:1,cacheRead:0,cacheWrite:0}}};
     }
   }`);
   const rootDir = process.cwd(); let output = "";
-  for await (const event of runPiProcess({ command: process.execPath, args: ["--import", "tsx", path.join(rootDir, "desktop/electron/pi-model-worker.ts"), sdk], cwd: rootDir, environment: { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" }, input: JSON.stringify({ version: 1, selection: { provider: "openai-codex", model: "fixture", thinking: "medium" }, prompt: "问", transport: "sse" }) }, AbortSignal.timeout(5000))) if (event.type === "stdout") output += event.data.toString();
+  for await (const event of runPiProcess({ command: process.execPath, args: ["--import", "tsx", path.join(rootDir, "src/pi-model-worker.ts"), sdk], cwd: rootDir, environment: { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" }, input: JSON.stringify({ version: 1, selection: { provider: "openai-codex", model: "fixture", thinking: "medium" }, prompt: "问", transport: "sse" }) }, AbortSignal.timeout(5000))) if (event.type === "stdout") output += event.data.toString();
   const events = output.trim().split("\n").map((line) => JSON.parse(line));
   expect(events.at(-1)).toEqual({ type: "done" });
   expect(events.some((event) => event.type === "timing" && event.timing.transport === "sse")).toBe(true);
@@ -112,18 +112,18 @@ it("reconstructs native Pi assistant/toolResult messages from canonical history 
   const { root } = await fixture(); const sdk = path.join(root, "restored-sdk.mjs");
   await fs.writeFile(sdk, `export class ModelRuntime {
     static async create(){return new ModelRuntime();}
-    getModel(){return {provider:'openai-codex',id:'fixture',api:'openai-codex-responses'};}
+    getModel(){return {provider:'openai-codex',id:'fixture',api:'openai-codex-responses',contextWindow:48000,maxTokens:16384,reasoning:true};}
     hasConfiguredAuth(){return true;}
     async *streamSimple(model, context){
       const [user,assistant,result,feedback] = context.messages;
       if(user.role!=='user'||assistant.role!=='assistant'||assistant.content[0].type!=='toolCall'||assistant.content[0].id!=='original-call'||result.role!=='toolResult'||result.toolCallId!=='original-call'||!result.isError||feedback.role!=='user'||feedback.content!=='继续其他部分') throw Error('invalid native transcript');
       yield {type:'text_delta',delta:'恢复成功'};
-      yield {type:'done',reason:'stop',message:{role:'assistant',provider:model.provider,model:model.id,content:[{type:'text',text:'恢复成功'}],usage:{input:1,output:1}}};
+      yield {type:'done',reason:'stop',message:{role:'assistant',provider:model.provider,model:model.id,content:[{type:'text',text:'恢复成功'}],usage:{input:1,output:1,cacheRead:0,cacheWrite:0}}};
     }
   }`);
   const request = { version: 1, selection: { provider: "openai-codex", model: "fixture", thinking: "off" }, prompt: "原始任务", options: { history: [{ events: [{ type: "tool_call", tool: "save_artifact", input: { value: 1 }, callId: "original-call" }], toolResults: [{ tool: "save_artifact", callId: "original-call", result: { ok: false, errorCode: "tool_policy_denied" } }], feedback: "继续其他部分" }] } };
   let output = "";
-  for await (const event of runPiProcess({ command: process.execPath, args: ["--import", "tsx", path.join(process.cwd(), "desktop/electron/pi-model-worker.ts"), sdk], cwd: process.cwd(), environment: { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" }, input: JSON.stringify(request) }, AbortSignal.timeout(5000))) if (event.type === "stdout") output += event.data.toString();
+  for await (const event of runPiProcess({ command: process.execPath, args: ["--import", "tsx", path.join(process.cwd(), "src/pi-model-worker.ts"), sdk], cwd: process.cwd(), environment: { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" }, input: JSON.stringify(request) }, AbortSignal.timeout(5000))) if (event.type === "stdout") output += event.data.toString();
   const events = output.trim().split("\n").map(line => JSON.parse(line));
   expect(events.at(-1)).toEqual({ type: "done" }); expect(events.some(event => event.text === "恢复成功")).toBe(true);
 });

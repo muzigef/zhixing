@@ -12,6 +12,8 @@ it("backs up workspace, SQLite, artifacts and conversations without credentials,
   try {
     await app.handle("开始第 1 天", "agent-development"); await app.submitEvidence("agent-development", "D01", "reflection", "这是一份需要完整恢复的学习复盘。");
     const store = new DesktopStore(path.join(root, "desktop")); const session = await store.create(); session.topicId = "agent-development"; session.workspaceId = app.summary().id; session.executionAllowed = true; await store.save(session);
+    session.messages = Array.from({ length: 600 }, (_, index) => ({ id: crypto.randomUUID(), role: "user", status: "completed", text: `需要恢复的分段原文 ${index}`, createdAt: session.createdAt }));
+    session.teaching = { topicId: "agent-development", dayCard: "独立会话学习卡", stage: "practice", quizRound: 1, currentExercise: "合成问题", transcript: [], learnerAttempts: [], updatedAt: session.updatedAt };
     const trial = app.outcomes.start("agent-development", "direct");
     app.outcomes.submit("agent-development", trial.id, "pre", { answers: [-1, -1, -1], explanation: "尚未理解，需要继续学习。", assistance: "independent" });
     app.outcomes.attachSession("agent-development", trial.id, session.id);
@@ -30,6 +32,7 @@ it("backs up workspace, SQLite, artifacts and conversations without credentials,
       expect(restoredTrial.sessionId).not.toBe(session.id);
       const resumed = await new DesktopService(store, () => new DesktopDemoClient(), copy).openOutcomeLesson("agent-development", trial.id);
       expect(resumed.id).toBe(restoredTrial.sessionId); expect(resumed.workspaceId).toBe(copy.summary().id);
+      expect(resumed.messages).toEqual(session.messages); expect(resumed.teaching).toEqual(session.teaching);
     } finally { copy.close(); }
     expect((await store.list()).length).toBe(2); expect((await store.load(session.id)).executionAllowed).toBe(true);
     await fs.appendFile(path.join(backup, manifest.files[0]!.path), "tampered");
@@ -56,10 +59,13 @@ it("includes CLI execution sessions and restores pending approvals with grants c
     await cli.save(source);
     const journal = new AgentExecutionStore(app.database, { taskId, sessionId: source.id, topicId: source.topicId }); const release = journal.claim();
     journal.save({ version: 1, status: "waiting", prompt: "合成备份任务", containsMaterials: true, history: [], decisions: { [callId]: { answer: "allow", scope: "once" } }, pending: { events: [{ type: "tool_call", tool: "save_artifact", callId, input: {} }], toolResults: [], phase: "waiting", next: 0 } }, "fixture"); release();
+    const releaseTeaching = AgentExecutionStore.claimTeaching(app.database, "agent-development");
     const backup = await createWorkspaceBackup(app, desktop, path.join(root, "exports"), "0.4.1", new AbortController().signal);
+    releaseTeaching();
     const restored = await restoreWorkspaceBackup(backup, path.join(root, "copies"), desktop, new AbortController().signal);
     const copy = await LearningApplication.open(restored.workspace, process.cwd());
     try {
+      const releaseRestored = AgentExecutionStore.claimTeaching(copy.database, "agent-development"); releaseRestored();
       const session = await new DesktopStore(path.join(restored.workspace, "zhixing/agent")).load(source.id);
       expect(session.executionAllowed).toBe(false); expect(session.contextAllowed).toBe(false); expect(session.permissions).toEqual({ version: 1, materials: false }); expect(session.writeGrants).toEqual([]); expect(session.workspaceId).toBe(copy.summary().id);
       expect(session.messages[0]?.items?.[0]).toMatchObject({ status: "pending" });

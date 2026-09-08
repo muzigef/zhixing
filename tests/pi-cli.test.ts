@@ -1,3 +1,5 @@
+import { pathToFileURL } from "node:url";
+import { resolvePiSdk } from "../src/pi-sdk.js";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -13,27 +15,31 @@ async function setup(mode = "normal") {
   await fs.mkdir(bin); await fs.mkdir(agent);
   await fs.writeFile(path.join(agent, "settings.json"), JSON.stringify({ defaultProvider: "openai-codex", defaultModel: "fixture-codex", defaultThinkingLevel: "low" }));
   const requests = path.join(root, "requests.json");
-  await fs.writeFile(path.join(bin, "pi"), `#!/usr/bin/env node
-const fs = require('node:fs');
-const argv = process.argv.slice(2); let input = '';
-process.stdin.setEncoding('utf8'); process.stdin.on('data', chunk => input += chunk);
-process.stdin.on('end', () => {
-  let requests = []; try { requests = JSON.parse(fs.readFileSync(${JSON.stringify(requests)}, 'utf8')); } catch {}
-  requests.push({argv, input}); fs.writeFileSync(${JSON.stringify(requests)}, JSON.stringify(requests));
-  const text = process.env.FIXTURE_PI_MODE === 'stall' && requests.length === 1 ? '这是没有换行的部分解释' : 'Pi 模型回答：查询向量表示当前想找的信息。';
-  const emit = event => process.stdout.write(JSON.stringify(event) + '\\n');
-  emit({type:'message_update', assistantMessageEvent:{type:'text_delta',delta:text}});
-  if (process.env.FIXTURE_PI_MODE === 'stall' && requests.length === 1) { setInterval(() => {}, 1000); return; }
-  process.stderr.write('fixture-private-error-detail');
-  emit({type:'message_end', message:{role:'assistant',provider:'openai-codex',model:'fixture-codex',content:[{type:'text',text}],stopReason:process.env.FIXTURE_PI_MODE === 'error' ? 'error' : 'stop', errorMessage:'fixture-private-error-detail'}});
-  process.stdout.write(JSON.stringify({type:'agent_end', messages:[]}));
-});
-`, { mode: 0o755 });
-  const env = { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1", PI_CODING_AGENT_DIR: agent, PATH: `${bin}${path.delimiter}${process.env.PATH}`, FIXTURE_PI_MODE: mode, NO_COLOR: "1" };
+  const sdk = path.join(root, "sdk.mjs");
+  await fs.writeFile(sdk, `import fs from 'node:fs';
+export class ModelRuntime {
+  static async create(){return new ModelRuntime();}
+  getModel(){return {provider:'openai-codex',id:'fixture-codex',api:'openai-codex-responses',contextWindow:48000,maxTokens:16384,reasoning:true};}
+  hasConfiguredAuth(){return true;}
+  async *streamSimple(model, context, options){
+    let requests=[]; try {requests=JSON.parse(fs.readFileSync(${JSON.stringify(requests)},'utf8'));} catch {}
+    requests.push({input:JSON.stringify(context),options:{reasoning:options.reasoning,maxTokens:options.maxTokens,transport:options.transport},tools:context.tools?.map(tool=>tool.name)});
+    fs.writeFileSync(${JSON.stringify(requests)},JSON.stringify(requests));
+    const text=process.env.FIXTURE_PI_MODE==='stall'&&requests.length===1?'这是没有换行的部分解释':'Pi 模型回答：查询向量表示当前想找的信息。';
+    yield {type:'text_delta',delta:text};
+    if(process.env.FIXTURE_PI_MODE==='stall'&&requests.length===1){setInterval(()=>{},1000);await new Promise(()=>{});}
+    if(process.env.FIXTURE_PI_MODE==='error') throw Error('fixture-private-error-detail');
+    yield {type:'done',reason:'stop',message:{role:'assistant',provider:model.provider,model:model.id,content:[{type:'text',text}],usage:{input:1,output:1,cacheRead:0,cacheWrite:0}}};
+  }
+}`);
+  const hook = path.join(root, "module-hook.mjs");
+  await fs.writeFile(hook, `import {registerHooks} from 'node:module';
+registerHooks({resolve(specifier,context,next){return specifier===${JSON.stringify(pathToFileURL(await resolvePiSdk(process.cwd())).href)}?{url:${JSON.stringify(pathToFileURL(sdk).href)},shortCircuit:true}:next(specifier,context);}});`);
+  const env = { ...process.env, NODE_OPTIONS: `--import ${pathToFileURL(hook).href}`, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1", PI_CODING_AGENT_DIR: agent, FIXTURE_PI_MODE: mode, NO_COLOR: "1" };
   const args = ["--import", "tsx", "src/cli.ts"];
-  return { root, env, args, requests: async () => JSON.parse(await fs.readFile(requests, "utf8")) as Array<{ argv: string[]; input: string }>, invoke: (command: string) => exec(process.execPath, [...args, command], { cwd: process.cwd(), env, timeout: 4_000 }) };
+  return { root, env, args, requests: async () => JSON.parse(await fs.readFile(requests, "utf8")) as Array<{ input: string; options: { reasoning: string; maxTokens: number; transport: string }; tools: string[] }>, invoke: (command: string) => exec(process.execPath, [...args, command], { cwd: process.cwd(), env, timeout: 4_000 }) };
 }
-describe("Pi provider through the actual safe launcher and CLI", () => {
+describe("Pi provider through the shared model worker and actual CLI", () => {
   it("requires confirmation, persists the route and sends a natural question using Pi preferences", async () => {
     const fixture = await setup();
     expect((await fixture.invoke("模型切换 tutor pi-codex")).stdout).toContain("确认");
@@ -42,8 +48,8 @@ describe("Pi provider through the actual safe launcher and CLI", () => {
     expect(result.stdout.trim()).toBe("Pi 模型回答：查询向量表示当前想找的信息。");
     expect(result.stderr).not.toContain("fixture-private-error-detail");
     const [request] = await fixture.requests();
-    expect(request?.argv).toEqual(expect.arrayContaining(["--approve", "--no-extensions", "-e", "./.pi/extensions/zhixing-guard.ts", "--no-session", "--provider", "openai-codex", "--model", "fixture-codex", "--thinking", "low"]));
-    expect(request?.argv[(request?.argv.lastIndexOf("--tools") ?? -1) + 1]).toBe("");
+    expect(request?.options).toMatchObject({ reasoning: "low", maxTokens: 16384, transport: "sse" });
+    expect(request?.tools).toEqual(["ask_user", "read_execution_history"]);
     expect(request?.input).toContain("解释查询向量");
     const routes = JSON.parse(await fs.readFile(path.join(fixture.root, "zhixing", "settings", "model-routing.local.json"), "utf8"));
     expect(routes.routes).toEqual({ tutor: "pi-codex", reviewer: "mock", lab: "mock" });

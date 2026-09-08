@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { sandboxProfile } from "./sandbox-profile.js";
 
 export type SandboxResult = { status: "completed" | "timed_out" | "unavailable" | "cancelled"; stdout: string; stderr: string; exitCode: number | null };
 
@@ -14,7 +15,7 @@ export class LocalSandbox {
     options.signal?.throwIfAborted();
     if (process.platform !== "darwin") return { status: "unavailable", stdout: "", stderr: "本平台尚无已验证的代码沙箱。", exitCode: null };
     const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-sandbox-")));
-    const profile = `(version 1) (deny default) (allow process-exec (literal "${quote(command)}")) (allow sysctl-read) (allow file-read-metadata) (allow mach-lookup (global-name "com.apple.cfprefsd.agent")) (allow file-read* (literal "/") (literal "${quote(command)}") (subpath "/System") (subpath "/usr/lib") (literal "/dev/null") (literal "/dev/urandom") (literal "/dev/random") ${options.runtimeReadPath ? `(subpath "${quote(options.runtimeReadPath)}")` : ""} (subpath "${quote(directory)}")) (allow file-write* (subpath "${quote(directory)}")) (deny network*)`;
+    const profile = sandboxProfile(command, directory, options.runtimeReadPath ? [{ path: options.runtimeReadPath, directory: true }] : []);
     try {
       for (const [name, content] of Object.entries(options.files ?? {})) {
         if (!/^[a-zA-Z0-9._/-]+$/.test(name) || path.isAbsolute(name) || name.split("/").some(part => !part || part === "." || part === "..") || name.split("/").length > 5) throw new Error("sandbox_file_denied");
@@ -37,5 +38,3 @@ export class LocalSandbox {
     } finally { await fs.rm(directory, { recursive: true, force: true }); }
   }
 }
-
-function quote(value: string): string { return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"'); }

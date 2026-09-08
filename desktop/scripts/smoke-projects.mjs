@@ -22,20 +22,25 @@ try {
   await page.getByRole("button", { name: "预览文件更改", exact: true }).click();
   assert.ok((await page.locator(".project-panel .interaction-card pre").innerText()).includes("+export const solve"));
   await page.getByRole("button", { name: "保存本次文件更改", exact: true }).click();
-  await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
-  await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
-  await page.locator(".project-panel").getByText(process.platform === "darwin" ? /completed · 退出码 1/ : /unavailable · 退出码 无/).waitFor();
+  if (process.platform === "darwin") {
+    await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
+    await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
+    await page.locator(".project-panel").getByText(/completed · 退出码 1/).waitFor();
+  } else {
+    assert.equal(await page.getByRole("button", { name: "运行项目测试", exact: true }).isDisabled(), true);
+    await page.locator(".project-panel").getByText(/暂无已验证的系统沙箱/).waitFor();
+  }
   assert.equal(await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).isDisabled(), true);
   await page.getByRole("textbox", { name: "实践文件内容", exact: true }).fill("export const solve = value => value + 0;\n");
   await page.getByRole("button", { name: "预览文件更改", exact: true }).click();
   await page.getByRole("button", { name: "保存本次文件更改", exact: true }).click();
-  await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
   if (process.platform === "darwin") {
+    await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
     await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
     await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).click();
     await page.getByText("Git 检查点历史 · 2", { exact: true }).waitFor();
   } else {
-    await page.locator(".project-panel").getByText(/unavailable · 退出码 无/).waitFor();
+    assert.equal(await page.getByRole("button", { name: "运行项目测试", exact: true }).isDisabled(), true);
     assert.equal(await page.getByRole("button", { name: "保存 Git 检查点", exact: true }).isDisabled(), true);
   }
   await page.locator(".project-snapshots > summary").click();
@@ -60,8 +65,8 @@ try {
   await page.getByRole("textbox", { name: "实践项目名称", exact: true }).fill("Python 合成实践");
   await page.getByRole("button", { name: "创建独立项目", exact: true }).click();
   await page.getByRole("button", { name: "test_example.py", exact: true }).waitFor();
-  await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
   if (process.platform === "darwin") {
+    await page.getByRole("button", { name: "运行项目测试", exact: true }).click();
     await page.locator(".project-panel").getByText(/当前项目测试通过/).waitFor();
     await page.locator(".project-panel").getByText("最近实际测试结果", { exact: true }).click();
     assert.match(await page.locator(".project-panel details").filter({ hasText: "最近实际测试结果" }).innerText(), /Ran 1 test/);

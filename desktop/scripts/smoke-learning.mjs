@@ -51,6 +51,13 @@ try {
   await page.locator(".learning-observation[data-revision=\"2\"] summary").first().click();
   await page.getByRole("button", { name: "撤回学习记录", exact: true }).click();
   await page.locator(".learning-observation").getByText(/已撤回/).first().waitFor();
+  await page.locator(".reminder-panel > summary").click();
+  const reminderTime = new Date(Date.now() + 30 * 60_000);
+  await page.getByLabel("复习提醒时间", { exact: true }).fill(`${String(reminderTime.getHours()).padStart(2, "0")}:${String(reminderTime.getMinutes()).padStart(2, "0")}`);
+  await page.getByRole("button", { name: "保存复习提醒", exact: true }).click();
+  await page.locator(".reminder-panel").getByText(/每天 .* 提醒一次/).waitFor();
+  await page.getByRole("button", { name: "关闭复习提醒", exact: true }).click();
+  await page.locator(".reminder-panel").getByText("复习提醒已关闭", { exact: true }).waitFor();
   await page.locator(".mcp-panel > summary").click();
   const mcpConfig = [{ id: "ui-fixture", enabled: true, consent: "local-process-and-topic-inputs", command: process.execPath, args: [path.join(root, "../tests/fixtures/mcp-server.mjs"), "modern"], tools: [{ name: "echo", risk: "read", replaySafe: true }] }];
   await page.getByRole("textbox", { name: "MCP 连接配置", exact: true }).fill(JSON.stringify(mcpConfig));

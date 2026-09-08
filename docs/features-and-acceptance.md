@@ -19,7 +19,7 @@
 | 全局控制层 | 每轮输入先归为确定性命令、计划确认、教学输入或自然输入；随后才进入对应状态机和内容生成。 | `tests/interaction-protocol.test.ts` |
 | 全局对话策略 | 命令、模型计划和教学分类共用授权/确认/用户原文证据策略；模型输出只能作为提议，不能单独触发状态写入或批改。 | `tests/interaction-protocol.test.ts`、`tests/teaching-dialogue.test.ts` |
 | 运行账本 | 经过 RunManager 的前台业务操作有脱敏审计和 SQLite 运行/步骤账本；帮助、即时状态等控制命令不逐一记入账本。遗留运行启动时标记为中断，不自动重放写操作。 | `tests/run-manager.test.ts`、`tests/workflow-ledger.test.ts` |
-| 工具执行契约 | DeepSeek 的普通自由问答与显式学习助手可多轮调用当前主题进度、资料目录、按次授权正文检索；完整维护 call ID 与工具历史。ToolHarness 校验 schema、主题、风险、截止时间与结果上限；旧 CLI 教学与 Pi/Codex CLI 保留文本协议；桌面 Pi SDK 与 DeepSeek 支持原生工具续接。 | `tests/agent-continuation.test.ts`、`tests/learning-agent-cli.test.ts`、`tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
+| 工具执行契约 | Pi SDK / DeepSeek 的普通自由问答与显式学习助手可多轮调用本会话已授权的主题进度、资料目录和正文检索；完整维护 call ID 与工具历史。ToolHarness 校验 schema、主题、风险、截止时间与结果上限；两个入口均由共享 AgentService 组装上下文，Pi SDK 与 DeepSeek 支持工具续接；codex-cli 是文本兼容通道。 | `tests/agent-continuation.test.ts`、`tests/learning-agent-cli.test.ts`、`tests/model-invocation.test.ts`、`tests/tool-harness.test.ts` |
 | 数据生命周期 | 可确认写入记忆、按 ID 忘记当前主题记忆、预览/确认删除资料、手动备份与确认恢复数据库。CLI 没有主题删除、自动每日备份、学习数据整体导出或迁移前自动备份。 | `tests/backup-service.test.ts`、`tests/cli-workflow.test.ts` |
 | 连续对话 | 每主题保存最近 6 轮及独立初始目标；新建/恢复会话、继续/重试、生成时排队输入、即时状态/停止/调整、每主题回答风格及终端 Markdown。 | `tests/conversation-session.test.ts`、`tests/repl-controller.test.ts`、`tests/repl-input.test.ts`、`tests/terminal-markdown.test.ts` |
 
@@ -36,11 +36,11 @@
 | 任务与上下文 | 排队/纠正/停止/撤回/重启后手动恢复；持久目标/约束、可选摘要、分模型耗时 | `tests/desktop-tasks.test.ts`、`tests/desktop-diagnostics.test.ts` |
 | 产物验收 | 实际字节与哈希检查，区分用户报告和本地 JS 测试，来源写入日志 | `tests/evidence-application.test.ts`、学习 UI smoke |
 
-每会话最多 1,000 条消息；目标和历史片段约 40,000 字符预算、最多 24 条历史；输入/约束/摘要/授权学习上下文另计。完整限制和持久化契约见 [数据契约](data-and-quality-spec.md)。桌面聊天与草稿并非应用级加密。
+每会话最多 20,000 条消息、完整原文合计 12 MB，较早原文按 250 条分段保存；目标和历史片段约 40,000 字符预算、最多 24 条历史；输入/约束/摘要/授权学习上下文另计。完整限制和持久化契约见 [数据契约](data-and-quality-spec.md)。桌面聊天与草稿并非应用级加密。
 
 ## Provider 数据边界
 
-CLI 真实 Provider 使用当前主题的必要信息：资料问答发送检索证据；学习建议发送画像与资料名称；教学发送当天学习卡及受限主题上下文；自然交互发送当前会话文本。桌面发送当前请求、目标、约束与受限历史；会话授权后检索所连接工作区的当前主题资料。应用不将凭据放入模型 prompt，也不发送审计原文或其他主题资料。详见 [配置](CONFIGURATION.md)。
+CLI 与桌面会话的外发和记忆规则统一，见 [记忆设计](agent-memory.md)。模型仅在会话授权后获得本地学习快照；凭据、审计原文和其他主题资料不进入模型输入。
 
 ## 验收规则
 

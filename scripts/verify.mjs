@@ -3,6 +3,13 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const root = process.cwd();
+// Script entry points are outside the TypeScript project; catch parse failures before slow UI runs.
+for (const directory of ["scripts", "desktop/scripts"]) {
+  for (const file of collect(join(root, directory)).filter(file => file.endsWith(".mjs"))) {
+    const result = spawnSync(process.execPath, ["--check", file], { cwd: root, stdio: "inherit" });
+    if (result.status !== 0) process.exit(result.status ?? 1);
+  }
+}
 const commands = [
   ["node", ["scripts/check-lockfiles.mjs"]],
   ["npm", ["run", "lint"]],
@@ -36,7 +43,7 @@ for (const file of files) {
 
 const git = spawnSync("git", ["diff", "--check"], { cwd: root, encoding: "utf8" });
 if (git.status !== 0 && git.status !== 129) {
-  process.stderr.write(git.stderr);
+  process.stderr.write(git.stdout + git.stderr);
   process.exit(git.status ?? 1);
 }
 console.log("verify passed: quality gates, sensitive scan, and diff whitespace check");

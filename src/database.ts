@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import type { MemoryInput, SearchResult, TopicId } from "./contracts.js";
 import { cosineSimilarity } from "./embedding.js";
 import { withSourceVersion } from "./source-version.js";
+import { expandQuery } from "./retrieval-query.js";
 interface RetrievalRow { chunkId: string; text: string; documentId: string; documentName: string; pageNumber: number | null; anchor: string | null; }
 function retrievalResult(topicId: string, row: RetrievalRow): SearchResult { return withSourceVersion({ text: row.text, score: 0, citation: { topicId, chunkId: row.chunkId, documentId: row.documentId, documentName: row.documentName, pageNumber: row.pageNumber, anchor: row.anchor } }); }
 
@@ -18,7 +19,7 @@ export class ZhixingDatabase {
     try {
       const hasVersions = this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").get();
       const version = hasVersions ? (this.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number }).version : 0;
-      if (version > 5) throw new Error("storage_version_unsupported");
+      if (version > 6) throw new Error("storage_version_unsupported");
     } catch (error) { this.db.close(); throw error; }
     this.db.pragma("foreign_keys = ON");
     this.db.pragma("journal_mode = WAL");
@@ -75,6 +76,7 @@ export class ZhixingDatabase {
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(3, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(4, new Date().toISOString());
     this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(5, new Date().toISOString());
+    this.db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(6, new Date().toISOString());
   }
 
   addDocument(id: string, topicId: TopicId, sha256: string, name: string, mimeType: string, status = "indexed"): boolean {
@@ -159,7 +161,15 @@ export class ZhixingDatabase {
   }
 
   searchMemories(topicId: TopicId, query: string): Array<{ id: string; content: string; sourceRef: string }> {
-    return this.db.prepare("SELECT id, content, source_ref AS sourceRef FROM memories WHERE topic_id = ? AND deleted_at IS NULL AND content LIKE ? ORDER BY confirmed_at DESC LIMIT 10").all(topicId, `%${query}%`) as Array<{ id: string; content: string; sourceRef: string }>;
+    const normalized = query.trim().slice(0, 400);
+    const expanded = expandQuery(normalized);
+    const terms = normalized ? (expanded.length ? expanded : [normalized]) : [];
+    const patterns = terms.map(term => `%${term.replace(/[\\%_]/g, "\\$&")}%`);
+    const match = "content LIKE ? ESCAPE '\\'";
+    // Rank in SQL before limiting: unrelated recent records cannot evict older matches.
+    const filter = terms.length ? ` AND (${terms.map(() => match).join(" OR ")})` : "";
+    const rank = terms.length ? `${terms.map(() => `(CASE WHEN ${match} THEN 1 ELSE 0 END)`).join(" + ")} DESC, ` : "";
+    return this.db.prepare(`SELECT id, content, source_ref AS sourceRef FROM memories WHERE topic_id = ? AND deleted_at IS NULL${filter} ORDER BY ${rank}confirmed_at DESC, rowid DESC LIMIT 10`).all(topicId, ...patterns, ...patterns) as Array<{ id: string; content: string; sourceRef: string }>;
   }
 
   memoryCount(topicId: TopicId): number {
@@ -172,7 +182,7 @@ export class ZhixingDatabase {
   }
 
   searchAllMemories(query: string): Array<{ id: string; topicId: TopicId; content: string; sourceRef: string }> {
-    return this.db.prepare("SELECT id, topic_id AS topicId, content, source_ref AS sourceRef FROM memories WHERE deleted_at IS NULL AND content LIKE ? ORDER BY confirmed_at DESC LIMIT 20").all(`%${query}%`) as Array<{ id: string; topicId: TopicId; content: string; sourceRef: string }>;
+    return this.db.prepare("SELECT id, topic_id AS topicId, content, source_ref AS sourceRef FROM memories WHERE deleted_at IS NULL AND content LIKE ? ESCAPE '\\' ORDER BY confirmed_at DESC, rowid DESC LIMIT 20").all(`%${query.slice(0, 400).replace(/[\\%_]/g, "\\$&")}%`) as Array<{ id: string; topicId: TopicId; content: string; sourceRef: string }>;
   }
 
   deleteMemory(topicId: TopicId, id: string): boolean {
@@ -187,7 +197,7 @@ export function inspectDatabaseSnapshot(file: string): void {
   const db = new Database(file, { readonly: true, fileMustExist: true });
   try {
     const row = db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number };
-    if (row.version > 5) throw new Error("storage_version_unsupported");
+    if (row.version > 6) throw new Error("storage_version_unsupported");
     if (db.pragma("quick_check", { simple: true }) !== "ok") throw new Error("backup_integrity_failed");
   } finally { db.close(); }
 }

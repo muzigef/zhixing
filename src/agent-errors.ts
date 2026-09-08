@@ -87,6 +87,7 @@ export function publicError(error: unknown): string {
     outcome_lesson_incomplete: "请先在本次学习对话中完成至少一轮回答，并处理或撤回待发送消息。",
     outcome_limit: "这个主题已保存 50 次验证记录，暂不再创建新记录。",
   };
+  if (["platform_execution_unavailable", "mcp_isolation_unavailable"].includes(code)) return "本平台暂时没有可用的系统执行沙箱；请在受支持的 macOS 上运行，或继续使用对话与资料功能。";
   if (learningErrors[code]) return learningErrors[code];
   if (code.includes("deepseek-api 未配置"))
     return "尚未配置 DeepSeek API Key，请在设置中添加。";
@@ -109,6 +110,8 @@ export function publicError(error: unknown): string {
   if (code.includes("provider_incomplete")) return "回答未完整返回，请重试。";
   if (code.includes("timeout")) return "等待回答超时，请重试。";
   if (code.includes("run_active")) return "请先停止当前回答，再执行此操作。";
+  if (code.includes("session_segment_invalid")) return "历史分段缺失或校验失败，已停止读取以免使用不完整记录。原文件仍保留，可从完整备份恢复。";
+  if (code.includes("storage_limit")) return "这段对话已达到本地容量限制。请先导出原文，并在新对话中继续。";
   if (code.includes("session_full"))
     return "此会话已达到保存上限，请新建对话。";
   if (code.includes("ENOENT")) return "没有找到这段对话，请刷新会话列表。";

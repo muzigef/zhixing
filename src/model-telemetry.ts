@@ -11,6 +11,10 @@ export const workerTimingSchema = z.object({
   requestMs: milliseconds,
   firstEventMs: milliseconds.optional(),
   firstTextMs: milliseconds.optional(),
+  submittedReasoning: z.string().min(1).max(32).optional(),
+  outputTokenLimit: z.number().int().positive().max(16_384).optional(),
+  providerContextWindow: z.number().int().positive().max(100_000_000).optional(),
+  providerMaxOutput: z.number().int().positive().max(100_000_000).optional(),
 }).strict();
 /** Adapter adds selection, complete process lifetime and post-done cleanup. */
 export const modelTimingSchema = workerTimingSchema.extend({

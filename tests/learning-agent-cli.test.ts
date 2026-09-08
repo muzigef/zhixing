@@ -15,8 +15,8 @@ async function setup() {
   const settings = path.join(root, "zhixing", "settings"); await fs.mkdir(settings, { recursive: true });
   await fs.writeFile(path.join(settings, "model-routing.local.json"), JSON.stringify({ routes: { tutor: "deepseek-api", reviewer: "mock", lab: "mock" } }));
   const database = new ZhixingDatabase(path.join(root, "zhixing", "db", "zhixing.sqlite"));
-  database.addDocument("fixture-doc", "rag", "fixture-hash", "notes.md", "text/markdown", "indexed");
-  database.addChunk("fixture-chunk", "rag", "fixture-doc", "RAG fixture evidence for citation.", null, "intro", "chunk-hash");
+  database.addDocument("11111111-1111-4111-8111-111111111111", "rag", "fixture-hash", "notes.md", "text/markdown", "indexed");
+  database.addChunk("22222222-2222-4222-8222-222222222222", "rag", "11111111-1111-4111-8111-111111111111", "RAG fixture evidence for citation.", null, "intro", "chunk-hash");
   database.close();
   const fixture = path.join(root, "provider-fixture.mjs");
   const requestsFile = path.join(root, "requests.json");
@@ -59,7 +59,7 @@ describe("learning assistant CLI end to end with no external calls", () => {
     await expect(fixture.invoke("学习助手 解释 RAG")).resolves.toMatchObject({ stdout: expect.stringContaining("Material search needs consent") });
     const requests = await fs.readFile(fixture.requestsFile, "utf8");
     expect(requests).not.toContain("RAG fixture evidence");
-    expect(JSON.parse(requests)[0].tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual(["learning_progress", "list_materials"]);
+    expect(JSON.parse(requests)[0].tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual(["ask_user", "read_execution_history"]);
   });
   it("uses the same controlled tools from natural conversation without an assistant prefix", async () => {
     const fixture = await setup();
@@ -75,7 +75,7 @@ describe("learning assistant CLI end to end with no external calls", () => {
     await expect(fixture.invoke("结合资料解释 RAG")).resolves.toMatchObject({ stdout: expect.stringContaining("Material search needs consent") });
     const requests = await fs.readFile(fixture.requestsFile, "utf8");
     expect(requests).not.toContain("RAG fixture evidence");
-    expect(JSON.parse(requests)[0].tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual(["learning_progress", "list_materials"]);
+    expect(JSON.parse(requests)[0].tools.map((tool: { function: { name: string } }) => tool.function.name)).toEqual(["ask_user", "read_execution_history"]);
   });
 
 });

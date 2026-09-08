@@ -12,7 +12,6 @@ import { LearningOutcomeStore } from "../../src/learning-outcomes.js";
 import type { LearningApplication } from "../../src/learning-application.js";
 import { PathPolicy } from "../../src/paths.js";
 import { DesktopStore } from "./store.js";
-import { chatSchema } from "./contracts.js";
 
 const manifestSchema = z.object({ format: z.literal("zhixing-workspace-backup"), version: z.literal(1), appVersion: z.string().max(40), createdAt: z.string().datetime(), workspaceId: z.string().regex(/^[a-f0-9]{64}$/), files: z.array(z.object({ path: z.string().min(1).max(4096), bytes: z.number().int().nonnegative().max(2_000_000_000), sha256: z.string().regex(/^[a-f0-9]{64}$/) })).max(20000) });
 type Manifest = z.infer<typeof manifestSchema>;
@@ -101,7 +100,7 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
     const chats = [];
     for (const item of manifest.files.filter((item) => /^desktop\/conversations\/[0-9a-f-]{36}\.json$/i.test(item.path))) {
       if (item.bytes > 12_000_000) throw new Error("backup_size_limit");
-      chats.push(chatSchema.parse(JSON.parse(await fs.readFile(safe(directory, item.path), "utf8"))));
+      chats.push(await new DesktopStore(path.join(directory, "desktop")).load(path.basename(item.path, ".json")));
     }
     const cliStore = new DesktopStore(path.join(workspace, "zhixing", "agent"));
     const cliChats = await Promise.all((await cliStore.list()).map(item => cliStore.load(item.id)));

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 await fs.mkdir(path.join(root, "build/runtime"), { recursive: true });
-await build({ entryPoints: [path.join(root, "electron/pi-model-worker.ts")], outfile: path.join(root, "build/runtime/pi-model-worker.mjs"), bundle: true, platform: "node", target: "node24", format: "esm" });
+await build({ entryPoints: [path.join(root, "../src/pi-model-worker.ts")], outfile: path.join(root, "build/runtime/pi-model-worker.mjs"), bundle: true, platform: "node", target: "node24", format: "esm" });
 await build({
   entryPoints: [path.join(root, "electron/main.ts")],
   outfile: path.join(root, "build/main.mjs"),

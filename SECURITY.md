@@ -10,7 +10,7 @@
 ## 桌面与凭据
 
 - Electron renderer 启用 sandbox、context isolation 和 CSP，经本地 `zhixing://app` 协议加载；禁用任意导航、新窗口、远程图片及权限申请。preload 只暴露受控命令和事件，主进程检查来源、Zod 参数、UUID 与长度。
-- 桌面经 LearningApplication 接入学习工作区，只有本会话授权后才提供当前主题上下文与读取工具，写入另需本次或会话授权；不给模型开放任意 Shell 或文件工具。内附 Pi SDK 不提供原生工具执行器；认证由 Pi 自己处理。
+- 两个入口经同一 AgentService / LearningApplication 接入学习工作区，只有本会话授权后才提供当前主题上下文与读取工具，写入另需本次或会话授权；不给模型开放任意 Shell 或文件工具。内附 Pi SDK 不提供原生工具执行器；认证由 Pi 自己处理。
 - DeepSeek 的 CLI 配置存入 macOS Keychain。桌面新增配置通过主进程的异步 `safeStorage` 加密写入 `deepseek.credential`；没有桌面配置时可复用旧 macOS Keychain。状态查询不返回 Key，读取现有 Key 只供受控 API 调用使用。密码输入内容在提交时经过 renderer，但没有将已保存 Key 回读给页面的接口。
 - 聊天记录是应用目录内的明文 JSON，草稿保存在 renderer 的本地存储；API Key 加密不等于全部会话加密。Markdown 导出和复制会把所选内容写入用户指定文件或系统剪贴板。
 - 桌面会话原子保存，拒绝预先存在的会话目录/文件符号链接；CLI 路径策略检查信任根之下的路径组件。这些检查不等同于防御任意本机进程的 OS 隔离。
@@ -24,7 +24,7 @@ npm audit --omit=dev --audit-level=high
 npm audit --prefix desktop --omit=dev --audit-level=high
 ```
 
-两端 PDF.js 固定为 `6.2.108`，修复 [GHSA-hq66-cqwq-w95j](https://github.com/advisories/GHSA-hq66-cqwq-w95j)。内附 Pi 升级至 `0.85.0`，使用其修复后的生产依赖及 `package.json` 声明的 `bin.pi` 入口；不再依赖内部 `dist/cli.js`。旧安装包不会随源码更新而改变，重新发布时需使用修复后的锁文件构建并验收。审计结果是执行时的快照，见 [依赖修复 Evidence](docs/evidence/dependency-security.md)。
+两端 PDF.js 固定为 `6.2.108`，修复 [GHSA-hq66-cqwq-w95j](https://github.com/advisories/GHSA-hq66-cqwq-w95j)。内附 Pi 升级至 `0.85.0`，两端会话均使用公共 ModelRuntime 接口；旧安全启动器兼容用途仅使用 package.json 声明的 bin.pi。旧安装包不会随源码更新而改变，重新发布时需使用修复后的锁文件构建并验收。审计结果是执行时的快照，见 [依赖修复 Evidence](docs/evidence/dependency-security.md)。
 
 ## 已知边界
 
@@ -42,8 +42,18 @@ CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均
 
 ## 0.4 的应用工具与恢复边界
 
-桌面 Pi SDK worker 没有原生工具执行器；Pi 和 DeepSeek 产生的请求只由应用 ToolHarness 校验执行。学习资料、当前项目与外部 MCP 分别授权，写入权限绑定目标和操作；撤回会清除未执行的旧批准，未知副作用仍保留，写操作预览持久化后等待用户选择，模型不能授予自己权限。任务结果缓存会验证保存产物是否完整；实验仍使用 OS 隔离。
+两个入口共用的 Pi SDK worker 没有原生工具执行器；Pi 和 DeepSeek 产生的请求只由应用 ToolHarness 校验执行。学习资料、当前项目与外部 MCP 分别授权，写入权限绑定目标和操作；撤回会清除未执行的旧批准，未知副作用仍保留，写操作预览持久化后等待用户选择，模型不能授予自己权限。任务结果缓存会验证保存产物是否完整；实验仍使用 OS 隔离。
 
 全量备份由用户操作触发，仅包含应用拥有的学习数据、会话与偏好，不包含凭据；文件夹备份没有加密。恢复先验证清单/哈希/数据库版本，创建新工作区与新会话，保留原数据，关闭继承的授权及自动队列。路径检查不构成对恶意本地进程并发换路径的 OS 沙箱。可选语义索引只访问 loopback Ollama，不会自动下载模型或连接外部向量服务。详细限制见 [0.4 指南](docs/agent-0.4.md)。
 
 0.6 使用会话 v5 / SQLite 标记 5，旧二进制拒绝新格式；升级前可导出完整备份。项目修改前快照和日志恢复不会替代 OS 隔离；Python 仅在已验证的 macOS 环境运行标准库测试，禁止网络和工作目录外正文读取。完整产品效果试验不向模型自动暴露检查作答，构建来源不包含凭据/用户数据。详见 [0.6 指南](docs/agent-0.6.md)。
+
+0.7 将学习画像、显式记忆、教学检查点和资料统一纳入会话授权。选择 Provider 不是授权；CLI 的材料标志不自动授权项目或 MCP。严格请求 schema 拒绝前端 prompt/history/runtime 覆盖；同主题教学租约防止跨入口并发覆盖，备份恢复清除临时租约。会话当前版本为 7，数据库版本为 6，旧版本拒绝覆盖新语义。见 [统一记忆设计](docs/agent-memory.md)。
+
+## 0.8 本地访问收紧
+
+MCP 的 `trusted` 模式保留账户权限信任边界；`restricted` 模式在 macOS 通过系统沙箱仅开放指定可执行程序、显式读取路径及临时工作目录写入，并禁止网络。目录读取授权包含子目录，应避免授权整个主目录。其他平台不能静默回退；工具 read 声明不替代 OS 隔离。
+
+loopback 同步要求每个进程随机生成的临时访问码并限制 Host/Origin/GET、主题和 SSE 数量，拒绝无授权读取。它不防御已获得账户权限并能窃取本机进程信息的攻击者，也不提供远程身份管理。通知不包含聊天或作答内容；访问码和密钥不进入备份。
+
+v7 原文片段逐一校验来源和内容哈希，缺失/损坏拒绝恢复；首次保存旧格式留备份。摘要哈希只证明引用原文一致，不能证明模型内容正确。教学检查点按会话保存，不让同主题其他对话覆盖当前练习。

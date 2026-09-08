@@ -67,7 +67,7 @@ describe("P2 local capabilities", () => {
       const unknown = await request(`http://127.0.0.1:${port}/topics/not-real/progress`);
       expect(unknown.status).toBe(404);
       const received = await new Promise<string>((resolve, reject) => {
-        const subscription = http.get(`http://127.0.0.1:${port}/topics/rag/events`, (response) => {
+        const subscription = http.get(`http://127.0.0.1:${port}/topics/rag/events`, { headers: { authorization: server.authorizationHeader() } }, (response) => {
           response.setEncoding("utf8");
           response.on("data", (chunk: string) => { if (chunk.includes("event: progress")) { response.destroy(); resolve(chunk); } });
         });

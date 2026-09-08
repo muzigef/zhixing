@@ -11,7 +11,7 @@
 
 ## 数据与隐私
 
-- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 发送当前主题受限上下文并标记为用户材料，桌面发送有界会话上下文，并仅在本会话明确授权后加入当前主题的受控学习资料。
+- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 与桌面均通过共享 AgentService 发送有界会话上下文，仅在本会话明确授权后加入画像、记忆、教学状态及当前主题资料。
 - 只允许通过受控 Runtime 从 `inbox/<topicId>/` 显式导入资料；模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`。
 - 不得读取、写入、输出或提交 API Key、token、Cookie、认证文件、`.env`、`auth.json`、`.ssh` 或 `.codex` 内容。
 - 知行应用的真实 Provider 在已配置时默认可用；设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 后 adapter 必须拒绝调用。该开关不影响 Pi/Codex 开发会话。
@@ -38,6 +38,12 @@
 
 ## P12 已授权的桌面增强
 
-- 桌面 Pi 使用仅模型能力的公共 SDK worker，工具 schema 作为数据交给模型；工具执行统一经过应用 ToolHarness。CLI Pi 的空原生工具限制不变。
+- 桌面 Pi 使用仅模型能力的公共 SDK worker，工具 schema 作为数据交给模型；工具执行统一经过应用 ToolHarness。两个入口均不得开放 Pi 原生工具。
 - 当前范围包含交互卡/分支、持久任务、后台整理、可选 loopback 语义检索、独立课程检查、技能预览、完整备份及会话迁移。数据导出与恢复由产品内用户操作触发。
 - 本轮记录和已知外部验收见 `docs/evidence/agent-next.md`，不得将 mock 或 SDK 导入检查当作真实 Provider 成功。
+
+## 0.7 已授权的策略统一
+
+- 用户要求桌面与 CLI 的记忆和长对话策略完全相同；两端必须调用共享 AgentService，禁止前端构造最终 prompt、挑选模型历史或注入自定义 runtime。
+- 两端 Pi 共用 src/pi-model-worker.ts，SDK 只生成模型结果；业务模式通过共享请求契约表示。
+- 统一设计与验收见 docs/agent-memory.md 和 docs/evidence/unified-agent.md。

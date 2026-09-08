@@ -10,5 +10,5 @@ for (const script of ["prepare-runtime.mjs", "build.mjs"]) {
   const result = spawnSync(process.execPath, [path.join(root, "scripts", script)], { cwd: root, stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
-const result = spawnSync(process.execPath, [path.join(root, "node_modules/electron-builder/cli.js"), process.platform === "darwin" ? "--mac" : "--win", ...(process.platform === "darwin" ? ["dmg", "zip"] : ["nsis"]), `--${process.arch}`, "--publish", "never", ...(signing ? ["--config.forceCodeSigning=true"] : [])], { cwd: root, stdio: "inherit" });
+const result = spawnSync(process.execPath, [path.join(root, "node_modules/electron-builder/cli.js"), process.platform === "darwin" ? "--mac" : "--win", ...(process.platform === "darwin" ? ["dmg", "zip"] : ["nsis"]), `--${process.arch}`, "--publish", "never", ...(signing ? ["--config.forceCodeSigning=true", "--config.mac.hardenedRuntime=true", "--config.mac.notarize=true"] : [])], { cwd: root, stdio: "inherit" });
 process.exit(result.status ?? 1);

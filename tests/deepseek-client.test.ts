@@ -17,13 +17,13 @@ describe("DeepSeek client", () => {
     const source = 'data: {"choices":[{"delta":{"content":"你好"}}]}\r\n\r\ndata: [DONE]\r\n\r\n';
     const bytes = new TextEncoder().encode(source);
     const body = new ReadableStream<Uint8Array>({ start(controller) { for (const byte of bytes) controller.enqueue(Uint8Array.of(byte)); controller.close(); } });
-    await expect(collect(await fixture(body))).resolves.toEqual(["你好", "done"]);
+    await expect(collect(await fixture(body))).resolves.toEqual(["你好", "timing", "done"]);
   });
   it("stops and cancels the stream at DONE without waiting for EOF", async () => {
     const cancel = vi.fn();
     const body = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n')); }, cancel });
     const result = collect(await fixture(body));
-    await expect(Promise.race([result, new Promise((resolve) => setTimeout(() => resolve("hung"), 200))])).resolves.toEqual(["ok", "done"]);
+    await expect(Promise.race([result, new Promise((resolve) => setTimeout(() => resolve("hung"), 200))])).resolves.toEqual(["ok", "timing", "done"]);
     expect(cancel).toHaveBeenCalled();
   });
   it("rejects truncated streams instead of reporting successful completion", async () => {
@@ -59,7 +59,7 @@ describe("DeepSeek client", () => {
       request = init;
       return new Response(JSON.stringify({ choices: [{ message: { content: "mock reply" } }] }), { status: 200 });
     }, { ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
-    await expect(collect(client)).resolves.toEqual(["mock reply", "done"]);
+    await expect(collect(client)).resolves.toEqual(["mock reply", "timing", "done"]);
     expect(request?.headers).toEqual(expect.objectContaining({ authorization: `Bearer ${"fixture-deepseek-key"}` }));
     expect(String(request?.body)).toContain("deepseek-v4-flash");
     expect(String(request?.body)).toContain('"stream":true');
@@ -75,7 +75,7 @@ describe("DeepSeek client", () => {
       },
     });
     const client = new DeepSeekClient(secrets, async () => new Response(body, { headers: { "content-type": "text/event-stream" } }), { ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
-    await expect(collect(client)).resolves.toEqual(["第", "一段", "done"]);
+    await expect(collect(client)).resolves.toEqual(["第", "一段", "timing", "done"]);
   });
 
   it("将网络失败规范化为可恢复的 provider_unavailable 错误", async () => {

@@ -11,6 +11,8 @@ export const mcpServerSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]{0,23}$/), enabled: z.boolean().default(false),
   consent: z.literal("local-process-and-topic-inputs"),
   command: safeText.refine(value => path.isAbsolute(value)), args: z.array(safeText).max(32).default([]),
+  isolation: z.enum(["trusted", "restricted"]).optional(),
+  readPaths: z.array(safeText.refine(value => path.isAbsolute(value))).max(8).optional(),
   tools: z.array(z.object({ name: z.string().min(1).max(128), risk: z.enum(["read", "write"]), replaySafe: z.boolean().default(false), reconcile: mcpReconcileSchema.optional() }).strict().refine(tool => (tool.risk === "read" || !tool.replaySafe) && (!tool.reconcile || tool.risk === "write"))).max(20),
 }).strict().refine(server => new Set(server.tools.map(tool => tool.name)).size === server.tools.length);
 export type McpServer = z.infer<typeof mcpServerSchema>;

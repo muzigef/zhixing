@@ -1,3 +1,4 @@
+import { ReminderPanel } from "./reminder-panel.js";
 import { useEffect, useState } from "react";
 import type { LearningOverview, WorkspaceSummary } from "../../src/learning-contracts.js";
 import type { BootState, ChatSession, DesktopCommand } from "../core/contracts.js";
@@ -73,6 +74,7 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
       {!overview.course.length && <p>这个主题还没有可展示的课程。可以通过 CLI 创建或完善课程。</p>}
       <SkillPanel key={`skills-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onDiscuss={onDiscuss} />
       <ProjectPanel key={`project-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} onDiscuss={onDiscuss} />
+      <ReminderPanel key={`reminder-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} />
       <McpPanel key={`mcp-${workspace.id}-${topicId}`} topicId={topicId} disabled={busy || taskBusy} />
       <EvidencePanel key={topicId} topicId={topicId} days={overview.days} disabled={busy || taskBusy} onReview={refresh} />
       <ObservationPanel records={overview.observations ?? []} disabled={busy || taskBusy} refresh={refresh} />

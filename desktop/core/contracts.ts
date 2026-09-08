@@ -32,6 +32,8 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("reminder-status"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("reminder-save"), topicId: topicIdSchema, time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), enabled: z.boolean() }),
   z.object({ type: z.literal("task-info"), sessionId: z.string().uuid(), taskId: z.string().uuid() }),
   z.object({ type: z.literal("task-report"), sessionId: z.string().uuid(), taskId: z.string().uuid(), callId: z.string().min(1).max(300), report: recoveryReportSchema }),
   z.object({ type: z.literal("task-verify"), sessionId: z.string().uuid(), taskId: z.string().uuid(), callId: z.string().min(1).max(300) }),

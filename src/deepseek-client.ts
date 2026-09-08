@@ -34,6 +34,7 @@ export class DeepSeekClient implements ContinuableModelClient {
   }
 
   private async *request(prompt: string, parent: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent> {
+    const started = Date.now();
     if (parent.aborted) throw new DOMException("cancelled", "AbortError");
     assertLiveProviderAllowed(this.environment);
     const timeout = AbortSignal.timeout(this.timeoutMs);
@@ -43,6 +44,8 @@ export class DeepSeekClient implements ContinuableModelClient {
       const key = await abortable(() => this.secrets.get("keychain:zhixing/deepseek-api"), signal);
       if (!key) throw new Error("provider_unavailable: deepseek-api 未配置");
       const messages = wireHistory(prompt, options);
+      const requestedAt = Date.now(), startupMs = requestedAt - started;
+      let firstEventMs: number | undefined, firstTextMs: number | undefined;
       const response = await abortable(() => this.fetcher(this.endpoint, {
         method: "POST", signal,
         headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
@@ -69,6 +72,7 @@ export class DeepSeekClient implements ContinuableModelClient {
       const calls = new Map<number, WireTool>();
       const consume = function* (payload: Payload): Generator<ModelEvent> {
         if (!payload || payload.error || !Array.isArray(payload.choices)) throw new Error("provider_protocol_error");
+        firstEventMs ??= Date.now() - requestedAt;
         if (payload.usage) {
           const value = payload.usage;
           const valid = (number: unknown): number | undefined => typeof number === "number" && Number.isSafeInteger(number) && number >= 0 ? number : undefined;
@@ -80,7 +84,7 @@ export class DeepSeekClient implements ContinuableModelClient {
         if (choice.finish_reason) finishReason = choice.finish_reason;
         if (!delta) return;
         if (delta.content != null && typeof delta.content !== "string") throw new Error("provider_protocol_error");
-        if (delta.content) { hasText = true; textSize += delta.content.length; if (textSize > 64_000) throw new Error("provider_output_limit"); yield { type: "text_delta", text: delta.content }; }
+        if (delta.content) { firstTextMs ??= Date.now() - requestedAt; hasText = true; textSize += delta.content.length; if (textSize > 64_000) throw new Error("provider_output_limit"); yield { type: "text_delta", text: delta.content }; }
         if (delta.reasoning_content != null && typeof delta.reasoning_content !== "string") throw new Error("provider_protocol_error");
         if (delta.reasoning_content) { reasoning += delta.reasoning_content; if (reasoning.length > 64_000) throw new Error("provider_output_limit"); }
         if (delta.tool_calls !== undefined && !Array.isArray(delta.tool_calls)) throw new Error("provider_protocol_error");
@@ -143,6 +147,7 @@ export class DeepSeekClient implements ContinuableModelClient {
       yield* events;
       if (reasoning) yield { type: "provider_state", result: { deepseekReasoning: reasoning } };
       if (usage) yield { type: "usage", usage };
+      yield { type: "timing", timing: { transport: "sse", startupMs, selectionMs: 0, totalMs: Date.now() - started, requestMs: Date.now() - requestedAt, firstEventMs, firstTextMs, processTailMs: 0, submittedReasoning: options?.reasoning === "deep" ? "high" : options?.reasoning === "balanced" ? "low" : "off", outputTokenLimit: outputTokenLimit(options?.maxOutputTokens) } };
       yield { type: "done" };
     } catch (error) {
       if (parent.aborted) throw new DOMException("cancelled", "AbortError");

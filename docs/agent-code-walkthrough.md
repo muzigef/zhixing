@@ -99,7 +99,7 @@ if (input.requiresExplicitConfirmation && !(input.explicitlyConfirmed ?? input.u
 讲解 → 答疑 → 用户确认无疑问 → 练习 → 作答/请求答案 → 批改 → 实验与证据 → Review
 ```
 
-实际 `TeachingSessionStore` 的 `stage` schema 是 `answer_questions | practice | reflection`，并保存 `currentExercise`、`learnerAttempts`、`quizRound` 和最近 `transcript`。学习日的完成另由 `LearningRuntime.reviewDay` 与 `reviewEvidence` 判断；当前 CLI/桌面经 EvidenceStore 重新读取实际产物并验证哈希；布尔标志不计入证据。用户测试报告标为未复跑，另有显式 macOS JS 沙箱测试入口。
+实际 `teaching-session-contracts.ts` 的 `stage` schema 是 `answer_questions | practice | reflection`，在 `ChatSession.teaching` 中保存 `currentExercise`、`learnerAttempts`、`quizRound` 和最近 `transcript`。学习日的完成另由 `LearningRuntime.reviewDay` 与 `reviewEvidence` 判断；当前 CLI/桌面经 EvidenceStore 重新读取实际产物并验证哈希；布尔标志不计入证据。用户测试报告标为未复跑，另有显式 macOS JS 沙箱测试入口。
 
 ## 5. Tool Harness 是真实执行的能力边界
 
@@ -120,7 +120,7 @@ if (input.requiresExplicitConfirmation && !(input.explicitlyConfirmed ?? input.u
 
 CLI 普通自由问答在 DeepSeek 路由下会通过 [`src/learning-agent.ts`](../src/learning-agent.ts) 提供 `learning_progress`、`list_materials`，本次允许正文外发时再加入 `search_materials`。这三个工具均为只读；写操作仍回到确定性命令与授权链。
 
-`collectInvocation` 会先校验完整模型回合，再执行该回合的工具请求。`DeepSeekClient.continue` 携带完整 assistant/tool 历史及 call ID 继续生成，调用期间固定 Provider，不因设置改变而转交另一模型。预算包括最多 6 回合、32 次工具请求和 180 秒总时限，工具失败作为结果返回模型；已经产生文本或工具事件后不能拼接 mock 回答。桌面 Pi Codex SDK 和 DeepSeek 支持该协议；CLI Pi/Codex CLI 保留文本适配。
+`collectInvocation` 会先校验完整模型回合，再执行该回合的工具请求。`DeepSeekClient.continue` 携带完整 assistant/tool 历史及 call ID 继续生成，调用期间固定 Provider，不因设置改变而转交另一模型。预算包括最多 6 回合、32 次工具请求和 180 秒总时限，工具失败作为结果返回模型；已经产生文本或工具事件后不能拼接 mock 回答。两个入口的 Pi Codex SDK 和 DeepSeek 都支持该协议；codex-cli 仅保留文本适配。
 
 ## 6. Workflow Ledger 提供可恢复性
 
@@ -171,7 +171,7 @@ Pi 适配器每轮重读全局/项目的模型偏好，显式选择 `openai-code
 4. 把增量按会话 ID 发给 React，周期保存部分文本。
 5. 正常完成、停止或失败时保存最终状态；重启后未完成的 `running` 消息显示为 `interrupted`。
 
-`DesktopStore` 把每个会话完整保留到独立的系统应用数据 `Zhixing/conversations/`，上限为 1,000 条消息；并把 Provider/风格/主题保存到 `preferences.json`。发送给模型的裁剪不会删掉界面中的旧消息。桌面 Pi 内附运行时使用 `Zhixing/runtime/` 作为项目目录，不能假定继承开发仓库的 `.pi/settings.json`。
+`DesktopStore` 把每个会话完整保留到独立的系统应用数据 `Zhixing/conversations/`，上限为 20,000 条消息；旧历史每 250 条保存为哈希校验片段，完整会话合计仍限 12 MB；并把 Provider/风格/主题保存到 `preferences.json`。发送给模型的裁剪不会删掉界面中的旧消息。桌面 Pi 内附运行时使用 `Zhixing/runtime/` 作为项目目录，不能假定继承开发仓库的 `.pi/settings.json`。
 
 设置里的新 DeepSeek Key 经主进程用 Electron 系统加密保存，macOS 上还可复用旧 CLI Keychain 项。状态查询不回传 Key。切换 Provider 影响后续请求；Pi 失败时“切换到 DeepSeek 重试”由用户触发，保留原会话与失败记录，不自动降级。
 

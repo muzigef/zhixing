@@ -212,3 +212,22 @@ npm --prefix desktop run test:ui
 新增测试含原生双 Provider 的错误参数修正/断流不执行、撤回与崩溃组合、完整产品授权与检查作答隔离、变式题/旧卷评分、构建和协议分组、SQLite/会话版本、防止批量写权限变成删除权限、Python 文件/网络隔离及超时。历史报告的测试数量保持原时点；当前命令退出码和安装包验证见 [C01–C12 Evidence](evidence/agent-architecture-next.md)。
 
 真实合成效果流程可用 `node --import tsx scripts/check-learning-outcomes.ts --live --provider=pi-codex --output=/tmp/zhixing-outcomes-new.json`，Provider 也可选择 `deepseek-api`。它只证明实际模型与协议衔接，脚本作答和演示都不能代表真实学习效果。完整产品默认记录构建来源、权限、调用数与逐轮模型条件。
+
+
+## 0.7 统一策略门禁
+
+```bash
+npx vitest run tests/agent-architecture-boundary.test.ts tests/agent-model-factory.test.ts tests/unified-agent-policy.test.ts tests/unified-learning-context.test.ts tests/interaction-cli.test.ts tests/pi-cli.test.ts
+npm run verify
+npm --prefix desktop run test:ui
+```
+
+真正启动 CLI 并对比桌面 DeepSeek 请求体，覆盖长普通/教学会话；共享服务另对比工具目录、摘要内容与来源、上下文用量，验证撤权与同主题教学竞争。Pi 测试启动同一个源码 worker，并通过合成公共 SDK 验证错误、取消和恢复；这些测试不读取真实凭据、不证明真实账号连接。完整备份测试验证恢复后不会继承教学租约。
+
+发布前设置 `ZHIXING_DESKTOP_EXECUTABLE` 指向实际打包应用的可执行文件，重跑上面五组 UI。具体版本、命令退出码和未验证范围见 [U01–U04 Evidence](evidence/unified-agent.md)。
+
+## 0.8 架构修复回归
+
+`npm run verify` 覆盖连续摘要、相关记忆、会话分段/备份、独立教学检查点、真实回复契约、SDK 能力预算、同步访问码/活跃 SSE 关闭、提醒去重和跨平台预检。`tests/mcp-isolation.test.ts` 在本机实际启动沙箱子进程验证文件与网络拒绝，不只是断言参数。新增文件索引与每次执行结果见[架构修复证据](evidence/architecture-remediation.md)。
+
+桌面五组 smoke 包含提醒设置/关闭、学习流程、MCP 连接、项目测试、任务恢复及效果报告。实际安装包验收使用 `ZHIXING_DESKTOP_EXECUTABLE` 指向打包后的应用可执行文件再运行同一 UI 命令；不能用开发目录启动替代。UI 全部采用临时数据和演示模型，不证明 OS 通知一定送达、真实学习效果、Apple 签名或其他平台已通过。

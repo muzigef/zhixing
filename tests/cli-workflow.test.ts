@@ -12,6 +12,15 @@ async function submitDay(root: string, day: string) { const app = await Learning
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
 
 describe.sequential("headless CLI workflow", () => {
+  it("reports reminder enable/disable state consistently in topic overview and next steps", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-reminder-")); roots.push(root);
+    const invoke = (command: string) => exec("npx", ["tsx", "src/cli.ts", command], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } });
+    expect((await invoke("提醒设置 20:30")).stdout).toContain("运行");
+    expect((await invoke("主题概览")).stdout).toContain("每天 20:30");
+    await invoke("提醒关闭");
+    expect((await invoke("主题概览")).stdout).toContain("提醒：已关闭");
+    expect((await invoke("下一步")).stdout).not.toContain("提醒计划：每天");
+  }, 12_000);
   it("E01：在隔离根目录启动 Day 1 并写入当前主题记录", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
@@ -66,7 +75,7 @@ describe.sequential("headless CLI workflow", () => {
     await expect(invoke("全部进度", "rag")).resolves.toMatchObject({ stdout: expect.stringContaining("rag：完成 0，进行中 1") });
   }, 15_000);
 
-  it("E11/E19：显式禁用的 Codex 路由在 CLI 中降级到 mock", async () => {
+  it("E11/E19：资料问答与共享主流程一样报告禁用，显式切换后才使用 mock", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-"));
     roots.push(root);
     const options = { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "0" } };
@@ -76,6 +85,8 @@ describe.sequential("headless CLI workflow", () => {
     await fs.writeFile(path.join(inbox, "source.md"), "# RAG\n\nRAG requires citations.", "utf8");
     await invoke("导入资料 rag/source.md");
     await invoke("模型切换 tutor codex-cli --确认");
+    await expect(invoke("资料问答 RAG --允许外发")).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining("已禁用联网模型") });
+    await invoke("模型切换 tutor mock --确认");
     await expect(invoke("资料问答 RAG --允许外发")).resolves.toMatchObject({ stdout: expect.stringContaining("Mock：") });
   });
 
@@ -97,7 +108,7 @@ describe.sequential("headless CLI workflow", () => {
     const backup = await invoke("备份数据库");
     const file = /数据库备份完成：([^\n]+)/.exec(backup.stdout)?.[1];
     expect(file).toBeDefined();
-    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=5") });
+    await expect(invoke(`备份预览 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("migrations=6") });
     await expect(invoke(`恢复数据库 ${file}`)).resolves.toMatchObject({ stdout: expect.stringContaining("需要明确确认") });
     await expect(invoke(`恢复数据库 ${file} --确认`)).resolves.toMatchObject({ stdout: expect.stringContaining("数据库恢复完成") });
   });

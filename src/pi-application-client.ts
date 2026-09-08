@@ -16,7 +16,7 @@ const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("usage"), usage: z.object({ inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), cacheReadTokens: z.number().int().nonnegative().optional(), reasoningTokens: z.number().int().nonnegative().optional(), model: z.string().max(128).optional(), startupMs: z.number().nonnegative().optional() }).strict() }).strict(),
   z.object({ type: z.literal("error"), code: z.enum(["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "model_input_limit", "provider_unavailable", "live_provider_disabled"]) }).strict(),
 ]);
-export interface PiApplicationOptions { projectDir: string; executable: string; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; }
+export interface PiApplicationOptions { projectDir: string; executable: string; executableArgs?: string[]; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; }
 
 /** One provider turn per isolated process. The SDK generates calls; only our ToolHarness executes them. */
 export class PiApplicationClient extends PiCodexClient implements ContinuableModelClient {
@@ -61,7 +61,7 @@ export class PiApplicationClient extends PiCodexClient implements ContinuableMod
       if (options?.reasoning === "deep") selection.thinking = "high";
       const input = JSON.stringify({ version: 1, selection, prompt, options, transport });
       if (input.length > 300_000) throw new Error("model_input_limit");
-      for await (const event of (this.bridge.runner ?? runPiProcess)({ command: this.bridge.executable, args: [this.bridge.worker, this.bridge.sdk], cwd: this.bridge.projectDir, input, environment: { ...environment, PI_TELEMETRY: "0", PI_OFFLINE: "1", PI_SKIP_VERSION_CHECK: "1", ELECTRON_RUN_AS_NODE: "1" } }, signal)) {
+      for await (const event of (this.bridge.runner ?? runPiProcess)({ command: this.bridge.executable, args: [...(this.bridge.executableArgs ?? []), this.bridge.worker, this.bridge.sdk], cwd: this.bridge.projectDir, input, environment: { ...environment, PI_TELEMETRY: "0", PI_OFFLINE: "1", PI_SKIP_VERSION_CHECK: "1", ELECTRON_RUN_AS_NODE: "1" } }, signal)) {
         signal.throwIfAborted();
         if (exited) throw new Error("provider_protocol_error");
         if (event.type === "exit") {

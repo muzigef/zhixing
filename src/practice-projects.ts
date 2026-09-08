@@ -1,3 +1,4 @@
+import { assertExecutionSupport } from "./platform-support.js";
 import { unifiedDiff, applyReplacements } from "./project-diff.js";
 import { runPythonTests } from "./python-runner.js";
 import fs from "node:fs/promises";
@@ -262,6 +263,7 @@ export class PracticeProjects {
     this.database.db.prepare("DELETE FROM project_changes WHERE project=?").run(id);
   }
   async test(topic: string, id: string, expectedTreeHash: string, signal: AbortSignal): Promise<z.infer<typeof testSchema>> {
+    assertExecutionSupport();
     await this.recover(topic, id);
     return this.lease(id, async () => {
       const record = this.record(topic, id); hashSchema.parse(expectedTreeHash); const files = await this.files(topic, id);

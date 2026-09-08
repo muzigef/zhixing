@@ -19,7 +19,7 @@
 
 这不限制人类在终端直接执行命令，也不等同于操作系统隔离。需要防御恶意扩展或任意本机进程时，应在容器/OS sandbox 中运行 Pi。
 
-CLI 的 `PathPolicy` 对其受控 Store 路径另有符号链接检查，不应混同为 Pi 守卫的实现。`PiCodexClient` 的文本调用使用空原生工具列表；桌面公共 SDK worker 只负责模型输出，应用工具通过 ToolHarness 执行，不能以开发工具守卫为依据开放任意本机访问。
+CLI 的 `PathPolicy` 对其受控 Store 路径另有符号链接检查，不应混同为 Pi 守卫的实现。兼容适配器 `PiCodexClient` 的文本调用使用空原生工具列表；两个入口的公共 SDK worker 只负责模型输出，应用工具通过 ToolHarness 执行，不能以开发工具守卫为依据开放任意本机访问。
 
 ## 启动方式
 
@@ -36,7 +36,7 @@ CLI 的 `PathPolicy` 对其受控 Store 路径另有符号链接检查，不应�
 
 ## 模型接入与桌面差异
 
-CLI 的 `PiCodexClient` 通过本安全启动器调用 Pi，额外传入 `--no-tools --tools ''`、关闭 Skill/模板加载、stdin 请求、临时无持久会话和 JSON 文本模式。偏好只读取非敏感的 Provider、模型、推理强度；认证由 Pi 管理。
+旧文本兼容适配器 `PiCodexClient` 通过本安全启动器调用 Pi（已不接入 CLI 对话），额外传入 `--no-tools --tools ''`、关闭 Skill/模板加载、stdin 请求、临时无持久会话和 JSON 文本模式。偏好只读取非敏感的 Provider、模型、推理强度；认证由 Pi 管理。
 
 桌面将同一守卫编译后随应用附带，通过 Electron 的 Node 模式运行 Pi 0.85.0 的仅模型公共 SDK worker，无需系统 bash/Node/Pi。工作目录为系统应用目录下的 `runtime`，不加载仓库开发指令。模型可以请求知行声明的受控应用工具，不能调用 Pi 原生文件/shell 工具。0.4.1 默认 SSE；完整轮次经过协议与退出码检查后才执行工具。离线模型发现设置不代替 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。
 

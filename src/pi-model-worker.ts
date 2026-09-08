@@ -1,11 +1,11 @@
 import { pathToFileURL } from "node:url";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import type { ModelEvent, ModelRequestOptions } from "../../src/model.js";
-import type { PiModelSelection } from "../../src/pi-client.js";
-import { piTransportSchema, type ModelPhase, type workerTimingSchema } from "../../src/model-telemetry.js";
+import type { ModelEvent, ModelRequestOptions } from "./model.js";
+import type { PiModelSelection } from "./pi-client.js";
+import { piTransportSchema, type ModelPhase, type workerTimingSchema } from "./model-telemetry.js";
 import type { z } from "zod/v4";
-import { outputTokenLimit, piReportedUsage } from "../../src/model-capabilities.js";
-import { estimateTokens } from "../../src/context-window.js";
+import { resolveSdkBudget, piReportedUsage } from "./model-capabilities.js";
+import { estimateTokens } from "./context-window.js";
 
 type Context = Parameters<ModelRuntime["streamSimple"]>[1];
 const emit = (event: ModelEvent | { type: "timing"; timing: z.infer<typeof workerTimingSchema> } | { type: "error"; code: string }) => process.stdout.write(JSON.stringify(event) + "\n");
@@ -50,15 +50,16 @@ try {
     }
     // No AgentSession or native tools exist in this worker. Tool definitions are data only.
     const context: Context = { systemPrompt: base.filter((message) => message.role === "system").map((message) => message.content).join("\n\n"), messages, tools: request.options?.tools?.map((tool) => ({ name: tool.name, description: tool.description, parameters: tool.inputSchema as NonNullable<Context["tools"]>[number]["parameters"] })) };
-    const maxTokens = Math.min(model.maxTokens, outputTokenLimit(request.options?.maxOutputTokens));
-    if (estimateTokens(JSON.stringify(context)) + maxTokens > Math.min(model.contextWindow, 48_000)) throw new Error("model_input_limit");
+    const budget = resolveSdkBudget(model, request.options?.maxOutputTokens);
+    const maxTokens = budget.reserveOutputTokens;
+    if (estimateTokens(JSON.stringify(context)) + maxTokens > budget.windowTokens) throw new Error("model_input_limit");
     let size = 0; let done = false;
     const phases = new Set<ModelPhase>();
     const phase = (value: ModelPhase) => { if (!phases.has(value)) { phases.add(value); emit({ type: "progress", phase: value }); } };
     const requestedAt = Date.now();
     let firstEventMs: number | undefined; let firstTextMs: number | undefined;
     phase("requesting");
-    const reasoning = request.selection.thinking === "off" ? undefined : request.selection.thinking as NonNullable<Parameters<ModelRuntime["streamSimple"]>[2]>["reasoning"];
+    const reasoning = !model.reasoning || request.selection.thinking === "off" ? undefined : request.selection.thinking as NonNullable<Parameters<ModelRuntime["streamSimple"]>[2]>["reasoning"];
     for await (const event of runtime.streamSimple(model, context, { signal, reasoning, maxTokens, transport })) {
       firstEventMs ??= Date.now() - requestedAt;
       if (event.type === "start") phase("waiting");
@@ -78,7 +79,7 @@ try {
       }
     }
     if (!done) throw new Error("provider_incomplete");
-    emit({ type: "timing", timing: { transport, startupMs, requestMs: Date.now() - requestedAt, firstEventMs, firstTextMs } });
+    emit({ type: "timing", timing: { transport, startupMs, requestMs: Date.now() - requestedAt, firstEventMs, firstTextMs, submittedReasoning: reasoning ?? "off", outputTokenLimit: maxTokens, providerContextWindow: budget.providerContextWindow, providerMaxOutput: budget.providerMaxOutput } });
     emit({ type: "done" });
   }
 } catch (error) {

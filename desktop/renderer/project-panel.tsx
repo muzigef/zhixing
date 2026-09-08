@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ProjectSnapshot } from "../../src/practice-projects.js";
 import type { DesktopCommand } from "../core/contracts.js";
 async function request<T>(command: DesktopCommand): Promise<T> { const result = await window.zhixing.invoke(command); if (!result.ok) throw new Error(result.error); return result.data as T; }
-type ProjectList = { projects: { id: string; title: string }[]; selected: string | null };
+type ProjectList = { execution?: { available: boolean; message: string }; projects: { id: string; title: string }[]; selected: string | null };
 
 export function ProjectPanel({ topicId, disabled, onDiscuss }: { topicId: string; disabled: boolean; onDiscuss: (text: string) => void }) {
   const [list, setList] = useState<ProjectList>({ projects: [], selected: null }); const [project, setProject] = useState<ProjectSnapshot>();
@@ -22,6 +22,7 @@ export function ProjectPanel({ topicId, disabled, onDiscuss }: { topicId: string
   const locked = busy || disabled;
   return <details className="learning-section project-panel"><summary>项目实践 · {list.projects.length}</summary>
     <p>每个项目都有独立文件目录和本地 Git 仓库。支持有限大小的 JavaScript、Python、JSON、Markdown 与文本；导入只复制文件，不修改原目录。测试在本机隔离环境运行 .test.mjs 和 test_*.py（unittest）。不安装依赖；无可用隔离环境时明确返回不可用。</p>
+    {list.execution && <p role="status">{list.execution.message}</p>}
     <label>项目名称<input aria-label="实践项目名称" value={title} maxLength={80} disabled={locked} onChange={event => setTitle(event.target.value)} /></label>
     <label>项目语言<select aria-label="实践项目语言" value={language} disabled={locked} onChange={event => setLanguage(event.target.value as typeof language)}><option value="javascript">JavaScript</option><option value="python">Python 标准库</option></select></label>
     <div className="interaction-actions"><button disabled={locked || !title.trim()} onClick={() => void action(async () => { await request({ type: "project-create", topicId, title, language }); setTitle(""); setFile(undefined); setPreview(""); await refresh(); })}>创建独立项目</button>
@@ -29,7 +30,7 @@ export function ProjectPanel({ topicId, disabled, onDiscuss }: { topicId: string
     {!!list.projects.length && <label>当前实践项目<select aria-label="当前实践项目" disabled={locked} value={list.selected ?? ""} onChange={event => { const id = event.target.value || null; void action(async () => { await request({ type: "project-select", topicId, projectId: id }); setFile(undefined); setPreview(""); await refresh(); }); }}><option value="">不连接项目</option>{list.projects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>}
     {project && <>
       <p>{project.title} · {project.branch}</p><p>项目哈希：<code>{project.treeHash}</code></p>
-      <div className="interaction-actions"><button disabled={locked} onClick={() => void action(refresh)}>刷新项目状态</button><button disabled={locked} onClick={() => void action(async () => { await request({ type: "project-test", topicId, projectId: project.id, expectedTreeHash: project.treeHash }); await refresh(); })}>运行项目测试</button>
+      <div className="interaction-actions"><button disabled={locked} onClick={() => void action(refresh)}>刷新项目状态</button><button disabled={locked || list.execution?.available === false} onClick={() => void action(async () => { await request({ type: "project-test", topicId, projectId: project.id, expectedTreeHash: project.treeHash }); await refresh(); })}>运行项目测试</button>
         <button disabled={locked || !project.currentTestsPassed} onClick={() => void action(async () => { await request({ type: "project-checkpoint", topicId, projectId: project.id, expectedTreeHash: project.treeHash, title: "保存已验证的实践进展" }); await refresh(); })}>保存 Git 检查点</button></div>
       <p role="status">{project.currentTestsPassed ? "当前项目测试通过" : "当前文件尚无有效的通过记录"}。通过这些测试不等于掌握知识。</p>
       {project.test && <details><summary>最近实际测试结果</summary><p>{project.test.status} · 退出码 {project.test.exitCode ?? "无"} · {project.test.createdAt}</p><pre>{project.test.stdout}{project.test.stderr}</pre></details>}

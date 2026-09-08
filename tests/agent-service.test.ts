@@ -5,7 +5,6 @@ import { expect, it } from "vitest";
 import { AgentService } from "../src/agent-service.js";
 import { AgentSessionStore } from "../src/agent-session-store.js";
 import { DesktopService } from "../desktop/core/service.js";
-import { providerRuntime } from "../src/assistant-runtime.js";
 import { LearningApplication } from "../src/learning-application.js";
 import type { ContinuableModelClient } from "../src/model.js";
 
@@ -56,7 +55,7 @@ it("uses one headless lifecycle for a CLI invocation and desktop approval contin
     expect(complete.status).toBe("completed"); expect(complete.taskId).toBe(waiting.taskId); expect(starts).toBe(1);
     const another = await cli.create();
     const simple = { async *stream() { yield { type: "text_delta" as const, text: "CLI 回答" }; yield { type: "done" as const }; } };
-    const output = await cli.invoke({ sessionId: another.id, provider: "mock", style: "adaptive", text: "合成问题" }, { runtime: providerRuntime("mock", simple), request: { role: "tutor", providerId: "mock", prompt: "合成问题", containsUserMaterials: false, confirmed: false } });
+    const output = await new AgentService(store, () => simple, app).invoke({ sessionId: another.id, provider: "mock", style: "adaptive", text: "合成问题" });
     expect(output.text).toBe("CLI 回答"); expect((await cli.load(another.id)).messages.at(-1)?.status).toBe("completed");
   } finally { app.close(); await fs.rm(root, { recursive: true, force: true }); }
 });
@@ -130,4 +129,18 @@ it("settles safely when another frontend claims the session before its queue dra
     expect(running.messages.at(-2)?.text).toBe("另一入口的新问题");
     expect(running.pendingRequests?.map(item => item.text)).toEqual(["尚未开始的排队问题"]);
   } finally { release(); await handoff; second.stop(); await second.idle(); await first.pauseMaintenance(); app.close(); await fs.rm(root, { recursive: true, force: true }); }
+});
+
+it("does not let headless display or telemetry failures change task completion", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-headless-observer-"));
+  const app = await LearningApplication.open(root, process.cwd());
+  const service = new AgentService(new AgentSessionStore(path.join(root, "chats")), () => ({ async *stream() { yield { type: "text_delta" as const, text: "应保存的完整回答" }; yield { type: "done" as const }; } }), app);
+  try {
+    const session = await service.create();
+    await service.invoke({ sessionId: session.id, text: "合成问题", provider: "mock", style: "adaptive" }, {
+      onText: () => { throw new Error("synthetic display failure"); },
+      onAudit: async () => { throw new Error("synthetic telemetry failure"); },
+    });
+    expect((await service.load(session.id)).messages.at(-1)).toMatchObject({ status: "completed", text: "应保存的完整回答" });
+  } finally { await service.pauseMaintenance(); app.close(); await fs.rm(root, { recursive: true, force: true }); }
 });

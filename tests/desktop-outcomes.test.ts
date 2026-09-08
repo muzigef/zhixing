@@ -5,7 +5,8 @@ import { afterEach, expect, it } from "vitest";
 import { LearningApplication } from "../src/learning-application.js";
 import type { ModelClient, ModelMessage } from "../src/model.js";
 import { DesktopStore } from "../desktop/core/store.js";
-import { DesktopService, buildMessages } from "../desktop/core/service.js";
+import { DesktopService } from "../desktop/core/service.js";
+import { buildMessages } from "../src/learning-agent-profile.js";
 import { desktopCommandSchema } from "../desktop/core/contracts.js";
 
 const cleanups: (() => Promise<void>)[] = [];

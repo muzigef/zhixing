@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod/v4";
-import { chatSchema, type ChatSession, type SessionSummary } from "./agent-session-contracts.js";
+import { messageSchema, chatSchema, type ChatSession, type SessionSummary } from "./agent-session-contracts.js";
 export class AgentSessionStore {
   private metadata?: Map<string, { signature: string; summary?: SessionSummary }>;
   private knownVersions = new Map<string, string>();
@@ -21,49 +21,84 @@ export class AgentSessionStore {
   async create(): Promise<ChatSession> {
     const now = new Date().toISOString();
     const session: ChatSession = {
-      version: 5,
+      version: 7,
       id: randomUUID(),
       title: "新对话",
       customTitle: false,
       createdAt: now,
       updatedAt: now,
       messages: [],
+      teaching: null,
     };
     await this.save(session);
     return session;
   }
   async load(id: string): Promise<ChatSession> {
     await this.sessionWrites.get(id);
-    const session = chatSchema.parse(
-      await readJson(this.sessionPath(id), 12_000_000),
-    );
+    const raw = await readJson(this.sessionPath(id), 12_000_000) as Record<string, unknown>;
+    const session = chatSchema.parse(raw);
+    if (raw.segments !== undefined) {
+      if (raw.version !== 7 || session.id !== id) throw new Error("session_segment_invalid");
+      const segments = z.array(z.object({ hash: z.string().regex(/^[a-f0-9]{64}$/), count: z.number().int().min(1).max(250) }).strict()).max(80).parse(raw.segments);
+      const prefix: typeof session.messages = []; let bytes = 0;
+      for (const segment of segments) {
+        const messages = await this.readSegment(id, segment.hash);
+        if (messages.length !== segment.count) throw new Error("session_segment_invalid");
+        bytes += Buffer.byteLength(JSON.stringify(messages)); if (bytes > 12_000_000) throw new Error("storage_limit");
+        prefix.push(...messages);
+      }
+      session.messages = [...prefix, ...session.messages];
+      chatSchema.parse(session);
+      if (Buffer.byteLength(JSON.stringify(session)) > 12_000_000) throw new Error("storage_limit");
+    }
     if (session.id !== id) throw new Error("session_invalid");
-    session.version = 5;
+    session.version = 7;
     for (const message of session.messages)
       if (message.status === "running") message.status = "interrupted";
     return session;
   }
   async save(session: ChatSession): Promise<void> {
-    const checked = chatSchema.parse({ ...session, version: 5 });
+    const checked = chatSchema.parse({ ...session, version: 7 });
     chatSchema.parse(session);
+    if (Buffer.byteLength(JSON.stringify(checked)) > 12_000_000) throw new Error("storage_limit");
     const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
       .then(async () => {
         const file = this.sessionPath(checked.id);
         try {
           const signature = await this.signature(file);
-          const old = this.knownVersions.get(checked.id) === signature ? { version: 5 } : await readJson(file, 12_000_000) as { version?: number };
-          if (![1, 2, 3, 4, 5].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
-          if (old.version === 1 || old.version === 2 || old.version === 3 || old.version === 4) {
+          const old = this.knownVersions.get(checked.id) === signature ? { version: 7 } : await readJson(file, 12_000_000) as { version?: number };
+          if (![1, 2, 3, 4, 5, 6, 7].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
+          if (old.version === 1 || old.version === 2 || old.version === 3 || old.version === 4 || old.version === 5 || old.version === 6) {
             await assertNotLinked(`${file}.v${old.version}.bak`);
             try { await fs.copyFile(file, `${file}.v${old.version}.bak`, constants.COPYFILE_EXCL); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
           }
         } catch (error) { if (!isMissing(error)) throw error; }
-        await atomicJson(file, checked, 12_000_000);
+        await assertNotLinked(path.join(this.root, "conversations"));
+        const segments: { hash: string; count: number }[] = [];
+        let offset = 0;
+        while (checked.messages.length - offset > 250) {
+          const messages = checked.messages.slice(offset, offset + 250);
+          const value = { sessionId: checked.id, messages };
+          const hash = createHash("sha256").update(JSON.stringify(value)).digest("hex");
+          const segmentFile = path.join(this.root, "conversations", checked.id, `${hash}.json`);
+          try { await this.readSegment(checked.id, hash, true); }
+          catch (error) { if (!isMissing(error)) throw error; await atomicJson(segmentFile, value, 12_000_000); }
+          segments.push({ hash, count: messages.length }); offset += messages.length;
+        }
+        await atomicJson(file, { ...checked, messages: checked.messages.slice(offset), ...(segments.length ? { segments } : {}) }, 12_000_000);
         this.knownVersions.set(checked.id, await this.signature(file)); this.metadata?.delete(checked.id);
       });
     this.sessionWrites.set(checked.id, pending);
     try { await pending; }
     finally { if (this.sessionWrites.get(checked.id) === pending) this.sessionWrites.delete(checked.id); }
+  }
+  private async readSegment(id: string, hash: string, preserveMissing = false) {
+    try {
+      const raw = await readJson(path.join(this.root, "conversations", id, `${hash}.json`), 12_000_000);
+      const value = z.object({ sessionId: z.literal(id), messages: z.array(messageSchema).min(1).max(250) }).strict().parse(raw);
+      if (createHash("sha256").update(JSON.stringify(value)).digest("hex") !== hash) throw new Error("session_segment_invalid");
+      return value.messages;
+    } catch (error) { if (preserveMissing && isMissing(error)) throw error; throw new Error("session_segment_invalid"); }
   }
   async list(): Promise<SessionSummary[]> {
     this.indexing ??= this.index();

@@ -1,3 +1,4 @@
+import { MAX_INPUT_CHARACTERS } from "./input-limits.js";
 export interface ReplSnapshot { running: boolean; queued: number; }
 interface ReplHooks {
   execute: (text: string) => Promise<void>;
@@ -19,7 +20,7 @@ export class ReplController {
   submit(input: string): void {
     const text = input.trim();
     if (!text) return;
-    if (text.length > 8_000) { this.hooks.notice?.("消息过长，请分段发送（每条最多 8,000 字符）。"); return; }
+    if (text.length > MAX_INPUT_CHARACTERS) { this.hooks.notice?.("消息过长，请分段发送（每条最多 20,000 字符）。"); return; }
     if (["/stop", "停止", "停一下", "暂停回答"].includes(text)) { void this.interrupt(); return; }
     if (this.running && ["/status", "当前状态", "/queue"].includes(text)) { this.hooks.status?.(this.snapshot()); return; }
     if (text === "/queue clear") { this.queue.length = 0; this.hooks.notice?.("已撤回排队消息。"); return; }
@@ -65,7 +66,7 @@ export class PromptAssembler {
     if (this.paste && line === "/send") { const text = this.lines.join("\n"); this.cancel(); return { kind: "message", text }; }
     const continued = !this.paste && line.endsWith("\\");
     this.lines.push(continued ? line.slice(0, -1) : line);
-    if (this.lines.join("\n").length > 8_000) { this.cancel(); return { kind: "collecting", hint: "输入超过 8,000 字符，已取消本次输入；请分段粘贴。" }; }
+    if (this.lines.join("\n").length > MAX_INPUT_CHARACTERS) { this.cancel(); return { kind: "collecting", hint: "输入超过 20,000 字符，已取消本次输入；请分段粘贴。" }; }
     if (this.paste || continued) return { kind: "collecting", hint: "" };
     const text = this.lines.join("\n"); this.cancel(); return { kind: "message", text };
   }

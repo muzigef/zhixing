@@ -37,6 +37,10 @@ export function providerRuntime(providerId: string, client: ModelClient): Provid
 export async function runAssistantTask(options: {
   runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
   messages?: readonly ModelMessage[];
+  structured?: boolean;
+  teaching?: import("./teaching-session-contracts.js").TeachingSession | null;
+  onAudit?: (record: ModelAuditRecord) => void | Promise<void>;
+  onTool?: (name: string, phase: "started" | "finished" | "failed") => void | Promise<void>;
   conversationHistory?: readonly ChatMessage[];
   permissions?: AgentPermissions; writeGrants?: WriteGrant[];
   taskId?: string; sessionId?: string; resumeInput?: string; steerId?: string; allowWrites?: boolean;
@@ -101,7 +105,7 @@ export async function runAssistantTask(options: {
     tools = catalog ?? tools;
     if (options.application && options.topicId) {
       activity("context", options.contextAllowed ? "读取学习进度并检索当前主题资料" : "检查本会话的学习上下文授权", "running");
-      const context = await options.application.context(options.topicId, options.question, options.contextAllowed, signal);
+      const context = await options.application.context(options.topicId, options.question, options.contextAllowed, signal, options.teaching);
       if (context.retrieval?.mode === "lexical_fallback") retrievalActivity(context.retrieval);
       signal.throwIfAborted();
       prompt += `\n\n${context.text}`;
@@ -125,7 +129,7 @@ export async function runAssistantTask(options: {
       canReplayTool: (name) => tools?.harness.isReplaySafe(name) ?? false,
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
-      responseCheck: isContinuableModelClient(options.client) ? text => {
+      responseCheck: !options.structured && isContinuableModelClient(options.client) ? text => {
         const support = inspectEvidenceSupport(text, [...sourceEvidence.values()]); options.onEvidenceSupport?.(support);
         return (sourceEvidence.size ? evidenceRepairReason(support) : undefined) ?? responseRepairReason(text, options.question);
       } : undefined,
@@ -153,7 +157,7 @@ export async function runAssistantTask(options: {
       tools: tools?.definitions,
       advertisedTools: catalog?.advertised,
       onText: options.onText,
-      onAudit: (value) => { trace = value; },
+      onAudit: async (value) => { trace = value; await options.onAudit?.(value); },
       onToolCall: tools ? async (name, input, toolSignal, callId) => {
         const decision = callId ? execution?.read()?.decisions[callId] : undefined;
         if (name === "ask_user" && decision) return { ok: true, output: { answer: decision.answer } };
@@ -177,7 +181,9 @@ export async function runAssistantTask(options: {
         activity("model", "模型请求已完成", "completed");
         const toolStarted = Date.now();
         const harness = writeAllowed && ["save_artifact", "run_experiment"].includes(name) && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
+        await options.onTool?.(name, "started");
         const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: writeAllowed ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
+        await options.onTool?.(name, result.ok ? "finished" : "failed");
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
           options.onItem?.({ id: randomUUID(), kind: "artifact", artifactId: artifact.id, dayId: value.dayId, artifactKind: value.kind, text: value.text });

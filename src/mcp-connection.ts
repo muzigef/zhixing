@@ -7,6 +7,7 @@ import { z } from "zod/v4";
 import { mcpServerSchema, type McpServer } from "./mcp-settings.js";
 import { JsonSchemaWorker } from "./json-schema-worker.js";
 import { ToolOutcomeUnknown } from "./tool-harness.js";
+import { sandboxProfile } from "./sandbox-profile.js";
 
 const MODERN = "2026-07-28"; const LEGACY = "2025-11-25";
 export const toolSchema = z.object({ name: z.string().min(1).max(128), description: z.string().max(4000).optional(), inputSchema: z.record(z.string(), z.unknown()), outputSchema: z.record(z.string(), z.unknown()).optional() });
@@ -38,9 +39,12 @@ export class McpConnection {
   static async open(raw: McpServer, signal: AbortSignal): Promise<McpConnection> {
     const config = mcpServerSchema.parse(raw); signal.throwIfAborted();
     if (!config.enabled) throw new Error("mcp_disabled");
+    if (config.isolation === "restricted" && process.platform !== "darwin") throw new Error("mcp_isolation_unavailable");
     const executable = await fs.realpath(config.command); const stat = await fs.stat(executable); if (!stat.isFile()) throw new Error("mcp_unavailable");
-    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-mcp-process-"));
-    const child = spawn(executable, config.args, { cwd: directory, shell: false, detached: process.platform !== "win32", windowsHide: true,
+    const reads = config.isolation === "restricted" ? await Promise.all((config.readPaths ?? []).map(async value => { const resolved = await fs.realpath(value); return { path: resolved, directory: (await fs.stat(resolved)).isDirectory() }; })) : [];
+    const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-mcp-process-")));
+    const restricted = config.isolation === "restricted";
+    const child = spawn(restricted ? "/usr/bin/sandbox-exec" : executable, restricted ? ["-p", sandboxProfile(executable, directory, reads), executable, ...config.args] : config.args, { cwd: directory, shell: false, detached: process.platform !== "win32", windowsHide: true,
       env: { PATH: `${path.dirname(executable)}${path.delimiter}/usr/bin${path.delimiter}/bin`, ...(process.platform === "win32" && process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) }, stdio: ["pipe", "pipe", "pipe"] });
     const connection = new McpConnection(child, directory);
     try { await connection.initialize(AbortSignal.any([signal, AbortSignal.timeout(8000)])); return connection; } catch (error) { await connection.close(); throw error; }

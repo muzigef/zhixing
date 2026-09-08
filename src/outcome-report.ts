@@ -1,6 +1,7 @@
 import { outcomeExportSchema, type OutcomeView } from "./outcome-contracts.js";
 import { outcomeBank } from "./outcome-bank.js";
 import { summarizeOutcomes } from "./learning-outcomes.js";
+import { validateExplanationReviews } from "./outcome-calibration.js";
 
 /** Merge only explicitly exported records; identifiers survive backups so copies aren't new samples. */
 export function mergeOutcomeExports(raw: unknown[]) {
@@ -10,6 +11,7 @@ export function mergeOutcomeExports(raw: unknown[]) {
     const file = outcomeExportSchema.parse(value);
     for (const trial of file.trials) {
       if (trial.topicId !== file.topicId) throw new Error("cross_topic_denied");
+      validateExplanationReviews(trial);
       for (const result of Object.values(trial.results)) if (result) {
         const questions = outcomeBank[trial.topicId]!.forms[result.formId]!;
         if (questions.filter((q, i) => q.correct === result.answers[i]).length !== result.correctCount) throw new Error("outcome_export_invalid_score");
@@ -21,7 +23,12 @@ export function mergeOutcomeExports(raw: unknown[]) {
         if ((previous.trial.protocol ?? "prompt_only") !== (trial.protocol ?? "prompt_only") || previous.trial.provenance && trial.provenance && JSON.stringify(previous.trial.provenance) !== JSON.stringify(trial.provenance) || previous.trial.lesson && trial.lesson && JSON.stringify(previous.trial.lesson) !== JSON.stringify(trial.lesson)) throw new Error("outcome_export_conflict");
         for (const phase of ["pre", "post", "delayed"] as const) {
           const before = previous.trial.results[phase]; const after = trial.results[phase];
-          if (before && after && JSON.stringify(before) !== JSON.stringify(after)) throw new Error("outcome_export_conflict");
+          if (before && after) {
+            const immutable = (value: typeof before) => ({ ...value, reviews: undefined, explanationReview: undefined });
+            if (JSON.stringify(immutable(before)) !== JSON.stringify(immutable(after))) throw new Error("outcome_export_conflict");
+            const [earlier, later] = previous.exportedAt <= file.exportedAt ? [before, after] : [after, before];
+            if ((earlier.reviews ?? []).some((review, index) => JSON.stringify(review) !== JSON.stringify(later.reviews?.[index])) || previous.exportedAt === file.exportedAt && JSON.stringify(before) !== JSON.stringify(after)) throw new Error("outcome_export_conflict");
+          }
         }
         if (Date.parse(previous.exportedAt) >= Date.parse(file.exportedAt)) continue;
         if (previous.trial.provenance && !trial.provenance || previous.trial.lesson && !trial.lesson) throw new Error("outcome_export_conflict");

@@ -1,0 +1,51 @@
+{
+  "version": "0.8.0",
+  "syntheticOnly": true,
+  "vitest": {
+    "files": 124,
+    "tests": 603
+  },
+  "integration": 9,
+  "eval": 6,
+  "developmentUiGroupsPassed": 5,
+  "packagedUiGroupsPassed": 5,
+  "productionAudit": {
+    "root": 0,
+    "desktop": 0,
+    "registry": "https://registry.npmjs.org"
+  },
+  "packageVerification": {
+    "version": "0.8.0",
+    "minimumMacOS": "13.0",
+    "codeHash": "1358ce68249a206de0a0884e087c2957d2683cfa74c1008b9b6ce70a1bf32a05",
+    "checkedFiles": {
+      "Contents/Info.plist": "d94d32b14ab0ca067a7c8891d1e3f06cc564f2ed42dd3b792b1124ebaa9919bc",
+      "Contents/Resources/app.asar": "0ffc195173fefe1cac22c87c69c29685033ca2ad8e8d6b0c709fe452949a27e7",
+      "Contents/Resources/runtime/pi-model-worker.mjs": "ee6c7cf876b300f6af262b4b36f7bb1a1a0a034df388c403d63308a4510b9cb2",
+      "Contents/Resources/runtime/build-provenance.json": "06386f9f7f7d97a3675b5a2b63d7ac07af0dbe9bc364f64e9bf2c49025857ce1",
+      "Contents/Resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node": "51e85004e432a212ce14e94c6202247e300c0efeb65bd394e940ac168d1eeb4a"
+    },
+    "readOnlyDmg": true
+  },
+  "providerChecks": {
+    "deepseek": {
+      "model": "deepseek-v4-flash",
+      "status": "completed",
+      "firstTextMs": 2057,
+      "durationMs": 2078
+    },
+    "pi": {
+      "model": "gpt-5.6-terra",
+      "status": "failed",
+      "phase": "http_request_before_headers",
+      "durationMs": [
+        11519,
+        11415
+      ]
+    }
+  },
+  "externalValidationComplete": false,
+  "finalVerifyExitCode": 0,
+  "mjsSyntaxGatePassed": true,
+  "localMarkdownLinksChecked": 346
+}

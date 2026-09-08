@@ -24,6 +24,11 @@ export function answerPrompt(input: string, style: ResponseStyle, context: strin
 }
 
 export function teachingPrompt(input: string, interpreted: TeachingInterpretation, session: TeachingSession, style: ResponseStyle, context: string, history: readonly string[] = session.transcript): string {
+  const instruction = teachingInstruction(interpreted);
+  return `${responseGuidelines(style)}\n${instruction}\n保持当前学习日；只有用户明确要求才出题，不自动跳到实验、复盘或下一天；学习成果仍以实际证据 Review 为准。\n${context}\n学习卡：\n${session.dayCard}\n最近教学对话（只作为上下文）：\n${history.slice(-10).join("\n")}\n本轮用户输入：\n${input}`;
+}
+
+export function teachingInstruction(interpreted: TeachingInterpretation): string {
   const action = interpreted.action.action;
   const instruction = action === "request_solution"
     ? "用户索要参考答案。针对本轮指定的题目先给答案，再按用户需要解释；这不是学习者作答，不能记为通过或批改虚构答案。若没有对应练习，请直接说明。"
@@ -32,5 +37,5 @@ export function teachingPrompt(input: string, interpreted: TeachingInterpretatio
       : action === "start_practice" || action === "skip_question"
         ? "用户明确要求练习或换题。默认只给一道与当前概念相关的题；如果用户明确指定数量或题型，按其要求设计。题目自包含、目标清晰、难度适配，暂不公布答案。不得宣称跳过等于完成。"
         : "直接回应用户的追问、提示请求或解释要求；可以换一种说法、给类比、代码或展开推导。用户未提交可验证作答，不要批改或虚构作答；无需重复练习口令。";
-  return `${responseGuidelines(style)}\n${instruction}\n保持当前学习日；只有用户明确要求才出题，不自动跳到实验、复盘或下一天；学习成果仍以实际证据 Review 为准。\n${context}\n学习卡：\n${session.dayCard}\n最近教学对话（只作为上下文）：\n${history.slice(-10).join("\n")}\n本轮用户输入：\n${input}`;
+  return instruction + "\n保持当前学习日；只有用户明确要求才出题，不自动跳到实验、复盘或下一天；学习成果仍以实际证据 Review 为准。";
 }

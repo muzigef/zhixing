@@ -8,7 +8,6 @@ import { AgentExecutionStore } from "../src/agent-execution-store.js";
 import { CliAgentTransport } from "../src/cli-agent-transport.js";
 import { emptyConversation } from "../src/conversation-session.js";
 import { LearningApplication } from "../src/learning-application.js";
-import { providerRuntime } from "../src/assistant-runtime.js";
 import type { ContinuableModelClient } from "../src/model.js";
 
 const roots: string[] = []; const apps: LearningApplication[] = [];
@@ -55,15 +54,14 @@ it("cancels a resumed CLI application task through its caller signal without rep
       signal.throwIfAborted(); yield { type: "text_delta", text: "不应完成的回复" }; yield { type: "done" };
     },
   };
-  const fallback = { runtime: providerRuntime("mock", client), request: { role: "tutor" as const, providerId: "mock", prompt: "合成请求", containsUserMaterials: false, confirmed: false } };
-  const transport = new CliAgentTransport(root, app, () => client, async () => fallback, () => undefined);
+  const transport = new CliAgentTransport(root, app, () => client, () => undefined);
   const chat = emptyConversation(topic, "chat"); await transport.ensure(chat);
   await transport.service.send({ sessionId: chat.id, text: "/agent 合成任务", provider: "mock", style: "adaptive" }); await transport.service.idle();
   const waiting = (await transport.service.load(chat.id)).messages.at(-1)!;
   // Model continuation after the saved question is resolved, without starting the next run.
   new AgentExecutionStore(app.database, { taskId: waiting.taskId!, sessionId: chat.id, topicId: topic }).decide("question", "数组", "once");
   const controller = new AbortController();
-  const pending = transport.invoke(chat, { text: "继续", provider: "mock", style: "adaptive" }, { ...fallback, signal: controller.signal });
+  const pending = transport.invoke(chat, { text: "继续", provider: "mock", style: "adaptive" }, { signal: controller.signal });
   const outcome = pending.then(value => ({ value, error: undefined }), error => ({ value: undefined, error }));
   await started; controller.abort();
   const result = await outcome;

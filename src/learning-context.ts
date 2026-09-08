@@ -2,18 +2,32 @@ import type { TopicId } from "./contracts.js";
 import { ZhixingDatabase } from "./database.js";
 import { DocumentLibrary } from "./library.js";
 import { LearningProfileStore } from "./learning-profile.js";
-import type { TeachingSession } from "./teaching-session-store.js";
+import { TeachingSessionStore, type TeachingSession } from "./teaching-session-store.js";
 import { LearningObservations } from "./learning-observations.js";
 import { TeachingPolicy } from "./teaching-policy.js";
+import { relevantExcerpt } from "./conversation-context.js";
 
 /** Builds a bounded, topic-scoped prompt context instead of concatenating all history. */
 export class LearningContextBuilder {
-  constructor(private readonly profiles: LearningProfileStore, private readonly database: ZhixingDatabase, private readonly library: DocumentLibrary) {}
+  constructor(private readonly profiles: LearningProfileStore, private readonly database: ZhixingDatabase, private readonly library: DocumentLibrary, private readonly teaching?: TeachingSessionStore) {}
 
-  async build(topicId: TopicId, query: string, teaching?: TeachingSession): Promise<string> {
-    const [profile, documents] = await Promise.all([this.profiles.load(topicId), Promise.resolve(this.library.list(topicId))]);
-    const matchingMemories = this.database.searchMemories(topicId, query);
-    const memories = (matchingMemories.length ? matchingMemories : this.database.searchMemories(topicId, "")).slice(0, 3);
+  /** Fresh on every turn: withdrawal and profile edits never depend on a cached prompt. */
+  async snapshot(topicId: TopicId, query: string, teaching?: TeachingSession | null) {
+    const profile = await this.profiles.load(topicId);
+    const checkpoint = teaching === undefined ? await this.teaching?.load(topicId) : teaching;
+    const matching = this.database.searchMemories(topicId, query);
+    const memories = (matching.length ? matching : this.database.searchMemories(topicId, "")).slice(0, 3)
+      .map(item => ({ id: item.id, content: relevantExcerpt(item.content, 1500, query), sourceRef: item.sourceRef, selection: matching.length ? "query_relevant" : "recent_fallback" }));
+    return {
+      ...(profile ? { profile } : {}), memories,
+      ...(checkpoint ? { teaching: { dayId: checkpoint.dayId, stage: checkpoint.stage, quizRound: checkpoint.quizRound,
+        currentExercise: checkpoint.currentExercise?.slice(0, 8000), learnerAttempts: checkpoint.learnerAttempts } } : {}),
+    };
+  }
+
+  async build(topicId: TopicId, query: string, teaching?: TeachingSession | null): Promise<string> {
+    const { profile, memories } = await this.snapshot(topicId, query, teaching);
+    const documents = this.library.list(topicId);
     return [
       `教学建议（服从本轮要求）：${JSON.stringify(new TeachingPolicy(new LearningObservations(this.database)).decide(topicId, query))}`,
       ...new LearningObservations(this.database).context(topicId, query).map(item => `实际作答记录（不是掌握结论）：${JSON.stringify(item)}`),

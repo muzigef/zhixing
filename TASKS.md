@@ -1,6 +1,10 @@
 # 知行前台开发任务清单
 
-> 当前新增任务：2026-09-08 [架构与教学增量 C01–C12](docs/agent-architecture-next-plan.md)开发及本机验证完成，桌面版本 0.6.0。553 项测试、开发/实包各五组 UI、双 Provider 合成项目及教学协议接入通过；真实学习效果、第三方 MCP、其他平台和签名公证仍待外部验收。详见[本轮证据](docs/evidence/agent-architecture-next.md)；历史完成项保持不变。
+> 当前任务：2026-09-08 [架构评审修复 N01–N10](docs/architecture-remediation-plan.md)工程修复与 macOS ARM64 本机验收完成，桌面 0.8.0：603 测试、开发/实包各五组 UI、两套生产依赖审计、DMG 关键内容及源码来源核对通过。DeepSeek 合成请求成功；Pi 两次 HTTP 请求阶段失败，真实连接待复测。图像/独立子 Agent 为未启用的条件性扩展，真实教学效果、其他平台及签名未验收。详见 [执行记录](docs/evidence/architecture-remediation.md)。
+
+> 前轮任务：2026-09-08 [桌面与 CLI 策略完全统一 U01–U04](docs/unified-agent-plan.md)，已完成，桌面 0.7.0。567 项测试、开发/实包各五组 UI、两套生产审计及安装镜像内容核对通过；上下文、记忆、教学、模型能力及恢复共用内核；[执行证据](docs/evidence/unified-agent.md)。
+
+> 上轮任务：2026-09-08 [架构与教学增量 C01–C12](docs/agent-architecture-next-plan.md)开发及本机验证完成，桌面版本 0.6.0。553 项测试、开发/实包各五组 UI、双 Provider 合成项目及教学协议接入通过；真实学习效果、第三方 MCP、其他平台和签名公证仍待外部验收。详见[本轮证据](docs/evidence/agent-architecture-next.md)；历史完成项保持不变。
 
 > 核对日期：2026-09-07，补充 Pi 登录后真实可用性验收。执行以当前用户授权任务为准；完成后更新本文件、Evidence，并运行适用的验证。
 > 状态：`[x]` 已验证，`[~]` 基础实现/待收口，`[ ]` 未开始。

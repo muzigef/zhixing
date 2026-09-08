@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
+import type { outcomeCalibration } from "./outcome-calibration.js";
 
 export const outcomeModeSchema = z.enum(["zhixing", "direct"]);
 export const outcomeProtocolSchema = z.enum(["prompt_only", "full_product"]);
@@ -41,8 +42,10 @@ export interface OutcomeView {
 export interface OutcomeSummary {
   conclusion: "descriptive_only"; total: number; incomplete: number;
   exclusions: Record<string, number>;
-  groups: { label: string; mode: OutcomeMode; independentPairs: number; retentionPairs: number; scoreChange: number | null; retentionChange: number | null }[];
+  calibration: ReturnType<typeof outcomeCalibration>;
+  groups: { label: string; mode: OutcomeMode; independentPairs: number; retentionPairs: number; scoreChange: number | null; retentionChange: number | null; missingRetention: number; scoreDistribution: ScoreDistribution; retentionDistribution: ScoreDistribution }[];
 }
+export interface ScoreDistribution { count: number; mean: number | null; min: number | null; max: number | null; standardDeviation: number | null; }
 
 export const lessonEvidenceSchema = z.object({
   sessionId: z.string().uuid(),

@@ -13,6 +13,14 @@ export function effectiveModelBudget(client: ModelClient, requested?: ContextBud
   return parsed.data;
 }
 export function outputTokenLimit(value = 16_384): number { return contextBudgetSchema.shape.reserveOutputTokens.parse(value); }
+/** SDK metadata is checked before transport; local policy remains a deliberate upper bound. */
+export function resolveSdkBudget(model: { contextWindow: number; maxTokens: number }, requested?: number) {
+  if (![model.contextWindow, model.maxTokens].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error("provider_capabilities_invalid");
+  const windowTokens = Math.min(model.contextWindow, 48_000);
+  const reserveOutputTokens = Math.min(model.maxTokens, outputTokenLimit(requested));
+  if (reserveOutputTokens >= windowTokens) throw new Error("model_input_limit");
+  return { windowTokens, reserveOutputTokens, providerContextWindow: model.contextWindow, providerMaxOutput: model.maxTokens };
+}
 /** Pi input excludes cache reads/writes; the public application contract is total input tokens. */
 export function piReportedUsage(value: { input: number; output: number; cacheRead: number; cacheWrite: number; reasoning?: number }) {
   return { inputTokens: value.input + value.cacheRead + value.cacheWrite, outputTokens: value.output, cacheReadTokens: value.cacheRead, reasoningTokens: value.reasoning };
@@ -23,5 +31,5 @@ export function environmentContextBudget(environment: NodeJS.ProcessEnv): Contex
   if (!value.success) throw new Error("context_budget_invalid"); return value.data;
 }
 export function withModelBudget(client: ModelClient, contextBudget?: ContextBudget): ModelClient {
-  return { stream: client.stream.bind(client), capabilities: capabilitiesFor(client), contextBudget, ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (client as ContinuableModelClient).continue.bind(client) } : {}) };
+  return { stream: client.stream.bind(client), capabilities: capabilitiesFor(client), contextBudget: contextBudget ?? client.contextBudget, ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (client as ContinuableModelClient).continue.bind(client) } : {}) };
 }

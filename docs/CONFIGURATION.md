@@ -15,10 +15,10 @@ CLI 和源码开发要求 Node.js `24.8.x`，CLI 启动时会检查版本。已�
 | `ZHIXING_ALLOW_LIVE_PROVIDER` | 否 | 未设置，允许真实 Provider 调用 | CLI 和桌面都识别；只有字符串 `0` 会禁止真实 Provider 请求。它不会配置账号、修改保存的路由，或自动选择 mock/demo。 |
 | `ZHIXING_DEEPSEEK_MODEL` | 否 | `deepseek-v4-flash` | CLI 的 DeepSeek 模型名，在创建适配器时读取。桌面显式传入 `preferences.json` 中的 `deepseekModel`，因此桌面模型选择不受此变量覆盖。 |
 | `PI_CODING_AGENT_DIR` | 否 | `~/.pi/agent` | CLI 和桌面所读取的 Pi 全局配置目录；知行仅解析其中的 `settings.json` 模型偏好。 |
-| `ZHIXING_PI_TRANSPORT` | 否 | `sse` | 桌面 Pi SDK 的传输策略，可设为 `auto` 做兼容性对照；无效值拒绝请求。不会修改 Pi 偏好、模型或思考强度，不作用于 CLI Pi。 |
+| `ZHIXING_PI_TRANSPORT` | 否 | `sse` | 两端 Pi SDK 的传输策略，可设为 `auto` 做兼容性对照；无效值拒绝请求。不会修改 Pi 偏好、模型或思考强度，同样作用于 CLI Pi。 |
 | `NO_COLOR` | 否 | 未设置 | CLI 中只要存在就关闭终端颜色，包括空字符串；不改变桌面主题。 |
 | `TERM` | 否 | 继承终端环境 | CLI 在值为 `dumb` 或输出不是 TTY 时关闭颜色。 |
-| `PATH` | 否 | 继承进程环境 | CLI 用它寻找 `pi`、`codex`、macOS `security` 和可选 OCR 工具。桌面内附 Pi 的执行路径不依赖全局 `pi`。 |
+| `PATH` | 否 | 继承进程环境 | CLI 用它寻找 `codex`、macOS `security` 和可选 OCR 工具。桌面内附 Pi 的执行路径不依赖全局 `pi`。 |
 
 环境变量作用于启动后的进程。从终端运行源码应用时可在命令前设置，例如：
 
@@ -70,7 +70,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 
 三个切换命令是不同选择的示例，按需要执行其中一个。内置 Provider 为 `mock`、`deepseek-api`、`codex-cli` 与 `pi-codex`。保存路由不会自动安装 Provider 或验证登录。`/style` 支持 `concise`、`adaptive`（别名 `balanced`）、`detailed` 以及“简洁/适中/详细”；按主题保存，本轮明确的篇幅和格式要求优先。
 
-学习画像包含 `goal`（2–240 字符）、`level`（1–80 字符）、`dailyMinutes`（15–480 整数）、`totalDays`（1–180 整数），没有自动填充的画像默认值。提醒配置包含 `time`（24 小时制 `HH:mm`）和 `enabled`；当前只保存提醒计划，不启动后台调度或系统通知。
+学习画像包含 `goal`（2–240 字符）、`level`（1–80 字符）、`dailyMinutes`（15–480 整数）、`totalDays`（1–180 整数），没有自动填充的画像默认值。提醒配置包含 `time`（24 小时制 `HH:mm`）和 `enabled`；桌面运行或交互终端 REPL 打开时，由共享调度器每 15 秒检查；到点五分钟内按本地日期领取一次提醒，多主题合并。退出后不运行，错过不补发；系统可能静音通知。可用“提醒关闭”或桌面课程面板关闭。
 
 ## 桌面偏好与本地数据
 
@@ -79,7 +79,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 | 路径（相对于桌面数据目录） | 用途 |
 | --- | --- |
 | `preferences.json` | Provider、回答风格、主题及 DeepSeek 模型。 |
-| `conversations/<UUID>.json` | 每个会话的完整消息和状态，最多 1,000 条消息；达到上限后需新建会话。 |
+| `conversations/<UUID>.json` | v7 会话清单、尾部最多 250 条消息及状态；更早历史在同名 UUID 子目录中按哈希分段，完整会话最多 20,000 条/12 MB。 |
 | `deepseek.credential` | 新添加 API Key 的系统加密数据，不是 JSON 或明文配置。 |
 | `workspace.json` / `workspace/` | 显式连接的工作区路径 / 默认学习数据根。连接已有 CLI 根时不迁移用户数据。 |
 | `runtime/` | Pi 子进程的工作目录；应用启动时复制专用 `AGENTS.md`，不会加载开发仓库的学习资料。 |
@@ -127,7 +127,7 @@ npm start -- 模型切换 tutor deepseek-api --确认
 
 桌面 Key 要求去除首尾空白后长度为 8–4,096 字符且不含空白字符。已有加密文件解密失败时会报错，不会再偷偷使用旧 Keychain 项。设置页只显示“是否配置/来源”，不会回填 Key；“已配置”也不等于余额、Key 有效性或网络已验证。真实系统加密写入及模型连接的验证范围见[桌面验证记录](evidence/desktop-app.md)。
 
-DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`，目前没有用户可配置的 base URL 设置。它使用 SSE 文本/工具协议并显式发送 `thinking: {"type":"disabled"}`。CLI 和桌面共用适配器；桌面选定主题并授权学习上下文后，可调用只读进度、资料目录和检索工具。默认单次 DeepSeek 请求超时为 60 秒。
+DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`，目前没有用户可配置的 base URL 设置。它使用 SSE 文本/工具协议；quick 关闭 thinking，balanced/deep 分别选择 low/high 推理强度。CLI 和桌面共用适配器；桌面选定主题并授权学习上下文后，可调用只读进度、资料目录和检索工具。默认单次 DeepSeek 请求超时为 60 秒。
 
 ## Pi Codex 接入
 
@@ -148,9 +148,9 @@ CLI 的 `projectDir` 是知行源码仓库目录，不随 `ZHIXING_ROOT` 更改�
 
 设置文件必须是 JSON 对象且不超过 256,000 字节；缺失文件可以由另一层补齐字段，非法 JSON 或无效字段会报配置错误。配置变更前已经开始的请求保持原选择。
 
-CLI 通过 `scripts/pi-safe.sh` 启动系统 `pi`，传入 `--print --mode json --no-session --offline --no-tools --tools ''` 并关闭技能、模板与主题加载。桌面内附 Pi `0.85.0`，使用 Electron 自带运行时启动仅模型公共 SDK worker；模型可以请求应用声明的工具，实际执行统一经过 ToolHarness，未开放 Pi 原生文件或 shell 工具。请求正文走 stdin，不进入 argv，也不被当作 `@file` 参数。Pi 子进程设置 `PI_TELEMETRY=0`、`PI_SKIP_VERSION_CHECK=1`、`PI_OFFLINE=1`，桌面另设置 `ELECTRON_RUN_AS_NODE=1`。
+CLI 与桌面均安装 Pi `0.85.0`，使用同一公共模型 SDK worker。CLI 使用 Node/tsx，桌面使用 Electron 自带运行时与编译后的 worker。应用声明的工具由 ToolHarness 执行，Pi 原生文件或 shell 工具不开放。正文走 stdin；子进程设置 `PI_TELEMETRY=0`、`PI_SKIP_VERSION_CHECK=1`、`PI_OFFLINE=1` 和 `ELECTRON_RUN_AS_NODE=1`。
 
-Pi 的离线模型发现设置**不禁止本次模型请求**；禁止真实调用仍需 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。适配器输出文本增量，校验模型身份、结束原因及进程退出码；单次上限 150 秒，取消会终止子进程。桌面支持受控工具续答，CLI Pi 为文本模式。两者目前每轮启动独立进程，历史由知行管理。
+模型发现的离线设置不禁止本次模型请求，禁止真实调用仍需 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。两端校验模型身份、结束原因及进程退出码，均支持受控工具续答，单次上限 150 秒；取消会终止子进程。每轮使用独立进程，历史由共享 AgentService 管理。
 
 0.4.1 桌面默认明确使用 SSE，避免短生命周期 WebSocket 的关闭等待。设置中的诊断按模型、思考强度和传输策略显示逐轮 SDK 准备、请求至首事件、请求至完成及完成后收尾；聊天另存 `modelTimings`。请求耗时包含认证、网络和远端处理，不能解释为纯模型推理时间。未知阶段不填 0。`auto` 仅用于对照或兼容性排查，不保证实际使用 WebSocket。
 
@@ -168,9 +168,9 @@ CLI 另有 `codex-cli`，复用已安装、已登录的官方 Codex CLI，调用
 
 CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有自动 fallback。共享 `ProviderRuntime` 对少数允许 fallback 的 CLI 调用仍保留受限机制：只有尚未输出任何事件、未取消且错误属于可回退类别时，才可能调用 mock。一旦输出文本或工具事件，就不会拼接 mock 内容，也不会修改保存的角色路由。
 
-选择真实模型后，CLI 会发送当前主题的受限上下文：资料问答包括检索证据，学习建议包括学习画像与资料名称，教学/答疑/练习包括当天学习卡、受限画像、相关记忆及必要对话。学习助手可查询进度和资料目录，正文检索额外要求本次命令的 `--允许外发`，不会继承上一轮标志。模型生成的动作草案仍须通过 schema 校验及 CLI 授权后执行；包含导入、删除、恢复或模型切换的草案需强确认。用户直接输入“导入资料”已是显式导入操作，不另要求 `--确认`；删除、恢复和模型切换仍要求该标志。
+选择真实模型不会自动授权读取学习数据。两端都发送当前请求、持久目标/约束、有界历史与可选摘要；画像、记忆、教学检查点和资料须经会话授权。CLI 用 `/permissions --允许外发` 或问题后的 `--允许外发` 开启学习上下文，延续到本会话；用 `/permissions --撤回全部` 撤回。项目和外部工具独立授权。桌面对应会话中的访问开关。授权前不读取学习卡、画像、显式记忆和检索正文。
 
-桌面发送当前请求、持久目标/约束、受限历史与可选摘要；最多 24 条历史，目标和历史片段约 40,000 字符预算，其他提示另计。勾选“本会话使用学习上下文”后加入当前主题进度、课程与最多 8 条资料片段（每条至多 2000 字符，包含相邻块）；取消授权后新请求不再检索本地资料，已发送/写入历史的内容不会被自动抹除。输入最多 20,000 字符、回答最多 64,000 字符，总时限 180 秒；Provider 较短超时仍生效。
+两端历史最多 24 条，目标和历史片段约 40,000 字符预算，其他提示另计；授权后最多加入 8 条资料片段，每条 2,000 字符。撤权后停止新注入，但不自动删除以前的会话文本。输入上限 20,000 字符、回答上限 64,000 字符，总时限 180 秒；CLI 当前命令解析另限制单次输入 8,000 字符。全部记忆与长对话规则见 [统一设计](agent-memory.md)。
 
 ## 本地 OCR 与同步
 
@@ -198,7 +198,7 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 ## 0.4 新设置
 
-`preferences.json` 新增可选 `reasoning`（auto/quick/balanced/deep）与 `semanticModel`（本机 Ollama 已安装模型名）。未设置 reasoning 时发送使用 balanced；语义模型留空时使用关键词/同义词。会话另存 `executionAllowed`，仅由本次/本会话选择授予；分支、备份恢复清除授权。Pi 桌面使用公共 SDK 模型接口，旧 CLI 文本模式保持。备份范围、可选发布签名配置见 [0.4 指南](agent-0.4.md)。
+`preferences.json` 新增可选 `reasoning`（auto/quick/balanced/deep）与 `semanticModel`（本机 Ollama 已安装模型名）。未设置 reasoning 时发送使用 balanced；语义模型留空时使用关键词/同义词。会话另存 `executionAllowed`，仅由本次/本会话选择授予；分支、备份恢复清除授权。Pi 的两个入口均使用公共 SDK 模型接口。备份范围、可选发布签名配置见 [0.4 指南](agent-0.4.md)。
 
 ## 0.5 的可选能力与边界
 
@@ -208,7 +208,7 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 MCP 在主题面板中显式配置本地可执行程序、工具白名单、风险与信任确认，默认关闭，不通过 `.env` 自动注入密钥。实际协议和配置例子见 [MCP 指南](mcp-tools.md)。项目通过原生目录选择器导入副本或创建，模型不能选择用户目录；Git 需要本机可用，测试沙箱当前仅支持 macOS。见 [项目指南](practice-projects.md)。
 
-会话 v5 读取 v1–v4时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 5，旧应用拒绝新数据。其他本地数据边界见 [0.6 指南](agent-0.6.md)。
+当前会话 v7 读取 v1–v6 时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 6，旧应用拒绝新数据。其他本地数据边界见 [0.6 指南](agent-0.6.md)。
 
 ## 0.6 会话权限、预算与版本
 
@@ -217,3 +217,9 @@ MCP 在主题面板中显式配置本地可执行程序、工具白名单、风�
 设置 `contextBudget` 可保存 `{ "windowTokens": 24000, "reserveOutputTokens": 4096 }`；省略使用 48,000 / 16,384，上限仍为 48,000。实际输出上限传给 Pi SDK 与 DeepSeek；报告输入量只用于保守校准估算，不提高预算。图片输入当前明确不支持，见 [模型上下文](model-context.md)。
 
 MCP 五分钟目录缓存绑定配置和 schema，普通问答不启动外部进程；语义检索失效会提示关键词降级。Skill 面板显示版本/哈希及旧缓存状态，不静默把旧缓存当更新成功。构建 manifest 和试验条件见 [0.6 指南](agent-0.6.md)。
+
+## 0.8 访问与隔离
+
+MCP 配置可指定 `isolation: "restricted"` 和 `readPaths`（最多八条绝对路径），只在具备系统沙箱的 macOS 上启用；读取目录代表允许其全部子目录，写入只限临时工作目录，网络禁止。不支持的平台拒绝连接。省略 isolation 兼容为 `trusted`，服务以账户权限运行；工具 read 标签并不能阻止其副作用。隔离模式/路径改动同样使旧工具授权失效，见 [MCP 指南](mcp-tools.md)。
+
+同步服务启动后显示临时访问码；调用时携带 `Authorization: Bearer <临时访问码>` 请求头，不放 URL、不持久化。重启后旧访问码失效，网页请求被拒绝。提醒每日领取标记保存在主题笔记的 `reminder-delivery/`，属于完整备份内容；已领取但通知前崩溃可能漏发。

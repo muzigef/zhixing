@@ -32,7 +32,7 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.6.0`。两者复用 Agent 会话服务、学习应用服务、模型适配器和回答规范。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.8.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
@@ -49,11 +49,14 @@
 
 当前源码已实现并通过[三项 Agent 内核优化](docs/agent-kernel.md)的阶段验收：CLI/桌面共享任务服务；原生工具检查点、审批和同任务恢复；失败后修复重测及未完成计划拦截。[最新复核证据](docs/evidence/p0-recovery-audit-20260907.md)记录新增边界修复，保留当轮自动化和真实模型证据；当前交付验收另见 [P1/P2 记录](docs/evidence/agent-p1-p2-20260907.md)。
 
+
+0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
+
 ## 快速开始
 
 ### 使用桌面版
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.6.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
+已有本地构建产物时，打开 `desktop/release/Zhixing-0.8.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
@@ -97,7 +100,7 @@ npm run repl
 /status
 ```
 
-执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 继续保存最近 6 轮、每轮最多 8,000 字符的兼容历史；完整任务会话另由共享 AgentSessionStore 保存。最初目标和教学检查点继续保留。
+执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 继续保存最近 6 轮、每轮最多 8,000 字符的兼容历史；完整任务会话另由共享 AgentSessionStore 保存。六轮投影不参与模型输入；两端统一选择最多 24 条有界历史、后台摘要与按需原文回读，并在授权后读取当前主题的画像、显式记忆和教学检查点。
 
 RAG 课程要求先完成 `agent-development/D01` 和 `D02`；上面的入门示例从无跨主题前置条件的 Agent 开发主题开始。
 
@@ -149,15 +152,16 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 
 ### 使用受控学习助手
 
-已配置 DeepSeek 后，可以让模型主动查询进度或资料，并根据工具结果继续回答：
+已配置 Pi Codex 或 DeepSeek 后，可以授权模型查询进度或资料，并根据工具结果继续回答：
 
 ```text
 模型切换 tutor deepseek-api --确认
+/permissions --允许外发
 根据我的进度建议下一步
 结合已导入资料解释 RAG 的引用机制 --允许外发
 ```
 
-普通自由问答可直接使用工具，无需 `学习助手` 前缀；显式前缀仍兼容。助手默认只能读取当前主题的进度和资料目录；本次命令末尾带 `--允许外发` 才开放资料正文检索。工具错误会反馈给模型以调整查询；普通任务最多 6 轮，已连接项目的应用任务最多 12 轮；均受 32 次工具请求和 180 秒约束。教学阶段保留原有教学流程；mock、codex-cli 和 pi-codex 文本适配器不支持知行工具调用。
+普通自由问答可直接使用工具，无需 `学习助手` 前缀；显式前缀仍兼容。Pi SDK 和 DeepSeek 共用应用工具链。当前主题进度、目录、资料正文及记忆统一受会话学习上下文授权控制，可用 `/permissions --允许外发` 或问题后的同名标志开启。工具错误反馈给模型；普通任务最多 6 轮，已连接项目最多 12 轮，均受 32 次工具请求和 180 秒限制。教学也使用共享的历史、摘要、预算与工具规则。`codex-cli` 保留文本兼容能力。
 
 ### 学习中的自然交互
 
@@ -213,12 +217,12 @@ npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic 
 
 Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录；模型 ID 不写死在知行中。每次调用读取 `${PI_CODING_AGENT_DIR}/settings.json`（未设置时为 `~/.pi/agent/settings.json`），再合并调用工作目录内的 `.pi/settings.json`，同名项目设置优先。
 
-- CLI 的调用工作目录是代码仓库，通过 `scripts/pi-safe.sh` 启动系统 `pi`，因此需另行安装 Pi 并使 `pi` 和 `bash` 可用；根包 `npm ci` 不会安装 Pi。
+- CLI 的调用工作目录是代码仓库，使用根依赖中的 Pi `0.85.0` 公共模型 SDK；`npm ci` 会安装它，模型调用无需系统 `pi` 或 bash。登录与模型选择仍由 Pi 完成。
 - 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.85.0`，不会自动读取源码仓库的 `.pi/settings.json`。
 
-CLI Pi 使用受守卫限制的文本入口和空原生工具列表；桌面使用公共 SDK 模型 worker，模型请求的应用工具统一经 ToolHarness 执行，Pi 的原生文件与命令工具不开放。0.4.1 桌面默认 SSE，并记录逐轮请求和收尾耗时，见 [延迟修复记录](docs/evidence/pi-latency-fix-20260907.md)。Pi 错误会明确提示，桌面由用户选择切换 DeepSeek 重试，不会静默改用其他模型。
+CLI 和桌面共同使用 `PiApplicationClient → pi-model-worker → ModelRuntime.streamSimple`，应用工具统一经 ToolHarness 执行，Pi 原生文件与命令工具不开放。两端默认 SSE，保存逐轮请求及收尾耗时。Pi 错误会明确提示，用户可切换 DeepSeek，不会静默替换模型。
 
-设置进程环境变量 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。CLI 发送当前任务的受限主题上下文；桌面发送本轮输入、目标、约束、受限历史及可选摘要；只有授权会话才增加当前主题学习上下文。Provider 所需凭据仅用于认证，不拼入模型提示词；审计原文和其他主题资料不加入上下文。资料正文的额外授权规则见 [配置说明](docs/CONFIGURATION.md)。
+`ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。两端共用当前输入、目标、约束、有界历史与可选摘要；本会话明确授权后才加入当前主题学习上下文。CLI 可用 `/permissions --允许外发` 授权，用 `/permissions --撤回全部` 撤回；问题后的 `--允许外发` 也只开启本会话学习上下文，不自动开启项目或外部工具。凭据不进入提示词；审计原文和其他主题资料不加入上下文。详见 [配置说明](docs/CONFIGURATION.md)。
 
 ## 安全与运行模型
 
@@ -263,7 +267,7 @@ Zhixing/
   workspace/           # 未连接 CLI 工作区时的默认学习数据
 ```
 
-每会话最多 1,000 条消息，单条输入最多 20,000 字符、回答最多 64,000 字符，会话文件最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。历史选取最多 24 条，目标与历史片段使用约 40,000 字符预算；当前输入、约束、摘要和受授权学习上下文另计，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
+每会话最多 20,000 条消息，旧历史按 250 条分段保存，单条输入最多 20,000 字符、回答最多 64,000 字符，完整会话合计最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。历史选取最多 24 条，目标与历史片段使用约 40,000 字符预算；当前输入、约束、摘要和受授权学习上下文另计，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
 
 ## 验证
 
@@ -290,6 +294,7 @@ npm --prefix desktop run test:ui
 | 命令说明 | [CLI 参考](docs/CLI-REFERENCE.md) |
 | Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
 | 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
+| 核心设计与商业 Agent 对比 | [28 个核心模块评审：Codex / Claude Code 对比、取舍与优化建议](docs/agent-architecture-comparison-20260908.md) |
 | 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
 

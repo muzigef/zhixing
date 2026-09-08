@@ -50,7 +50,7 @@ describe("agent upgrade foundations", () => {
     const server = new LocalSyncServer(async (topicId) => ({ topicId }), ["3dgs"]);
     const port = await server.listen();
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/topics/3dgs/progress`);
+      const response = await fetch(`http://127.0.0.1:${port}/topics/3dgs/progress`, { headers: { authorization: server.authorizationHeader() } });
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({ topicId: "3dgs" });
       expect((await fetch(`http://127.0.0.1:${port}/topics/${"a".repeat(200)}/progress`)).status).toBe(404);
