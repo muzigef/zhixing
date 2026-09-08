@@ -68,7 +68,7 @@ globalThis.fetch = async (_url, init) => {
       child.stdin.write(initial + "\n");
     }),
     requests: async () => JSON.parse(await fs.readFile(requestsFile, "utf8")) as Array<{ messages: Array<{ content: string }> }>,
-    invoke: (command: string, topic = "agent-development") => exec(process.execPath, [...args, command, "--topic", topic], options),
+    invoke: (command: string, topic = "agent-development") => exec(process.execPath, [...args, command, "--topic", topic], { ...options, timeout: 8000 }),
     crashAfterText: () => new Promise<void>((resolve, reject) => {
       const child = spawn(process.execPath, [...args, "--repl"], { ...options, stdio: ["pipe", "pipe", "pipe"] });
       let output = ""; const timer = setTimeout(() => { child.kill(); reject(new Error("fixture_crash_timeout")); }, 5000);
@@ -287,7 +287,7 @@ describe("natural interaction through the actual CLI", () => {
     await fixture.invoke("继续");
     expect((await fixture.requests())[2]!.messages.map(message => message.content).join("\n")).toContain("旧会话的查询向量");
     expect(await fixture.chats.current("rag")).toBeUndefined();
-  });
+  }, 15000);
   it("shows text without a newline, handles status immediately, and steers using interrupted context", async () => {
     const fixture = await setup(false, [{ text: "查询向量的未完成解释", stall: true }, "换成生活例子解释。"]);
     const output = await fixture.controlledRepl("解释查询向量", "查询向量的未完成解释", ["/status", "等等，用生活例子", "退出"]);

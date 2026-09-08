@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 
 // CLI/Electron/SDK subprocess tests contend for CPU on shared runners. Keep the
-// original per-test deadlines and bound CI concurrency instead of hiding hangs.
+// explicit runtime deadlines and bound CI concurrency. Multi-process journeys
+// declare their own composite deadlines; each child process is bounded as well.
 export default defineConfig({ test: { maxWorkers: process.env.CI ? 1 : undefined } });

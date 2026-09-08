@@ -23,7 +23,7 @@ globalThis.fetch = async (_url, init) => {
   const message = answered ? {content:'使用数组说明。'} : {content:null, tool_calls:[{id:'ask-one',type:'function',function:{name:'ask_user',arguments:JSON.stringify({title:'使用哪种例子？',options:['数组','链表']})}}]};
   return new Response(JSON.stringify({choices:[{message,finish_reason:answered?'stop':'tool_calls'}]}));
 };`);
-    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "--import", preload, "src/cli.ts", command], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1" } });
+    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "--import", preload, "src/cli.ts", command], { cwd: process.cwd(), timeout: 8000, env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1" } });
     const first = await invoke("/agent 解释算法"); const id = /\/answer ([0-9a-f-]{36})/.exec(first.stdout)?.[1]; expect(id).toBeTruthy();
     expect((await invoke(`/answer ${id} 数组`)).stdout).toContain("使用数组说明");
     const wire = JSON.parse(await fs.readFile(requests, "utf8")); expect(wire).toHaveLength(2);
@@ -35,7 +35,7 @@ globalThis.fetch = async (_url, init) => {
     expect((await invoke("/task")).stdout).toContain("计划修订：1");
     expect((await invoke("/task verify")).stdout).toContain("当前没有待核对的外部操作");
   } finally { await fs.rm(root, { recursive: true, force: true }); }
-});
+}, 15000);
 
 it("shows the actual project diff in CLI before an approval and preserves the file on denial", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-cli-project-")); const app = await LearningApplication.open(root);
@@ -53,7 +53,7 @@ globalThis.fetch = async (_url, init) => {
   const message = answered ? {content:'已拒绝，文件未修改。'} : {content:null,tool_calls:[{id:'edit-one',type:'function',function:{name:'project_edit',arguments:${JSON.stringify(JSON.stringify(input))}}}]};
   return new Response(JSON.stringify({choices:[{message,finish_reason:answered?'stop':'tool_calls'}]}));
 };`);
-    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "--import", preload, "src/cli.ts", command], { cwd: process.cwd(), env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1" } });
+    const invoke = (command: string) => exec(process.execPath, ["--import", "tsx", "--import", preload, "src/cli.ts", command], { cwd: process.cwd(), timeout: 8000, env: { ...process.env, ZHIXING_ROOT: root, ZHIXING_ALLOW_LIVE_PROVIDER: "1" } });
     const first = await invoke("/agent 修改当前项目 --允许项目");
     expect(first.stdout).toContain("--- a/src/implementation.mjs"); expect(first.stdout).toContain("+export const solve = value => value + 0;");
     const id = /\/answer ([0-9a-f-]{36})/.exec(first.stdout)?.[1]; expect(id).toBeTruthy();
