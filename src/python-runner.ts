@@ -9,7 +9,7 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "本机没有可验证的 Python 标准库隔离运行环境。", exitCode: null };
   if (!["darwin", "win32"].includes(process.platform)) return unavailable;
   let runtime: { executable: string; prefix: string } | undefined;
-  let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3"];
+  let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"];
   if (process.platform === "win32") {
     try {
       const { stdout } = await exec(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32/where.exe"), ["python.exe"], { signal, timeout: 2000, maxBuffer: 8000, windowsHide: true });
@@ -26,7 +26,10 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
         if (path.dirname(executable).toLowerCase() !== prefix.toLowerCase() || !/^python(?:3(?:\.\d+)?)?\.exe$/i.test(path.basename(executable))) continue;
         runtime = { executable, prefix }; break;
       }
-      if (!["/Applications/Xcode.app/Contents/Developer/", "/Library/Developer/CommandLineTools/", "/opt/homebrew/Cellar/", "/System/Library/"].some(root => executable.startsWith(root) && prefix.startsWith(root))) continue;
+      const trustedRoots = ["/Applications/Xcode.app/Contents/Developer/", "/Library/Developer/CommandLineTools/", "/opt/homebrew/Cellar/", "/usr/local/Cellar/", "/System/Library/"];
+      const versionedXcode = /^\/Applications\/Xcode_[0-9][a-zA-Z0-9._-]*\.app\/Contents\/Developer\//.exec(executable)?.[0];
+      if (versionedXcode) trustedRoots.push(versionedXcode);
+      if (!trustedRoots.some(root => executable.startsWith(root) && prefix.startsWith(root))) continue;
       const frameworkExecutable = path.join(prefix, "Resources/Python.app/Contents/MacOS/Python");
       const direct = await fs.realpath(frameworkExecutable).catch(() => executable);
       runtime = { executable: direct, prefix }; break;

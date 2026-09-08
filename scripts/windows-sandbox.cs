@@ -41,7 +41,7 @@ class Sandbox {
   [DllImport("kernel32.dll", SetLastError=true)] static extern bool CreatePipe(out IntPtr read,out IntPtr write,ref SECURITY_ATTRIBUTES attrs,int size);
   [DllImport("kernel32.dll", SetLastError=true)] static extern bool SetHandleInformation(IntPtr handle,int mask,int flags);
   [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)] static extern IntPtr CreateFile(string path,uint access,uint share,ref SECURITY_ATTRIBUTES attrs,uint disposition,uint flags,IntPtr template);
-  static void Check(bool ok) { if (!ok) throw new Exception("win32_"+Marshal.GetLastWin32Error()); }
+  static void Check(bool ok, [System.Runtime.CompilerServices.CallerLineNumber] int line=0) { if (!ok) throw new Exception("win32_"+Marshal.GetLastWin32Error()+"_at_"+line); }
   static string Quote(string value) { return "\""+System.Text.RegularExpressions.Regex.Replace(value, "(\\\\*)\"", "$1$1\\\"").TrimEnd('\0').Replace("\0", "")+new string('\\', value.Reverse().TakeWhile(c=>c=='\\').Count())+"\""; }
   static void Grant(string directory, SecurityIdentifier sid, FileSystemRights rights) {
     var info=new DirectoryInfo(directory); var acl=info.GetAccessControl();

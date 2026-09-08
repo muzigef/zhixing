@@ -29,6 +29,7 @@
 - Windows 分支使用 AppContainer 无能力 SID、白名单继承句柄和禁止子进程属性；进程先挂起，绑定 Job Object 的单进程、512 MB 内存、关闭即终止限制后恢复。测试代码只获得独立临时运行时读权限及临时工作目录写权限；标准输入关闭、超时和取消均终止 Job。未安装 helper 时明确不可用，不降级为普通进程。
 - CLI 构建命令 `node scripts/build-windows-sandbox.mjs`；桌面自动构建并装入 runtime。系统 .NET 编译器缺失即构建失败。Python 标准库以独立副本加载，排除 site-packages；未安装 Python 不冒充通过。
 - 本机 `CI=1 npm run verify`、五组 UI 均退出 0（`/tmp/zhixing-r03-verify.log`、`/tmp/zhixing-r03-ui.log`）。macOS 本机测试不能验证 Windows 原生分支；远端 Windows 实际越界/网络/子进程/超时/取消及 Windows、Intel 实包 UI 仍待 Actions 结果。
+- 首轮远端 34248279002 三个平台均真实暴露问题：Windows 创建 AppContainer 进程时报 203；ARM 打包将空 CSC_LINK 当目录；Intel 的 Python 发现规则未覆盖版本化 Xcode 与 Intel Homebrew。修复分别为：仅向可信 helper 传必需的 LOCALAPPDATA（不会进入沙箱子进程）；未签名构建删除空签名环境项；支持受限的版本化 Xcode/Intel Homebrew Python 路径。`CI=1 npm run verify` 再次通过，日志 `/tmp/zhixing-r03-fixed-verify.log`；远端复跑待结果。
 
 ## R04 · DeepSeek 真实任务与质量回归
 

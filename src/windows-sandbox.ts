@@ -55,7 +55,9 @@ export async function runWindowsSandbox(command: string, args: readonly string[]
     }
     if (options.signal?.aborted) return { ...unavailable, status: "cancelled", stderr: "" };
     return await new Promise<SandboxResult>(resolve => {
-      const child = spawn(helper, [], { shell: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"], env: { SystemRoot: process.env.SystemRoot } });
+      // CreateProcess resolves the package profile from the host's LOCALAPPDATA.
+      // This goes to the trusted launcher only; its child receives a separate environment.
+      const child = spawn(helper, [], { shell: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"], env: { SystemRoot: process.env.SystemRoot, LOCALAPPDATA: process.env.LOCALAPPDATA } });
       let output = "", completed = false;
       const decoder = new StringDecoder("utf8");
       const abort = () => { if (!child.stdin.destroyed) child.stdin.end("cancel\n"); };
