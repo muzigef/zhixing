@@ -22,6 +22,8 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.platform && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["macos-15","macos-15-intel","windows-2022"]') }}
     runs-on: ${{ matrix.os }}
+    env:
+      ZHIXING_DESKTOP_NATIVE_CIPHER: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

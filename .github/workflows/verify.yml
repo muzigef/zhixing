@@ -7,6 +7,8 @@ on:
 jobs:
   quality:
     runs-on: macos-15
+    env:
+      ZHIXING_DESKTOP_NATIVE_CIPHER: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -118,7 +118,7 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 全量测试运行标准 `npm run verify`。E40 明确设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0`，证明 mock 学习建议不会被真实请求门禁误拦截；各 Provider 测试自行注入受控的网络或子进程夹具。
 
-真实 Provider 连通检查属于单独环境验收，不能混入普通测试或把用户凭证写进夹具。桌面已有 DeepSeek 短请求的历史证据；Pi 内附运行时和协议测试通过不代表 Codex 登录有效。新密钥保存目前验证了可注入 cipher 的存储抽象及 Electron safeStorage 类型接口，真实系统 safeStorage 的“保存新密钥 → 解密读回”尚无验收记录。
+真实 Provider 连通检查属于单独环境验收，不能混入普通测试或把用户凭证写进夹具。桌面已有 DeepSeek 真实请求证据；Pi 内附运行时和协议测试通过不代表 Codex 登录有效。存储抽象验证加密写入/重读；系统 safeStorage 的合成字符串加解密在真实 Mac/Windows 应用中另行检查，不把两者合称为实际用户新密钥保存验收。
 
 ## 覆盖率与 CI
 
@@ -245,3 +245,7 @@ npm --prefix desktop run test:ui
 本轮不运行真实 Pi 排障；Pi 相关 Vitest 使用离线 SDK/协议夹具。旧留出集 H03 已用于修复，整个旧集合按回归集记录，不再称为未见盲测。独立人工评分及真实学习效果仍需外部人员。
 
 Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目录，核对 6 个关键运行文件，再针对安装路径执行五组 UI；安装回执作为 artifact 保留。手动定位可选 platform，tag 发布始终运行全部平台。异步 IPC 条件使用有总期限的 `waitForIpc` 逐次等待，不能把 Promise 对象当成条件已满足。
+
+默认 UI 回归使用隔离的合成数据，不主动访问系统加密。显式设置 `ZHIXING_DESKTOP_NATIVE_CIPHER=1` 可增加真实 safeStorage 的合成加解密检查，IPC 等待上限 20 秒；两个 GitHub 工作流都强制启用此检查，失败不能忽略。虽然没有读取已有 API Key，macOS 仍可能要求访问系统管理的主密钥，尤其在预览包重新签名后。本机需要用户在系统界面处理授权；未授权时应记录未验收，不应将普通 UI 通过替代这一结果。
+
+如果本机全局 npm 镜像不可用，可仅为本次审计追加 `--registry=https://registry.npmjs.org`，分别执行根目录与 desktop 的 `npm audit --omit=dev --audit-level=high`，保留最初的网络失败记录，不更改全局配置。

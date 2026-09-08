@@ -3,6 +3,7 @@ import { strict as assert } from "node:assert";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { waitForIpc } from "./wait-for-ipc.mjs";
 const root = path.resolve(import.meta.dirname, "..");
 const data = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-desktop-ui-"));
 const captures = path.join(os.tmpdir(), "zhixing-desktop-preview");
@@ -57,15 +58,18 @@ try {
     path: path.join(captures, "01-welcome.png"),
   });
   assert.equal(await page.evaluate(() => typeof window.require), "undefined");
-  const nativeCipher = await running.app.evaluate(async ({ safeStorage }) => {
-    const available = await safeStorage.isAsyncEncryptionAvailable();
-    if (!available) return { available };
-    // Memory-only synthetic input: no existing credential or auth file is read.
-    const value = "zhixing-synthetic-encryption-roundtrip";
-    const encrypted = await safeStorage.encryptStringAsync(value);
-    return { available, opaque: !encrypted.includes(Buffer.from(value)), recovered: (await safeStorage.decryptStringAsync(encrypted)).result === value };
-  });
-  assert.deepEqual(nativeCipher, { available: true, opaque: true, recovered: true });
+  if (process.env.ZHIXING_DESKTOP_NATIVE_CIPHER === "1") {
+    await waitForIpc(running.app, async ({ safeStorage }) => {
+      if (!(await safeStorage.isAsyncEncryptionAvailable())) throw new Error("native_encryption_unavailable");
+      // Synthetic input only. macOS may still request OS-managed master-key
+      // access, so native encryption is explicit and has an overall deadline.
+      const value = "zhixing-synthetic-encryption-roundtrip";
+      const encrypted = await safeStorage.encryptStringAsync(value);
+      if (encrypted.includes(Buffer.from(value)) || (await safeStorage.decryptStringAsync(encrypted)).result !== value) throw new Error("native_encryption_roundtrip_failed");
+      return true;
+    });
+    console.log("Native cipher passed: synthetic encryption/decryption, no plaintext or existing API credential output.");
+  }
   const piVersion = await running.app.evaluate(async ({ app }) => {
     const { execFile } = process.getBuiltinModule("node:child_process");
     const { promisify } = process.getBuiltinModule("node:util");
@@ -344,7 +348,7 @@ try {
   await page.getByRole("navigation", { name: "历史会话", exact: true }).getByText("分页合成 1", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Desktop UI passed: sandbox bridge, native memory-only secret encryption roundtrip, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
+    "Desktop UI passed: sandbox bridge, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
   );
   console.log(`Screenshots: ${captures}`);
 } catch (error) {
