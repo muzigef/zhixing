@@ -1,3 +1,4 @@
+import { imageBudgetView } from "./image-input.js";
 import type { ModelMessage, ModelToolDefinition, ModelTurn } from "./model.js";
 
 export interface ContextBudget { windowTokens: number; reserveOutputTokens: number; }
@@ -23,8 +24,8 @@ export function modelContextWindow(input: { prompt: string; messages?: readonly 
   const project = () => {
     const selected = messages.map(item => item.message);
     if (omittedMessages || omittedTurns) selected.splice(Math.max(0, selected.length - 1), 0, { role: "observation", content: JSON.stringify({ omittedMessages, omittedTurns, notice: "较早记录已从本次模型上下文移除，原文仍保存在本地。缺少的事实不可猜测；可查询实际任务状态或说明缺失。", ...(feedback.length ? { priorUserFeedback: feedback } : {}) }) });
-    const serialized = JSON.stringify({ messages: selected, history, tools: input.tools ?? [], ...(input.pending ? { pending: input.pending } : {}) });
-    return { messages: selected, usage: { estimatedInputTokens: Math.ceil(estimateTokens(serialized) * estimateMultiplier), reservedOutputTokens: budget.reserveOutputTokens, windowTokens: budget.windowTokens, chars: serialized.length, omittedMessages, omittedTurns, estimateMultiplier } };
+    const serialized = imageBudgetView({ messages: selected, history, tools: input.tools ?? [], ...(input.pending ? { pending: input.pending } : {}) });
+    return { messages: selected, usage: { estimatedInputTokens: Math.ceil((estimateTokens(serialized.text) + serialized.imageTokens) * estimateMultiplier), reservedOutputTokens: budget.reserveOutputTokens, windowTokens: budget.windowTokens, chars: serialized.text.length, omittedMessages, omittedTurns, estimateMultiplier } };
   };
   for (;;) {
     const view = project();

@@ -1,5 +1,7 @@
 export function publicError(error: unknown): string {
   const code = error instanceof Error ? error.message : "";
+  if (code === "image_model_required") return "当前模型不支持图片。DeepSeek 请在设置中选择 V4 Flash Vision；或选择支持图片的 Pi 模型。";
+  if (code.startsWith("image_")) return "图片无法使用。请提供每张不超过 512KB、长宽不超过 2048 像素的 PNG 或 JPEG，每次最多两张。";
   if (error instanceof Error && error.name === "AbortError" || /^(?:import_)?cancelled$/.test(code)) return "已取消本次操作。";
   if (code.startsWith("mcp_")) return code === "mcp_settings_conflict" ? "外部工具配置已改变，请关闭面板并重新打开后核对。" : code === "mcp_cancelled" ? "已取消外部工具操作。" : "外部工具未完成。请检查连接、协议版本、工具权限和参数；服务日志不会显示在对话中。";
   const projectErrors: Record<string, string> = {

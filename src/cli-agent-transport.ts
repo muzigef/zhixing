@@ -30,7 +30,7 @@ export class CliAgentTransport {
     try { return await this.service.load(chat.id); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
     const now = new Date().toISOString();
-    const session: ChatSession = { version: 7, mode: chat.mode, teaching: inheritLegacy ? undefined : null, id: chat.id, title: chat.goal?.slice(0, 80) || "新对话", customTitle: false, createdAt: now, updatedAt: now, topicId: chat.topicId,
+    const session: ChatSession = { version: 8, mode: chat.mode, teaching: inheritLegacy ? undefined : null, id: chat.id, title: chat.goal?.slice(0, 80) || "新对话", customTitle: false, createdAt: now, updatedAt: now, topicId: chat.topicId,
       messages: chat.turns.flatMap(turn => [
         { id: randomUUID(), role: "user" as const, text: turn.user, status: "completed" as const, createdAt: now },
         { id: randomUUID(), role: "assistant" as const, text: turn.assistant, status: turn.status === "incomplete" ? "failed" as const : turn.status, createdAt: now },

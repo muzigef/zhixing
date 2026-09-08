@@ -1,3 +1,4 @@
+import { readImageFile } from "./image-file.js";
 import { executionSupport } from "./platform-support.js";
 import { CliAgentTransport } from "./cli-agent-transport.js";
 import { providerSchema } from "./agent-session-contracts.js";
@@ -491,6 +492,12 @@ async function execute(line: string): Promise<string> {
     const progress = await learning.handle("进度", activeTopic);
     return `主题：${registry.get(activeTopic).title}\n${progress}\n资料：${documents.length} 份\n画像：${profile ? `${profile.goal}（每天 ${profile.dailyMinutes} 分钟）` : "未设置"}\n提醒：${reminder?.enabled ? `每天 ${reminder.time}（程序运行时提醒）` : reminder ? "已关闭" : "未设置"}`;
   });
+  const imageRequest = /^\/image\s+(?:"([^"]+)"|(\S+))(?:\s+([\s\S]+))?$/.exec(command);
+  if (imageRequest) return run("image_question", activeTopic, async (_lifecycle, signal) => {
+    const picture = await readImageFile(imageRequest[1] ?? imageRequest[2]!);
+    const result = await collectReply(imageRequest[3] ?? "请描述图片并说明判断依据。", { images: [picture] }, signal);
+    return result.text;
+  });
   if (command === "提醒关闭") { await reminders.disable(activeTopic); return "复习提醒已关闭。"; }
   const reminder = /^提醒设置\s+([0-2]\d:[0-5]\d)$/.exec(command)?.[1];
   if (reminder) return run("set_reminder", activeTopic, async () => { await reminders.set(activeTopic, reminder); return `已设置复习提醒：每天 ${reminder}。桌面运行或终端 REPL 打开时提醒；关闭后不提醒，错过超过五分钟不补发。`; });
@@ -658,14 +665,14 @@ function statusSummary(state?: ReplSnapshot): string {
   return `${executionSupport().message}\n当前主题：${registry.get(activeTopic).title}（${activeTopic}）\n${working ? `${replying ? "正在回答" : "正在处理"} · ${activity} · ${Math.max(0, Math.floor((Date.now() - responseStartedAt) / 1000))} 秒` : "可以继续提问"} · 排队 ${(state?.queued ?? 0) + cliAgent.queued} 条\n回答风格：${styleLabels[responseStyle]}${chat.mode === "lesson" && teachingSession ? `\n教学：${teachingSession.dayId ?? "当前任务"} · ${teachingSession.stage === "practice" ? "练习" : "答疑"}` : ""}${pendingConversationPlan ? "\n有待执行草案，可说“就按这个来”或“取消草案”。" : ""}`;
 }
 
-async function collectReply(userInput: string, observer: AgentObserver & Pick<SendRequest, "purpose">, signal: AbortSignal): Promise<AgentReply> {
+async function collectReply(userInput: string, observer: AgentObserver & Pick<SendRequest, "purpose" | "images">, signal: AbortSignal): Promise<AgentReply> {
   chat = await chats.save(chat);
   replying = true; responseStartedAt = Date.now(); activity = "思考中";
   const grant = /(?:^|\s)--允许外发(?:\s|$)/.test(userInput);
   const text = userInput.replace(/(?:^|\s)--允许外发(?=\s|$)/g, "").trim();
   try {
     const current = grant ? await cliAgent.ensure(chat) : undefined;
-    const result = await cliAgent.invoke(chat, { text, purpose: observer.purpose, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle,
+    const result = await cliAgent.invoke(chat, { text, purpose: observer.purpose, images: observer.images, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle,
       ...(grant ? { access: { materials: true, project: Boolean(current?.permissions?.projectId), external: current?.permissions?.externalRevision !== undefined } } : {}) }, { ...observer, signal });
     if (result.partial && !replMode) { process.exitCode = 1; console.error("本轮未完成，已保留返回内容，可重试或继续。"); }
     return result;

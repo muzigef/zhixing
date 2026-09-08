@@ -21,7 +21,7 @@ export class AgentSessionStore {
   async create(): Promise<ChatSession> {
     const now = new Date().toISOString();
     const session: ChatSession = {
-      version: 7,
+      version: 8,
       id: randomUUID(),
       title: "新对话",
       customTitle: false,
@@ -38,7 +38,7 @@ export class AgentSessionStore {
     const raw = await readJson(this.sessionPath(id), 12_000_000) as Record<string, unknown>;
     const session = chatSchema.parse(raw);
     if (raw.segments !== undefined) {
-      if (raw.version !== 7 || session.id !== id) throw new Error("session_segment_invalid");
+      if (![7, 8].includes(Number(raw.version)) || session.id !== id) throw new Error("session_segment_invalid");
       const segments = z.array(z.object({ hash: z.string().regex(/^[a-f0-9]{64}$/), count: z.number().int().min(1).max(250) }).strict()).max(80).parse(raw.segments);
       const prefix: typeof session.messages = []; let bytes = 0;
       for (const segment of segments) {
@@ -52,13 +52,13 @@ export class AgentSessionStore {
       if (Buffer.byteLength(JSON.stringify(session)) > 12_000_000) throw new Error("storage_limit");
     }
     if (session.id !== id) throw new Error("session_invalid");
-    session.version = 7;
+    session.version = 8;
     for (const message of session.messages)
       if (message.status === "running") message.status = "interrupted";
     return session;
   }
   async save(session: ChatSession): Promise<void> {
-    const checked = chatSchema.parse({ ...session, version: 7 });
+    const checked = chatSchema.parse({ ...session, version: 8 });
     chatSchema.parse(session);
     if (Buffer.byteLength(JSON.stringify(checked)) > 12_000_000) throw new Error("storage_limit");
     const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
@@ -66,9 +66,9 @@ export class AgentSessionStore {
         const file = this.sessionPath(checked.id);
         try {
           const signature = await this.signature(file);
-          const old = this.knownVersions.get(checked.id) === signature ? { version: 7 } : await readJson(file, 12_000_000) as { version?: number };
-          if (![1, 2, 3, 4, 5, 6, 7].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
-          if (old.version === 1 || old.version === 2 || old.version === 3 || old.version === 4 || old.version === 5 || old.version === 6) {
+          const old = this.knownVersions.get(checked.id) === signature ? { version: 8 } : await readJson(file, 12_000_000) as { version?: number };
+          if (![1, 2, 3, 4, 5, 6, 7, 8].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
+          if (old.version === 1 || old.version === 2 || old.version === 3 || old.version === 4 || old.version === 5 || old.version === 6 || old.version === 7) {
             await assertNotLinked(`${file}.v${old.version}.bak`);
             try { await fs.copyFile(file, `${file}.v${old.version}.bak`, constants.COPYFILE_EXCL); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
           }

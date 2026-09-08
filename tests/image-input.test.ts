@@ -1,0 +1,48 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, expect, it, vi } from "vitest";
+import { imageInputSchema, imageContext, imageFromBytes } from "../src/image-input.js";
+import { DeepSeekClient } from "../src/deepseek-client.js";
+import { MemorySecretStore } from "../src/secret-store.js";
+import { AgentService } from "../src/agent-service.js";
+import { AgentSessionStore } from "../src/agent-session-store.js";
+import { modelContextWindow } from "../src/context-window.js";
+import { buildMessages } from "../src/learning-agent-profile.js";
+import type { ModelEvent } from "../src/model.js";
+const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jB9kAAAAASUVORK5CYII=";
+const picture = () => imageFromBytes("synthetic.png", Uint8Array.from(Buffer.from(png, "base64")));
+const roots: string[] = []; afterEach(async () => { await Promise.all(roots.splice(0).map(root => fs.rm(root, { recursive: true, force: true }))); });
+it("validates decoded image bytes, dimensions and quota rather than trusting MIME or file names", () => {
+  expect(picture()).toMatchObject({ mimeType: "image/png", width: 1, height: 1, data: png });
+  expect(() => imageInputSchema.parse({ ...picture(), width: 4000 })).toThrow();
+  expect(() => imageInputSchema.parse({ ...picture(), mimeType: "image/jpeg" })).toThrow();
+  expect(() => imageFromBytes("x.png", new Uint8Array(600_000))).toThrow();
+  expect(() => imageFromBytes("x.svg", new TextEncoder().encode("<svg/>"))).toThrow();
+});
+it("sends image blocks only to an explicitly selected vision model and keeps them in tool continuation", async () => {
+  const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "synthetic");
+  const request = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "合成" }, finish_reason: "stop" }] })));
+  const plain = new DeepSeekClient(secrets, request, {});
+  await expect((async () => { for await (const event of plain.stream("看图", new AbortController().signal, { messages: [{ role: "user", content: "看图", images: [picture()] }] })) { void event; } })()).rejects.toThrow("image_model_required");
+  expect(request).not.toHaveBeenCalled();
+  const vision = new DeepSeekClient(secrets, request, {}, "deepseek-v4-flash-vision-exp");
+  expect(vision.capabilities.inputModalities).toContain("image");
+  const events: ModelEvent[] = []; for await (const event of vision.stream("看图", new AbortController().signal, { messages: [{ role: "user", content: "看图", images: [picture()] }], history: [{ events: [{ type: "tool_call", callId: "read", tool: "read", input: {} }], toolResults: [{ tool: "read", callId: "read", result: { ok: true } }] }] })) events.push(event);
+  const body = JSON.parse((request.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+  expect(body.messages[0].content[1]).toEqual({ type: "image_url", image_url: { url: `data:image/png;base64,${png}` } });
+  expect(body.messages[2].tool_call_id).toBe("read"); expect(events.at(-1)?.type).toBe("done");
+});
+it("preserves images across shared sessions and history while budgeting pixels independently of base64", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-images-")); roots.push(root);
+  const store = new AgentSessionStore(root), service = new AgentService(store, () => ({ capabilities: { inputModalities: ["text", "image"], toolCalling: false, continuation: false, contextWindowTokens: 48_000, maxOutputTokens: 16_384, outputLimit: "configurable", source: "adapter_policy" }, async *stream() { yield { type: "text_delta" as const, text: "合成回答" }; yield { type: "done" as const }; } }));
+  const session = await service.create(); await service.send({ sessionId: session.id, text: "看图", images: [picture()], provider: "demo", style: "adaptive" }); await service.idle(); await service.pauseMaintenance();
+  const restored = await store.load(session.id); expect(restored.messages[0]?.images).toEqual([picture()]);
+  expect(await service.exportMarkdown(session.id)).toContain(`data:image/png;base64,${png}`);
+  const fork = await service.fork(session.id); expect(fork.messages[0]?.images).toEqual([picture()]);
+  const messages = buildMessages(restored, { sessionId: session.id, text: "继续比较", provider: "demo", style: "adaptive" });
+  expect(messages.some(message => message.images?.[0]?.data === png)).toBe(true);
+  const view = modelContextWindow({ prompt: "看图", messages, history: [] }, 100_000);
+  expect(view.usage.estimatedInputTokens).toBeGreaterThanOrEqual(2048);
+  expect(imageContext(Array.from({ length: 7 }, () => ({ role: "user" as const, content: "原文", images: [picture()] }))).flatMap(m => m.images ?? [])).toHaveLength(4);
+});

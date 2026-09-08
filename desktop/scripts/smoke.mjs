@@ -102,7 +102,13 @@ try {
     const clipboard = new DataTransfer(); clipboard.items.add(new File(["synthetic"], "fixture.png", { type: "image/png" }));
     element.dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }));
   });
-  await page.getByText("当前模型通道只接收文字，暂不支持图片输入。请粘贴需要讨论的文字。", { exact: true }).waitFor();
+  await page.getByText("请添加每张不超过 512KB、长宽不超过 2048 像素的 PNG/JPEG，每次最多两张。", { exact: true }).waitFor();
+  const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jB9kAAAAASUVORK5CYII=", "base64");
+  await page.getByLabel("添加图片", { exact: true }).setInputFiles({ name: "synthetic.png", mimeType: "image/png", buffer: pixel });
+  await page.getByAltText("待发送图片：synthetic.png", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  await page.getByText(/当前模型不支持图片/).waitFor();
+  await page.getByRole("button", { name: "移除图片 1", exact: true }).click();
   await page
     .getByRole("textbox", { name: "发送给知行" })
     .fill("请用两段直观例子解释梯度下降，并展示公式和代码。");

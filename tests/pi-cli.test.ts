@@ -19,7 +19,7 @@ async function setup(mode = "normal") {
   await fs.writeFile(sdk, `import fs from 'node:fs';
 export class ModelRuntime {
   static async create(){return new ModelRuntime();}
-  getModel(){return {provider:'openai-codex',id:'fixture-codex',api:'openai-codex-responses',contextWindow:48000,maxTokens:16384,reasoning:true};}
+  getModel(){return {provider:'openai-codex',id:'fixture-codex',api:'openai-codex-responses',contextWindow:48000,maxTokens:16384,reasoning:true,input:['text','image']};}
   hasConfiguredAuth(){return true;}
   async *streamSimple(model, context, options){
     let requests=[]; try {requests=JSON.parse(fs.readFileSync(${JSON.stringify(requests)},'utf8'));} catch {}
@@ -40,6 +40,15 @@ registerHooks({resolve(specifier,context,next){return specifier===${JSON.stringi
   return { root, env, args, requests: async () => JSON.parse(await fs.readFile(requests, "utf8")) as Array<{ input: string; options: { reasoning: string; maxTokens: number; transport: string }; tools: string[] }>, invoke: (command: string) => exec(process.execPath, [...args, command], { cwd: process.cwd(), env, timeout: 4_000 }) };
 }
 describe("Pi provider through the shared model worker and actual CLI", () => {
+  it("carries an explicitly attached CLI image through the shared service, durable checkpoint and SDK worker", async () => {
+    const fixture = await setup(); await fixture.invoke("模型切换 tutor pi-codex --确认");
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jB9kAAAAASUVORK5CYII=";
+    const file = path.join(fixture.root, "synthetic.png"); await fs.writeFile(file, Buffer.from(png, "base64"));
+    expect((await fixture.invoke(`/image "${file}" 描述图片`)).stdout).toContain("Pi 模型回答");
+    expect((await fixture.requests())[0]?.input).toContain('"type":"image"');
+    await fixture.invoke("继续解释图片");
+    expect((await fixture.requests())[1]?.input).toContain(png);
+  }, 15_000);
   it("requires confirmation, persists the route and sends a natural question using Pi preferences", async () => {
     const fixture = await setup();
     expect((await fixture.invoke("模型切换 tutor pi-codex")).stdout).toContain("确认");

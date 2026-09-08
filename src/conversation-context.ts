@@ -1,5 +1,5 @@
 import { expandQuery } from "./retrieval-query.js";
-export interface ContextMessage { readonly role: string; readonly text: string; readonly status?: string; }
+export interface ContextMessage { readonly role: string; readonly text: string; readonly status?: string; readonly images?: readonly import("./image-input.js").ImageInput[]; }
 
 /** Loss-bounded excerpts for model context. The complete transcript stays in its store. */
 export function excerpt(text: string, limit: number): string {
@@ -33,12 +33,12 @@ export function relevantExcerpt(text: string, limit: number, query: string): str
 
 export function selectConversationContext(messages: readonly ContextMessage[], budget = 40_000, query = "") {
   const goal = excerpt(messages.find((message) => message.role === "user")?.text ?? "", 4_000);
-  const history: { role: string; content: string; status: string }[] = [];
+  const history: { role: string; content: string; status: string; images?: readonly import("./image-input.js").ImageInput[] }[] = [];
   let remaining = Math.max(0, budget - goal.length);
   for (const message of [...messages].reverse()) {
     if (remaining < 100 || history.length >= 24) break;
     const content = relevantExcerpt(message.text, Math.min(6_000, remaining), query);
-    history.unshift({ role: message.role, content, status: message.status ?? "completed" });
+    history.unshift({ role: message.role, content, status: message.status ?? "completed", ...(message.images ? { images: message.images } : {}) });
     remaining -= content.length;
   }
   return { goal, history, omittedMessages: Math.max(0, messages.length - history.length) };

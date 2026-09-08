@@ -1,3 +1,5 @@
+import { imageDataUrl } from "./image-input.js";
+import { capabilitiesFor } from "./model-capabilities.js";
 import { prepareDialogue } from "./agent-dialogue.js";
 import { MAX_CONVERSATION_MESSAGES, MAX_PENDING_REQUESTS } from "./input-limits.js";
 import { restrictedStudy } from "./outcome-contracts.js";
@@ -311,6 +313,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       await this.pauseMaintenance();
       releaseSession = this.learning ? AgentExecutionStore.claimSession(this.learning.database, request.sessionId) : undefined;
       const client = this.client(request.provider);
+      if (request.images?.length && !capabilitiesFor(client).inputModalities.includes("image")) throw new Error("image_model_required");
       const session = await this.store.load(request.sessionId);
       if (session.study) {
         if (!this.learning || !session.topicId || session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
@@ -363,6 +366,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         id: randomUUID(),
         role: "user",
         text: request.text,
+        ...(request.images ? { images: request.images } : {}),
         status: "completed",
         createdAt: now,
       });
@@ -404,12 +408,13 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
   }
   async enqueue(raw: SendRequest, steer = false): Promise<ChatSession> {
     const request = sendSchema.parse(raw);
+    if (request.images?.length && !capabilitiesFor(this.client(request.provider)).inputModalities.includes("image")) throw new Error("image_model_required");
     const active = this.active;
     if (!active || active.session.id !== request.sessionId) throw new Error("no_active_task");
     if (request.topicId && request.topicId !== active.session.topicId) throw new Error("topic_change_requires_new_session");
     const pending = active.session.pendingRequests ??= [];
     if (pending.length >= MAX_PENDING_REQUESTS || active.session.messages.length + (pending.length + 1) * 2 > MAX_CONVERSATION_MESSAGES) throw new Error("queue_full");
-    const item = { id: randomUUID(), mode: request.mode, purpose: request.purpose, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
+    const item = { id: randomUUID(), mode: request.mode, purpose: request.purpose, images: request.images, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
     if (steer) pending.unshift(item); else pending.push(item);
     active.session.queuePaused = false;
     active.session.queueError = undefined;
@@ -529,7 +534,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
   idleMaintenance(): Promise<void> { return this.maintenance; }
   async exportMarkdown(id: string): Promise<string> {
     const session = await this.load(id);
-    return `# ${session.title}\n\n${session.messages.map((message) => `## ${message.role === "user" ? "你" : "知行"}\n\n${message.text}${message.error ? `\n\n> ${message.error}` : ""}${message.status === "interrupted" ? "\n\n> 已停止生成" : ""}`).join("\n\n")}\n`;
+    return `# ${session.title}\n\n${session.messages.map((message) => `## ${message.role === "user" ? "你" : "知行"}\n\n${message.text}${message.images?.map(image => `\n\n![${image.name.replace(/[[\]]/g, "")}](${imageDataUrl(image)})`).join("") ?? ""}${message.error ? `\n\n> ${message.error}` : ""}${message.status === "interrupted" ? "\n\n> 已停止生成" : ""}`).join("\n\n")}\n`;
   }
   private async compact(session: ChatSession, client: ModelClient, provider: SendRequest["provider"], signal: AbortSignal): Promise<void> {
     const plan = planConversationSummary(session);

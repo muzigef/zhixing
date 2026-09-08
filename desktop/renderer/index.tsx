@@ -1,3 +1,4 @@
+import { imageFromBytes, imageDataUrl, type ImageInput } from "../../src/image-input.js";
 import { MAX_INPUT_CHARACTERS } from "../../src/input-limits.js";
 import { restrictedStudy } from "../../src/outcome-contracts.js";
 import type { AccessSelection } from "../../src/agent-permissions.js";
@@ -153,6 +154,9 @@ function App() {
   const [boot, setBoot] = useState<BootState>();
   const [session, setSession] = useState<ChatSession | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ImageInput[]>([]);
+  const attachmentGeneration = useRef(0);
+  const readingImages = useRef(false);
   const [draft, setDraft] = useState(() => readDrafts().new ?? "");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -216,6 +220,7 @@ function App() {
       const value = await invoke<ChatSession>({ type: "load", sessionId: id });
       if (serial !== selecting.current) return;
       deltas.current?.dispose();
+      if (currentId.current !== id) { attachmentGeneration.current++; setAttachments([]); }
       currentId.current = id;
       setTaskView(undefined);
       localStorage.setItem("last-session", id);
@@ -332,6 +337,7 @@ function App() {
     selecting.current++;
     currentId.current = null;
     localStorage.removeItem("last-session");
+    attachmentGeneration.current++; setAttachments([]);
     setSession(null); setVisibleMessages(40); patchSequence.current.clear();
     setContextAllowed(false); setProjectAllowed(false); setExternalAllowed(false); setExecution("read");
     setDraft(drafts.current.new ?? "");
@@ -359,19 +365,37 @@ function App() {
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, [newChat]);
+  async function attachImages(files: File[]) {
+    if (readingImages.current || sending) return;
+    readingImages.current = true;
+    const generation = attachmentGeneration.current;
+    try {
+      if (!files.length || files.length + attachments.length > 2) throw new Error("每次最多添加两张图片。");
+      const images = await Promise.all(files.map(async file => {
+        if (file.size > 512_000) throw new Error("每张图片不能超过 512KB。");
+        return imageFromBytes(file.name, new Uint8Array(await file.arrayBuffer()));
+      }));
+      if (generation === attachmentGeneration.current) { setAttachments(previous => [...previous, ...images]); setError(""); }
+    } catch { if (generation === attachmentGeneration.current) setError("请添加每张不超过 512KB、长宽不超过 2048 像素的 PNG/JPEG，每次最多两张。"); }
+    finally { readingImages.current = false; }
+  }
   async function send(
     text = draftRef.current,
     providerOverride?: DesktopSettings["provider"],
     steer = false,
     resumeTaskId?: string,
   ) {
-    if (!text.trim() || sending || permissionBusy) return;
+    const generation = attachmentGeneration.current;
+    const images = resumeTaskId ? undefined : attachments.length ? attachments : undefined;
+    text = text.trim() || (images?.length ? "请描述图片并说明判断依据。" : "");
+    if (!text || sending || permissionBusy) return;
     if (activeId) {
       if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
       setSending(true); setDraft("");
       try {
-        await invoke({ type: "enqueue", sessionId: activeId, text, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}), steer });
+        await invoke({ type: "enqueue", sessionId: activeId, text, images, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}), steer });
         if (execution === "once") setExecution("read");
+        if (generation === attachmentGeneration.current) setAttachments([]);
         notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
       } catch (problem) { setError(messageOf(problem)); setDraft((previous) => previous || text); }
       finally { setSending(false); }
@@ -404,6 +428,7 @@ function App() {
         type: "send",
         sessionId: target.id,
         text,
+        images,
         provider: providerOverride ?? settings.provider,
         style: settings.style,
         reasoning: settings.reasoning,
@@ -411,11 +436,13 @@ function App() {
         resumeTaskId,
         ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}),
       });
+      if (generation === attachmentGeneration.current) setAttachments([]);
       if (execution === "once") setExecution("read");
     } catch (problem) {
       setError(messageOf(problem));
       setActiveId(null);
       setDraft((previous) => previous || text);
+      if (images && generation === attachmentGeneration.current) setAttachments(images);
     } finally {
       setSending(false);
       input.current?.focus();
@@ -427,7 +454,7 @@ function App() {
     try {
       const fork = await invoke<ChatSession>({ type: "fork", sessionId: session.id, messageId: message.id, edit: text !== undefined });
       await select(fork.id);
-      if (text !== undefined) await invoke({ type: "send", sessionId: fork.id, text, provider: settings.provider, style: settings.style, reasoning: settings.reasoning });
+      if (text !== undefined) await invoke({ type: "send", sessionId: fork.id, text, images: message.images, provider: settings.provider, style: settings.style, reasoning: settings.reasoning });
     } catch (problem) { setError(messageOf(problem)); }
     finally { setSending(false); }
   }
@@ -780,6 +807,11 @@ function App() {
               void send();
             }}
           >
+            <div className="image-attachments">
+              <label className="image-picker">添加图片<input type="file" aria-label="添加图片" accept="image/png,image/jpeg" multiple disabled={sending} onChange={event => { void attachImages([...event.target.files ?? []]); event.target.value = ""; }} /></label>
+              {attachments.map((image, index) => <span key={index}><img src={imageDataUrl(image)} alt={`待发送图片：${image.name}`} /><button type="button" aria-label={`移除图片 ${index + 1}`} onClick={() => setAttachments(previous => previous.filter((_item, position) => position !== index))}>移除</button></span>)}
+              {!!attachments.length && <small>图片随消息发送给当前模型；DeepSeek 需选择 Vision。未发送图片在切换会话或退出后清除。</small>}
+            </div>
             <textarea
               ref={input}
               value={draft}
@@ -787,9 +819,9 @@ function App() {
               maxLength={MAX_INPUT_CHARACTERS}
               rows={2}
               aria-label="发送给知行"
-              onPaste={event => { if ([...event.clipboardData.files].some(file => file.type.startsWith("image/"))) { event.preventDefault(); setError("当前模型通道只接收文字，暂不支持图片输入。请粘贴需要讨论的文字。"); } }}
+              onPaste={event => { const files = [...event.clipboardData.files]; if (files.length) { event.preventDefault(); void attachImages(files); } }}
               onDragOver={event => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
-              onDrop={event => { if (event.dataTransfer.files.length) { event.preventDefault(); setError("聊天暂不接收文件附件。PDF 和 Markdown 可从课程与资料导入，图片请提供文字内容。"); } }}
+              onDrop={event => { if (event.dataTransfer.files.length) { event.preventDefault(); void attachImages([...event.dataTransfer.files]); } }}
               placeholder={
                 hasMessages
                   ? "继续追问，或者换个思路…"
@@ -847,8 +879,8 @@ function App() {
               <label className="style-picker"><span className="sr-only">思考强度</span><select aria-label="思考强度" value={settings.reasoning ?? "balanced"} onChange={(event) => void saveSettings({ ...settings, reasoning: event.target.value as DesktopSettings["reasoning"] })}><option value="auto">自动</option><option value="quick">快速</option><option value="balanced">均衡</option><option value="deep">深入思考</option></select></label>
               <div className="composer-spacer" />
               {isCurrentRunning && <>
-                <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send()}>排队</button>
-                <button type="button" className="queue-button" disabled={!draft.trim() || sending} onClick={() => void send(draftRef.current, undefined, true)}>立即调整</button>
+                <button type="button" className="queue-button" disabled={(!draft.trim() && !attachments.length) || sending} onClick={() => void send()}>排队</button>
+                <button type="button" className="queue-button" disabled={(!draft.trim() && !attachments.length) || sending} onClick={() => void send(draftRef.current, undefined, true)}>立即调整</button>
               </>}
               {draft.length > 18_000 && (
                 <span className="char-count">{draft.length}/20000</span>
@@ -873,7 +905,7 @@ function App() {
                   type="submit"
                   aria-label="发送消息"
                   title="发送消息"
-                  disabled={!draft.trim() || !!activeId || sending || !boot}
+                  disabled={(!draft.trim() && !attachments.length) || !!activeId || sending || !boot}
                 >
                   <ArrowUp size={20} />
                 </button>
@@ -987,6 +1019,7 @@ const Message = memo(
       return (
         <article className="message user-message">
           <UserMessageEditor message={message} disabled={!canSend} onSend={onEdit} />
+          {!!message.images?.length && <div className="sent-images">{message.images.map((image, index) => <img key={index} src={imageDataUrl(image)} alt={image.name} />)}</div>}
         </article>
       );
     return (
@@ -1327,6 +1360,7 @@ function SettingsDialog({
               >
                 <option value="deepseek-v4-flash">DeepSeek V4 Flash</option>
                 <option value="deepseek-v4-pro">DeepSeek V4 Pro</option>
+                <option value="deepseek-v4-flash-vision-exp">DeepSeek V4 Flash Vision（实验性）</option>
               </select>
             </label>
             <form

@@ -1,3 +1,4 @@
+import { imagesSchema } from "./image-input.js";
 import { permissionSchema, type AgentPermissions } from "./agent-permissions.js";
 import { topicIdSchema } from "./contracts.js";
 import { randomUUID } from "node:crypto";
@@ -12,8 +13,8 @@ const eventSchema = z.discriminatedUnion("type", [
 const turnSchema = z.object({ events: z.array(eventSchema).max(10_000), toolResults: z.array(z.object({ tool: z.string(), result: z.unknown(), callId: z.string().optional(), toolState: z.string().max(16_000).optional(), dispatch: z.enum(["not_started", "unknown"]).optional() })).max(128), feedback: z.string().max(24_000).optional(), toolState: z.string().max(16_000).optional() });
 const decisionSchema = z.object({ answer: z.string().min(1).max(4000), scope: z.enum(["once", "session"]) });
 const checkpointSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2)]), status: z.enum(["running", "waiting", "interrupted", "failed", "blocked", "completed"]),
-  prompt: z.string().max(128_000), messages: z.array(z.object({ role: z.enum(["system", "user", "assistant", "observation"]), content: z.string().max(128_000) })).max(200).optional(),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3)]), status: z.enum(["running", "waiting", "interrupted", "failed", "blocked", "completed"]),
+  prompt: z.string().max(128_000), messages: z.array(z.object({ role: z.enum(["system", "user", "assistant", "observation"]), content: z.string().max(128_000), images: imagesSchema.optional() })).max(200).optional(),
   history: z.array(turnSchema).max(128),
   pending: turnSchema.extend({ next: z.number().int().min(0).max(128), phase: z.enum(["ready", "executing", "waiting"]), executingUntil: z.number().int().min(1).max(128).optional() }).optional(),
   decisions: z.record(z.string(), decisionSchema).default({}),
@@ -23,7 +24,7 @@ const checkpointSchema = z.object({
   steerId: z.string().uuid().optional(),
 });
 export interface ExecutionCheckpoint {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   status: z.infer<typeof checkpointSchema>["status"];
   prompt: string;
   messages?: ModelMessage[];
@@ -97,7 +98,7 @@ export class AgentExecutionStore {
   read(): ExecutionCheckpoint | undefined {
     const raw = this.row()?.checkpoint;
     if (!raw) return undefined;
-    if (Buffer.byteLength(raw) > 1_000_000) throw new Error("execution_storage_limit");
+    if (Buffer.byteLength(raw) > 4_000_000) throw new Error("execution_storage_limit");
     const value = parseCheckpoint(JSON.parse(raw));
     const restore = (turn: z.infer<typeof turnSchema>): ModelTurn => ({ ...turn, toolResults: turn.toolResults.map(result => ({ ...result, result: result.result ?? null })) });
     return { ...value, history: value.history.map(restore), pending: value.pending ? { ...restore(value.pending), next: value.pending.next, phase: value.pending.phase, executingUntil: value.pending.executingUntil } : undefined };
@@ -117,9 +118,9 @@ export class AgentExecutionStore {
   }
   save(value: ExecutionCheckpoint, type: string, callId?: string): void {
     const clean = (turn: ModelTurn) => ({ ...turn, events: turn.events.filter(event => event.type === "text_delta" || event.type === "tool_call") });
-    const data = parseCheckpoint({ ...value, history: value.history.map(clean), pending: value.pending ? { ...clean(value.pending), next: value.pending.next, phase: value.pending.phase, executingUntil: value.pending.executingUntil } : undefined });
+    const data = parseCheckpoint({ ...value, version: value.messages?.some(message => message.images?.length) ? 3 : value.version, history: value.history.map(clean), pending: value.pending ? { ...clean(value.pending), next: value.pending.next, phase: value.pending.phase, executingUntil: value.pending.executingUntil } : undefined });
     const serialized = JSON.stringify(data);
-    if (Buffer.byteLength(serialized) > 1_000_000) throw new Error("execution_storage_limit");
+    if (Buffer.byteLength(serialized) > 4_000_000) throw new Error("execution_storage_limit");
     z.string().min(1).max(60).parse(type);
     this.database.db.transaction(() => {
       if (!this.lease || this.row()?.lease !== this.lease) throw new Error("execution_lease_required");
@@ -167,7 +168,7 @@ function isAlive(pid: number): boolean {
 }
 
 function parseCheckpoint(raw: unknown): z.infer<typeof checkpointSchema> {
-  if (raw && typeof raw === "object" && "version" in raw && raw.version !== 1 && raw.version !== 2) throw new Error("storage_version_unsupported");
+  if (raw && typeof raw === "object" && "version" in raw && raw.version !== 1 && raw.version !== 2 && raw.version !== 3) throw new Error("storage_version_unsupported");
   const parsed = checkpointSchema.safeParse(raw);
   if (!parsed.success) throw new Error("execution_checkpoint_invalid");
   const value = parsed.data; const ids = new Set<string>();
@@ -177,7 +178,7 @@ function parseCheckpoint(raw: unknown): z.infer<typeof checkpointSchema> {
     if (turn.toolResults.some((result, index) => result.callId !== calls[index]?.callId || result.tool !== calls[index]?.tool)) throw new Error("execution_checkpoint_invalid");
     if (turn === value.pending) {
       if (!calls.length || value.pending.next !== turn.toolResults.length || value.pending.next > calls.length || value.pending.phase !== "ready" && value.pending.next === calls.length) throw new Error("execution_checkpoint_invalid");
-      if (value.pending.executingUntil !== undefined && (value.version !== 2 || value.pending.phase !== "executing" || value.pending.executingUntil <= value.pending.next || value.pending.executingUntil > Math.min(calls.length, value.pending.next + 2))) throw new Error("execution_checkpoint_invalid");
+      if (value.pending.executingUntil !== undefined && (![2, 3].includes(value.version) || value.pending.phase !== "executing" || value.pending.executingUntil <= value.pending.next || value.pending.executingUntil > Math.min(calls.length, value.pending.next + 2))) throw new Error("execution_checkpoint_invalid");
     } else if (calls.length !== turn.toolResults.length) throw new Error("execution_checkpoint_invalid");
   }
   if (Object.keys(value.decisions).some(id => !ids.has(id))) throw new Error("execution_checkpoint_invalid");

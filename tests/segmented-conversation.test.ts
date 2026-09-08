@@ -11,7 +11,7 @@ it("segments 2000 messages and restores exact ordered originals, reusing immutab
   session.messages = Array.from({ length: 2000 }, (_, i) => ({ id: crypto.randomUUID(), role: i % 2 ? "assistant" as const : "user" as const, text: `原文 ${i}`, status: "completed" as const, createdAt: session.createdAt }));
   await store.save(session);
   const file = path.join(root, "conversations", `${session.id}.json`); const raw = JSON.parse(await fs.readFile(file, "utf8"));
-  expect(raw.version).toBe(7); expect(raw.messages.length).toBeLessThanOrEqual(250); expect(raw.segments.length).toBeGreaterThan(0);
+  expect(raw.version).toBe(8); expect(raw.messages.length).toBeLessThanOrEqual(250); expect(raw.segments.length).toBeGreaterThan(0);
   expect((await new AgentSessionStore(root).load(session.id)).messages).toEqual(session.messages);
   session.messages.at(-1)!.text += " 追加尾部"; await store.save(session);
   expect(JSON.parse(await fs.readFile(file, "utf8")).segments).toEqual(raw.segments);
