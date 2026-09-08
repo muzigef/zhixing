@@ -90,7 +90,7 @@ class Sandbox {
       handles=Marshal.AllocHGlobal(IntPtr.Size*3); Marshal.WriteIntPtr(handles,0,nil); Marshal.WriteIntPtr(handles,IntPtr.Size,outWrite); Marshal.WriteIntPtr(handles,IntPtr.Size*2,errWrite);
       Check(UpdateProcThreadAttribute(attrs,0,new IntPtr(0x20002),handles,new IntPtr(IntPtr.Size*3),IntPtr.Zero,IntPtr.Zero));
       var startup=new STARTUPINFOEX(); startup.startup.cb=Marshal.SizeOf(startup); startup.attributes=attrs; startup.startup.flags=0x100; startup.startup.stdin=nil; startup.startup.stdout=outWrite; startup.startup.stderr=errWrite;
-      var variables=new SortedDictionary<string,string>(StringComparer.OrdinalIgnoreCase) { {"SystemRoot",Environment.GetEnvironmentVariable("SystemRoot")},{"TEMP",work},{"TMP",work},{"PATH",runtime} };
+      var variables=new SortedDictionary<string,string>(StringComparer.OrdinalIgnoreCase) { {"SystemRoot",Environment.GetEnvironmentVariable("SystemRoot")},{"LOCALAPPDATA",Environment.GetEnvironmentVariable("LOCALAPPDATA")},{"TEMP",work},{"TMP",work},{"PATH",runtime} };
       if(input.ContainsKey("electronNode") && (bool)input["electronNode"]) variables["ELECTRON_RUN_AS_NODE"]="1";
       env=Marshal.StringToHGlobalUni(String.Join("\0",variables.Select(kv=>kv.Key+"="+kv.Value))+"\0\0");
       Check(CreateProcess(exe,new StringBuilder(String.Join(" ",new[]{exe}.Concat(args).Select(Quote))),IntPtr.Zero,IntPtr.Zero,true,0x80000|0x400|0x4|0x08000000,env,work,ref startup,out process)); created=true;

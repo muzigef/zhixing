@@ -5,12 +5,16 @@ const require = createRequire(import.meta.url);
 const workerSource = `
 const { parentPort, workerData } = require('node:worker_threads');
 const Ajv = require(workerData.ajv).default;
+const AjvDraft7 = require(workerData.draft7).default;
 const addFormats = require(workerData.formats).default;
 const validators = new Map();
 parentPort.on('message', message => {
   try {
     if (message.schema) {
-      const ajv = new Ajv({ strict: true, strictTypes: false, strictTuples: false, logger: false, allErrors: false, ownProperties: true });
+      const dialect = message.schema.$schema;
+      if (dialect && !['http://json-schema.org/draft-07/schema#', 'https://json-schema.org/draft-07/schema', 'https://json-schema.org/draft/2020-12/schema'].includes(dialect)) throw new Error('unsupported_dialect');
+      const Validator = dialect?.includes('draft-07') ? AjvDraft7 : Ajv;
+      const ajv = new Validator({ strict: true, strictTypes: false, strictTuples: false, logger: false, allErrors: false, ownProperties: true });
       addFormats(ajv); validators.set(message.name, ajv.compile(message.schema));
       parentPort.postMessage({ id: message.id, ok: true });
     } else parentPort.postMessage({ id: message.id, ok: validators.get(message.name)(message.input) === true });
@@ -22,7 +26,7 @@ export class JsonSchemaWorker {
   private ended = false;
   private pending = new Map<number, { finish: (ok: boolean) => void; timer: NodeJS.Timeout }>();
   constructor() {
-    this.worker = new Worker(workerSource, { eval: true, env: {}, workerData: { ajv: require.resolve("ajv/dist/2020.js"), formats: require.resolve("ajv-formats") }, resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 } });
+    this.worker = new Worker(workerSource, { eval: true, env: {}, execArgv: [], workerData: { ajv: require.resolve("ajv/dist/2020.js"), draft7: require.resolve("ajv/dist/ajv.js"), formats: require.resolve("ajv-formats") }, resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 } });
     this.worker.on("message", (message: { id: number; ok: boolean }) => { const pending = this.pending.get(message.id); if (pending) { this.pending.delete(message.id); clearTimeout(pending.timer); pending.finish(message.ok === true); } });
     this.worker.on("error", () => { void this.close(); }); this.worker.on("exit", () => { void this.close(); });
   }
