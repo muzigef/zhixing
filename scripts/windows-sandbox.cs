@@ -93,7 +93,10 @@ class Sandbox {
       var variables=new SortedDictionary<string,string>(StringComparer.OrdinalIgnoreCase) { {"SystemRoot",Environment.GetEnvironmentVariable("SystemRoot")},{"LOCALAPPDATA",Environment.GetEnvironmentVariable("LOCALAPPDATA")},{"TEMP",work},{"TMP",work},{"PATH",runtime} };
       if(input.ContainsKey("electronNode") && (bool)input["electronNode"]) variables["ELECTRON_RUN_AS_NODE"]="1";
       env=Marshal.StringToHGlobalUni(String.Join("\0",variables.Select(kv=>kv.Key+"="+kv.Value))+"\0\0");
-      Check(CreateProcess(exe,new StringBuilder(String.Join(" ",new[]{exe}.Concat(args).Select(Quote))),IntPtr.Zero,IntPtr.Zero,true,0x80000|0x400|0x4|0x08000000,env,work,ref startup,out process)); created=true;
+      // Stdio is exclusively inherited pipes/NUL. A windowless console still
+      // needs a console host, which conflicts with the single-process policy.
+      // DETACHED_PROCESS avoids allocating a console altogether.
+      Check(CreateProcess(exe,new StringBuilder(String.Join(" ",new[]{exe}.Concat(args).Select(Quote))),IntPtr.Zero,IntPtr.Zero,true,0x80000|0x400|0x4|0x8,env,work,ref startup,out process)); created=true;
       Check(AssignProcessToJobObject(job,process.process)); Check(ResumeThread(process.thread)!=0xffffffff);
       CloseHandle(outWrite); outWrite=IntPtr.Zero; CloseHandle(errWrite); errWrite=IntPtr.Zero;
       var stdout=Capture(outRead); outRead=IntPtr.Zero; var stderr=Capture(errRead); errRead=IntPtr.Zero;
