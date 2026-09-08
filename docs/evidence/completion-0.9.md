@@ -1,6 +1,8 @@
 # 0.9 执行证据
 
-范围与验收标准见[任务计划](../completion-plan.md)。本轮进行中，按真实退出码与产物更新；不将外部条件缺失标为完成。
+范围与验收标准见[任务计划](../completion-plan.md)。**工程交付通过，整体质量验收未全通过。** 桌面 0.9.0 已安装；622 项测试、生产依赖双审计、三种平台开发/实际包 UI 和 Windows NSIS 安装链路通过。最终平台结果见[机器可读回执](completion-platforms.json)，本机产物见[安装回执](completion-local-acceptance.json)的 `finalDelivery`。
+
+开放回答严格主集仅 9/24 条满足全部门槛，不能宣布内容质量达标。真实学习者、独立评分和实际 72 小时结果尚未获得；正式 Apple 签名/公证尚未配置；本机重新签名后的钥匙串授权仍未复验。以下保留全部失败与修复过程，不将这些边界改成通过。用户明确延期的两项为 **Pi Codex 故障排查、独立子 Agent**。
 
 ## 起始状态
 
@@ -80,7 +82,28 @@
 - 本机冻结包来自干净提交 222a148，375 个源码输入与 provenance 逐个比对一致；DMG 只读挂载后核对应用元数据、app.asar、模型 worker、构建来源和 SQLite 原生模块；完整 ad-hoc 签名校验、DMG 校验通过。此后新增的验收脚本与用例另按对应提交记录，不冒充该包重新构建过。
 - [34256012612 的 Intel job](https://github.com/muzigef/zhixing/actions/runs/34256012612/job/102161888490) 和 [ARM job](https://github.com/muzigef/zhixing/actions/runs/34256012612/job/102161888764) 均实际 success：全套 verify、开发/实包各五组 UI、DMG/ZIP、校验和与 artifact 上传。Windows 同轮仅原生隔离通过，桌面实践仍失败，继续收口。
 - 远端 UI 的累计段数偶发断言失败已定位到验收脚本：Playwright 的同步谓词轮询将 Promise 对象当作真值，未等到异步 IPC 返回 true。三处改为逐次 await 且带总期限；新增 3 条测试覆盖异步 false、悬挂 IPC 超时和异常传播，失败到通过；完整 130 文件 / 622 测试及实际安装应用的交互流程通过。
-- 实际安装应用的系统加密接口完成仅内存中的合成字符串加解密与不含明文检查；没有读取既有凭证或认证文件。该检查现纳入各平台主 UI 流程。
+- 实际安装应用的系统加密接口完成仅内存中的合成字符串加解密与不含明文检查；没有读取既有凭证或认证文件。该检查在此安装快照和三个平台的远端应用中实际通过；最新策略由显式开关启用，CI 强制执行。本机重新签名后的授权情况单独记录。
 
 - Windows 运行时对照明确定位两处真实兼容问题：Node ESM 默认 realpath 查询盘符根目录被拒；Electron Node 模式主动重开 NUL 被拒。仅为私有常规文件副本启用 preserve-symlinks 参数，Electron 使用官方支持的 no-stdio-init 继承既有句柄；没有修改盘符/用户目录 ACL 或放开子进程/网络。5911b77 的原生 6 项检查及五组 Windows 开发 UI 实际通过，后续安装器步骤另行记录。[Electron 实现依据](https://github.com/electron/electron/blob/v44.2.0/shell/app/node_main.cc)。
-- 取消测试加强为先观察当前隔离进程在自身工作目录生成的合成标记，再触发取消，最后确认进程回收后的临时目录已删除；只取消初始化中的复制不能冒充已运行容器被终止。对应远端复测仍待结果。
+- 取消测试加强为先观察当前隔离进程在自身工作目录生成的合成标记，再触发取消，最后确认进程回收后的临时目录已删除；只取消初始化中的复制不能冒充已运行容器被终止。9233782 的远端原生 6 项及完整安装链路实际通过，见下文最终跨平台结果。
+
+## 最终跨平台结果与本机授权边界
+
+- 9233782 的 [desktop-release 34260348109](https://github.com/muzigef/zhixing/actions/runs/34260348109) 三个平台均 success：ARM job 102176448017、Intel job 102176447940、Windows job 102176447682。两个 Mac 架构完整 verify、开发/实包各五组 UI、真实系统加密合成往返、安装器校验和与 artifact 上传通过。Windows 实际通过原生 6 项（包含已运行容器取消、Node 和 Electron Node 模式）、开发五组 UI、NSIS 静默安装、6 个已安装运行文件哈希比对、安装后五组 UI 和原生加密；没有把 win-unpacked 启动冒充 NSIS 安装。
+- 5035481 的 [verify 34260477276](https://github.com/muzigef/zhixing/actions/runs/34260477276) success。本机最新完整 verify 为 130 文件 / 622 项、integration 9、eval 6，通过日志 `/tmp/zhixing-r08-cipher-policy-verify.log`。最新包普通五组 UI 通过日志 `/tmp/zhixing-r08-core-final-package-ui.log`。
+- 最终生产依赖双审计均为 0 漏洞；本机原默认镜像 DNS 失败日志保留，改为仅对两条审计命令指定官方 npm registry 后实际通过，没有更改全局配置。
+- 本机 5035481 重签名包的 safeStorage 合成往返出现钥匙串授权等待，没有记录成功。已停止本次挂起的自有验收应用；没有读取已有 API Key。Computer Use 禁止操作 SecurityAgent，不能代用户完成系统授权。此前 222a148 本机加密成功与远端成功只证明各自快照/环境，不能代替此次本机授权验收。
+- 从 e0efa00 起，普通 UI 与系统加密分别记录；`ZHIXING_DESKTOP_NATIVE_CIPHER=1` 显式启用真实合成加密检查，IPC 有 20 秒期限，两个 CI 工作流均强制启用。该变更没有禁用 CI 加密门禁。
+
+## 最终本机交付快照
+
+- 安装位置 `~/Applications/知行.app`，版本 0.9.0，应用冻结来源 e0efa00，工作树干净，codeHash `7b1491e4f0403e6bbbe1672cb2ea50cd28df45db7fe2f77a321b3637656881c6`。DMG 只读挂载后 378 个源码输入和 5 个关键应用文件全部一致，镜像 checksum、完整 ad-hoc 签名通过；具体 DMG/ZIP SHA-256 见本机回执的 `finalDelivery`，原安装快照仍保留。
+- 本机最终安装后的五组 UI 全通过，实际系统通知收到 1 次 show、0 个错误。人工查看合成对话和课程面板截图，未见控件遮挡或裁切。安装回执中明确区分普通 UI、原生通知和待系统授权的本机加密检查。
+- 安装替换仅涉及本轮自建的旧 0.9 候选应用；原 0.6 备份保留，没有读取、替换或删除用户应用数据。
+- e0efa00 的 [verify 34262147425](https://github.com/muzigef/zhixing/actions/runs/34262147425) 实际 success。三平台复验 34262184246 中 Windows 原生加密和前四组 UI 通过，但 Python 项目阶段在旧 15 秒 UI 等待时限到期时仍显示处理中；该失败日志保留，没有视为通过。
+- bee5062 只调整外部验收脚本：等待实际测试结果或明确错误，保留成功状态、退出码 0 与 unittest 输出断言，记录包含运行时准备/清理的总耗时；仅 Windows 这一步等待上限为 45 秒。产品程序执行期限与隔离权限没有变化。本机完整 verify 622 项及最终安装应用的项目流程再次通过。377 个其他构建输入仍与冻结包一致，唯一后续源码差异为 `desktop/scripts/smoke-projects.mjs`，未冒充安装包重新构建。Windows 最新复验实际通过，见下一条。
+
+- bee5062 的 [Windows 34263150839](https://github.com/muzigef/zhixing/actions/runs/34263150839/job/102185859600) success：原生 6 项、开发/实际安装后的五组 UI、两次真实系统加密、NSIS 安装及 6 个运行文件哈希、安装器 artifact 全部通过。Python 项目总耗时开发 12,614 ms、安装后 6,009 ms，包含私有运行时准备和清理；旧 15 秒 UI 期限在前一轮处理中到期的失败仍保留。
+- bee5062 的 [verify 34263079713](https://github.com/muzigef/zhixing/actions/runs/34263079713) success，包含完整门禁、生产双审计和五组 UI；不会把更早的 verify 冒充修正后的源码结果。
+
+- 最终 e0efa00 的 [ARM job 102182621997](https://github.com/muzigef/zhixing/actions/runs/34262184246/job/102182621997) 与 [Intel job 102182622423](https://github.com/muzigef/zhixing/actions/runs/34262184246/job/102182622423) 均 success，包含显式开启的系统加密、完整 verify、开发/实包各五组 UI 和安装器 artifact。该 run 的旧 Windows job 失败仍保留，Windows 采用 bee5062 的单独成功复验；没有把整个混合 run 改写为 success。三个最终成功 job 的步骤、时间、提交和 artifact digest 已存入 [completion-platforms.json](completion-platforms.json)。

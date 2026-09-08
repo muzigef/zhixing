@@ -17,7 +17,7 @@
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
-`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离通过，完整安装验收仍在收口。当前产物及已验证范围见 [0.9 验收记录](../docs/evidence/completion-0.9.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
+`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装及安装后五组 UI 均已通过。当前产物及已验证范围见 [0.9 验收记录](../docs/evidence/completion-0.9.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
 
 当前源码内附 Electron 和 Pi `0.85.0`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。项目检查点需要本机 Git；用户配置的 MCP 服务可能另有运行环境要求。更新源码不会修改既有安装包，安全更新需重新构建并安装，见 [依赖安全修复](../docs/evidence/dependency-security.md)。
 
@@ -47,7 +47,7 @@ pi
 
 ### 添加 DeepSeek API
 
-在设置中选择 DeepSeek API，输入 Key 后点击保存。主进程使用 Electron 异步 `safeStorage` 加密，保存为独立的 `deepseek.credential`；系统加密不可用时拒绝保存。已有 Key 不回填到输入框，也不写入偏好或聊天 JSON。
+在设置中选择 DeepSeek API，输入 Key 后点击保存。主进程使用 Electron 异步 `safeStorage` 加密，保存为独立的 `deepseek.credential`；系统加密不可用时拒绝保存。macOS 在预览包重新签名后可能要求系统钥匙串授权，需在系统弹窗中处理；应用不接收系统密码。已有 Key 不回填到输入框，也不写入偏好或聊天 JSON。
 
 读取顺序为桌面加密文件优先；没有该文件时，macOS 可复用 CLI 原有的知行 Keychain 项。桌面新增 Key 不会覆盖旧 Keychain 项，CLI 也不会自动使用桌面加密文件。配置页提供的状态不等于已通过真实连接检查。
 
@@ -169,7 +169,7 @@ node desktop/scripts/check-deepseek.mjs --live
 
 选择主题并打开“课程与资料”管理学习日、资料和真实证据；模型使用学习上下文需勾选本会话授权。运行时支持排队、立即调整、停止后暂停队列与重启后手动恢复。具体操作及 CLI 等价命令见 [升级指南](../docs/agent-upgrade.md)。
 
-`npm run prepare:runtime` 检查项目内 Electron 二进制和 SQLite ABI；`start`、`pack`、`dist:mac`、`dist:win` 与 `test:ui` 会自动调用。`npm run dist:host` 构建本机平台/架构，`npm run checksums` 生成安装器 SHA-256。GitHub Actions 的 `desktop-release` 工作流构建 macOS/Windows，验证实际应用并上传产物；tag 构建创建待发布草稿。远端执行、Windows 实机及签名/公证的真实结果单独验收。
+`npm run prepare:runtime` 检查项目内 Electron 二进制和 SQLite ABI；`start`、`pack`、`dist:mac`、`dist:win` 与 `test:ui` 会自动调用。`npm run dist:host` 构建本机平台/架构，`npm run checksums` 生成安装器 SHA-256。GitHub Actions 的 `desktop-release` 工作流构建 macOS/Windows，验证实际应用并上传产物；tag 构建创建待发布草稿。三种平台的远端结果见 0.9 记录；Windows 证据来自真实 Windows runner，不能等同于所有用户 PC 的兼容性认证。Developer ID 签名/公证仍未配置。
 
 ## 当前源码的 Agent 内核更新
 

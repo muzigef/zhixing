@@ -1,11 +1,17 @@
 # 验证证据索引
 
-截至 2026-09-08，最新源码与本地安装包记录为基于 `a1ba9ac` 的架构与教学增量 0.6.0。Evidence 是各次实际执行的快照：保留原始测试数量、失败和未验证项，不将历史结果追改成今天的结果。现行功能见 [功能与验收](../features-and-acceptance.md)，配置见 [配置](../CONFIGURATION.md)。
+截至 2026-09-09，当前交付为 0.9.0，包含三种平台实际包验收与本机安装；具体来源与质量边界见最新记录。Evidence 是各次实际执行的快照：保留原始测试数量、失败和未验证项，不将历史结果追改成今天的结果。现行功能见 [功能与验收](../features-and-acceptance.md)，配置见 [配置](../CONFIGURATION.md)。
 
 ## 最近交付
 
 | 记录 | 范围与适用性 |
 | --- | --- |
+| [0.9 剩余任务验收](completion-0.9.md) | 图片、Windows 原生隔离/实际 NSIS 安装、两种 Mac 实包、真实 MCP/语义模型/通知；622 项测试，开放回答质量未全达标 |
+| [0.9 回答质量复核](completion-quality-review.md) | 完整原答与绑定哈希的开发助手评分，严格主集仅 9/24；不是独立人类或学习效果评价 |
+| [0.9 最终平台回执](completion-platforms.json) | Mac ARM/Intel 与 Windows 各自成功 job、具体提交、步骤和 artifact；原失败结果保留 |
+| [0.9 本机安装回执](completion-local-acceptance.json) | 安装、源码来源、DMG/ZIP 哈希及各次验收快照；本机系统授权与远端加密检查分别记录 |
+| [0.8 架构修复](architecture-remediation.md) | N01–N10、603 项测试、macOS ARM64 实包与双审计的历史基线 |
+| [0.7 统一执行策略](unified-agent.md) | 桌面与 CLI 共用 AgentService、Pi worker、记忆和长对话策略 |
 | [0.6 架构与教学增量](agent-architecture-next.md) | C01–C12、553 项测试、开发/实包各五组 UI、双 Provider 项目及完整产品协议接入；保留真实回答失败和待评分项，不宣称真实教学效果 |
 | [0.6.0 本地交付清单](delivery-0.6.0-20260908.json) | macOS arm64 DMG/ZIP 校验、330 文件源码哈希、实际应用 UI；未正式发布、未签名公证 |
 | [教学效果验证](learning-outcomes-20260907.md) | 学前/学后/72 小时复习、同模型两种方式、帮助声明、报告去重和备份恢复；359 测试、四套 UI、Pi 合成接入通过，真实学习效果待验 |
