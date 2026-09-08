@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
 
-// CLI tests launch additional processes. Bound suite fan-out so their deadlines measure
-// behavior instead of competition with dozens of simultaneous TypeScript loaders.
-export default defineConfig({ test: { maxWorkers: 4 } });
+// CLI/Electron/SDK subprocess tests contend for CPU on shared runners. Keep the
+// original per-test deadlines and bound CI concurrency instead of hiding hangs.
+export default defineConfig({ test: { maxWorkers: process.env.CI ? 1 : undefined } });

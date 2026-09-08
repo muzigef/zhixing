@@ -8,7 +8,7 @@ const hash = (value: string | Buffer) => createHash("sha256").update(value).dige
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
 export { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
 const roots = ["src", "tests", "skills", "topics", "desktop/core", "desktop/electron", "desktop/renderer", "desktop/scripts", "scripts", ".github/workflows"];
-const singles = ["package.json", "package-lock.json", "tsconfig.json", "eslint.config.js", "AGENTS.md", "desktop/package.json", "desktop/package-lock.json", "desktop/tsconfig.json", "desktop/runtime-AGENTS.md", ".pi/extensions/zhixing-guard.ts", "docs/agent-quality-cases.json", "docs/agent-quality-heldout.json"];
+const singles = ["package.json", "package-lock.json", "tsconfig.json", "eslint.config.js", "vitest.config.ts", "AGENTS.md", "desktop/package.json", "desktop/package-lock.json", "desktop/tsconfig.json", "desktop/runtime-AGENTS.md", ".pi/extensions/zhixing-guard.ts", "docs/agent-quality-cases.json", "docs/agent-quality-heldout.json"];
 /** Explicit source roots exclude user workspaces, credentials, dependencies, builds and generated reports. */
 export async function sourceProvenance(root: string, kind: BuildProvenance["kind"] = "source_snapshot"): Promise<BuildProvenance> {
   const policy = new PathPolicy(root); const files: BuildProvenance["files"] = [];
