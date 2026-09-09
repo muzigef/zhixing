@@ -38,6 +38,8 @@ export async function runAssistantTask(options: {
   runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
   messages?: readonly ModelMessage[];
   structured?: boolean;
+  readOnly?: boolean;
+  limits?: Partial<import("./model-invocation.js").InvocationLimits>;
   teaching?: import("./teaching-session-contracts.js").TeachingSession | null;
   onAudit?: (record: ModelAuditRecord) => void | Promise<void>;
   onTool?: (name: string, phase: "started" | "finished" | "failed") => void | Promise<void>;
@@ -79,7 +81,7 @@ export async function runAssistantTask(options: {
   const projectAllowed = options.permissions ? Boolean(options.permissions.projectId) : options.contextAllowed;
   const externalAllowed = options.permissions ? options.permissions.externalRevision !== undefined : options.contextAllowed;
   const anyAccess = options.contextAllowed || projectAllowed || externalAllowed;
-  const tasks = options.application && options.topicId && anyAccess ? new TaskExecutionStore(options.application.database) : undefined;
+  const tasks = options.application && options.topicId && anyAccess && !options.readOnly ? new TaskExecutionStore(options.application.database) : undefined;
   tasks?.begin(taskId, options.topicId!, options.question);
   const retrievalActivity = (status: import("./learning-application.js").RetrievalStatus) => activity("retrieval", status.mode === "lexical_fallback" ? status.reason === "semantic_index_empty" ? "语义索引尚无有效片段，已使用关键词检索" : "语义服务暂不可用，已使用关键词检索" : status.mode === "hybrid" ? "已使用关键词与语义检索" : "已使用关键词与同义词检索", "completed");
   let tools = options.application && options.topicId && anyAccess && isContinuableModelClient(options.client) ? options.application.tools(options.contextAllowed, { learningAccess: options.contextAllowed, taskId, allowWrites: options.allowWrites ?? false, onRetrieval: retrievalActivity }) : undefined;
@@ -89,7 +91,7 @@ export async function runAssistantTask(options: {
     const checkpoint = execution?.read();
     if (checkpoint?.pending) { checkpoint.pending.phase = "waiting"; checkpoint.status = "waiting"; execution!.save(checkpoint, "interaction_requested", callId); }
   };
-  if (options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { pause(item.callId); await options.onInteraction!({ ...item, id: interactionId(taskId, item.callId) }); });
+  if (!options.readOnly && options.onInteraction && isContinuableModelClient(options.client)) tools = addQuestionTool(tools ?? { harness: new ToolHarness(), definitions: [] }, async (item) => { pause(item.callId); await options.onInteraction!({ ...item, id: interactionId(taskId, item.callId) }); });
   if (tools && execution) tools = attachExecutionHistory(tools, execution, options.contextAllowed, options.permissions);
   if (tools && options.conversationHistory?.length) tools = attachConversationHistory(tools, options.conversationHistory);
   let external: ReturnType<typeof lazyMcpTools> | undefined;
@@ -97,6 +99,11 @@ export async function runAssistantTask(options: {
     if (tools && options.application && options.topicId && anyAccess) {
       if (projectAllowed) tools = attachProjectTools(options.application, tools, options.topicId, taskId);
       if (externalAllowed) { external = lazyMcpTools(tools, options.application.database, options.topicId, signal); tools = external.tools; }
+    }
+    if (tools && options.readOnly) {
+      const harness = tools.harness;
+      harness.restrict(name => harness.risk(name) === "read" && !["ask_user", "plan_task"].includes(name));
+      tools = { ...tools, definitions: harness.definitions() };
     }
     const restored = execution?.read();
     const restoredCalls = [...(restored?.history ?? []).flatMap(turn => turn.events), ...(restored?.pending?.events ?? [])];
@@ -153,12 +160,13 @@ export async function runAssistantTask(options: {
       },
       containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true,
       // Multi-file read/edit/test cycles need more bounded rounds than short learning queries.
-      limits: tools?.definitions.some(tool => tool.name.startsWith("project_")) ? { maxTurns: 12 } : undefined,
+      limits: { ...(tools?.definitions.some(tool => tool.name.startsWith("project_")) ? { maxTurns: 12 } : {}), ...options.limits },
       tools: tools?.definitions,
       advertisedTools: catalog?.advertised,
       onText: options.onText,
       onAudit: async (value) => { trace = value; await options.onAudit?.(value); },
       onToolCall: tools ? async (name, input, toolSignal, callId) => {
+        if (options.readOnly && (tools!.harness.risk(name) !== "read" || ["ask_user", "plan_task"].includes(name))) return { ok: false, errorCode: "tool_policy_denied" };
         const decision = callId ? execution?.read()?.decisions[callId] : undefined;
         if (name === "ask_user" && decision) return { ok: true, output: { answer: decision.answer } };
         const risk = tools!.harness.preview(name, input, options.topicId ?? "general-chat").risk;

@@ -16,6 +16,14 @@ type Payload = { error?: unknown; usage?: { prompt_tokens?: number; completion_t
 
 /** Stateless, bounded text/tool adapter. Every request carries its own conversation. */
 export class ChatCompletionsClient implements ContinuableModelClient {
+  /** Resolve OS authorization before child deadlines; no key is returned or cached here. */
+  async prepare(signal: AbortSignal): Promise<void> {
+    assertLiveProviderAllowed(this.environment);
+    const key = await abortable(() => this.secrets.get(`keychain:zhixing/${this.connection?.id ?? `${this.provider}-api`}`), signal);
+    if (!key) throw new Error("provider_unavailable");
+    signal.throwIfAborted();
+  }
+  get identity() { return { provider: this.connection?.id ?? (this.provider === "kimi" ? "kimi-api" as const : "deepseek-api" as const), model: this.model, connection: this.endpoint }; }
   get capabilities() { if (this.connection) return { ...adapterCapabilities(this.connection.tools, "configurable"), inputModalities: this.connection.images ? ["text", "image"] as const : ["text"] as const, contextWindowTokens: this.connection.contextWindow, maxOutputTokens: this.connection.maxOutputTokens }; return { ...adapterCapabilities(true, "configurable"), inputModalities: (this.provider === "kimi" || this.model === "deepseek-v4-flash-vision-exp") ? ["text", "image"] as const : ["text"] as const }; }
   constructor(
     private readonly secrets: SecretStore,

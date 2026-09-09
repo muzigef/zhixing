@@ -1,3 +1,5 @@
+import { TeamCard, TeamSettingsPanel } from "./team-panel.js";
+import { collaborationLabels, teamModeConfiguration, type CollaborationMode } from "../../src/team-contracts.js";
 import { ApiConnectionsPanel } from "./api-connections-panel.js";
 import { isCustomProvider, providerLabel } from "../../src/api-connection-config.js";
 import { imageFromBytes, imageDataUrl, type ImageInput } from "../../src/image-input.js";
@@ -164,6 +166,7 @@ function App() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -386,16 +389,18 @@ function App() {
     providerOverride?: DesktopSettings["provider"],
     steer = false,
     resumeTaskId?: string,
+    overrides?: { collaboration?: DesktopSettings["collaboration"]; images?: ImageInput[] },
   ) {
     const generation = attachmentGeneration.current;
-    const images = resumeTaskId ? undefined : attachments.length ? attachments : undefined;
+    const selectedImages = overrides?.images ?? (resumeTaskId ? undefined : attachments.length ? attachments : undefined);
+    const images = selectedImages?.length ? selectedImages : undefined;
     text = text.trim() || (images?.length ? "请描述图片并说明判断依据。" : "");
     if (!text || sending || permissionBusy) return;
     if (activeId) {
       if (activeId !== session?.id) { setError("另一个会话正在运行，请先切换到该会话或停止任务。"); return; }
       setSending(true); setDraft("");
       try {
-        await invoke({ type: "enqueue", sessionId: activeId, text, images, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, execution, ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}), steer });
+        await invoke({ type: "enqueue", sessionId: activeId, text, images, provider: providerOverride ?? settings.provider, style: settings.style, reasoning: settings.reasoning, collaboration: settings.collaboration, execution, ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}), steer });
         if (execution === "once") setExecution("read");
         if (generation === attachmentGeneration.current) setAttachments([]);
         notify(steer ? "已收到调整，将结合原任务继续" : "已加入待发送队列");
@@ -433,9 +438,10 @@ function App() {
         images,
         provider: providerOverride ?? settings.provider,
         style: settings.style,
-        reasoning: settings.reasoning,
+        reasoning: settings.reasoning, collaboration: overrides?.collaboration ?? settings.collaboration,
         execution,
         resumeTaskId,
+        ...(resumeTaskId ? { collaboration: target.messages.findLast(item => item.taskId === resumeTaskId)?.collaboration, ...(target.messages.findLast(item => item.taskId === resumeTaskId)?.team ? { provider: target.messages.findLast(item => item.taskId === resumeTaskId)!.provider as DesktopSettings["provider"] } : {}) } : {}),
         ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}),
       });
       if (generation === attachmentGeneration.current) setAttachments([]);
@@ -456,7 +462,7 @@ function App() {
     try {
       const fork = await invoke<ChatSession>({ type: "fork", sessionId: session.id, messageId: message.id, edit: text !== undefined });
       await select(fork.id);
-      if (text !== undefined) await invoke({ type: "send", sessionId: fork.id, text, images: message.images, provider: settings.provider, style: settings.style, reasoning: settings.reasoning });
+      if (text !== undefined) await invoke({ type: "send", sessionId: fork.id, text, images: message.images, provider: settings.provider, style: settings.style, reasoning: settings.reasoning, collaboration: settings.collaboration });
     } catch (problem) { setError(messageOf(problem)); }
     finally { setSending(false); }
   }
@@ -739,6 +745,8 @@ function App() {
                     )
                   }
                   onFork={() => void forkConversation(message)}
+                  onStopMember={id => { void invoke({ type: "team-stop-member", sessionId: session.id, memberId: id }).catch(problem => setError(messageOf(problem))); }}
+                  onRerunTeam={() => { const user = session.messages.slice(0, session.messages.findIndex(item => item.id === message.id)).findLast(item => item.role === "user"); void send(message.team?.question ?? user?.text ?? "请重新核查", message.provider as DesktopSettings["provider"], false, undefined, { collaboration: message.collaboration, images: user?.images ?? [] }); }}
                   onTask={() => { if (message.taskId) setTaskView({ sessionId: session.id, taskId: message.taskId }); }}
                   onEdit={(text) => void forkConversation(message, text)}
                   onAnswer={(id, answer, scope) => { setSending(true); void invoke({ type: "answer", sessionId: session.id, itemId: id, answer, scope }).catch((problem) => setError(messageOf(problem))).finally(() => setSending(false)); }}
@@ -881,6 +889,8 @@ function App() {
                 </select>
               </label>
               <label className="style-picker"><span className="sr-only">思考强度</span><select aria-label="思考强度" value={settings.reasoning ?? "balanced"} onChange={(event) => void saveSettings({ ...settings, reasoning: event.target.value as DesktopSettings["reasoning"] })}><option value="auto">自动</option><option value="quick">快速</option><option value="balanced">均衡</option><option value="deep">深入思考</option></select></label>
+              <label className="style-picker"><select aria-label="协作模式" value={settings.collaboration?.mode ?? "single"} onChange={event => void saveSettings({ ...settings, collaboration: teamModeConfiguration(event.target.value as CollaborationMode, settings.provider, settings.collaboration) })}>{Object.entries(collaborationLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              {settings.collaboration?.mode && settings.collaboration.mode !== "single" && <button type="button" className="queue-button" onClick={() => setTeamOpen(true)}>团队配置</button>}
               <div className="composer-spacer" />
               {isCurrentRunning && <>
                 <button type="button" className="queue-button" disabled={(!draft.trim() && !attachments.length) || sending} onClick={() => void send()}>排队</button>
@@ -936,8 +946,10 @@ function App() {
           {toast}
         </div>
       )}
+      {teamOpen && <Modal title="团队配置" onClose={() => setTeamOpen(false)}><TeamSettingsPanel settings={settings} boot={boot ?? undefined} onSave={async collaboration => { try { const state = await invoke<BootState>({ type: "settings", settings: { ...settings, collaboration } }); setBoot(state); setTeamOpen(false); } catch (problem) { setError(messageOf(problem)); } }} /></Modal>}
       {settingsOpen && (
         <SettingsDialog
+          key={settings.provider}
           busy={!!activeId}
           onRestored={(state) => { setBoot(state); newChat(); setSelectedTopic(""); setContextAllowed(false); }}
           settings={settings}
@@ -1008,6 +1020,8 @@ const Message = memo(
     onEdit,
     onAnswer,
     onTask,
+    onStopMember,
+    onRerunTeam,
   }: {
     message: ChatMessage;
     elapsed: number;
@@ -1022,6 +1036,8 @@ const Message = memo(
     onEdit: (text: string) => void;
     onAnswer: (id: string, answer: string, scope?: "once" | "session") => void;
     onTask: () => void;
+    onStopMember: (id: string) => void;
+    onRerunTeam: () => void;
   }) {
     if (message.role === "user")
       return (
@@ -1041,6 +1057,7 @@ const Message = memo(
             </span>
           )}
         </div>
+        {message.team && <TeamCard team={message.team} running={message.status === "running"} onStop={onStopMember} onRerun={onRerunTeam} canRerun={canSend} />}
         {!!message.activities?.length && <details className="task-activities"><summary>任务进展 · {message.activities.length} 项活动</summary><ul>{message.activities.map((activity, index) => <li key={index}>{activity.status === "completed" ? "✓" : activity.status === "failed" ? "!" : "…"} {activity.label}</li>)}</ul></details>}
         {message.taskId && <button className="compare-trigger" disabled={!canSend} onClick={onTask}>任务详情</button>}
         {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}
@@ -1259,7 +1276,6 @@ function SettingsDialog({
   const [connection, setConnection] = useState("");
   const isKimi = settings.provider === "kimi-api";
   const apiName = isKimi ? "Kimi" : "DeepSeek";
-  useEffect(() => { setApiKey(""); setSavedKey(false); setFailure(""); setConnection(""); }, [settings.provider]);
   const refreshButton = (
     <button
       disabled={refreshing}

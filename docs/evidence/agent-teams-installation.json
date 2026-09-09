@@ -1,0 +1,10 @@
+{
+  "installedVersion": "0.10.0",
+  "previousVersion": "0.9.2",
+  "installedAt": "2026-09-09T10:29:52.962232+00:00",
+  "backup": "/Users/liqing93/document/study/agent/zhixing/desktop/release/installed-backups/20260909-182945-0.9.2/知行.app",
+  "appAsarSha256": "6245b383ca0dea2decac5d700d4baa3f2be496f5722d7c3b8f9bd2e4aa03b7ff",
+  "codesignVerified": true,
+  "signing": "ad-hoc",
+  "liveHoldout": "blocked on manual OS credential authorization"
+}

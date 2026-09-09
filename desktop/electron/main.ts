@@ -1,4 +1,6 @@
 import { ApiConnections } from "../../src/api-connections.js";
+import { evaluateTeams, type EvaluationProgress } from "../../src/team-evaluation.js";
+import os from "node:os";
 import { isCustomProvider, type ApiConnection, type CustomProvider } from "../../src/api-connection-config.js";
 import { ReminderStore, ReminderScheduler } from "../../src/reminder-store.js";
 import { executionSupport } from "../../src/platform-support.js";
@@ -65,6 +67,9 @@ let pi: PiApplicationClient;
 let secrets: EncryptedDesktopSecrets;
 let kimiSecrets: EncryptedDesktopSecrets;
 let checkingApi = false;
+let evaluationController: AbortController | undefined;
+let evaluationIdle: Promise<unknown> = Promise.resolve();
+let evaluationProgress: EvaluationProgress | undefined;
 let apiConnections: ApiConnections;
 let connectionProfiles: ApiConnection[] = [];
 const customSecrets = new Map<CustomProvider, EncryptedDesktopSecrets>();
@@ -248,7 +253,7 @@ else {
           )
             throw new Error("invalid_sender");
           const command = desktopCommandSchema.parse(raw);
-          if (checkingApi && ["check-api", "configure-deepseek", "configure-kimi", "api-connection-save", "api-connection-remove", "settings", "send", "enqueue", "answer", "resume-queue", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
+          if (checkingApi && ["team-evaluate", "check-api", "configure-deepseek", "configure-kimi", "api-connection-save", "api-connection-remove", "settings", "send", "enqueue", "answer", "resume-queue", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "configure-kimi", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
@@ -522,8 +527,11 @@ else {
               break;
             case "stop":
               service.stop();
+              evaluationController?.abort();
               data = null;
               break;
+            case "team-stop-member":
+              await service.stopTeamMember(command.sessionId, command.memberId); data = null; break;
             case "rename":
               data = await service.rename(command.sessionId, command.title);
               break;
@@ -572,6 +580,20 @@ else {
               try { data = await checkApiConnection(apiModel(command.provider)); }
               finally { checkingApi = false; }
               break;
+            case "team-evaluation-status":
+              data = { running: Boolean(evaluationController), progress: evaluationProgress }; break;
+            case "team-evaluate": {
+              if (service.activeSessionId || learningController || process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("learning_busy");
+              checkingApi = true; evaluationController = new AbortController();
+              await service.pauseMaintenance();
+              try {
+                const evaluationRoot = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-evaluation-"));
+                const provenance = await learning.provenance();
+                evaluationIdle = evaluateTeams({ root: evaluationRoot, suite: command.suite, resolve: provider => provider === "pi-codex" ? createAgentModel(provider, { pi, secrets, contextBudget }) : provider === "deepseek-api" || provider === "kimi-api" ? apiModel(provider) : (() => { throw new Error("provider_not_found"); })(), signal: evaluationController.signal, onProgress: value => { evaluationProgress = value; } });
+                data = { ...await evaluationIdle as object, provenance };
+              } finally { checkingApi = false; evaluationController = undefined; }
+              break;
+            }
             case "copy":
               clipboard.writeText(command.text);
               data = null;
@@ -680,8 +702,8 @@ else {
     if (!service) { learning?.close(); return; }
     event.preventDefault();
     quitting = true;
-    service.stop(); learningController?.abort();
-    void Promise.allSettled([service.idle(), learningIdle])
+    service.stop(); learningController?.abort(); evaluationController?.abort();
+    void Promise.allSettled([service.idle(), learningIdle, evaluationIdle])
       .then(() => service.store.flush())
       .catch(() => console.warn("desktop_flush_unavailable"))
       .finally(() => { learning?.close(); app.quit(); });

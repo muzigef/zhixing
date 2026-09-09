@@ -1,5 +1,6 @@
 export function publicError(error: unknown): string {
   const code = error instanceof Error ? error.message : "";
+  if (code.startsWith("team_")) return ({ team_configuration_changed: "继续旧任务需要保留原团队配置；切换模式或主模型请发起新任务。", team_scope_changed: "团队任务的授权范围或配置已改变，请核对后发起新任务。", team_models_not_distinct: "异模型团队至少需要两个不同的实际模型，多个同模型连接不算不同模型。", team_member_provider_required: "请先为异模型团队的每个成员选择模型连接。", team_model_mismatch: "实际模型与团队保存的绑定不一致，请发起新任务。", team_model_binding_required: "当前通道无法固定实际模型，暂不能用于团队。", team_budget_exhausted: "团队已达到本轮共享模型预算，已保留成员结果。", team_tool_budget_exhausted: "团队已达到本轮共享工具调用上限。", team_study_unavailable: "教学效果试验需要固定原试验条件，请在普通会话使用团队。", team_member_not_active: "这个团队成员已结束或不属于当前任务。" } as Record<string, string>)[code] ?? "团队未完成，请检查模型连接和配置；已完成的成员结果会保留。";
   if (code === "provider_not_found") return "这个 API 连接已移除或尚未配置，请在设置中添加连接或选择其他模型。";
   if (code.startsWith("api_connections_")) return ({ api_connections_conflict: "连接配置已改变，请关闭设置并重新打开后再保存。", api_connections_key_required: "请先填写这个连接的 API Key。", api_connections_limit: "最多保存 20 个 API 连接，请先移除不再使用的连接。", api_connections_invalid: "API 连接配置无效或与原地址不一致，请重新添加连接。" } as Record<string, string>)[code] ?? "API 连接未保存，请检查地址和模型配置。";
   if (code === "image_model_required") return "当前模型不支持图片。DeepSeek 请在设置中选择 V4 Flash Vision；或选择支持图片的 Pi 模型。";

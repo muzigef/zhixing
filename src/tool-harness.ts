@@ -45,12 +45,16 @@ export function toolFailure(error: unknown): { ok: false; errorCode: string; iss
 export class ToolHarness {
   #tools = new Map<string, ToolDefinition<unknown, unknown>>();
   private results?: ToolResultStore;
+  private policies: ((name: string) => boolean)[] = [];
+  /** Monotonic capability restriction, including tools discovered later. */
+  restrict(allowed: (name: string) => boolean): void { this.policies.push(allowed); }
+  private allowed(name: string): boolean { return this.policies.every(policy => policy(name)); }
   useResults(store: ToolResultStore): void {
     this.results = store;
     this.register({ name: "read_tool_result", description: "按 resultId 分页读取本任务被截断的工具结果。content 是 JSON 原文片段，nextOffset 非空时继续，不能将片段当完整结果。", input: z.object({ resultId: z.string().regex(/^[a-f0-9]{64}$/), offset: z.number().int().min(0).max(256_000).default(0) }).strict(), risk: "read", idempotent: true, parallelSafe: true, timeoutMs: 1000, execute: async (input, context) => store.read(context.topicId, input.resultId, input.offset) });
   }
   definitions(): ModelToolDefinition[] {
-    return [...this.#tools.values()].filter(tool => tool.description !== undefined).map(tool => {
+    return [...this.#tools.values()].filter(tool => tool.description !== undefined && this.allowed(tool.name)).map(tool => {
       const inputSchema = tool.remoteInputSchema ?? z.toJSONSchema(tool.input, { io: "input", target: "draft-7", unrepresentable: "throw" });
       const schema = { ...inputSchema }; delete schema.$schema;
       return { name: tool.name, description: tool.description!, inputSchema: schema };
@@ -67,6 +71,7 @@ export class ToolHarness {
   risk(name: string): ToolRisk | undefined { return this.#tools.get(name)?.risk; }
   preview(name: string, input: unknown, topicId: TopicId): { risk: ToolRisk; input: unknown } {
     const tool = this.#tools.get(name); if (!tool) throw new Error("tool_not_allowed");
+    if (!this.allowed(name)) throw new Error("tool_policy_denied");
     if (input && typeof input === "object" && "topicId" in input && input.topicId !== topicId) throw new Error("cross_topic_denied");
     return { risk: tool.risk, input: tool.input.parse(input) };
   }
@@ -81,6 +86,7 @@ export class ToolHarness {
   async execute(name: string, rawInput: unknown, context: ToolExecutionContext): Promise<ToolResult> {
     const tool = this.#tools.get(name); const started = Date.now();
     if (!tool) return { tool: name, ok: false, errorCode: "tool_not_allowed", durationMs: Date.now() - started };
+    if (!this.allowed(name)) return { tool: name, ok: false, errorCode: "tool_policy_denied", durationMs: Date.now() - started };
     if (context.signal.aborted) return { tool: name, ok: false, errorCode: "tool_cancelled", durationMs: Date.now() - started };
     // Inspect the raw input: object schemas can strip a model-supplied topicId.
     if (typeof rawInput === "object" && rawInput !== null && "topicId" in rawInput && rawInput.topicId !== context.topicId) return { tool: name, ok: false, errorCode: "cross_topic_denied", durationMs: Date.now() - started };

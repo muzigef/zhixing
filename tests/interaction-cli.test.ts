@@ -115,6 +115,15 @@ globalThis.fetch = async (_url, init) => {
 }
 
 describe("natural interaction through the actual CLI", () => {
+  it("persists team mode across CLI restarts and runs two real isolated member invocations", async () => {
+    const fixture = await setup(false, ['{"tasks":["核查计算","检查条件"]}', "计算结果是 4。"]);
+    expect((await fixture.invoke("/mode same")).stdout).toContain("同模型团队");
+    await fixture.invoke("/agent 计算 2+2");
+    const report = (await fixture.invoke("/team")).stdout;
+    expect(report).toContain("同模型团队"); expect(report).toContain("deepseek-v4-flash"); expect(report).toContain("已完成");
+    expect(JSON.parse(await fs.readFile(path.join(fixture.root, "requests.json"), "utf8"))).toHaveLength(4);
+    expect((await fixture.invoke("/mode single")).stdout).toContain("单 Agent");
+  });
   it("adds and switches a third-party connection through real CLI commands across restarts", async () => {
     const fixture = await setup();
     const added = await fixture.invoke(`模型连接添加 ${JSON.stringify(customDefinition)}`);

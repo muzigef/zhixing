@@ -34,7 +34,7 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.9.1`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.10.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
@@ -54,7 +54,7 @@
 
 0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
 
-0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，尚未替换用户安装。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。独立子 Agent 已重新进入[三模式方案调研](docs/agent-team-feasibility-20260909.md)，尚未开发或启用。
+0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，当时尚未替换用户安装；本轮已安装 0.10.0，见[安装记录](docs/evidence/agent-teams-installation.json)。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。0.10 源码已实现单 Agent、同模型团队和异模型团队，共用执行与权限内核；团队暂为实验性；六组真实开发题初测未见正确率收益，96 个留出根任务待本机钥匙串授权后执行，见[质量初测与阻塞](docs/evidence/team-quality-comparison-20260909.md)。使用、预算与恢复边界见[三模式指南](docs/agent-teams.md)，实验条件见[评测协议](docs/agent-team-evaluation-protocol-20260909.md)。
 
 
 ## 快速开始
@@ -302,7 +302,9 @@ npm --prefix desktop run test:ui
 | Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
 | 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
 | 核心设计与商业 Agent 对比 | [28 个核心模块评审：Codex / Claude Code 对比、取舍与优化建议](docs/agent-architecture-comparison-20260908.md) |
-| 三种 Agent 模式研究（尚未开发） | [单 Agent、同模型团队与异模型团队：可行性、案例与实现方案](docs/agent-team-feasibility-20260909.md) |
+| 三模式使用与恢复 | [单 Agent、同模型团队与异模型团队](docs/agent-teams.md) |
+| 团队质量对照 | [真实初测、工程验收与未完成条件](docs/evidence/team-quality-comparison-20260909.md) · [冻结协议](docs/agent-team-evaluation-protocol-20260909.md) |
+| 三种 Agent 模式研究（首版范围以三模式指南为准） | [单 Agent、同模型团队与异模型团队：可行性、案例与实现方案](docs/agent-team-feasibility-20260909.md) |
 | 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
 

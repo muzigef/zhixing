@@ -1,0 +1,4281 @@
+{
+  "version": 1,
+  "suite": "pilot",
+  "startedAt": "2026-09-09T09:36:43.330Z",
+  "finishedAt": "2026-09-09T09:42:00.218Z",
+  "planned": 12,
+  "datasetHash": "fc48209ef70342c6f55bf17b81d7b87a27c6f808c3061dc96d9cf4f1a4b2fb4c",
+  "bindings": [
+    {
+      "provider": "pi-codex",
+      "model": "gpt-5.6-terra",
+      "connection": "pi:openai-codex",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-flash",
+      "connection": "https://api.deepseek.com/v1/chat/completions",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "kimi-api",
+      "model": "kimi-k3",
+      "connection": "https://api.moonshot.cn/v1/chat/completions",
+      "reasoning": "balanced"
+    }
+  ],
+  "unavailable": {},
+  "reasoning": "balanced",
+  "rows": [
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-pi",
+      "completed": true,
+      "durationMs": 5175,
+      "firstTokenMs": 4284,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的是把19误当成20后忘记减去一个17。\"}",
+      "turns": [
+        {
+          "id": "a2c5819a-0147-4238-b193-708be833eb46",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的是把19误当成20后忘记减去一个17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "54847b64-4601-419d-9ba7-82f24749dd57",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的是把19误当成20后忘记减去一个17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:36:43.336Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 84,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 34,
+            "startupMs": 876
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "56d21f3a-6517-4707-9e82-d225a6c5fade",
+          "durationMs": 5165,
+          "firstTokenMs": 4284,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1362
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 876,
+              "requestMs": 3844,
+              "firstEventMs": 1891,
+              "firstTextMs": 3308,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 5160,
+              "processTailMs": 343
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:48.503Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:48.503Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 5163,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 5160,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 84,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 34,
+            "model": "gpt-5.6-terra",
+            "startupMs": 876
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "completed": true,
+      "durationMs": 14665,
+      "firstTokenMs": 3184,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=17×20-17=340-17=323。关键是分配律：17要同时乘20和1；容易出错的是把17×20算错，或在最后误减成19。\"}",
+      "turns": [
+        {
+          "id": "f613fddd-097e-4ae0-817a-944b337be04b",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=(18-1)×19=342-19=323。容易出错的是把18×19误算，正确为342。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "de2a103f-b4d4-417d-adec-2bd2d0f6fdf0",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=(18-1)×19=342-19=323。容易出错的是把18×19误算，正确为342。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:36:48.509Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 61,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 14,
+            "startupMs": 809
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "297ae125-50cb-4c39-bedb-67e6c32781bd",
+          "durationMs": 4321,
+          "firstTokenMs": 3184,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1362
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 809,
+              "requestMs": 3041,
+              "firstEventMs": 1212,
+              "firstTextMs": 2238,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4319,
+              "processTailMs": 333
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:52.830Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:52.830Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 4320,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "fbf68c24-c9b6-454f-9d46-589efbf219aa",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19可以算作(20-1)×17=340-17=323。也可核对为19×(18-1)=342-19=323。容易出错的地方是减去的数要与拆分时对应：把19写成20-1时减17，不能误减19。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "b75077cc-432e-49c8-a78d-109c9a5c88fe",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19可以算作(20-1)×17=340-17=323。也可核对为19×(18-1)=342-19=323。容易出错的地方是减去的数要与拆分时对应：把19写成20-1时减17，不能误减19。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:36:52.834Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1567,
+            "outputTokens": 123,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 37,
+            "startupMs": 730
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "124fd343-8ead-475a-aeed-77e1f5aaaf85",
+          "durationMs": 5422,
+          "firstTokenMs": 3266,
+          "contextUsage": {
+            "estimatedInputTokens": 3887,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3003,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1567
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 730,
+              "requestMs": 4292,
+              "firstEventMs": 1141,
+              "firstTextMs": 2477,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 5421,
+              "processTailMs": 341
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:58.257Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:36:58.257Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 5421,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "04f6e690-5351-4da8-9d53-d6e084fe3a16",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=17×20-17=340-17=323。关键是分配律：17要同时乘20和1；容易出错的是把17×20算错，或在最后误减成19。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "ae001716-4d98-4fbe-bbba-6728e4f121cd",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=17×20-17=340-17=323。关键是分配律：17要同时乘20和1；容易出错的是把17×20算错，或在最后误减成19。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:36:58.262Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1702,
+            "outputTokens": 90,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 19,
+            "startupMs": 680
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "8676d73e-d499-41c3-9f53-e4383db3baa1",
+          "durationMs": 4907,
+          "firstTokenMs": 3544,
+          "contextUsage": {
+            "estimatedInputTokens": 4153,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3267,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1702
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 680,
+              "requestMs": 3828,
+              "firstEventMs": 1120,
+              "firstTextMs": 2808,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4905,
+              "processTailMs": 343
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:37:03.169Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:37:03.170Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 4906,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4319,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 61,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 14,
+            "model": "gpt-5.6-terra",
+            "startupMs": 809
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 5421,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1567,
+            "outputTokens": 123,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 37,
+            "model": "gpt-5.6-terra",
+            "startupMs": 730
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4905,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1702,
+            "outputTokens": 90,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 19,
+            "model": "gpt-5.6-terra",
+            "startupMs": 680
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": true,
+      "durationMs": 21371,
+      "firstTokenMs": 20027,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。容易出错的是把19看成20后忘记减去17。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "same-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 60000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 180000
+          },
+          "team": {
+            "id": "fb3c058c-405a-4c63-877e-0a88ea83d1fb",
+            "mode": "same-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "f6f0ae21-f27c-4204-8431-ae1db168e75b",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "reasoning-checker：核查17×19的心算/笔算推导是否正确，尤其验证可否用17×(20−1)进行分配律计算，并确认最终整数结果。",
+                "attempts": 1,
+                "durationMs": 5212,
+                "result": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。容易出错的地方是减去的是一个17，而不是19。\"}",
+                "inputTokens": 268,
+                "outputTokens": 75
+              },
+              {
+                "id": "1e814342-609d-4a2b-85d5-c857c1e46e29",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "material-checker：核查题目输出约束：需仅输出一个JSON对象、包含value字段和中文explanation字符串；确认本题无非整数精度要求适用，且不需要外部工具或资料。",
+                "attempts": 1,
+                "durationMs": 11507,
+                "result": "{\"value\":323,\"explanation\":\"计算：17×19=17×(20−1)=340−17=323。容易出错的地方是把19误当成20后忘记减去17。\"}",
+                "inputTokens": 278,
+                "outputTokens": 113
+              }
+            ],
+            "modelTurns": 4,
+            "toolCalls": 0,
+            "reservedOutputTokens": 367,
+            "estimatedInputTokens": 5918,
+            "inputTokens": 2455,
+            "outputTokens": 367,
+            "unknownUsageRequests": 0,
+            "configHash": "df3d9462382528071f03e6b31417d8492b9d8cfaea2993f52ddf10b8f1c29f6d",
+            "scopeHash": "0035408f87a65557cdc862e8245b383594cc8f15ab73feb36942490a03a0206d",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed"
+          },
+          "id": "cb013510-07c1-42a1-aa66-db574eaa9dd2",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。容易出错的是把19看成20后忘记减去17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "86066d46-7aee-4fe4-9c7d-7c18bbd4d072",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。容易出错的是把19看成20后忘记减去17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:37:03.176Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1742,
+            "outputTokens": 52,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "startupMs": 724
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "1eaa10b6-1602-4e9d-beff-0213441e5ae7",
+          "durationMs": 21366,
+          "firstTokenMs": 20027,
+          "contextUsage": {
+            "estimatedInputTokens": 4176,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3190,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1742
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 724,
+              "requestMs": 3054,
+              "firstEventMs": 1419,
+              "firstTextMs": 2064,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4179,
+              "processTailMs": 340
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:37:24.539Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:37:24.539Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 4180,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "planning",
+          "durationMs": 5659,
+          "maxOutputTokens": 1024,
+          "completed": true,
+          "usage": {
+            "inputTokens": 167,
+            "outputTokens": 127,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 22,
+            "model": "gpt-5.6-terra",
+            "startupMs": 824
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 5206,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 268,
+            "outputTokens": 75,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 22,
+            "model": "gpt-5.6-terra",
+            "startupMs": 761
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 6293,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 278,
+            "outputTokens": 113,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 60,
+            "model": "gpt-5.6-terra",
+            "startupMs": 775
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4179,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1742,
+            "outputTokens": 52,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "model": "gpt-5.6-terra",
+            "startupMs": 724
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": false,
+      "error": "本组未完成全部回答或核查。",
+      "durationMs": 69418,
+      "firstTokenMs": 68211,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的地方是340减17应得323，不是333。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "mixed-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "provider": "deepseek-api",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "provider": "kimi-api",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 60000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 180000
+          },
+          "team": {
+            "id": "ab9b63af-95ca-44a9-80bd-140349c011d6",
+            "mode": "mixed-model-team",
+            "status": "partial",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "f13171c5-4456-4b3a-a929-b64b5ebda190",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "deepseek-api",
+                  "model": "deepseek-v4-flash",
+                  "connection": "https://api.deepseek.com/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "reasoning-checker：独立核查17×19的计算过程，确认可用17×(20−1)进行心算，并验证最终整数结果。",
+                "attempts": 1,
+                "durationMs": 2951,
+                "result": "{\"value\":323,\"explanation\":\"将19看作20-1，则17×19=17×(20-1)=17×20-17=340-17=323。注意先算乘法再算减法，不要误算成340-17=333或漏减17。最终整数结果为323。\"}",
+                "inputTokens": 215,
+                "outputTokens": 102
+              },
+              {
+                "id": "a7f92d7e-4d5f-486c-a56f-9fe52afb4d76",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "kimi-api",
+                  "model": "kimi-k3",
+                  "connection": "https://api.moonshot.cn/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "failed",
+                "task": "material-checker：核查题目是否需要外部资料、单位换算或非整数精度处理；确认仅涉及基础整数乘法及输出字段要求。",
+                "attempts": 1,
+                "durationMs": 60079,
+                "error": "成员已停止或超时，结果未完成。",
+                "inputTokens": 0,
+                "outputTokens": 0
+              }
+            ],
+            "modelTurns": 4,
+            "toolCalls": 0,
+            "reservedOutputTokens": 2316,
+            "estimatedInputTokens": 5800,
+            "inputTokens": 2082,
+            "outputTokens": 268,
+            "unknownUsageRequests": 1,
+            "configHash": "6af136732290f977d7f6b02833b099cc927921f71de002c3513d94548eadebc5",
+            "scopeHash": "af8e7c2deb3b387d424470034115a0fbff2375ed9dd9c68cf9359b5cf6653540",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed"
+          },
+          "id": "86c7b54a-069b-42f7-bd96-6ac87268daab",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的地方是340减17应得323，不是333。\"}",
+          "status": "blocked",
+          "items": [
+            {
+              "id": "921bdd1f-98d3-4cc4-9d1e-96da34a87d6f",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错的地方是340减17应得323，不是333。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:37:24.547Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1700,
+            "outputTokens": 46,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "startupMs": 889
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "cdd5dfbc-5860-4498-b734-27722db03dc9",
+          "durationMs": 69412,
+          "firstTokenMs": 68211,
+          "contextUsage": {
+            "estimatedInputTokens": 4106,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3086,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1700
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 889,
+              "requestMs": 2847,
+              "firstEventMs": 1162,
+              "firstTextMs": 2001,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4150,
+              "processTailMs": 343
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:38:33.956Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:38:33.956Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 4153,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "planning",
+          "durationMs": 5161,
+          "maxOutputTokens": 1024,
+          "completed": true,
+          "usage": {
+            "inputTokens": 167,
+            "outputTokens": 120,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 37,
+            "model": "gpt-5.6-terra",
+            "startupMs": 684
+          }
+        },
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "member",
+          "durationMs": 2945,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 215,
+            "outputTokens": 102,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 35,
+            "model": "deepseek-v4-flash"
+          }
+        },
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "member",
+          "durationMs": 60070,
+          "maxOutputTokens": 2048,
+          "completed": false
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4150,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1700,
+            "outputTokens": 46,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "model": "gpt-5.6-terra",
+            "startupMs": 889
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": true,
+      "durationMs": 2959,
+      "firstTokenMs": 2227,
+      "text": "{\"value\":323,\"explanation\":\"计算17×19：先算17×20=340，再减去一个17，得到340−17=323。容易出错的地方是进位或漏减：用20代替19简化计算时，记得17×19=17×(20−1)=17×20−17，最后要减掉17，不要误算成加17。\"}",
+      "turns": [
+        {
+          "id": "7a51b0ef-b8f9-4159-af6d-86cf758ae426",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"计算17×19：先算17×20=340，再减去一个17，得到340−17=323。容易出错的地方是进位或漏减：用20代替19简化计算时，记得17×19=17×(20−1)=17×20−17，最后要减掉17，不要误算成加17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "d6afc039-1d86-49e4-8cff-af82a6f58eaf",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"计算17×19：先算17×20=340，再减去一个17，得到340−17=323。容易出错的地方是进位或漏减：用20代替19简化计算时，记得17×19=17×(20−1)=17×20−17，最后要减掉17，不要误算成加17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:38:33.968Z",
+          "provider": "deepseek-api",
+          "style": "adaptive",
+          "model": "deepseek-v4-flash",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1393,
+            "outputTokens": 82,
+            "cacheReadTokens": 768,
+            "reasoningTokens": 0
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "4f35e21f-75ae-40b1-b9bb-f380ee016188",
+          "durationMs": 2948,
+          "firstTokenMs": 2227,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1393
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 26,
+              "requestMs": 2916,
+              "firstEventMs": 1439,
+              "firstTextMs": 2200,
+              "submittedReasoning": "low",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 2942,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:38:36.917Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:38:36.917Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 2947,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "answer",
+          "durationMs": 2946,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1393,
+            "outputTokens": 82,
+            "cacheReadTokens": 768,
+            "reasoningTokens": 0,
+            "model": "deepseek-v4-flash"
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": true,
+      "durationMs": 70891,
+      "firstTokenMs": 67334,
+      "text": "{\"value\":323,\"explanation\":\"用分配律最稳：17×19=17×(20−1)=17×20−17=340−17=323。若列竖式，可把 19×17 分成 19×7=133 和 19×10=190，再相加得 323。易错点：把 19 当成 20 后忘记减去多算的 17；竖式中十位那一行实际表示乘 10，要左移一位；个位 7×9=63 的进位 6 要加进十位，不能漏。\"}",
+      "turns": [
+        {
+          "id": "64be83b2-42c0-4021-acbb-673b7ecb8ef1",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"用分配律最稳：17×19=17×(20−1)=17×20−17=340−17=323。若列竖式，可把 19×17 分成 19×7=133 和 19×10=190，再相加得 323。易错点：把 19 当成 20 后忘记减去多算的 17；竖式中十位那一行实际表示乘 10，要左移一位；个位 7×9=63 的进位 6 要加进十位，不能漏。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "0c3573c5-0915-4ae2-b887-9ad5de500ea7",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"用分配律最稳：17×19=17×(20−1)=17×20−17=340−17=323。若列竖式，可把 19×17 分成 19×7=133 和 19×10=190，再相加得 323。易错点：把 19 当成 20 后忘记减去多算的 17；竖式中十位那一行实际表示乘 10，要左移一位；个位 7×9=63 的进位 6 要加进十位，不能漏。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:38:36.930Z",
+          "provider": "kimi-api",
+          "style": "adaptive",
+          "model": "kimi-k3",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1261,
+            "outputTokens": 381,
+            "reasoningTokens": 235
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "4ad15024-eced-402a-9acd-c4136e6e4a06",
+          "durationMs": 70881,
+          "firstTokenMs": 67334,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1261
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 57717,
+              "requestMs": 13163,
+              "firstEventMs": 3033,
+              "firstTextMs": 9616,
+              "submittedReasoning": "high",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 70880,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:39:47.813Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:39:47.813Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 70881,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "answer",
+          "durationMs": 70881,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1261,
+            "outputTokens": 381,
+            "reasoningTokens": 235,
+            "model": "kimi-k3"
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "completed": true,
+      "durationMs": 24806,
+      "firstTokenMs": 4884,
+      "text": "{\"solutions\":[4],\"explanation\":\"先确定平方前的条件。√x 在实数范围内有意义要求 x≥0；并且 √x≥0，所以等式右边 x-2 也必须≥0，即 x≥2。\\n\\n在 x≥2 的条件下平方：x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，即 (x-1)(x-4)=0。因此平方后得到候选值 x=1 和 x=4。\\n\\n平方可能产生增根，因为 a=b 可以推出 a^2=b^2，但 a^2=b^2 还可能表示 a=-b。因此候选值必须代回原方程检验。x=1 时，√1=1，而 1-2=-1，左右不相等；它也不满足平方前的必要条件 x≥2，所以 x=1 是增根。x=4 时，√4=2，且 4-2=2，满足原方程。\\n\\n所以原方程在实数范围内的唯一解是 x=4。\"}",
+      "turns": [
+        {
+          "id": "4e3ce9d0-4257-4deb-8034-25c4aa9865ff",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"先注意定义域与符号条件：左边 √x 要求 x≥0；又因为 √x≥0，所以右边 x-2 也必须≥0，即 x≥2。两边平方得 x=(x-2)^2，整理为 x^2-5x+4=0，解得 x=1 或 x=4。平方可能产生增根，因此必须代回原方程检查：x=1 时，√1=1，但 1-2=-1，不相等，且不满足 x≥2，所以是增根；x=4 时，√4=2，4-2=2，成立。因此解只有 4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "8c7b69b8-1175-4782-8e9f-15aa70c6099b",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"先注意定义域与符号条件：左边 √x 要求 x≥0；又因为 √x≥0，所以右边 x-2 也必须≥0，即 x≥2。两边平方得 x=(x-2)^2，整理为 x^2-5x+4=0，解得 x=1 或 x=4。平方可能产生增根，因此必须代回原方程检查：x=1 时，√1=1，但 1-2=-1，不相等，且不满足 x≥2，所以是增根；x=4 时，√4=2，4-2=2，成立。因此解只有 4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:39:47.823Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1381,
+            "outputTokens": 219,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 60,
+            "startupMs": 700
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "c36445b4-0c2a-4f66-bed4-fe0926354ba2",
+          "durationMs": 7955,
+          "firstTokenMs": 4884,
+          "contextUsage": {
+            "estimatedInputTokens": 3554,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2399,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1381
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 700,
+              "requestMs": 6855,
+              "firstEventMs": 1477,
+              "firstTextMs": 4124,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 7954,
+              "processTailMs": 339
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:39:55.781Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:39:55.781Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 7955,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "0aa1cd64-b1fc-43a2-973a-124919656c51",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"在实数范围内，√x 有意义要求 x≥0。又因为 √x 总是非负，所以等式右边 x-2 也必须非负，即 x≥2。这是平方前不能遗漏的条件。\\n\\n在 x≥2 的条件下，两边平方：x=(x-2)^2。展开并整理得 x=x^2-4x+4，即 x^2-5x+4=0，因式分解为 (x-1)(x-4)=0，所以平方后的候选解是 x=1 和 x=4。\\n\\n平方不一定等价于原方程：若两个数平方相同，它们可能互为相反数，因此平方可能引入增根。需要将候选解代回原方程验证。x=1 时，√1=1，而 1-2=-1，左右不相等；同时它也不满足平方前得到的 x≥2，因此 x=1 是增根。x=4 时，√4=2，且 4-2=2，满足原方程。因此原方程唯一的实数解为 4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "d776c1fa-9958-495e-85ea-9f10648b1e4c",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"在实数范围内，√x 有意义要求 x≥0。又因为 √x 总是非负，所以等式右边 x-2 也必须非负，即 x≥2。这是平方前不能遗漏的条件。\\n\\n在 x≥2 的条件下，两边平方：x=(x-2)^2。展开并整理得 x=x^2-4x+4，即 x^2-5x+4=0，因式分解为 (x-1)(x-4)=0，所以平方后的候选解是 x=1 和 x=4。\\n\\n平方不一定等价于原方程：若两个数平方相同，它们可能互为相反数，因此平方可能引入增根。需要将候选解代回原方程验证。x=1 时，√1=1，而 1-2=-1，左右不相等；同时它也不满足平方前得到的 x≥2，因此 x=1 是增根。x=4 时，√4=2，且 4-2=2，满足原方程。因此原方程唯一的实数解为 4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:39:55.785Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1717,
+            "outputTokens": 315,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 52,
+            "startupMs": 670
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "3198b4b1-ed74-44cf-8202-a3fc2f100bce",
+          "durationMs": 8992,
+          "firstTokenMs": 3592,
+          "contextUsage": {
+            "estimatedInputTokens": 4172,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3209,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1717
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 670,
+              "requestMs": 7922,
+              "firstEventMs": 1245,
+              "firstTextMs": 2859,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 8992,
+              "processTailMs": 337
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:04.778Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:04.778Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 8992,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "1401747b-8e57-48b8-bfa9-a9b1d0617b36",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"先确定平方前的条件。√x 在实数范围内有意义要求 x≥0；并且 √x≥0，所以等式右边 x-2 也必须≥0，即 x≥2。\\n\\n在 x≥2 的条件下平方：x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，即 (x-1)(x-4)=0。因此平方后得到候选值 x=1 和 x=4。\\n\\n平方可能产生增根，因为 a=b 可以推出 a^2=b^2，但 a^2=b^2 还可能表示 a=-b。因此候选值必须代回原方程检验。x=1 时，√1=1，而 1-2=-1，左右不相等；它也不满足平方前的必要条件 x≥2，所以 x=1 是增根。x=4 时，√4=2，且 4-2=2，满足原方程。\\n\\n所以原方程在实数范围内的唯一解是 x=4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "7dff845f-2962-4e51-9b69-974bc8a951ba",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"先确定平方前的条件。√x 在实数范围内有意义要求 x≥0；并且 √x≥0，所以等式右边 x-2 也必须≥0，即 x≥2。\\n\\n在 x≥2 的条件下平方：x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，即 (x-1)(x-4)=0。因此平方后得到候选值 x=1 和 x=4。\\n\\n平方可能产生增根，因为 a=b 可以推出 a^2=b^2，但 a^2=b^2 还可能表示 a=-b。因此候选值必须代回原方程检验。x=1 时，√1=1，而 1-2=-1，左右不相等；它也不满足平方前的必要条件 x≥2，所以 x=1 是增根。x=4 时，√4=2，且 4-2=2，满足原方程。\\n\\n所以原方程在实数范围内的唯一解是 x=4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:40:04.781Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 2029,
+            "outputTokens": 273,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 18,
+            "startupMs": 725
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "a9d5e4ae-4045-422c-9907-5952f60171f2",
+          "durationMs": 7841,
+          "firstTokenMs": 3029,
+          "contextUsage": {
+            "estimatedInputTokens": 4785,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3708,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 2029
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 725,
+              "requestMs": 6718,
+              "firstEventMs": 1231,
+              "firstTextMs": 2247,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 7840,
+              "processTailMs": 341
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:12.623Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:12.623Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 7840,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 7954,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1381,
+            "outputTokens": 219,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 60,
+            "model": "gpt-5.6-terra",
+            "startupMs": 700
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 8992,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1717,
+            "outputTokens": 315,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 52,
+            "model": "gpt-5.6-terra",
+            "startupMs": 670
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 7840,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 2029,
+            "outputTokens": 273,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 18,
+            "model": "gpt-5.6-terra",
+            "startupMs": 725
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": true,
+      "durationMs": 26135,
+      "firstTokenMs": 23131,
+      "text": "{\"solutions\":[4],\"explanation\":\"由√x有意义知x≥0；又因为√x≥0，所以右边x-2也必须≥0，即x≥2。两边平方得x=(x-2)^2，整理为x²-5x+4=0，候选根为x=1和x=4。平方不是等价变形，可能引入增根，因此必须代回原方程检验：x=1时√1=1，而1-2=-1，不相等，排除；x=4时√4=2，且4-2=2，成立。所以解为4。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "same-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 60000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 180000
+          },
+          "team": {
+            "id": "698f9f86-fa8f-4bea-b18f-ba6a4dcecdfe",
+            "mode": "same-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "eae971d7-bccd-4ce2-8650-1fa382aef1f7",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "reasoning-checker：核查方程 sqrt(x)=x-2 的定义域与右侧非负条件，独立推导平方后的候选根，并验证哪些候选根满足原方程；确认对增根排除的逻辑是否严谨。",
+                "attempts": 1,
+                "durationMs": 7616,
+                "result": "{\"solutions\":[4],\"explanation\":\"定义域要求 x≥0；又因平方根 sqrt(x)≥0，右侧 x-2 也必须≥0，所以必须有 x≥2。两边平方得 x=(x-2)^2，即 x^2-5x+4=0，候选根为 x=1 和 x=4。平方可能引入增根，因此须代回原方程验证：x=1 时 sqrt(1)=1，而 1-2=-1，不相等（且不满足 x≥2），故排除；x=4 时 sqrt(4)=2，4-2=2，成立。因此解为 4。\"}",
+                "inputTokens": 301,
+                "outputTokens": 238
+              },
+              {
+                "id": "1b547ca0-59fc-4fb3-85a4-4b869a5df68e",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "material-checker：核查最终 JSON 输出是否含 solutions 数组和中文 explanation 字符串，数值格式是否符合要求；检查说明是否面向初学者，明确指出平方可能引入增根及代回原方程检验的必要性。",
+                "attempts": 1,
+                "durationMs": 14934,
+                "result": "{\"solutions\":[4],\"explanation\":\"定义域要求 x≥0，且因为√x≥0，右边 x-2 也必须≥0，所以 x≥2。平方得 x=(x-2)^2，整理为 x²-5x+4=0，候选解为 x=1 或 x=4。平方可能引入增根，必须代回原方程检验：x=1 时 √1=1，但 1-2=-1，不成立；x=4 时 √4=2，且 4-2=2，成立。因此解为 4。\"}",
+                "inputTokens": 305,
+                "outputTokens": 221
+              }
+            ],
+            "modelTurns": 4,
+            "toolCalls": 0,
+            "reservedOutputTokens": 759,
+            "estimatedInputTokens": 6480,
+            "inputTokens": 2763,
+            "outputTokens": 759,
+            "unknownUsageRequests": 0,
+            "configHash": "df3d9462382528071f03e6b31417d8492b9d8cfaea2993f52ddf10b8f1c29f6d",
+            "scopeHash": "41121b3998b39a3dca4e45e7000acfa90430b7a3625cb88be8cdd74a07a33e9b",
+            "question": "实数范围内解方程 sqrt(x)=x-2，返回 solutions 数组，并说明平方后如何排除增根。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed"
+          },
+          "id": "9626908b-2b71-42f3-ae93-293f264db8aa",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"由√x有意义知x≥0；又因为√x≥0，所以右边x-2也必须≥0，即x≥2。两边平方得x=(x-2)^2，整理为x²-5x+4=0，候选根为x=1和x=4。平方不是等价变形，可能引入增根，因此必须代回原方程检验：x=1时√1=1，而1-2=-1，不相等，排除；x=4时√4=2，且4-2=2，成立。所以解为4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "a881a475-d94e-4b7b-9d61-6e94ff10bce4",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"由√x有意义知x≥0；又因为√x≥0，所以右边x-2也必须≥0，即x≥2。两边平方得x=(x-2)^2，整理为x²-5x+4=0，候选根为x=1和x=4。平方不是等价变形，可能引入增根，因此必须代回原方程检验：x=1时√1=1，而1-2=-1，不相等，排除；x=4时√4=2，且4-2=2，成立。所以解为4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:40:12.629Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1971,
+            "outputTokens": 145,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "startupMs": 752
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "7e8a3c43-27d0-4882-b857-c666130da093",
+          "durationMs": 26130,
+          "firstTokenMs": 23131,
+          "contextUsage": {
+            "estimatedInputTokens": 4552,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3494,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1971
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 752,
+              "requestMs": 4232,
+              "firstEventMs": 1127,
+              "firstTextMs": 1561,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 5365,
+              "processTailMs": 321
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:38.758Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:40:38.758Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 5366,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "planning",
+          "durationMs": 5818,
+          "maxOutputTokens": 1024,
+          "completed": true,
+          "usage": {
+            "inputTokens": 186,
+            "outputTokens": 155,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 28,
+            "model": "gpt-5.6-terra",
+            "startupMs": 756
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 7612,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 301,
+            "outputTokens": 238,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 85,
+            "model": "gpt-5.6-terra",
+            "startupMs": 692
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 7316,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 305,
+            "outputTokens": 221,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 85,
+            "model": "gpt-5.6-terra",
+            "startupMs": 723
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 5365,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1971,
+            "outputTokens": 145,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "model": "gpt-5.6-terra",
+            "startupMs": 752
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": true,
+      "durationMs": 52106,
+      "firstTokenMs": 45753,
+      "text": "{\"solutions\":[4],\"explanation\":\"先确定定义域和符号条件：sqrt(x) 要求 x≥0；并且 sqrt(x) 总是非负，所以右边 x-2 也必须≥0，即 x≥2。两边平方得 x=(x-2)^2，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选解为 x=1、x=4。平方可能产生增根：平方后只保证两边绝对值相等，原来两边的正负号未必相同。因此要代回原方程检验。x=1 时 sqrt(1)=1，而 1-2=-1，左右不等，且不满足 x≥2，故为增根，舍去；x=4 时 sqrt(4)=2，4-2=2，成立。所以唯一实数解为 x=4。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "mixed-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "provider": "deepseek-api",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "provider": "kimi-api",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 60000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 180000
+          },
+          "team": {
+            "id": "0966216f-3419-4ece-b44d-020b2be8431d",
+            "mode": "mixed-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "2147edb2-9bf3-4525-b1ae-5e0ae2f394b0",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "deepseek-api",
+                  "model": "deepseek-v4-flash",
+                  "connection": "https://api.deepseek.com/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "reasoning-checker：核查解题逻辑是否完整：定义域与符号条件、平方后的候选根、代回原方程排除增根，以及中文 explanation 是否适合初学者。",
+                "attempts": 1,
+                "durationMs": 5820,
+                "result": "{\"solutions\": [4], \"explanation\": \"首先，方程√x = x - 2 中，根号内的x必须满足 x ≥ 0；又因为√x ≥ 0，所以右边 x - 2 ≥ 0，即 x ≥ 2。两边平方得 x = (x - 2)^2，整理为 x^2 - 5x + 4 = 0，解得 x = 1 或 x = 4。但 x = 1 不满足 x ≥ 2，且代入原方程左边=1，右边= -1，不相等，所以 x = 1 是增根，必须舍去。x = 4 满足条件，代入左边=2，右边=2，成立。因此实数解只有 x = 4。\"}",
+                "inputTokens": 238,
+                "outputTokens": 458
+              },
+              {
+                "id": "405eebfc-1369-4c78-b208-5d3c0b1a35a1",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "kimi-api",
+                  "model": "kimi-k3",
+                  "connection": "https://api.moonshot.cn/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "material-checker：核查最终 JSON 格式和数值表示是否符合要求：含 solutions 数组与 explanation 字符串，仅实数解，非整数精度要求（如适用）及无外部资料声明。",
+                "attempts": 1,
+                "durationMs": 37691,
+                "result": "{\"solutions\":[4],\"explanation\":\"实数范围内先确定可行域：左边 sqrt(x) 要求 x>=0；又因为 sqrt(x) 非负，所以右边 x-2 也必须非负，即 x>=2。两边平方得 x=(x-2)^2=x^2-4x+4，整理为 x^2-5x+4=0，因式分解得 (x-1)(x-4)=0，候选解为 x=1 和 x=4。平方可能引入增根，因为 a=b 能推出 a^2=b^2，但 a^2=b^2 不能反推 a=b（还可能 a=-b）。检验：x=1 时 sqrt(1)=1，而 x-2=-1，左右不相等，且不满足 x>=2，舍去；x=4 时 sqrt(4)=2，x-2=2，成立。因此唯一实数解是 4。本题未使用外部工具或外部资料。\"}",
+                "inputTokens": 344,
+                "outputTokens": 1147
+              }
+            ],
+            "modelTurns": 4,
+            "toolCalls": 0,
+            "reservedOutputTokens": 1942,
+            "estimatedInputTokens": 6566,
+            "inputTokens": 2833,
+            "outputTokens": 1942,
+            "unknownUsageRequests": 0,
+            "configHash": "6af136732290f977d7f6b02833b099cc927921f71de002c3513d94548eadebc5",
+            "scopeHash": "2d660476017d5afabb3e623cbd4c5d45aeb65745bd0b042cba09040935e425ea",
+            "question": "实数范围内解方程 sqrt(x)=x-2，返回 solutions 数组，并说明平方后如何排除增根。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed"
+          },
+          "id": "1f206ac8-939b-4090-893c-4a73cb095ae3",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"先确定定义域和符号条件：sqrt(x) 要求 x≥0；并且 sqrt(x) 总是非负，所以右边 x-2 也必须≥0，即 x≥2。两边平方得 x=(x-2)^2，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选解为 x=1、x=4。平方可能产生增根：平方后只保证两边绝对值相等，原来两边的正负号未必相同。因此要代回原方程检验。x=1 时 sqrt(1)=1，而 1-2=-1，左右不等，且不满足 x≥2，故为增根，舍去；x=4 时 sqrt(4)=2，4-2=2，成立。所以唯一实数解为 x=4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "41df9af9-5715-4f85-a9f1-ce106aefc025",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"先确定定义域和符号条件：sqrt(x) 要求 x≥0；并且 sqrt(x) 总是非负，所以右边 x-2 也必须≥0，即 x≥2。两边平方得 x=(x-2)^2，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选解为 x=1、x=4。平方可能产生增根：平方后只保证两边绝对值相等，原来两边的正负号未必相同。因此要代回原方程检验。x=1 时 sqrt(1)=1，而 1-2=-1，左右不等，且不满足 x≥2，故为增根，舍去；x=4 时 sqrt(4)=2，4-2=2，成立。所以唯一实数解为 x=4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:40:38.766Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 2065,
+            "outputTokens": 207,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "startupMs": 947
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "503dd6b7-4d4e-4808-9a1b-b09520eb87d4",
+          "durationMs": 52100,
+          "firstTokenMs": 45753,
+          "contextUsage": {
+            "estimatedInputTokens": 4680,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3653,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 2065
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 947,
+              "requestMs": 7718,
+              "firstEventMs": 1170,
+              "firstTextMs": 1725,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 9077,
+              "processTailMs": 345
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:30.861Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:30.862Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 9081,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "planning",
+          "durationMs": 5311,
+          "maxOutputTokens": 1024,
+          "completed": true,
+          "usage": {
+            "inputTokens": 186,
+            "outputTokens": 130,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 23,
+            "model": "gpt-5.6-terra",
+            "startupMs": 651
+          }
+        },
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "member",
+          "durationMs": 5814,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 238,
+            "outputTokens": 458,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 284,
+            "model": "deepseek-v4-flash"
+          }
+        },
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "member",
+          "durationMs": 37681,
+          "maxOutputTokens": 2048,
+          "completed": true,
+          "usage": {
+            "inputTokens": 344,
+            "outputTokens": 1147,
+            "reasoningTokens": 914,
+            "model": "kimi-k3"
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 9077,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 2065,
+            "outputTokens": 207,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "model": "gpt-5.6-terra",
+            "startupMs": 947
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": true,
+      "durationMs": 3128,
+      "firstTokenMs": 1750,
+      "text": "{\"solutions\":[4],\"explanation\":\"解方程 sqrt(x)=x-2。首先要确定定义域：根号内 x≥0；同时右边 x-2 要等于非负的平方根，所以还需 x-2≥0，即 x≥2，综合得 x≥2。两边平方得 x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，因式分解 (x-1)(x-4)=0，解得 x=1 或 x=4。平方会使原方程与平方后方程不等价，可能引入增根，因此必须回代检验：x=1 不在 x≥2 范围内，且 sqrt(1)=1 而 1-2=-1，两边不相等，舍去；x=4 时 sqrt(4)=2，4-2=2，两边相等，保留。最终解为 x=4。容易出错的地方是忘记检查 x-2≥0 而把 x=1 误当作根。\"}",
+      "turns": [
+        {
+          "id": "e0752e11-83a7-4d2f-b0b9-50c33f054af0",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"解方程 sqrt(x)=x-2。首先要确定定义域：根号内 x≥0；同时右边 x-2 要等于非负的平方根，所以还需 x-2≥0，即 x≥2，综合得 x≥2。两边平方得 x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，因式分解 (x-1)(x-4)=0，解得 x=1 或 x=4。平方会使原方程与平方后方程不等价，可能引入增根，因此必须回代检验：x=1 不在 x≥2 范围内，且 sqrt(1)=1 而 1-2=-1，两边不相等，舍去；x=4 时 sqrt(4)=2，4-2=2，两边相等，保留。最终解为 x=4。容易出错的地方是忘记检查 x-2≥0 而把 x=1 误当作根。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "a90e4167-b5fe-426e-aaff-f295f7109870",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"解方程 sqrt(x)=x-2。首先要确定定义域：根号内 x≥0；同时右边 x-2 要等于非负的平方根，所以还需 x-2≥0，即 x≥2，综合得 x≥2。两边平方得 x=(x-2)^2=x^2-4x+4，移项得 x^2-5x+4=0，因式分解 (x-1)(x-4)=0，解得 x=1 或 x=4。平方会使原方程与平方后方程不等价，可能引入增根，因此必须回代检验：x=1 不在 x≥2 范围内，且 sqrt(1)=1 而 1-2=-1，两边不相等，舍去；x=4 时 sqrt(4)=2，4-2=2，两边相等，保留。最终解为 x=4。容易出错的地方是忘记检查 x-2≥0 而把 x=1 误当作根。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:41:30.875Z",
+          "provider": "deepseek-api",
+          "style": "adaptive",
+          "model": "deepseek-v4-flash",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1409,
+            "outputTokens": 355,
+            "cacheReadTokens": 1280,
+            "reasoningTokens": 127
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "1fc8d730-d726-4b27-a97d-f2f80b6376e6",
+          "durationMs": 3117,
+          "firstTokenMs": 1750,
+          "contextUsage": {
+            "estimatedInputTokens": 3554,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2399,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1409
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 32,
+              "requestMs": 3083,
+              "firstEventMs": 336,
+              "firstTextMs": 1717,
+              "submittedReasoning": "low",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 3115,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:33.993Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:33.993Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 3116,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "answer",
+          "durationMs": 3116,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1409,
+            "outputTokens": 355,
+            "cacheReadTokens": 1280,
+            "reasoningTokens": 127,
+            "model": "deepseek-v4-flash"
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": true,
+      "durationMs": 19159,
+      "firstTokenMs": 13356,
+      "text": "{\"solutions\":[4],\"explanation\":\"先在实数范围确定可行域：左边 sqrt(x) 要求 x>=0；又因为 sqrt(x) 非负，所以右边 x-2 也必须非负，即 x>=2。平方得到 x=(x-2)^2=x^2-4x+4，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选根为 1 和 4。平方可能把符号相反但绝对值相等的情况也变成等式，因此产生增根；必须代回原方程或用平方前的非负条件排除。x=1 时 sqrt(1)=1，而 x-2=-1，左右符号相反，不满足原方程，是增根；x=4 时 sqrt(4)=2，x-2=2，成立。容易出错点是只平方不回代，或忽略 x-2>=0 这个平方前就该有的限制。\"}",
+      "turns": [
+        {
+          "id": "2aa80aa9-3129-429c-b25e-853ff79a3eca",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"先在实数范围确定可行域：左边 sqrt(x) 要求 x>=0；又因为 sqrt(x) 非负，所以右边 x-2 也必须非负，即 x>=2。平方得到 x=(x-2)^2=x^2-4x+4，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选根为 1 和 4。平方可能把符号相反但绝对值相等的情况也变成等式，因此产生增根；必须代回原方程或用平方前的非负条件排除。x=1 时 sqrt(1)=1，而 x-2=-1，左右符号相反，不满足原方程，是增根；x=4 时 sqrt(4)=2，x-2=2，成立。容易出错点是只平方不回代，或忽略 x-2>=0 这个平方前就该有的限制。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "9d2b7374-159f-4395-92ee-3334bbf7e137",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"先在实数范围确定可行域：左边 sqrt(x) 要求 x>=0；又因为 sqrt(x) 非负，所以右边 x-2 也必须非负，即 x>=2。平方得到 x=(x-2)^2=x^2-4x+4，整理为 x^2-5x+4=0，即 (x-1)(x-4)=0，候选根为 1 和 4。平方可能把符号相反但绝对值相等的情况也变成等式，因此产生增根；必须代回原方程或用平方前的非负条件排除。x=1 时 sqrt(1)=1，而 x-2=-1，左右符号相反，不满足原方程，是增根；x=4 时 sqrt(4)=2，x-2=2，成立。容易出错点是只平方不回代，或忽略 x-2>=0 这个平方前就该有的限制。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:41:34.006Z",
+          "provider": "kimi-api",
+          "style": "adaptive",
+          "model": "kimi-k3",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1278,
+            "outputTokens": 571,
+            "reasoningTokens": 348
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "dfbad7fc-9ef9-4d43-8d7a-1122489aadad",
+          "durationMs": 19145,
+          "firstTokenMs": 13356,
+          "contextUsage": {
+            "estimatedInputTokens": 3554,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2399,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1278
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 0,
+              "requestMs": 19143,
+              "firstEventMs": 2942,
+              "firstTextMs": 13355,
+              "submittedReasoning": "high",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 19143,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:53.152Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:41:53.152Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 19144,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "answer",
+          "durationMs": 19143,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1278,
+            "outputTokens": 571,
+            "reasoningTokens": 348,
+            "model": "kimi-k3"
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-pi",
+      "completed": true,
+      "durationMs": 7050,
+      "firstTokenMs": 4150,
+      "text": "{\"solutions\":[4],\"explanation\":\"先注意定义域与符号：√x 要求 x≥0，而等式右边 x-2 必须也≥0，因此需有 x≥2。两边平方得 x=(x-2)^2，即 x^2-5x+4=0，解得 x=1 或 x=4。平方可能产生增根，因为平方会丢失原式两边的正负号信息。代回原方程检验：x=1 时 √1=1，但 1-2=-1，不相等，所以是增根；x=4 时 √4=2，4-2=2，成立。因此解为 4。\"}",
+      "turns": [
+        {
+          "id": "070502f2-b7c5-4741-92aa-03ee89cbbc96",
+          "role": "assistant",
+          "text": "{\"solutions\":[4],\"explanation\":\"先注意定义域与符号：√x 要求 x≥0，而等式右边 x-2 必须也≥0，因此需有 x≥2。两边平方得 x=(x-2)^2，即 x^2-5x+4=0，解得 x=1 或 x=4。平方可能产生增根，因为平方会丢失原式两边的正负号信息。代回原方程检验：x=1 时 √1=1，但 1-2=-1，不相等，所以是增根；x=4 时 √4=2，4-2=2，成立。因此解为 4。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "ce0160c7-2269-43bc-85e9-85ca98ac85c3",
+              "kind": "final",
+              "text": "{\"solutions\":[4],\"explanation\":\"先注意定义域与符号：√x 要求 x≥0，而等式右边 x-2 必须也≥0，因此需有 x≥2。两边平方得 x=(x-2)^2，即 x^2-5x+4=0，解得 x=1 或 x=4。平方可能产生增根，因为平方会丢失原式两边的正负号信息。代回原方程检验：x=1 时 √1=1，但 1-2=-1，不相等，所以是增根；x=4 时 √4=2，4-2=2，成立。因此解为 4。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T09:41:53.172Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [
+            {
+              "code": "unverified_citation",
+              "detail": "回答包含未匹配到受控资料的引用标记。请打开来源核对，或要求提供依据。"
+            }
+          ],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1381,
+            "outputTokens": 221,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 64,
+            "startupMs": 908
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "72ebcd69-9159-4149-959c-8077a6515903",
+          "durationMs": 7039,
+          "firstTokenMs": 4150,
+          "contextUsage": {
+            "estimatedInputTokens": 3554,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2399,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1381
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 908,
+              "requestMs": 5708,
+              "firstEventMs": 1162,
+              "firstTextMs": 3160,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 7038,
+              "processTailMs": 341
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:42:00.214Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T09:42:00.214Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 7038,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 7038,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1381,
+            "outputTokens": 221,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 64,
+            "model": "gpt-5.6-terra",
+            "startupMs": 908
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "solutions": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    }
+  ],
+  "summary": [
+    {
+      "arm": "single-pi",
+      "count": 2,
+      "completed": 2,
+      "correct": 2,
+      "fullySuccessful": 2,
+      "meanFieldScore": 1,
+      "medianMs": 7050,
+      "p95Ms": 7050,
+      "modelRequests": 2,
+      "inputTokens": 2743,
+      "outputTokens": 305,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "self-review-pi",
+      "count": 2,
+      "completed": 2,
+      "correct": 2,
+      "fullySuccessful": 2,
+      "meanFieldScore": 1,
+      "medianMs": 24806,
+      "p95Ms": 24806,
+      "modelRequests": 6,
+      "inputTokens": 9758,
+      "outputTokens": 1081,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "same-team",
+      "count": 2,
+      "completed": 2,
+      "correct": 2,
+      "fullySuccessful": 2,
+      "meanFieldScore": 1,
+      "medianMs": 26135,
+      "p95Ms": 26135,
+      "modelRequests": 8,
+      "inputTokens": 5218,
+      "outputTokens": 1126,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "mixed-team",
+      "count": 2,
+      "completed": 1,
+      "correct": 2,
+      "fullySuccessful": 1,
+      "meanFieldScore": 1,
+      "medianMs": 69418,
+      "p95Ms": 69418,
+      "modelRequests": 8,
+      "inputTokens": 4915,
+      "outputTokens": 2210,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 1
+    },
+    {
+      "arm": "single-deepseek",
+      "count": 2,
+      "completed": 2,
+      "correct": 2,
+      "fullySuccessful": 2,
+      "meanFieldScore": 1,
+      "medianMs": 3128,
+      "p95Ms": 3128,
+      "modelRequests": 2,
+      "inputTokens": 2802,
+      "outputTokens": 437,
+      "cacheReadTokens": 2048,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "single-kimi",
+      "count": 2,
+      "completed": 2,
+      "correct": 2,
+      "fullySuccessful": 2,
+      "meanFieldScore": 1,
+      "medianMs": 70891,
+      "p95Ms": 70891,
+      "modelRequests": 2,
+      "inputTokens": 2539,
+      "outputTokens": 952,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    }
+  ],
+  "comparisons": [
+    {
+      "arm": "self-review-pi",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "same-team",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "mixed-team",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 1,
+      "losses": 1,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-deepseek",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-kimi",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    }
+  ],
+  "limits": {
+    "maxModelRequestsPerArm": 12,
+    "rootDeadlineMs": 180000,
+    "memberDeadlineMs": 60000,
+    "maxOutputPerRequest": 4096,
+    "teamMaxOutputTokens": 16384
+  },
+  "limitations": [
+    "固定合成工程样本，不是独立人类盲评或真实教学效果试验",
+    "各组实际调用与计算量不同；预算上限不等于严格等算力",
+    "解释存在性不等于解释正确或教学有效",
+    "成本只报告用量，未知用量和订阅账单不能记为零"
+  ],
+  "provenance": {
+    "version": 1,
+    "kind": "packaged_build",
+    "codeHash": "4c53deca261024b6042c215527ea81e70b32e9684b79814a4b4c2ac3e28da033",
+    "commit": "65975b29b7bdd8fdec7cb08c4a90f9054c723085",
+    "dirty": true,
+    "capturedAt": "2026-09-09T09:33:33.897Z",
+    "node": "v24.8.0",
+    "platform": "darwin-arm64",
+    "files": [
+      {
+        "path": ".github/workflows/desktop-release.yml",
+        "sha256": "7b044fbcde53480e66e08f08c31e3a2b634e2397bc1d8ef3dab8a6d197a8a6b8"
+      },
+      {
+        "path": ".github/workflows/verify.yml",
+        "sha256": "f3a67bd372b6d88ac4c1a6149c2627533ca1d6daf6a1ff371bc2efa4c78675c3"
+      },
+      {
+        "path": ".pi/extensions/zhixing-guard.ts",
+        "sha256": "a4a4158c0efa4c691b9f3c8f84eed60d5ea4439b1a051412f335f964ab3e8acf"
+      },
+      {
+        "path": "AGENTS.md",
+        "sha256": "d7b7870039f21f26a2390647dd360e46e182bb8dd1a177d841939846915efb91"
+      },
+      {
+        "path": "desktop/core/contracts.ts",
+        "sha256": "4c951a512def882e2a88f65bd3480039f39507b5e1f877207de1fb971151c5fb"
+      },
+      {
+        "path": "desktop/core/demo-client.ts",
+        "sha256": "0cb9bea8e90fa894b3a035ae14faa104b7dee4e36a12b3a1d0d497a840a453e4"
+      },
+      {
+        "path": "desktop/core/diagnostics.ts",
+        "sha256": "8f0505703f35c71228e480dd8c7ba0f23b7b8f8fbfa6084ca3c6f25025df8cbf"
+      },
+      {
+        "path": "desktop/core/pi-runner.ts",
+        "sha256": "bd900a98b97df34a04018031beb4ac8403e20955ce2b0a48a21970211b9fd093"
+      },
+      {
+        "path": "desktop/core/secrets.ts",
+        "sha256": "a46b5e7b4d240a807fffc010f1e9db2cbeb74c6aa434b4e541e3de0faaa125e3"
+      },
+      {
+        "path": "desktop/core/service.ts",
+        "sha256": "0df7702b08a396a4ba89e9ce6f2f7bb01e1b318d802cb66c289ead8f67e74622"
+      },
+      {
+        "path": "desktop/core/store.ts",
+        "sha256": "59a72031ed9d8bbcaedcb633fa3b50cd14d53e524fbd3c1ff288a7efa8806b19"
+      },
+      {
+        "path": "desktop/core/updates.ts",
+        "sha256": "741c93d757c4c485598ada38b3b690bcf279876f111de9f16cbf2bccf31650d6"
+      },
+      {
+        "path": "desktop/core/workspace-backup.ts",
+        "sha256": "bb87f68ad350d6f39d0f1681beeb32ba18dbb614e7c042faef3b9777cda52f04"
+      },
+      {
+        "path": "desktop/electron/main.ts",
+        "sha256": "c8b0f2793782655ab20421114053279fcdf8fb25fc95b746a857099fc880017f"
+      },
+      {
+        "path": "desktop/electron/preload.ts",
+        "sha256": "ac13f0e4e052b3e68b0a24f9357652376bef0f3ee13f58b4d2c9bcd42180331d"
+      },
+      {
+        "path": "desktop/electron/secrets.ts",
+        "sha256": "b062e35c5d66e7de9a07acfbf86bae1b8151982a3400a9ee562f82f2e9e613e0"
+      },
+      {
+        "path": "desktop/package-lock.json",
+        "sha256": "8c23313c0b5ab7d4dca46335d779a0b63bf4de51a5f787e32aaacfe73e74c02e"
+      },
+      {
+        "path": "desktop/package.json",
+        "sha256": "11463738736b10e1f2af93a40be442ced24aecf00e91b5a1a7de5023834bb4aa"
+      },
+      {
+        "path": "desktop/renderer/api-connections-panel.tsx",
+        "sha256": "bcb364c0b7570ff96e5ab9a8e16b22d541ae3e9824e1be60d5491439461eb356"
+      },
+      {
+        "path": "desktop/renderer/assessment-panel.tsx",
+        "sha256": "4f66a7764428504b877c76a9336cc51b35c64216f5c09b6c7910582d89137534"
+      },
+      {
+        "path": "desktop/renderer/backup-panel.tsx",
+        "sha256": "f0087579b0acf34ed80d77ce5be4a16dda43405f805f4fdfe56439ea30b39674"
+      },
+      {
+        "path": "desktop/renderer/delta-batcher.ts",
+        "sha256": "012271cba7f025382e8226e6fe88c340a85814d3d0e43da11299a99add66d0ca"
+      },
+      {
+        "path": "desktop/renderer/diagnostics-panel.tsx",
+        "sha256": "0f4c84b7a38aa234ff9770779f9ea2f7aa50725dbbbed81af94bbed0b585f4ea"
+      },
+      {
+        "path": "desktop/renderer/evidence-panel.tsx",
+        "sha256": "d776d07e5f8536f0a3417494763c395d6a411ce5d79bd8e29cc984b5aa9440ae"
+      },
+      {
+        "path": "desktop/renderer/explanation-review.tsx",
+        "sha256": "3770a2dcc3f33bb1305994be5985f245321ae48b2b57e8877455d58afa67c217"
+      },
+      {
+        "path": "desktop/renderer/index.html",
+        "sha256": "6842085854a4acd710c80277b7325438f174fbdb5951342795f9b49728120b8b"
+      },
+      {
+        "path": "desktop/renderer/index.tsx",
+        "sha256": "c97058296d17845d000005a5767c670ca6aa3261a173b0f177c5ef3d08f9f9cc"
+      },
+      {
+        "path": "desktop/renderer/interaction-cards.tsx",
+        "sha256": "6d60f4e366ea91088da8d676c8319a414c8cb1afb850119591bf2d2f6887ca63"
+      },
+      {
+        "path": "desktop/renderer/learning-panel.tsx",
+        "sha256": "e3d41c8ca6c138debfe3f5b196572fe998bd694ebbcb124320648dd1ceeb7e72"
+      },
+      {
+        "path": "desktop/renderer/mcp-panel.tsx",
+        "sha256": "1d27b91e5a6bf54e989b8b74feb0aa798271c2d70fe5b0041ed7aee8499c0d86"
+      },
+      {
+        "path": "desktop/renderer/observation-panel.tsx",
+        "sha256": "01e8372fad3cf84276df3361fe60ba5fdd6a25d187be9cdd254f829a53ed4efa"
+      },
+      {
+        "path": "desktop/renderer/outcome-panel.tsx",
+        "sha256": "d3221ee57b5151d8eca05dc146fa93b48cdc887edc0a549c5cc71681bc21090e"
+      },
+      {
+        "path": "desktop/renderer/project-panel.tsx",
+        "sha256": "792c94e7dd23ea1a9ea1144d1c053e9e9b78e960eac18dd303db3d7b2057de30"
+      },
+      {
+        "path": "desktop/renderer/reminder-panel.tsx",
+        "sha256": "c0b7abed995290c5234b01d5299bd931bbc96411dbc038989a85e7b7c159e22e"
+      },
+      {
+        "path": "desktop/renderer/skill-panel.tsx",
+        "sha256": "ad507102cb48ce6c7c50bd94edb85d3ce6b693deecefab851002456dcb551479"
+      },
+      {
+        "path": "desktop/renderer/styles.css",
+        "sha256": "2a23c4768e94df295d4210e1fe27eae522264305014bfd5377e6906ad980fe72"
+      },
+      {
+        "path": "desktop/renderer/task-panel.tsx",
+        "sha256": "08b60675a39dcaa1b2c3ce5dfa842c0b6cae5285040ba64d71a292db1316cec0"
+      },
+      {
+        "path": "desktop/renderer/team-panel.tsx",
+        "sha256": "0d525539ff7b81e37bdd3d5f4c48839ffd142046e88d56734985e9551ffd88fd"
+      },
+      {
+        "path": "desktop/runtime-AGENTS.md",
+        "sha256": "29d24478f5af73b8b29a98268a96ea41d6497b3fc58e6b9ed321d22ff247708c"
+      },
+      {
+        "path": "desktop/scripts/build.mjs",
+        "sha256": "aaf8867bd6169f3dbcabf83603d1f35624aec1a0c76226e55e6e85ab1008bd13"
+      },
+      {
+        "path": "desktop/scripts/check-deepseek.mjs",
+        "sha256": "887b31004513073b91c25a996198dd3ced9ac83444e6fa11bafcb4ad28dedf8a"
+      },
+      {
+        "path": "desktop/scripts/check-installed-api.mjs",
+        "sha256": "677a85ec2f7b2885a11830b49aed7daca0e13e82eaaf7224346ef5472a41637a"
+      },
+      {
+        "path": "desktop/scripts/check-notification.mjs",
+        "sha256": "04d91dc71bc334f9e42c235bbabae9a68bbb15399cc8615d9eac0dc96de037f2"
+      },
+      {
+        "path": "desktop/scripts/check-pi-latency.mjs",
+        "sha256": "a6c4d0f1876b9b4aacf3c117416c52b5d40600f1a2c94aaa3dd49ed15fda5098"
+      },
+      {
+        "path": "desktop/scripts/check-vision.mjs",
+        "sha256": "a0e04fb5a22cdefeb775c41dcc05da0cc6199b414367ebfe01d40228142a4594"
+      },
+      {
+        "path": "desktop/scripts/checksums.mjs",
+        "sha256": "7dc48e9b57df9af846df0d4bc7884a7e1945c8e11baaeef532af1b900c2e9f6a"
+      },
+      {
+        "path": "desktop/scripts/dist.mjs",
+        "sha256": "53719817fe09d9a06c6c81a708e382a18d5188a068947e75175e090adac811d2"
+      },
+      {
+        "path": "desktop/scripts/evaluate-team.mjs",
+        "sha256": "85e97f49492fdf54c73b78b3a2c97a906429647806e0824aba9a8f4aaa676ea1"
+      },
+      {
+        "path": "desktop/scripts/icon.mjs",
+        "sha256": "add20e00f3ead78eb52998447cb6b103249fe9a612f9d70eaa48675ae28d5830"
+      },
+      {
+        "path": "desktop/scripts/install-windows-preview.mjs",
+        "sha256": "c8564048f13907d622edd9047141568a0cb328e2af3d983d8d3a74741e00c7d1"
+      },
+      {
+        "path": "desktop/scripts/pi-live-observer.mjs",
+        "sha256": "2fbe5b8ed96ec2ba4fc5d172ab1b4dee4f444a80cd4f5c4f1443e75125352237"
+      },
+      {
+        "path": "desktop/scripts/prepare-runtime.mjs",
+        "sha256": "8c175f54b018d0262ef0b418ded97c18fc94b55afdfdc39bf704d80f04ef9c9f"
+      },
+      {
+        "path": "desktop/scripts/sign-preview.mjs",
+        "sha256": "f2c64991af1e6fe8d70295df0ac726e77ab9dd723277d1c1b6acc52ce9254d77"
+      },
+      {
+        "path": "desktop/scripts/smoke-api.mjs",
+        "sha256": "110572f72bbfe7806f59dc38c929850fb540aff4107e5028de187f731db4acee"
+      },
+      {
+        "path": "desktop/scripts/smoke-interactions.mjs",
+        "sha256": "33bb997379885bde88520ac36f1decf5d300a2c2973594602ca9416551631db4"
+      },
+      {
+        "path": "desktop/scripts/smoke-learning.mjs",
+        "sha256": "69f97d79853a0480ea3de7d3a75482c29ccbbe0f25ce4ac2a571afdb3008a999"
+      },
+      {
+        "path": "desktop/scripts/smoke-outcomes.mjs",
+        "sha256": "f7602dd8e2d8ef09e994f8ce4d5d0bceebc4590c16031c9d0b770b76a33a06fd"
+      },
+      {
+        "path": "desktop/scripts/smoke-projects.mjs",
+        "sha256": "e02f3479bba0e0cfb09bd47da36adb04a1ccad81c1fb3e046a6fb35a3078c37f"
+      },
+      {
+        "path": "desktop/scripts/smoke-team.mjs",
+        "sha256": "dda82062d5da09e8a4b51d8d0edb796bc0d5f10ba5600a2cf38af0001024ceeb"
+      },
+      {
+        "path": "desktop/scripts/smoke.mjs",
+        "sha256": "57c06eb11b4e51bb1700fec1bf6ed83e693282e60bb025fdcfb262f9a288dca1"
+      },
+      {
+        "path": "desktop/scripts/wait-for-ipc.mjs",
+        "sha256": "5e1c84e31878dee7a9fb44c328a07ec47465ca1e56612bea64faa3e272586fa0"
+      },
+      {
+        "path": "desktop/tsconfig.json",
+        "sha256": "adbcbbc944bad100d8dbd5b1f3e9f689fde372fd408569440ba5755d46dc796b"
+      },
+      {
+        "path": "docs/agent-quality-cases.json",
+        "sha256": "b28f2592c1490c19b0b790b41a241338478f7306e073a69290b29b59964cd5f4"
+      },
+      {
+        "path": "docs/agent-quality-heldout.json",
+        "sha256": "d736f2d6eb64483b0dcb6317cccabd813cafcb6a4694e9e36cc3c58cccb17967"
+      },
+      {
+        "path": "eslint.config.js",
+        "sha256": "51ac407ec26fd3f30f98fbc5d69447c0d718253f3a96f6d97915d5528bc82602"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "683f12d18a39aabcbdab3e5b9da448c733f3d4bef5cc273339c88797c04fad05"
+      },
+      {
+        "path": "package.json",
+        "sha256": "aab7d6ab0311e1b622742024ba65432af336da8aa326e4616ab3163e50e1a46d"
+      },
+      {
+        "path": "scripts/audit-agent-p0.ts",
+        "sha256": "4cbaf83444f36161ec8b86bccc1ad696d14d918f5280bab6be4676a63b64b39d"
+      },
+      {
+        "path": "scripts/benchmark-sessions.ts",
+        "sha256": "46f01c65cfaf3ff37968306e7732a3bd4d5e6b615a7700e3c66f58d70568d0bc"
+      },
+      {
+        "path": "scripts/build-windows-sandbox.mjs",
+        "sha256": "91e4338e60ef5069c1325eecd45a7063adc1d2eaf4f5450342b1e6309872d3f3"
+      },
+      {
+        "path": "scripts/check-deepseek-sequences.ts",
+        "sha256": "ae1a6dfe83952f4e8a47d8d734565727134bded79572a4cba4df1934b645b514"
+      },
+      {
+        "path": "scripts/check-learning-outcomes.ts",
+        "sha256": "b0551666dd585da6ebf69377a53438827af7e95a2d783ca3ca1de83d8405fb45"
+      },
+      {
+        "path": "scripts/check-lockfiles.mjs",
+        "sha256": "77d26587182e513c535e290d89513e1d1ef017bdc62a6f80fa9d87fddaae1037"
+      },
+      {
+        "path": "scripts/check-mcp-upstream.ts",
+        "sha256": "2fb55cf317fb4cc3d8c51642e4f52912fa0c4e7d672cdfa2a2f0728fce163746"
+      },
+      {
+        "path": "scripts/check-semantic-model.ts",
+        "sha256": "b0531cd7f49d18928581a89b955a7eb521742ead4aa76275eccdf434367f0242"
+      },
+      {
+        "path": "scripts/create-outcome-review-pack.ts",
+        "sha256": "5951cd778fbdc38699ff1f39719c4646b1ed4721cfcb7dec81c7d5506ea37bc8"
+      },
+      {
+        "path": "scripts/evaluate-agent.ts",
+        "sha256": "3549cc80541556d81e124f97b751359e86e6ea697f2baa6dcc0b992c9e9a2e34"
+      },
+      {
+        "path": "scripts/evaluate-practice-project.ts",
+        "sha256": "b36947cc5375089ffebbe1227cc8b0d4e45e30ea674c74cd79f64fa3175c1178"
+      },
+      {
+        "path": "scripts/generate-fixtures.mjs",
+        "sha256": "6a36d5370a3fb2ba378d6e3064c1142a2d4a55fe56252e1aa846b9f186761a9a"
+      },
+      {
+        "path": "scripts/measure-agent-performance.ts",
+        "sha256": "3f7aca2f9421a52a43250fed123809c8f2ee990849a40a4bda0e5003f8625135"
+      },
+      {
+        "path": "scripts/pi-latency-preload.mjs",
+        "sha256": "cc34dc0500554d985bc183b87850c25fe66ef40f0b8f4963796b87d95cb7043b"
+      },
+      {
+        "path": "scripts/pi-safe.sh",
+        "sha256": "08c5d6a5df90ab49d3b965fa9251db1be231ad58d197725c4a68f1da5fcf1092"
+      },
+      {
+        "path": "scripts/profile-pi-latency.ts",
+        "sha256": "384cfbd91ae49ff5ac1386f96afeebf6b553a5a93c326938df9515cce785b634"
+      },
+      {
+        "path": "scripts/review-agent-quality.ts",
+        "sha256": "dd34b39628580108bf3a75ab84958629959c02d7bf1a57a51120988e21ee331f"
+      },
+      {
+        "path": "scripts/smoke-mock.mjs",
+        "sha256": "eb6bc1a3c4b974dabf47f86acac7c748cc729505e6c9fbb2454f34c6ede98c91"
+      },
+      {
+        "path": "scripts/summarize-learning-outcomes.ts",
+        "sha256": "f843be7be33059ad2ac8010663056a0ce079107322b15ed5a7ca1f0467e96dd6"
+      },
+      {
+        "path": "scripts/verify-p0-live.ts",
+        "sha256": "09e719313662f8f9582fc19a20c171984f7b4d009f944a3706720f28b3e0d1cf"
+      },
+      {
+        "path": "scripts/verify.mjs",
+        "sha256": "620c60f3355034d4b32c7cc8da6219d2fd3e95767d733c1f3b64c737836fa17c"
+      },
+      {
+        "path": "scripts/windows-sandbox.cs",
+        "sha256": "59bc744d0d3ecc745d9bfeba51814a6f45012346ee89579cd5441cda368167e9"
+      },
+      {
+        "path": "skills/interview-project/project-evidence/SKILL.md",
+        "sha256": "9a84b0a07bf27bb31251a24709b0ec2182020086abd5d91bacd0d769aae3936b"
+      },
+      {
+        "path": "skills/rag/rag-grounding/SKILL.md",
+        "sha256": "fe58c8311cf438f3e4e92ddf96c3374a0e16c07e15b83bda6a8dd7a22e73a02b"
+      },
+      {
+        "path": "skills/shared/learning-lab/SKILL.md",
+        "sha256": "eec2a9f66eecd612be23bcce2efe46841c79374f569a4e49a926169717b8ac5d"
+      },
+      {
+        "path": "skills/shared/learning-notebook/SKILL.md",
+        "sha256": "bc7969da12c5e48eddf51b8d7d2f18da3394acecea7c12e0109eaf437a27c55e"
+      },
+      {
+        "path": "skills/shared/learning-reviewer/SKILL.md",
+        "sha256": "d4d476109a1ef88fab18767ff0e36f8731da112f754c411c6a360d945d84cf1e"
+      },
+      {
+        "path": "skills/shared/learning-roadmap/SKILL.md",
+        "sha256": "c8852f75c1155fa1c199ff84903154a5318914df0bb0a49f82b995cfe7a2aee3"
+      },
+      {
+        "path": "skills/shared/learning-tutor/SKILL.md",
+        "sha256": "c61df45fe08c29673689295715decab35fbbc6f7ccae50b7f0807fe9981acb5c"
+      },
+      {
+        "path": "skills/tool-calling/tool-contract/SKILL.md",
+        "sha256": "9aac3acbab5b2f80646763e67f6261abd2dc92cdb8d63a3de6c231a72e136ba5"
+      },
+      {
+        "path": "src/abortable.ts",
+        "sha256": "4a2c4594f8d3f190dfc53b319568279e49c9dbbb5640256efcf93dd6a4217168"
+      },
+      {
+        "path": "src/action-registry.ts",
+        "sha256": "57b87648bfae755e940667fa2d8a0849cfcc4c74c6b37edafda602e44f3220ca"
+      },
+      {
+        "path": "src/agent-dialogue.ts",
+        "sha256": "ba7537fc36a98d23351cc663456d4e66ade78af1bfb0bed29b13c61ed71f9f9c"
+      },
+      {
+        "path": "src/agent-efficiency.ts",
+        "sha256": "09d377af1ef13722d1908ea1c5d677cd62a4f1cf217419090320f2fe4ec06e12"
+      },
+      {
+        "path": "src/agent-errors.ts",
+        "sha256": "6e1042ba0f79c9607bb400f243b34b32a5cc085a2ff1904a248eac5285ee28a9"
+      },
+      {
+        "path": "src/agent-events.ts",
+        "sha256": "2cf5a04e4e1b33d5bb3c6922d4b02e2cb756a04988e4adf7a76f2b6979e00168"
+      },
+      {
+        "path": "src/agent-execution-store.ts",
+        "sha256": "e853f0e091c79a7800dae09c70d72f7f99a49e6a7b4067ddaaefc53db3d3ad6a"
+      },
+      {
+        "path": "src/agent-loop.ts",
+        "sha256": "8b847d3ca508eb74d13b767eb4dcdec8f52a7ec88979b8c62ca692ea82365493"
+      },
+      {
+        "path": "src/agent-model-binding.ts",
+        "sha256": "ca88a88af15ac50fb48e30835c4a7bd55beb401f548e4f04d882c23062570357"
+      },
+      {
+        "path": "src/agent-model-factory.ts",
+        "sha256": "5d02e39e942bb390040e3ed7389389377ae963456618b968a411b46dca627a51"
+      },
+      {
+        "path": "src/agent-permissions.ts",
+        "sha256": "d47a6be585c3e131a1e385838bba520914fb6d5c75a65cd73661bb6b47667cdb"
+      },
+      {
+        "path": "src/agent-provider.ts",
+        "sha256": "963f6a3f0cccb15d9c1328f7472b7cf4ef3e73770e5b0683cbbefa3c92f52b72"
+      },
+      {
+        "path": "src/agent-reply.ts",
+        "sha256": "85dfcdefe84fbaa09f2a4a8168349b5a59e680743f94ffb72d2f52fe6e173a9d"
+      },
+      {
+        "path": "src/agent-service.ts",
+        "sha256": "1382f51a1ddfe549602e5d67631fac1b1cf1d224d7dad976fae9d64bb194bbe3"
+      },
+      {
+        "path": "src/agent-session-contracts.ts",
+        "sha256": "b62ea43a42d13a25f155922c9c530fb8031678a80e48496d7785e115c7956646"
+      },
+      {
+        "path": "src/agent-session-store.ts",
+        "sha256": "ff2df09c42b89f2bb100dfacc412291fd3cbee0e7483c3880d400331a4a4e6fa"
+      },
+      {
+        "path": "src/api-connection-config.ts",
+        "sha256": "3b14c2d2349263e6f8abbea85604bb55c48337ddbf45813ec3e18af7ba516af6"
+      },
+      {
+        "path": "src/api-connection.ts",
+        "sha256": "1a97959e1d13be7ef5963ff3ea32663773238d184b3af3e0d5e37c08ca776d8c"
+      },
+      {
+        "path": "src/api-connections.ts",
+        "sha256": "2d309ad226183ed43989ff3b94f2c66eb5305e3bbdd7194cdd07982f30e926f9"
+      },
+      {
+        "path": "src/application-tools.ts",
+        "sha256": "573d6c22fdfdd86e062de2e20f8d05109f57622d6902c400e783ec875da7e6b0"
+      },
+      {
+        "path": "src/assessment-variants.ts",
+        "sha256": "ada20acfb55afd807758ab14b1d3a44190517200b2b0f680e0a8507670fe48eb"
+      },
+      {
+        "path": "src/assistant-interactions.ts",
+        "sha256": "2b55b80a8045e89737762a813c5da048f2a7a958ba742e2f6a1451c541d14c7f"
+      },
+      {
+        "path": "src/assistant-runtime.ts",
+        "sha256": "d37cba193922d2634676b13c334d1d2e14ab662ab1b60b02175734e90c0b5cce"
+      },
+      {
+        "path": "src/audit.ts",
+        "sha256": "0a36fe2e079581306815201137c638bd8d9e6826dfe78096cec1b211f05e15d3"
+      },
+      {
+        "path": "src/backup-service.ts",
+        "sha256": "0b75bd2df49cea5d50f624c35fbf8512a25f35b413e384cd699dee0b43365684"
+      },
+      {
+        "path": "src/build-provenance-contracts.ts",
+        "sha256": "1ca28a5f9a3d8eb00c27b8c473accaf10168cafb4fdb39dc23cecd724b27ee3e"
+      },
+      {
+        "path": "src/build-provenance.ts",
+        "sha256": "7227ae3b3bc65f02300fe8b1ba08ea9a8542b409e362d1a79d84b0bca33dae3d"
+      },
+      {
+        "path": "src/chat-completions-client.ts",
+        "sha256": "39afb6b535519e7ea1373915351ee56468009689f0a259f17fc8490bfa4335f3"
+      },
+      {
+        "path": "src/citation-marker.ts",
+        "sha256": "b053e359802cf8c53a5e9fb8906fb6a75eee7107aade8608fec4c76077a1aeef"
+      },
+      {
+        "path": "src/cli-agent-transport.ts",
+        "sha256": "9c5ac2207d200eb1f7d85ed393d6b1a1677d2fbd033b614bd3538353d0917a9f"
+      },
+      {
+        "path": "src/cli.ts",
+        "sha256": "ae1bfc984e958c273219d1931bf931fb199b085e3d8cad13e59d2d48ca3b9d54"
+      },
+      {
+        "path": "src/codex-client.ts",
+        "sha256": "0b3456f10f025f53d9d828710cabbcf5bf8bca0961ad099fb0dc73e4406b9755"
+      },
+      {
+        "path": "src/context-window.ts",
+        "sha256": "c3a6c3d0e8039d7664701af509193f078ae2a19615745ef87e5825ed4376d982"
+      },
+      {
+        "path": "src/contracts.ts",
+        "sha256": "b22a369af4847cd103655e3f7d63f792511db53e35065c3f5dca2cef54c018ad"
+      },
+      {
+        "path": "src/conversation-context.ts",
+        "sha256": "666a5c7b8854145f1f68328ce2ecdc7eab401e14442426a123d7d922fd5e3a94"
+      },
+      {
+        "path": "src/conversation-policy.ts",
+        "sha256": "a5038006f43c0902f82d2fc992cb73ff261e843d5684ec0bad070f01f01161e7"
+      },
+      {
+        "path": "src/conversation-routing.ts",
+        "sha256": "43167b10db11c97c34234f2a57cb7e835640c37340cfdc0b62f5122f813fe24d"
+      },
+      {
+        "path": "src/conversation-session.ts",
+        "sha256": "5908142e80d19d247879834bb3527dcad6392ad67eae8e8203af5ed3d260ac4e"
+      },
+      {
+        "path": "src/conversation-summary.ts",
+        "sha256": "073b39b37efde584c9641f62de81e796c172c8a3af238605600baf55d8605c82"
+      },
+      {
+        "path": "src/current-topic-store.ts",
+        "sha256": "832e6213455be5c246f6ade6bee72f9f1aea204d5a26dbad6c3e3c3d3bc1ac27"
+      },
+      {
+        "path": "src/custom-course-store.ts",
+        "sha256": "5b97d2b77b138814a2c9064925b684621916b50c1090c0eb66fada09b812a34f"
+      },
+      {
+        "path": "src/database.ts",
+        "sha256": "d7b61104183a4dd6d9f39b5df728ff4b1fdd4e3d09d62f22c0a8bda61f0ac267"
+      },
+      {
+        "path": "src/deepseek-client.ts",
+        "sha256": "2b585e66c96b93bdd894e58c3b0ea0d508ff37e928f709d5a726a0d08e7eb7db"
+      },
+      {
+        "path": "src/display-math.ts",
+        "sha256": "03c70c3ca415d637fb9891f958174c097bcfa9cb2faf79fe3ece48170a1f80d4"
+      },
+      {
+        "path": "src/embedding.ts",
+        "sha256": "952847dcfcaa909735d3c5a46b64c91141fdc47c7815a2fa6981fcfb24aa03d6"
+      },
+      {
+        "path": "src/evidence-store.ts",
+        "sha256": "86acfbc192fca1b31e2dd7831407dd64d319bb05130a2a50b43e0e9e97c7e987"
+      },
+      {
+        "path": "src/evidence-support.ts",
+        "sha256": "1c09e7fe802883271e8de72658163f9dc3f067492729967770e7c452fbec3153"
+      },
+      {
+        "path": "src/execution-history.ts",
+        "sha256": "613a1518301f12d1ee58f8d599587f01598ced9554abcf8befa81722a31e943b"
+      },
+      {
+        "path": "src/external-content-gate.ts",
+        "sha256": "6c02c21bd2f4874f3e12046513667326ad2abd3ad9200f895beb70e1bbb9ab62"
+      },
+      {
+        "path": "src/generated-skill-store.ts",
+        "sha256": "fb5b2455f17e71c75f6c33423ab0673825f2c2026a73c79ad8e75d6d1388b3af"
+      },
+      {
+        "path": "src/grounded-answer.ts",
+        "sha256": "7f2a34d238ec42826574a9978e0c42f2530913fc92c835e123317c2c837f30c5"
+      },
+      {
+        "path": "src/hidden-secret-input.ts",
+        "sha256": "fa7c7860a97e45f32a0dfc750b35444ee9548f6674559785020bf8b36756d2a5"
+      },
+      {
+        "path": "src/image-file.ts",
+        "sha256": "c63cab2bd2b959bc9adb93d09b2ece8802793ced497046bd95b1c92e80c313d7"
+      },
+      {
+        "path": "src/image-input.ts",
+        "sha256": "ff26f97f5a430745b1e84f49f912eb14808ea66e58060956d09c4658d2dac023"
+      },
+      {
+        "path": "src/import-command.ts",
+        "sha256": "c5d263ffdc10ec30ffaafcddb98910c524d09baf72ae9f0104baf5f5a89222be"
+      },
+      {
+        "path": "src/input-limits.ts",
+        "sha256": "55241efd8122cbda43bd00c9791f9afc96a7966e8fdbed74c1b8168598741038"
+      },
+      {
+        "path": "src/intent-parser.ts",
+        "sha256": "52be55cb445fd26c279be1f71d179869163a493a17d06c56dc850757cf680f8f"
+      },
+      {
+        "path": "src/interaction-protocol.ts",
+        "sha256": "efb2d3b772a2097c0ba495339377d59e82eaf1c2efa1646ef6dbc30e2e688a02"
+      },
+      {
+        "path": "src/json-schema-worker.ts",
+        "sha256": "1dec1700af8fe2d09e86560ce61c89cafb63e7564ca92d7ca395307216be2abc"
+      },
+      {
+        "path": "src/kimi-client.ts",
+        "sha256": "993216dd19923635c20fa24a01f9933ee8b7473e57eef6be0f705597d3086b79"
+      },
+      {
+        "path": "src/lazy-mcp.ts",
+        "sha256": "063738c08870f751db9699d2e3fb0db3ab19d13942471b43f3a4fbc9ca14936d"
+      },
+      {
+        "path": "src/learning-agent-profile.ts",
+        "sha256": "4ad20cf254d913fbb53cef1d86c889d8faeba872ef98828f25b054227025c626"
+      },
+      {
+        "path": "src/learning-agent.ts",
+        "sha256": "350c6b2877adc73dbf833af16c053dfd301588dfa02370e5c641ca905d24252b"
+      },
+      {
+        "path": "src/learning-application.ts",
+        "sha256": "fdd312552eb5471b8cb9a6250db4356bb369d28cb5250f377f1234e938acf0db"
+      },
+      {
+        "path": "src/learning-assessment.ts",
+        "sha256": "6227aea1d9bb2575d7b5e2e2ed580f2653bce747fc00548e38afbc59db929df3"
+      },
+      {
+        "path": "src/learning-concepts.ts",
+        "sha256": "3116b21a4144ddb9c9d63e9e454123a3e00cf9ce75ef8f2db22f8baad62ae6b7"
+      },
+      {
+        "path": "src/learning-context.ts",
+        "sha256": "6b8849daccf5c0a637f7b9a15b3e2125a7f956643f19445a844e4bda8dd559df"
+      },
+      {
+        "path": "src/learning-contracts.ts",
+        "sha256": "3254b5f13eb13a2f976b0d08271031e30e919aaf7116698cb9e1c2757300a14f"
+      },
+      {
+        "path": "src/learning-observations.ts",
+        "sha256": "83c970d2fe80eb8b581c49f084a2056c14ee73034118a3cfc8efbdbd75fbb204"
+      },
+      {
+        "path": "src/learning-outcomes.ts",
+        "sha256": "e6ee34b451d67a97d116ae26c607b6e59e6ac5d1b35590a620c4f0a0ae4b3657"
+      },
+      {
+        "path": "src/learning-profile.ts",
+        "sha256": "d9645c373e4dd09d48027b9bdd21106ac83f33a55c23c200033fba123bfe3b5d"
+      },
+      {
+        "path": "src/library.ts",
+        "sha256": "421fca0f9a7e09591b30cb6142f587ec110888e5e2148f6689386631737cac45"
+      },
+      {
+        "path": "src/local-sandbox.ts",
+        "sha256": "b5f1772fa03240f1d2e8248bc599a7c18c6b700e3f073552c6777118488bade4"
+      },
+      {
+        "path": "src/loop-guard.ts",
+        "sha256": "64e410c4b7cda1ad3a2e1d6b960afe65175a30e103764361e243398561296c0f"
+      },
+      {
+        "path": "src/macos-keychain.ts",
+        "sha256": "91a71bd58130782aa7200f1180fba9f2b68c58a53871cb91519839ad37b4bf5e"
+      },
+      {
+        "path": "src/mcp-connection.ts",
+        "sha256": "053d877935ec4bc9785aaaa0f01285ad50b8150faf62fe6f8ac3991b31e6f345"
+      },
+      {
+        "path": "src/mcp-recovery.ts",
+        "sha256": "3ca5102208099b71dabfb0746e814f0b94dd8eb3b8c3d2b65355d6ea2a7fc2fc"
+      },
+      {
+        "path": "src/mcp-settings.ts",
+        "sha256": "de7273ce37e6572dc9a8d5ffae5b8ce972199022f6b68ab38e36634102f50d69"
+      },
+      {
+        "path": "src/mcp-tools.ts",
+        "sha256": "30266995c35a479ad02e44e40d8c492b616d5eaa7093db91fcdd645922f6fe9b"
+      },
+      {
+        "path": "src/model-audit.ts",
+        "sha256": "0c8cfebc42f36158dd99b55e45a14357958736fa6853d5d40465ebf4e479f493"
+      },
+      {
+        "path": "src/model-capabilities.ts",
+        "sha256": "8655f3baba9bbe0d1ae22f9f423d397ba7405e184bfead02563043b67bf82e48"
+      },
+      {
+        "path": "src/model-invocation.ts",
+        "sha256": "e879fc01dcd83881fe645dcfba909aa560ded66835d9231f8fb773bf2f797304"
+      },
+      {
+        "path": "src/model-routing-store.ts",
+        "sha256": "f4d97b39362521039967bd2ec00dabd8bb3d05b620d3bcd40917a003d2e4a588"
+      },
+      {
+        "path": "src/model-telemetry.ts",
+        "sha256": "aa28b5445c8c1e3778a346f01a62f0700cf3fc25fed26476e3697c931e8c5ade"
+      },
+      {
+        "path": "src/model.ts",
+        "sha256": "14e7c69f7ea0cc464d69589bc1919c0470f27bc30c05c0d8723b53b64c8edd8b"
+      },
+      {
+        "path": "src/notebook.ts",
+        "sha256": "d1722ab4538d1ea5a09e94fef29695a965ff50a8ac119e6a82b7c48c87dfe021"
+      },
+      {
+        "path": "src/ocr.ts",
+        "sha256": "cd89f5a082f7c546c524a55d8d74fc1890fccd76b8f4275e8e47c7e8f42f51a0"
+      },
+      {
+        "path": "src/outcome-bank.ts",
+        "sha256": "1ffcd117c41799299b241bd5ab4d9e251b5617039db7b88596a16610d5ce5e81"
+      },
+      {
+        "path": "src/outcome-blind-review.ts",
+        "sha256": "4a2d8808d3ab6df8cbc363c3c52a7ad962250f85f55ee6ff3d6e90e51c70ae18"
+      },
+      {
+        "path": "src/outcome-calibration.ts",
+        "sha256": "968a1ce7b18aed325581092e441c5d80c1b29ec3f0970c4c7d2c0242f6ed4285"
+      },
+      {
+        "path": "src/outcome-contracts.ts",
+        "sha256": "561c0b3cd8e18677db3090fcfc51e465ed69494e53a82119191cc1d8cb083c47"
+      },
+      {
+        "path": "src/outcome-report.ts",
+        "sha256": "c72fb6a29e3ded5106d621e04d955271402d6e7be980f36ace35c70486b8f595"
+      },
+      {
+        "path": "src/paths.ts",
+        "sha256": "329b72d36104a14ad90f5cd7b8ddc2c0a0c4464fe55cc1c91c161663d69aa774"
+      },
+      {
+        "path": "src/pi-application-client.ts",
+        "sha256": "de6d7da9ea0801a5b7b5df1c7c37351fc61ebeee26d21b31cb577b9a8742490f"
+      },
+      {
+        "path": "src/pi-client.ts",
+        "sha256": "67660f1e2314d1c68fba4f443d8db5dd372cc398f87a0109fb714ae67850fb61"
+      },
+      {
+        "path": "src/pi-model-worker.ts",
+        "sha256": "f1fc972469410aa6a9e73da946537f54cd4208a80bc68f33836cee1601bccb5b"
+      },
+      {
+        "path": "src/pi-sdk.ts",
+        "sha256": "7a6293186bab01080773469b2553c72c8f4e549f414fc8d68ee8a264bb4eefeb"
+      },
+      {
+        "path": "src/plan-loader.ts",
+        "sha256": "8d2f985c5e51ef87349240b5ae51b8e810e4e03167f324e1db6fbbeb2d53a929"
+      },
+      {
+        "path": "src/plan-schema.ts",
+        "sha256": "06a41ce53ef5e75056faf562d845f6c140def1d21689700efb061957c1d0a84c"
+      },
+      {
+        "path": "src/plan-store.ts",
+        "sha256": "12dda395b7da0ccb6a10a1b6b90d359626ddffb72b48b9cc4a5ed34a09ee331a"
+      },
+      {
+        "path": "src/platform-support.ts",
+        "sha256": "611491fa7eebabd43289900be6186f373ce1284520c6e37a60f98d78364b47bd"
+      },
+      {
+        "path": "src/practice-projects.ts",
+        "sha256": "7fac4fa7a4640b06f09fcfa721ccf15bd2c426d96ebd72b2524f6eb99e3a1c5a"
+      },
+      {
+        "path": "src/project-diff.ts",
+        "sha256": "78161d97b2fe2b73ed6d0e5b50b146807ec5eef24c7cbe0970ca9418ce8d66d8"
+      },
+      {
+        "path": "src/project-tools.ts",
+        "sha256": "3f82647a52f0362ed46171d883bd96bcd86ada6a5a648c7905fa5954da570db6"
+      },
+      {
+        "path": "src/provider-policy.ts",
+        "sha256": "20802e74613fb15476edd1ced1fab5b5978e3ebe0e0f2b58ac3b95a25b6c8642"
+      },
+      {
+        "path": "src/provider-registry.ts",
+        "sha256": "962306abc8c44a4fbb4fca80b96b58afd72994f7ed9b2fece6cd6d9e518d0f40"
+      },
+      {
+        "path": "src/provider-runtime.ts",
+        "sha256": "1aee5a5ff2491526c21bcd403cb5d6b37942dad804af9a12f7d9bf0f7e4083a0"
+      },
+      {
+        "path": "src/provider-setup.ts",
+        "sha256": "5944ca6c2e8ba4261c99ae93a043b674d9dad2a3804aa57ed3dcb89391dac8b5"
+      },
+      {
+        "path": "src/python-runner.ts",
+        "sha256": "65a7c88be237cd8e921b2d998b208c310a35db41a4f41948d4288671405316b8"
+      },
+      {
+        "path": "src/quality-evaluation.ts",
+        "sha256": "5ee2c0d30c1e443134b604c89a04e17bbeddef0a1ef8508ab73de4dce2d46a7d"
+      },
+      {
+        "path": "src/quality-review.ts",
+        "sha256": "1e44c4a76b7bdef265c0afc2a6ba601ad0b3d0523bdbd845801901900b6221f6"
+      },
+      {
+        "path": "src/reminder-store.ts",
+        "sha256": "e343eb1f1d0b06e4bb4e802e464359757fe4da02b67a345fca96e4c11a496fb1"
+      },
+      {
+        "path": "src/repl-controller.ts",
+        "sha256": "34b5e5298e5c678dc485ff6e5d40fd7a8e391b307ee6cb1a097c2ad81f96cd59"
+      },
+      {
+        "path": "src/repl-input.ts",
+        "sha256": "537a949090f3b7de0bb63f0054633e6252ab1e29ee5e2964d19a16fa6cc87758"
+      },
+      {
+        "path": "src/response-quality.ts",
+        "sha256": "e1365722b670b9ce4b7ed59d86b6794c1d3ff29ccc42db51ef3c1b3d47cc0a67"
+      },
+      {
+        "path": "src/response-style.ts",
+        "sha256": "27ee2bfc1d957b5a5fb5a010252e56fdfadadeaa0cb3e5430116831d321280aa"
+      },
+      {
+        "path": "src/retrieval-query.ts",
+        "sha256": "04fdd12a96e08fd62d8d8aabda0de6463982d9d67726570d1e4713c0a61dea9a"
+      },
+      {
+        "path": "src/reviewer.ts",
+        "sha256": "a77ef7696ca7388f48ad977d1eff2762e1d668c27584d14e897e23fb1395e59f"
+      },
+      {
+        "path": "src/run-context.ts",
+        "sha256": "3dded9d26194116b0eafdaed6e301531eb66ea07e181afe632febc6809fe0c77"
+      },
+      {
+        "path": "src/run-manager.ts",
+        "sha256": "ca747f81b192c6849dc3860517e23c33596ad5d27f2fe1c160483ac241dbe9fa"
+      },
+      {
+        "path": "src/runtime-version.ts",
+        "sha256": "7a1712566bdf86c651fef34dc957cf4275c814128dc8a89bee9003a16a0e465c"
+      },
+      {
+        "path": "src/runtime.ts",
+        "sha256": "934186e8ce89f590e0608017d4120d96d0e73250cf70aae790c06d0b78e8e2e3"
+      },
+      {
+        "path": "src/sandbox-profile.ts",
+        "sha256": "cbf886966b7fcaa103cff8ab1d9ddd79bdb55cc26d22589f3bbef8b072cec75f"
+      },
+      {
+        "path": "src/secret-store.ts",
+        "sha256": "35b4541271e255ad9251aac56b8d8b2404d00c27a40326b4e169a56cfab8d51f"
+      },
+      {
+        "path": "src/semantic-retrieval.ts",
+        "sha256": "5bb527a1668613d1b7eba6585223aa72cbe704159f8334bd3bc8452153402e5a"
+      },
+      {
+        "path": "src/session-store.ts",
+        "sha256": "1b3a9b29b436e4c9705b3636bda2b757640596f8d44b451d3e4eb83a278becff"
+      },
+      {
+        "path": "src/skill-catalog.ts",
+        "sha256": "71a7f61fae85e80588761e5447973b68b1b1782c21ef8def867ece487191afb4"
+      },
+      {
+        "path": "src/source-version.ts",
+        "sha256": "fd5fe50a6d192a52de613cc153dc00b1f0fb4a84906321949fdebe0da882d035"
+      },
+      {
+        "path": "src/sync-server.ts",
+        "sha256": "f2e1f44cd50533b2fdf720feec27c7d9fe81ed8eda5c96057601da984de7ad0e"
+      },
+      {
+        "path": "src/task-continuity.ts",
+        "sha256": "fffda3b7e708bf35d8a0eeb9d0a16b25335bcf1514e652daa1e23e77bdccbbeb"
+      },
+      {
+        "path": "src/task-execution.ts",
+        "sha256": "901fb7404a114289e46e6b1ebf42c379c86ffe0e688c313f14d511f6e8e46e5b"
+      },
+      {
+        "path": "src/teaching-dialogue.ts",
+        "sha256": "8adc9534d0bfa4e94977fd3ce70031faeb26af272ea791edb963027820bb62a0"
+      },
+      {
+        "path": "src/teaching-policy.ts",
+        "sha256": "7529874ce6f828453f62a97a42c6e42a8c76cb180231d419e8b52e21d1df413a"
+      },
+      {
+        "path": "src/teaching-prompts.ts",
+        "sha256": "53d206cab889c0245abe301f7ec3f6244290dfc3628422fd301743a67ad7ff59"
+      },
+      {
+        "path": "src/teaching-session-contracts.ts",
+        "sha256": "0f58d7da7530f4fac4e75665267170782fe9692f1260d83b8c1176781667d44b"
+      },
+      {
+        "path": "src/teaching-session-store.ts",
+        "sha256": "366cca29e3933816106714ac45329c33c0e7a10574a637de37c3a67108660d29"
+      },
+      {
+        "path": "src/teaching-turn.ts",
+        "sha256": "c8d787f0f917499be21e2baea13cb47f9bf35aa4acb5913ea54e347c8d5c38f8"
+      },
+      {
+        "path": "src/team-budget.ts",
+        "sha256": "9845fa71c7a1891d4977388a3868076114fd3ccdba7d72a737fa097ed231b991"
+      },
+      {
+        "path": "src/team-contracts.ts",
+        "sha256": "1a21269289452d5f1d53a13ca216c2d44e855b8fbb8921fd5da8226329e1ed22"
+      },
+      {
+        "path": "src/team-coordinator.ts",
+        "sha256": "6c4da23a056dbfac3c71b7320bafaac5d314bd3ba710cc2c6848531e5bd47e79"
+      },
+      {
+        "path": "src/team-evaluation-cases.ts",
+        "sha256": "9db908b2540c528b8d461e5dac8526c9fea1f6e1bbd6952c13f92b004e5964c5"
+      },
+      {
+        "path": "src/team-evaluation.ts",
+        "sha256": "8ebc0db358e63ffe8d7dd9e32b897af11de3c3c9c5b9868307ff00927035e6d9"
+      },
+      {
+        "path": "src/team-settings.ts",
+        "sha256": "cc4e12b54b40af564eb68d21350ac578a0093fa4337dba1362d58d8bbbc3d782"
+      },
+      {
+        "path": "src/terminal-markdown.ts",
+        "sha256": "edcb734351b6a6e12594137477b60844f1faad60d1777417ea556ea8bc858883"
+      },
+      {
+        "path": "src/tool-dispatcher.ts",
+        "sha256": "058bab0fbe5fd4c9fdf05c00e0aaf84c47f9add296a93780854b42f8b3d7d9c2"
+      },
+      {
+        "path": "src/tool-harness.ts",
+        "sha256": "f585a99979c9f0101832bea70fa702a748d54f13ebf5a8906efc8609365954fd"
+      },
+      {
+        "path": "src/tool-result-store.ts",
+        "sha256": "7f0c23909b9103e019f2389c6a4546c8e5b204c51527cd98f89467fac2094f11"
+      },
+      {
+        "path": "src/tool-results.ts",
+        "sha256": "eff919957db3eb2077ec0ed1fb24f04fae882570cf6ab1cd9ffa0ca99058cf27"
+      },
+      {
+        "path": "src/topic-store.ts",
+        "sha256": "634364d8c373ad882ef099da2181865d7e22a78cac5802e291e704721a709634"
+      },
+      {
+        "path": "src/topics.ts",
+        "sha256": "a63b21f6236aebe82027f36cd9945101495bc4aa1786a8e05ab3eb0af9567715"
+      },
+      {
+        "path": "src/windows-sandbox.ts",
+        "sha256": "b31021136b17b21c85cbd51bd2d45d2291d1b25f1fc9dbfb4db3d9e20ae2fce3"
+      },
+      {
+        "path": "src/workflow-ledger.ts",
+        "sha256": "b944830be36ec08ec4f5cdb7dc056bab536fae40ae27943777b8261c291016d7"
+      },
+      {
+        "path": "tests/action-registry.test.ts",
+        "sha256": "576e77a8a472c029c241f64e3a036a249c2699a318bed39e1afacb9bd9a8844d"
+      },
+      {
+        "path": "tests/agent-architecture-boundary.test.ts",
+        "sha256": "1d75ae22de587967589d9616911236a88f8eedc9b30593465810346600c61fe6"
+      },
+      {
+        "path": "tests/agent-checkpoint.test.ts",
+        "sha256": "ab9a5078d53c64c1484e70969155feaf703ae6007729b5fabc3ad7a0d591cade"
+      },
+      {
+        "path": "tests/agent-cli-lifecycle.test.ts",
+        "sha256": "986fe997e502448b470a8fdac5f01d7da6bdefdcf1897b4cc2b63418ac291633"
+      },
+      {
+        "path": "tests/agent-context-budget.test.ts",
+        "sha256": "115d97675d461b22088503e421f05b83e884b1a2c967ac790ccbf8ea82245616"
+      },
+      {
+        "path": "tests/agent-continuation.test.ts",
+        "sha256": "50af74acf92364654de199b00f87eb4a773715dd14154d17cb5577cec1fa76d5"
+      },
+      {
+        "path": "tests/agent-contract-edges.test.ts",
+        "sha256": "2909422ff17bdc725ec723f4eb23c9b0478933dd61b7d6e679ac92b213c14aa2"
+      },
+      {
+        "path": "tests/agent-crash.test.ts",
+        "sha256": "f472352dcfc2b27c99ac1e266d9fe6e30007ac6852e638de40571e233ac8ab4e"
+      },
+      {
+        "path": "tests/agent-efficiency.test.ts",
+        "sha256": "72ba036c08aa7610d02a2aa99c15a1529d5394b85d73995db797e1b5b1333af6"
+      },
+      {
+        "path": "tests/agent-limits.test.ts",
+        "sha256": "3ffcbaf5eb9e57f6af3a93396ae8058c0533b4464c0fd7c4f27b5b77308c1a2d"
+      },
+      {
+        "path": "tests/agent-loop.test.ts",
+        "sha256": "eec9baaf3b20d8bb7a1dd271023357d9180c77acfb5a0180f5d5cb7b000f517f"
+      },
+      {
+        "path": "tests/agent-model-factory.test.ts",
+        "sha256": "4de1fc41487813ce9f20f975e83da8b8c8cde20ff5f83849d92e4fc4add7fe04"
+      },
+      {
+        "path": "tests/agent-p0-execution.test.ts",
+        "sha256": "9507a355adf4a8f37615a9b5f078a5a9fa277afac4cfd90261b8a9a80434d219"
+      },
+      {
+        "path": "tests/agent-parallel.test.ts",
+        "sha256": "76ee10138355fd8cd202205f6993040f7b0d9d8ec60065b5c1c990aca37f4198"
+      },
+      {
+        "path": "tests/agent-permissions.test.ts",
+        "sha256": "a688d44edc1df70d96e1ec13caa0c886c42810d8489f044750888d8578b60e79"
+      },
+      {
+        "path": "tests/agent-quality-eval.test.ts",
+        "sha256": "cd0d913ad61eb90d92f7f5acded5cf74b0955387ea563d1704183af275aa37eb"
+      },
+      {
+        "path": "tests/agent-recovery-boundaries.test.ts",
+        "sha256": "f8989fdd1160aba78e090e231d731e271a07c64fd3c76d4082fdd79659980dc2"
+      },
+      {
+        "path": "tests/agent-reply-contract.test.ts",
+        "sha256": "efe72b11afbc951f653d6fc96bde696e065a3fdb2606935d38d8c7d8c9996035"
+      },
+      {
+        "path": "tests/agent-service.test.ts",
+        "sha256": "bbb5b6ed284d1be366de771ae1800f9da6e4d853dea92ae5acad2c9609cd6326"
+      },
+      {
+        "path": "tests/agent-team-service.test.ts",
+        "sha256": "1f90d41fc3d2256a76f33c584e6c8488eda931f46ca84d8e86a228476cdebc61"
+      },
+      {
+        "path": "tests/api-connection.test.ts",
+        "sha256": "b3413f26bcb4ee4a9df0a2e064ec0aff1c4a5894537eafeac8f976a0334e9f46"
+      },
+      {
+        "path": "tests/api-connections.test.ts",
+        "sha256": "63114e075779d31ae0d0b14f1c08db624e910327d67ffdefc750e1a84cdc27f8"
+      },
+      {
+        "path": "tests/architecture-regressions.test.ts",
+        "sha256": "26ab0588fd431acf170e26ba5f7a43732cc00a6d48fe1f313b12de2ebc67f167"
+      },
+      {
+        "path": "tests/backup-service.test.ts",
+        "sha256": "78b73f7b32c4333f074e7cb96c255cefc1727c64e92f02e2eeb9a9704c5a4adc"
+      },
+      {
+        "path": "tests/cli-external-gate.test.ts",
+        "sha256": "7ad2841ab0050f4e19d1674525f284b54df9e1febd353d417707e87a2c58d66d"
+      },
+      {
+        "path": "tests/cli-workflow.test.ts",
+        "sha256": "0773fcb067112bd3ba66dd0607b6ef1532ee046969a5d2aecd5baf97b62e80b4"
+      },
+      {
+        "path": "tests/codex-client.test.ts",
+        "sha256": "6a6291721e1858ea1673a1ae41432457473f5f937c5c66352e308b6655e8f636"
+      },
+      {
+        "path": "tests/conversation-session.test.ts",
+        "sha256": "f7c79933491af0646b03488c634b2ad61126eb0c2e45d0e55af3959dac8c9f02"
+      },
+      {
+        "path": "tests/current-topic-store.test.ts",
+        "sha256": "b99c89baf013f5be1d2d55773a3013d7938271671abb1e8b3cd4f979b84e0986"
+      },
+      {
+        "path": "tests/custom-course-store.test.ts",
+        "sha256": "3c885fbfc4619fe055ec88583d51be5dabc4acb42375e05a49c02efb44d45d30"
+      },
+      {
+        "path": "tests/deepseek-client.test.ts",
+        "sha256": "ec36d6c31ffc92f8d444244ce033ebbceff25d1841bae0d38564fbe7b0ca0733"
+      },
+      {
+        "path": "tests/desktop-diagnostics.test.ts",
+        "sha256": "d093dab06a35d48f770268d5fd6b675ab27fe93751afe497545256dd20b13e52"
+      },
+      {
+        "path": "tests/desktop-interactions.test.ts",
+        "sha256": "457fc5a62d1d0cb4a96a6e9916c41f22ccc96b700a76dc7e377ac7742922dc86"
+      },
+      {
+        "path": "tests/desktop-migration.test.ts",
+        "sha256": "fb35eabc47278d59af8e4c6f3272d57f8f751385fe86f7573735c8c4a1610210"
+      },
+      {
+        "path": "tests/desktop-outcomes.test.ts",
+        "sha256": "dad43a78bee70a1628171b9d79972a6648561ea8a37ed2c6273f4d0e995f81fe"
+      },
+      {
+        "path": "tests/desktop-pi-runner.test.ts",
+        "sha256": "004d8047c5fb4159e06f50d58bbde018897cfd34be84cd83cee52a4642e75dc1"
+      },
+      {
+        "path": "tests/desktop-preference-order.test.ts",
+        "sha256": "ef2eeee8f56d5be8a7f9a3c5794836bcda6c031951ef70c00d4a9915910eccf7"
+      },
+      {
+        "path": "tests/desktop-providers.test.ts",
+        "sha256": "14ef6154f1cf20d0f649957fd26bee2df1df6652ffa50d38531dabdd0abfcd58"
+      },
+      {
+        "path": "tests/desktop-service.test.ts",
+        "sha256": "78a5fb741a3f42f6fc7fa20eead9bdec7a8f47159f390e6d9e0d083acd1d59b6"
+      },
+      {
+        "path": "tests/desktop-storage.test.ts",
+        "sha256": "45e0214ad837ecc6dc069a044ebfc84a1da61f4dd64306d7386bffbd29e378e3"
+      },
+      {
+        "path": "tests/desktop-tasks.test.ts",
+        "sha256": "3d86f683d5c0259571147db1b1fd4ee533c4ac413c31af78aff509d12eda839d"
+      },
+      {
+        "path": "tests/display-math.test.ts",
+        "sha256": "0d141231dd9eced7fee7931e290c4dfa8422e3b979b0ce0b43fa0ff4707085db"
+      },
+      {
+        "path": "tests/eval.test.ts",
+        "sha256": "9b603f7d5c5415294c9b1bb4955cfa1769e051156ab4d5bc6d990a9abf19a937"
+      },
+      {
+        "path": "tests/evidence-application.test.ts",
+        "sha256": "986e551055d2b7498384361b5841651915d167ab4ece06540dac5c9ff936eb34"
+      },
+      {
+        "path": "tests/evidence-support.test.ts",
+        "sha256": "7d3c0435824f2c1f78b65ada38dac6c995e561b9d3980de87b37a2b163bde763"
+      },
+      {
+        "path": "tests/execution-history.test.ts",
+        "sha256": "9304846058934f86605629dc366c53a303ee699144884441b42e813148a40905"
+      },
+      {
+        "path": "tests/fixtures/README.md",
+        "sha256": "ac4b49b9310964b3675cdc48ead432ebf104401103ff538bc9f610d36ef53304"
+      },
+      {
+        "path": "tests/fixtures/agent-crash-process.ts",
+        "sha256": "442860b013682a239595222c3a765a27b2493294b7a546d45752c443ea857050"
+      },
+      {
+        "path": "tests/fixtures/documents/encrypted.pdf",
+        "sha256": "95552e9f59961ecada99501ead22134f4b07bd450baec1af805694562b8eddac"
+      },
+      {
+        "path": "tests/fixtures/documents/invalid.pdf",
+        "sha256": "419db25c3c317e0ffb7153f183999ee0e66e7ef9c7107eb322333db3c30680c6"
+      },
+      {
+        "path": "tests/fixtures/documents/many-pages.pdf",
+        "sha256": "39c72a99b857abc3f76e9fea0bf35c00f127ebf456325de4805b3be3419705c4"
+      },
+      {
+        "path": "tests/fixtures/documents/notes.md",
+        "sha256": "67fbd8616c7730df9dfc8cff9074acf975027e17c7bd5ee8260e06b877b2d630"
+      },
+      {
+        "path": "tests/fixtures/documents/scanned.pdf",
+        "sha256": "a74d67f231b4898adc11fb01f1f63fa140b46841bb2635c925bee52e57dffd25"
+      },
+      {
+        "path": "tests/fixtures/documents/text.pdf",
+        "sha256": "910b46289c2b27b540acbbf4e01763a3ed3b0dceb1697d5500479f365db07731"
+      },
+      {
+        "path": "tests/fixtures/mcp-recovery-server.mjs",
+        "sha256": "1b4c4073501e6f467d4a38c8e9ebe9d999bbfe299456a30786e1e6975f3b2690"
+      },
+      {
+        "path": "tests/fixtures/mcp-server.mjs",
+        "sha256": "730a57a30d580a06237e7fc6caeaee22f7197d88523b7130cae98b26ac72d4e4"
+      },
+      {
+        "path": "tests/frontend-boundary.ts",
+        "sha256": "4bf7604916363520971dd3fa942114b14a3b9f7beead5877adf70c931be28437"
+      },
+      {
+        "path": "tests/grounded-answer.test.ts",
+        "sha256": "1ea543f32c85ad695513ddcca3444b0716f2260156a65bc1f69f118d3b6d1fde"
+      },
+      {
+        "path": "tests/image-input.test.ts",
+        "sha256": "9f923779aaa7828eb6db2a322ff9054382c40219cb537146ea7267978d38717b"
+      },
+      {
+        "path": "tests/integration.test.ts",
+        "sha256": "55916cc5eb78689c94fbbd4c0cc050b80cc4cc427e0f4f9ba2c6bd9e237d2360"
+      },
+      {
+        "path": "tests/intent-parser.test.ts",
+        "sha256": "6e33d19644c0c63f16b8c94cc14559e1b098e8206f73d7ac3bb0f5f42ba6576e"
+      },
+      {
+        "path": "tests/interaction-cli.test.ts",
+        "sha256": "73eed798e3436c2f9310c7478ab266325939a1a5599357ee69afc16b53f7c2cd"
+      },
+      {
+        "path": "tests/interaction-guidance.test.ts",
+        "sha256": "6f05ab05a74dda0d85af1202b6312bba5f58c5d547062597b27ed36106b3c8eb"
+      },
+      {
+        "path": "tests/interaction-protocol.test.ts",
+        "sha256": "1e92f645c7235378890d44548a1dacc1fb0bad73404ed444a5cd3c59325da35c"
+      },
+      {
+        "path": "tests/json-schema-dialects.test.ts",
+        "sha256": "165685e71ef0d423529af625f2ef11d7a57bf75b8bdf79e2bb9a603ad2ff86e3"
+      },
+      {
+        "path": "tests/kimi-client.test.ts",
+        "sha256": "5e65f198f7f57240eb2665e4a84859d3a7aa20a1532c054bf85e130efa5cfdba"
+      },
+      {
+        "path": "tests/lazy-mcp.test.ts",
+        "sha256": "6340146a0cd571e31d88d4dee305bc1108f8df335583ee7cc8df10b1b40dedce"
+      },
+      {
+        "path": "tests/learning-agent-cli.test.ts",
+        "sha256": "29effe1801254d77600df9a5bb449e5ff3aa0cce89e3ab669c5171c79491cb2c"
+      },
+      {
+        "path": "tests/learning-agent.test.ts",
+        "sha256": "ecd1639f79bcd2b8f2236a87bbb771bc79782b0705817ad1a5c358526573efbb"
+      },
+      {
+        "path": "tests/learning-application.test.ts",
+        "sha256": "0991da7cf1f1f3af9b24a42ebed8578ebedf9c255483ca89f7b682e1fd2ec8ee"
+      },
+      {
+        "path": "tests/learning-assessment.test.ts",
+        "sha256": "f280a31d7dc73fddf2fae10de26d3ef4b742792136fff2e2abbbdbf0bdfa3925"
+      },
+      {
+        "path": "tests/learning-context.test.ts",
+        "sha256": "b0ec5207f5d90db51a5b8b8165d53ce28cd604d664c9701c057c6011de66cee0"
+      },
+      {
+        "path": "tests/learning-observations.test.ts",
+        "sha256": "cb625a68e9e5152ecd0684a8b160bfb577c90b2b4624091abd5beef07aa1d203"
+      },
+      {
+        "path": "tests/learning-outcomes.test.ts",
+        "sha256": "8c13743fafe94136a919b4a56337e2a30684505b60fc83fa418035dbf6ed894b"
+      },
+      {
+        "path": "tests/local-interaction-boundaries.test.ts",
+        "sha256": "b43916fe878511685cc2f9518bf6beaa6d47dfbf6b0c3dbc6edefdafe602b7e8"
+      },
+      {
+        "path": "tests/loop-guard.test.ts",
+        "sha256": "8960e0b27a2422429a1b8432c85181b545325eb2ab972edb11cbb087120aad4b"
+      },
+      {
+        "path": "tests/macos-keychain.test.ts",
+        "sha256": "b6f5c2c4f72adc292faac6450c0b30030b2b36d0571c5833d9be7f0812d6da20"
+      },
+      {
+        "path": "tests/mcp-isolation.test.ts",
+        "sha256": "ab2593f26cc4814e4017d8cabe7ae4d45abc3b0c3f516c3eb96e84f3bc07135b"
+      },
+      {
+        "path": "tests/mcp-tools.test.ts",
+        "sha256": "af80637c10a10bb70cf5cc78fdaf90ce61abab6df1ddc507722ff8e10d6e451c"
+      },
+      {
+        "path": "tests/memory-recall-quality.test.ts",
+        "sha256": "d64114e2296a4c373cd913e247b2ba1521bd65dd5d3149dc15af42afe4ce8572"
+      },
+      {
+        "path": "tests/model-audit.test.ts",
+        "sha256": "7fb37502c27506614329c161a8e915550e453f01e484f401052ff0387260325d"
+      },
+      {
+        "path": "tests/model-capabilities.test.ts",
+        "sha256": "ea319a706b23c471c5901ebe2615377e236d2e8dd6e00dcd26035a904c7432be"
+      },
+      {
+        "path": "tests/model-invocation.test.ts",
+        "sha256": "630cec1abc1bb0ac11c20682bb450b85d64b84a9458f11ae266ab72f61cf4366"
+      },
+      {
+        "path": "tests/model-routing-store.test.ts",
+        "sha256": "52e584058fede91ff266d059e1da91f32e7451051f4f85ed91bd1fe83a271905"
+      },
+      {
+        "path": "tests/outcome-blind-review.test.ts",
+        "sha256": "f11b2835563641c2f1ef50108f631c463530b7de652658ff7352653847aa92ea"
+      },
+      {
+        "path": "tests/outcome-quality-report.test.ts",
+        "sha256": "f87006943c7952c917bab2ac12265c90c4a910103ac3843278552b6485306099"
+      },
+      {
+        "path": "tests/outcome-report.test.ts",
+        "sha256": "1a267818d04bcfd23854fd80c5b1c3222328171f9f7abeb3b657cd5f506943c0"
+      },
+      {
+        "path": "tests/p2.test.ts",
+        "sha256": "16851585ea9e7fdcb7aff610433c429cfeaa2ba6c1776918cf1b01e7de2e6bec"
+      },
+      {
+        "path": "tests/path-policy.test.ts",
+        "sha256": "95d415ef3436a11423fade8ac34fb3e5acd0180a53ab58a7915d340c4bb3b671"
+      },
+      {
+        "path": "tests/personal-learning.test.ts",
+        "sha256": "d9f97d717080aa4a5a00ee71b91efd675f360a2195cef77c1815033dff2cb297"
+      },
+      {
+        "path": "tests/pi-application-client.test.ts",
+        "sha256": "4b65074231d6f6052a3b02cdd77f7591efbc0c124b0bd1d1e892ad8bdf6edd15"
+      },
+      {
+        "path": "tests/pi-cli.test.ts",
+        "sha256": "1ecca1b54848d978b2722120d11c169a2261802bc2cfcf1b6b70858059af343c"
+      },
+      {
+        "path": "tests/pi-client.test.ts",
+        "sha256": "949a93b5f786c1b2e513517bf16e64e4c687d2fce49527e5377fb00bd1f62853"
+      },
+      {
+        "path": "tests/pi-latency.test.ts",
+        "sha256": "3a6e1aa3232d31e3bf190fbcbf931073d8bb74cafd7ae6bd6b807757257381a4"
+      },
+      {
+        "path": "tests/pi-live-observer.test.js",
+        "sha256": "0d198264efd565d607b98e3891d83616fd410fcc22f493a2db21c62d74d69a96"
+      },
+      {
+        "path": "tests/plan-schema.test.ts",
+        "sha256": "72140c54e487e2dee73b23f13702f39a010aea79e1f696753f369928d068bd61"
+      },
+      {
+        "path": "tests/platform-preflight.test.ts",
+        "sha256": "649fb8b2add5da1cc5a434363a94d154ab17b7e998c3bc6df2712d7874b13df8"
+      },
+      {
+        "path": "tests/practice-projects.test.ts",
+        "sha256": "ea1589b85d08228056af5779a30c0732f98f61c1a0e07d68a693ce0ab644287d"
+      },
+      {
+        "path": "tests/product-validation.test.ts",
+        "sha256": "819454759f4678cdeb6a90b73a43aea081ff2067998bbae19a16cf4f47d769bc"
+      },
+      {
+        "path": "tests/project-revisions.test.ts",
+        "sha256": "0ae68685e6199643d3f42500d62efd3a5cf400c814e75e9ce2149e52cb3324f2"
+      },
+      {
+        "path": "tests/provider-measurement.test.ts",
+        "sha256": "6b4ff633360537005e07120b524c5a8102a40edbf232c81107cebeaa5de12639"
+      },
+      {
+        "path": "tests/provider-policy.test.ts",
+        "sha256": "0faec4c68e32b208b2a1426c36246ab4a00b71efbd2afc4086ef18fc641cfbf5"
+      },
+      {
+        "path": "tests/provider-reasoning.test.ts",
+        "sha256": "7f3dbb37507f71cc414709916d2829ea7dd19a4fd108df62066a188e996f78ff"
+      },
+      {
+        "path": "tests/provider-registry.test.ts",
+        "sha256": "937e9d8a58b4b2b7bdf80fe6ee143c7729f72f3a92f9317b83f68d0c311ec60f"
+      },
+      {
+        "path": "tests/provider-runtime.test.ts",
+        "sha256": "575bdc8946b1ad56be1c764139237ab67e5ab868d1263aef9275689931e36a2c"
+      },
+      {
+        "path": "tests/provider-setup.test.ts",
+        "sha256": "3341fbd92330c8f4763b2f71a7b8c037686035adcbf423cbd706c034ca096c2d"
+      },
+      {
+        "path": "tests/provider-tool-contract.test.ts",
+        "sha256": "aec4e99355af46b74cfc0de4644745c83cf782a3136a31563fcd9f428ebd9705"
+      },
+      {
+        "path": "tests/quality-evaluation.test.ts",
+        "sha256": "350e0777f260e3303af0ffea19e43fac2411f2d77b5f4dfe66e4de7170ee1ec8"
+      },
+      {
+        "path": "tests/quality-review-cli.test.ts",
+        "sha256": "7a1fee50073dc54fd3c2afc6842e2c990e0dd14ae752b0fa61aa21fd93fd2bcf"
+      },
+      {
+        "path": "tests/quality-review.test.ts",
+        "sha256": "8379b762578d93c9d900a2cf02d0ff55b0f316fb85bbeed0bdd00392979e1488"
+      },
+      {
+        "path": "tests/reminder-store.test.ts",
+        "sha256": "43b91501e912e3f425c99b8a47501cb5d47b927a0f36fc2090e2d1300d2a6573"
+      },
+      {
+        "path": "tests/repl-controller.test.ts",
+        "sha256": "04ea1eb278c7b9a3b924c74388a116e0f383c6973344fc04ff1a0a98fbea1c54"
+      },
+      {
+        "path": "tests/repl-input.test.ts",
+        "sha256": "07c836568f3e557cfbf7e2c053693aa6f9f3bab56dd5b3d843e29e6bc121c1a0"
+      },
+      {
+        "path": "tests/response-quality.test.ts",
+        "sha256": "1bc6cc47dd6e95fb3155af6a11fccd9c49e9ed032e22769522dcfe31eaffb18c"
+      },
+      {
+        "path": "tests/retrieval-quality.test.ts",
+        "sha256": "aace40bcfeec0d16fae3d0d6adf46af48e7815fa1d7a73a856b003c9120683d4"
+      },
+      {
+        "path": "tests/run-context.test.ts",
+        "sha256": "87f0f550c260ef43a71d37a95209d315ee64dab3cc57a36a79920e9e9dfa16b2"
+      },
+      {
+        "path": "tests/run-manager.test.ts",
+        "sha256": "0692c2b4cb9000cabd0ab923a71e15948bbae0b631fbe3a4dc70e01c4a0f5999"
+      },
+      {
+        "path": "tests/runtime-version.test.ts",
+        "sha256": "b16b084f36984ff2e620651844ddfc53ac0843d449182b8ac1bd9811b459f432"
+      },
+      {
+        "path": "tests/segmented-conversation.test.ts",
+        "sha256": "83fe2f7a261927401a9247d47989250082c6a71b0c4dd510758caaed2dcf16eb"
+      },
+      {
+        "path": "tests/session-scaling.test.ts",
+        "sha256": "d9cabf50a4e821fb9eff64a1036ad0f3cd4f5641c25399d7868b5b0c0425507b"
+      },
+      {
+        "path": "tests/session-store.test.ts",
+        "sha256": "5cfbef54cb47aa28750042fae8654a3b08f29ad5b32a3acf713099dac92936bb"
+      },
+      {
+        "path": "tests/skill-catalog.test.ts",
+        "sha256": "9bad4572a1a35767931032d9c9318f73216df2a99fb69f7a88dc71b1400b9318"
+      },
+      {
+        "path": "tests/stream-batcher.test.ts",
+        "sha256": "9a62ba205356295fee9f48ec46d6d5a8972d94cacca492e8b2c9aee817c406b2"
+      },
+      {
+        "path": "tests/structured-context.test.ts",
+        "sha256": "158e2e6ea0ed51ef631a45943b0849e0777366f2377b0ef3a39e35460a91319a"
+      },
+      {
+        "path": "tests/summary-coverage.test.ts",
+        "sha256": "9fd6f2f355df86c4497448291711455d84672f1566f73061b0aaf9d0e3eade50"
+      },
+      {
+        "path": "tests/task-continuity.test.ts",
+        "sha256": "7280c53c23984092ec64fd2b9b2dbacd1b4922efc23018792978de54d113db20"
+      },
+      {
+        "path": "tests/task-execution.test.ts",
+        "sha256": "7e22cc6da7229a7e486b6b96aec245df3b13a7ae246d3c12371277a94efea69a"
+      },
+      {
+        "path": "tests/teaching-dialogue.test.ts",
+        "sha256": "8b7a8dd0dbd3e2c277a20e17cb19380b64f5bcd14a331e1fe7bfd466f84be6f0"
+      },
+      {
+        "path": "tests/teaching-policy.test.ts",
+        "sha256": "2e93b11beb1d88e2a192d4472f28fc239e467ef3b3e6280dd57cd86844b0de92"
+      },
+      {
+        "path": "tests/teaching-session-isolation.test.ts",
+        "sha256": "959a46b9641f287a9b8d96d102930b5d0c4653997fda850f74504e4da415d9c9"
+      },
+      {
+        "path": "tests/teaching-session-store.test.ts",
+        "sha256": "c2340f126371975369e5a19a24d9a23547e50caa4839f0000ea04bf0c71ac8e3"
+      },
+      {
+        "path": "tests/teaching-turn.test.ts",
+        "sha256": "0dd7ce6f3605e726f6943d6ff6e939a50a8e681e21f7a21fe41d0f69912725d4"
+      },
+      {
+        "path": "tests/team-budget.test.ts",
+        "sha256": "2188f3d24d4868dd2c7452d632d9963a41466c6858b62b98450fe38fc69b2e9a"
+      },
+      {
+        "path": "tests/team-contracts.test.ts",
+        "sha256": "546ebb16145a79f9faf2d851ef44252a2dd8893becfef43d187035b4ff6d8702"
+      },
+      {
+        "path": "tests/team-coordinator.test.ts",
+        "sha256": "db05b7730da31bc3e78d99ca74a29b698f0856eb2948bb9e57773d90c49ae7ed"
+      },
+      {
+        "path": "tests/team-evaluation.test.ts",
+        "sha256": "e07fe64b3c885c66ca4781b9d39549e9402f2f889d2070ec4f063fd51c8de2c6"
+      },
+      {
+        "path": "tests/team-isolation.test.ts",
+        "sha256": "9e93b2ef3f18dfa88476bfd3ab48e0180113dfb0ce05a6208f743775185f68c6"
+      },
+      {
+        "path": "tests/terminal-markdown.test.ts",
+        "sha256": "54b957a2fde0e559f03f0bba6a724b943e929c14d06f6a324e20c414f9d04876"
+      },
+      {
+        "path": "tests/tool-dispatcher.test.ts",
+        "sha256": "28dc792beb8df155e7a0f88316c80b484e02f2517cbecec410a33ba7fcd87654"
+      },
+      {
+        "path": "tests/tool-harness.test.ts",
+        "sha256": "0a75135c03eee9bb405a764e5e3f9e6a6567b69c332dec653555aedcfacfd3b3"
+      },
+      {
+        "path": "tests/tool-results.test.ts",
+        "sha256": "3a4038b8da5579c59322f2cd23b10b22a8c7294de430bb5683967ae28102e3be"
+      },
+      {
+        "path": "tests/tool-spec.test.ts",
+        "sha256": "4ec666e56d713c0c1749dc076bc66b48a7643837cb6d87b283f75adb693e57aa"
+      },
+      {
+        "path": "tests/topic-store.test.ts",
+        "sha256": "38c93dc9b64e01819fd184372c135a6e2c5ffc757f5309174af070ec04b1364d"
+      },
+      {
+        "path": "tests/ui-polling.test.js",
+        "sha256": "97548bba5dc09f5beb9598e29754d0ccb6265c8f4697e7d80f76e03a659c1308"
+      },
+      {
+        "path": "tests/unified-agent-policy.test.ts",
+        "sha256": "3b49321e4c20df137f15937a71770c8772c2ad5dc6e0af1c6180e495b63c960a"
+      },
+      {
+        "path": "tests/unified-learning-context.test.ts",
+        "sha256": "ed9787414165d4058d6241218ebc54ee465f5756bb1e44de6d7a294243dfbea1"
+      },
+      {
+        "path": "tests/upgrade-foundations.test.ts",
+        "sha256": "dc74ab571f7e891a98ab45248c54dd05cca649de0f0b8c8654de89d237d8a876"
+      },
+      {
+        "path": "tests/windows-sandbox.test.ts",
+        "sha256": "5f3927e1e1a077c28677eb14c4d86c14283bbec361981aca61168a411e18e81a"
+      },
+      {
+        "path": "tests/workflow-ledger.test.ts",
+        "sha256": "6247e1b6e0176f96df0955ddbc38d7116cdff1bc6c881a249a5b2ae6b7f2ce53"
+      },
+      {
+        "path": "tests/workflow.test.ts",
+        "sha256": "3855681ee56095d8c2a63c59a825abced10487c3ae57d7e21f28777cfca8f31a"
+      },
+      {
+        "path": "tests/workspace-backup.test.ts",
+        "sha256": "43ced13767c32e179975c759ecdb154cca4d1d32b612b583cf8a2c9ad689112f"
+      },
+      {
+        "path": "topics/3dgs/PLAN.md",
+        "sha256": "39e5b01636a6fab064342e5ae763ddc9fc51864dca938f41855f771542846721"
+      },
+      {
+        "path": "topics/agent-development/PLAN.md",
+        "sha256": "804b279bfefaf31e020d5b8cd7a2f2a2f286b3467c296628e30083706a73edb7"
+      },
+      {
+        "path": "topics/interview-project/PLAN.md",
+        "sha256": "8a03fbd682f38a761ed3543e51b1e89206bd040e315f4c60584de420ab951632"
+      },
+      {
+        "path": "topics/linear-algebra/PLAN.md",
+        "sha256": "3c7d03ea2619b02e351bb718db7bee821869dbf157672c3a0e244f1186c353cf"
+      },
+      {
+        "path": "topics/rag/PLAN.md",
+        "sha256": "5124891f104f6c4e52211ffd5c50679275167501d264414e5102685b16558301"
+      },
+      {
+        "path": "topics/tool-calling/PLAN.md",
+        "sha256": "926909b40e71f3fe3e84b76bf523438ef4365c095b9004e2ebe16b4f47b74a2e"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "4e679b9db526203958b88c1dc7fb5b117499ec9da0600093dcc90a5220e2ff59"
+      },
+      {
+        "path": "vitest.config.ts",
+        "sha256": "eea8302ef88913abf1dfc92ae3354be396f81ddfbd203b20939cadd4c5bd3f4d"
+      }
+    ]
+  },
+  "evaluatorSourceHash": "9db908b2540c528b8d461e5dac8526c9fea1f6e1bbd6952c13f92b004e5964c5"
+}

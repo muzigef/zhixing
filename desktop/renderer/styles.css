@@ -1447,3 +1447,14 @@ kbd,
 
 .connection-heading button, .connection-actions button, .connection-remove button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; }
 .connection-heading button:hover:not(:disabled), .connection-actions button:hover:not(:disabled), .connection-remove button:hover:not(:disabled), .connection-edit:hover:not(:disabled) { background: var(--hover); }
+
+.team-card { border: 1px solid var(--border, #e3e0d9); border-radius: 12px; padding: 12px 16px; margin: 12px 0; background: var(--surface, transparent); }
+.team-card summary { cursor: pointer; font-size: 13px; }
+.team-card section { border-top: 1px solid var(--border, #e3e0d9); padding: 12px 0; }
+.team-member-heading { display: flex; align-items: center; gap: 12px; font-size: 13px; flex-wrap: wrap; }
+.team-result { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 320px; overflow: auto; }
+.team-settings { display: grid; gap: 14px; }
+.team-settings fieldset { border: 1px solid var(--border, #e3e0d9); border-radius: 10px; display: grid; gap: 10px; }
+.team-settings label { display: flex; align-items: center; gap: 12px; }
+.team-settings select { max-width: 100%; padding: 6px; }
+.team-settings .team-consent { align-items: flex-start; }

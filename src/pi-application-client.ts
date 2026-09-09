@@ -1,6 +1,6 @@
 import { StringDecoder } from "node:string_decoder";
 import { z } from "zod/v4";
-import { PiCodexClient, runPiProcess, type PiProcessRunner } from "./pi-client.js";
+import { PiCodexClient, runPiProcess, type PiProcessRunner, type PiModelSelection } from "./pi-client.js";
 import { assertLiveProviderAllowed } from "./provider-policy.js";
 import { modelPhaseSchema, piTransportSchema, workerTimingSchema } from "./model-telemetry.js";
 import type { ContinuableModelClient, ModelEvent, ModelRequestOptions, ToolResultMessage } from "./model.js";
@@ -16,11 +16,14 @@ const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("usage"), usage: z.object({ inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative(), cacheReadTokens: z.number().int().nonnegative().optional(), reasoningTokens: z.number().int().nonnegative().optional(), model: z.string().max(128).optional(), startupMs: z.number().nonnegative().optional() }).strict() }).strict(),
   z.object({ type: z.literal("error"), code: z.enum(["pi_login_required", "provider_incomplete", "provider_model_mismatch", "provider_output_limit", "model_input_limit", "provider_unavailable", "live_provider_disabled", "image_model_required", "image_format_invalid"]) }).strict(),
 ]);
-export interface PiApplicationOptions { projectDir: string; executable: string; executableArgs?: string[]; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; }
+export interface PiApplicationOptions { projectDir: string; executable: string; executableArgs?: string[]; worker: string; sdk: string; runner?: PiProcessRunner; environment?: NodeJS.ProcessEnv; timeoutMs?: number; transport?: "sse" | "auto"; pinnedSelection?: PiModelSelection; }
 
 /** One provider turn per isolated process. The SDK generates calls; only our ToolHarness executes them. */
 export class PiApplicationClient extends PiCodexClient implements ContinuableModelClient {
   override readonly capabilities = { ...adapterCapabilities(true, "configurable"), inputModalities: ["text", "image"] as const };
+  get identity() { return this.bridge.pinnedSelection ? { provider: "pi-codex" as const, model: this.bridge.pinnedSelection.model, connection: "pi:openai-codex" } : undefined; }
+  override selection(): Promise<PiModelSelection> { return this.bridge.pinnedSelection ? Promise.resolve(structuredClone(this.bridge.pinnedSelection)) : super.selection(); }
+  async freeze(): Promise<PiApplicationClient> { return new PiApplicationClient({ ...this.bridge, pinnedSelection: await this.selection() }); }
   constructor(private readonly bridge: PiApplicationOptions) { super(bridge); }
   async *continue(prompt: string, _results: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent> {
     if (!options?.history?.length) throw new Error("provider_continuation_context_required");

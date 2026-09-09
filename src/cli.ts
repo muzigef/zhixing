@@ -1,3 +1,5 @@
+import { TeamSettings } from "./team-settings.js";
+import { teamModeConfiguration, collaborationLabels, teamStatusLabels, memberStatusLabels, type CollaborationMode } from "./team-contracts.js";
 import { publicError } from "./agent-errors.js";
 import { ApiConnections, connectionIdentity } from "./api-connections.js";
 import { apiConnectionInputSchema, type ApiConnection } from "./api-connection-config.js";
@@ -118,6 +120,8 @@ const responseStyles = new ResponseStyleStore(policy);
 let responseStyle = await responseStyles.load(activeTopic);
 const chats = new ConversationSessionStore(policy);
 let chat = await chats.current(activeTopic) ?? emptyConversation(activeTopic, teachingSession ? "lesson" : "chat");
+const teamSettings = new TeamSettings(path.join(root, "zhixing", "settings", "team.local.json"));
+let collaboration = await teamSettings.load();
 let cliAgent = createCliAgent();
 chat = await cliAgent.recover(chat);
 teachingSession = await loadCurrentTeaching(activeTopic);
@@ -191,6 +195,18 @@ async function execute(line: string): Promise<string> {
   let command = line.trim();
   if (!command) return "";
   if (command.length > 8_000) return "这条消息太长，请拆成几条发送（每条最多 8,000 字符）。";
+  const teamMode = /^\/mode (single|same|mixed)$/.exec(command);
+  if (teamMode) {
+    const mode = ({ single: "single", same: "same-model-team", mixed: "mixed-model-team" } as const)[teamMode[1] as "single" | "same" | "mixed"] as CollaborationMode;
+    collaboration = await teamSettings.save(teamModeConfiguration(mode, providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), collaboration));
+    return `已选择${collaborationLabels[mode]}，对新任务生效。/team 查看；/team config <公开配置 JSON> 调整成员与共享范围。`;
+  }
+  if (command.startsWith("/team config ")) { collaboration = await teamSettings.save(JSON.parse(command.slice(13))); return `已保存${collaborationLabels[collaboration.mode]}配置。`; }
+  if (command.startsWith("/team stop ")) { await cliAgent.service.stopTeamMember(chat.id, command.slice(11).trim()); return "已请求停止该成员。"; }
+  if (command === "/team") {
+    const state = await cliAgent.ensure(chat); const team = state.messages.findLast(message => message.team)?.team;
+    return `新任务模式：${collaborationLabels[collaboration.mode]}\n${JSON.stringify(collaboration)}\n${team ? `${collaborationLabels[team.mode]} · ${teamStatusLabels[team.status]} · 主模型 ${team.lead.model}\n${team.members.map(member => `${member.id} · ${member.binding.model} · ${memberStatusLabels[member.status]}\n${member.result ?? member.error ?? member.task}`).join("\n")}\n总请求 ${team.modelTurns}，已报告输入 ${team.inputTokens} / 输出 ${team.outputTokens} token，${team.unknownUsageRequests} 次用量未知。` : "尚无团队任务。"}`;
+  }
   if (command === "/task" || command.startsWith("/task ")) {
     await cliAgent.ensure(chat); const session = await cliAgent.service.load(chat.id);
     const taskId = session.messages.findLast(message => message.taskId)?.taskId;
@@ -231,7 +247,7 @@ async function execute(line: string): Promise<string> {
     await cliAgent.ensure(chat);
     const answer = /^\/answer\s+([0-9a-f-]{36})\s+([\s\S]+)$/.exec(command);
     if (answer) await cliAgent.service.answerInteraction(chat.id, answer[1]!, answer[2]!);
-    else if (command.startsWith("/agent ")) await cliAgent.service.send({ sessionId: chat.id, text: command, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle, topicId: activeTopic, access: { materials: /(?:^|\s)--允许外发(?:\s|$)/.test(command), project: /(?:^|\s)--允许项目(?:\s|$)/.test(command), external: /(?:^|\s)--允许外部(?:\s|$)/.test(command) } });
+    else if (command.startsWith("/agent ")) await cliAgent.service.send({ sessionId: chat.id, text: command, collaboration, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle, topicId: activeTopic, access: { materials: /(?:^|\s)--允许外发(?:\s|$)/.test(command), project: /(?:^|\s)--允许项目(?:\s|$)/.test(command), external: /(?:^|\s)--允许外部(?:\s|$)/.test(command) } });
     else return "用法：/answer <卡片 ID> allow|deny|回答内容";
     await cliAgent.service.idle();
     const session = await cliAgent.service.load(chat.id); const message = session.messages.at(-1)!;
@@ -284,7 +300,7 @@ async function execute(line: string): Promise<string> {
 - 排队：/queue 查看，/queue clear 撤回，/queue resume 继续持久队列
 - 任务：/task 查看计划与累计用量；/task revise <新目标> 保留旧计划并继续；/task verify 核对未知外部操作
 - 应用任务：/agent <任务> --允许外发；/answer <卡片 ID> allow|deny|回答内容
-- 自定义模型：模型连接列表；模型连接添加 <公开配置 JSON>（只含 name、baseUrl、model 和兼容选项，Key 用隐藏输入单独保存）
+- 协作模式：/mode single、/mode same、/mode mixed；/team 查看成员；/team config <公开配置 JSON> 调整\n- 自定义模型：模型连接列表；模型连接添加 <公开配置 JSON>（只含 name、baseUrl、model 和兼容选项，Key 用隐藏输入单独保存）
 - 调整计划：直接描述需求；确认草案后执行
 - 取消草案：/cancel-plan
 - 退出：退出 或 /exit
@@ -696,7 +712,7 @@ async function collectReply(userInput: string, observer: AgentObserver & Pick<Se
   const text = userInput.replace(/(?:^|\s)--允许外发(?=\s|$)/g, "").trim();
   try {
     const current = grant ? await cliAgent.ensure(chat) : undefined;
-    const result = await cliAgent.invoke(chat, { text, purpose: observer.purpose, images: observer.images, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle,
+    const result = await cliAgent.invoke(chat, { text, collaboration, purpose: observer.purpose, images: observer.images, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle,
       ...(grant ? { access: { materials: true, project: Boolean(current?.permissions?.projectId), external: current?.permissions?.externalRevision !== undefined } } : {}) }, { ...observer, signal });
     if (result.partial && !replMode) { process.exitCode = 1; console.error("本轮未完成，已保留返回内容，可重试或继续。"); }
     return result;
@@ -977,11 +993,14 @@ try {
         const steering = /^\/steer\s+([\s\S]+)$/.exec(input.text)?.[1] ?? /^(?:等等|等一下|不对|停一下)[，,:：]\s*([\s\S]+)$/.exec(input.text)?.[1];
         const text = steering ?? input.text;
         const local = /^(?:\/|退出$|exit$|quit$|停止$|停一下$|暂停回答$|当前状态$|学习 |开始|进度$|下一步$|模型|取消草案$)/.test(text);
-        if (cliAgent.service.activeSessionId === chat.id && input.text === "/queue clear") {
+        if (cliAgent.service.activeSessionId === chat.id && (input.text === "/team" || input.text.startsWith("/team stop "))) {
+          const pending = execute(input.text).then(printOutput).catch(error => console.error(presentError(error)));
+          submissions.add(pending); void pending.finally(() => submissions.delete(pending));
+        } else if (cliAgent.service.activeSessionId === chat.id && input.text === "/queue clear") {
           const pending = execute(input.text).then(printOutput).catch(error => console.error(presentError(error)));
           submissions.add(pending); void pending.finally(() => submissions.delete(pending)); queue.submit(input.text);
         } else if (cliAgent.service.activeSessionId === chat.id && chat.mode === "chat" && !local) {
-          const pending = cliAgent.service.enqueue({ sessionId: chat.id, text, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle }, Boolean(steering)).catch(error => console.error(presentError(error)));
+          const pending = cliAgent.service.enqueue({ sessionId: chat.id, text, collaboration, provider: providerSchema.parse(providerRegistry.routedProvider("tutor") ?? "mock"), style: responseStyle }, Boolean(steering)).catch(error => console.error(presentError(error)));
           submissions.add(pending); void pending.finally(() => submissions.delete(pending));
         } else queue.submit(input.text);
       }

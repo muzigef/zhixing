@@ -10,11 +10,13 @@ import { outcomeProtocolSchema, outcomeModeSchema, outcomePhaseSchema, outcomeSu
 import { assistanceSchema } from "../../src/learning-observations.js";
 import { recoveryReportSchema } from "../../src/task-continuity.js";
 import { contextBudgetSchema } from "../../src/model-capabilities.js";
+import { teamConfigurationSchema } from "../../src/team-contracts.js";
 
 export const providerSchema = z.union([customProviderSchema, z.enum(["pi-codex", "deepseek-api", "kimi-api", "demo"])]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const settingsSchema = z.object({
+  collaboration: teamConfigurationSchema.optional(),
   contextBudget: contextBudgetSchema.optional(),
   provider: providerSchema.default("pi-codex"),
   style: styleSchema.default("adaptive"),
@@ -33,6 +35,9 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("team-evaluate"), suite: z.enum(["pilot", "holdout"]) }).strict(),
+  z.object({ type: z.literal("team-evaluation-status") }).strict(),
+  z.object({ type: z.literal("team-stop-member"), sessionId: z.string().uuid(), memberId: z.string().uuid() }).strict(),
   z.object({ type: z.literal("reminder-status"), topicId: topicIdSchema }),
   z.object({ type: z.literal("reminder-save"), topicId: topicIdSchema, time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), enabled: z.boolean() }),
   z.object({ type: z.literal("task-info"), sessionId: z.string().uuid(), taskId: z.string().uuid() }),

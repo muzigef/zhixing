@@ -1,6 +1,8 @@
 import { imageDataUrl } from "./image-input.js";
 import { capabilitiesFor } from "./model-capabilities.js";
 import { prepareDialogue } from "./agent-dialogue.js";
+import { TeamCoordinator } from "./team-coordinator.js";
+import { teamConfigurationSchema } from "./team-contracts.js";
 import { MAX_CONVERSATION_MESSAGES, MAX_PENDING_REQUESTS } from "./input-limits.js";
 import { restrictedStudy } from "./outcome-contracts.js";
 import { accessSelection, bindPermissions, retainGrants, writePermission, type AccessSelection } from "./agent-permissions.js";
@@ -38,6 +40,11 @@ export interface AgentObserver {
   onTool?: (name: string, phase: "started" | "finished" | "failed") => void | Promise<void>;
 }
 export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
+  private activeTeam?: TeamCoordinator;
+  async stopTeamMember(sessionId: string, memberId: string): Promise<void> {
+    if (this.activeSessionId !== sessionId || !this.activeTeam) throw new Error("team_member_not_active");
+    await this.activeTeam.stopMember(memberId);
+  }
   private eventSequence = 0;
   private listeners = new Set<(event: AgentEvent) => void>();
   private active: { session: ChatSession; controller: AbortController } | null =
@@ -123,7 +130,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       const tasks = new TaskExecutionStore(this.learning!.database); tasks.begin(taskId, identity.topicId, session.context?.goal ?? goal);
       tasks.revise(taskId, identity.topicId, revision, goal);
       const message = session.messages.findLast(item => item.taskId === taskId)!;
-      return { sessionId, text: `用户已明确修订本任务目标：${goal}\n旧计划已归档，以新目标重新规划，实际已发生的操作仍保留。`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, resumeTaskId: taskId, steerId: randomUUID() } satisfies SendRequest;
+      return { sessionId, text: `用户已明确修订本任务目标：${goal}\n旧计划已归档，以新目标重新规划，实际已发生的操作仍保留。`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, collaboration: message.collaboration, resumeTaskId: taskId, steerId: randomUUID() } satisfies SendRequest;
     });
     return this.send(request);
   }
@@ -279,7 +286,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (item.kind === "approval" && answer === "allow" && scope === "session") this.rememberPermission(session, item.tool, item.input);
       item.status = "answered"; item.answer = answer; session.queuePaused = false;
       await this.store.save(session);
-      return { sessionId, text: item.kind === "question" ? answer : answer === "allow" ? `已授权：${item.title}` : `已拒绝：${item.title}`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, resumeTaskId: message.taskId };
+      return { sessionId, text: item.kind === "question" ? answer : answer === "allow" ? `已授权：${item.title}` : `已拒绝：${item.title}`, provider: message.provider ?? "pi-codex", style: message.style ?? "adaptive", reasoning: message.reasoning, collaboration: message.collaboration, resumeTaskId: message.taskId };
     }
     // Version 1/2 cards without a journal retain their original compatibility path.
     let text = `对“${item.title}”的回复：${answer}`;
@@ -298,7 +305,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     item.status = "answered"; item.answer = answer;
     session.queuePaused = false;
     await this.store.save(session);
-    return { sessionId, text, provider: message.provider ?? "pi-codex", style: "adaptive", reasoning: message.reasoning, resumeTaskId: message.taskId };
+    return { sessionId, text, provider: message.provider ?? "pi-codex", style: "adaptive", reasoning: message.reasoning, collaboration: message.collaboration, resumeTaskId: message.taskId };
   }
   async send(raw: SendRequest, fromQueue = false, queuedRequestId?: string, observer?: AgentObserver): Promise<ChatSession> {
     const request = sendSchema.parse(raw);
@@ -315,6 +322,12 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       const client = this.client(request.provider);
       if (request.images?.length && !capabilitiesFor(client).inputModalities.includes("image")) throw new Error("image_model_required");
       const session = await this.store.load(request.sessionId);
+      if (request.resumeTaskId) {
+        const previous = session.messages.findLast(item => item.taskId === request.resumeTaskId);
+        request.collaboration ??= previous?.collaboration;
+        if (previous?.team) request.reasoning = previous.reasoning;
+        if (JSON.stringify(teamConfigurationSchema.parse(request.collaboration ?? {})) !== JSON.stringify(teamConfigurationSchema.parse(previous?.collaboration ?? {})) || previous?.team && previous.provider !== request.provider) throw new Error("team_configuration_changed");
+      }
       if (session.study) {
         if (!this.learning || !session.topicId || session.workspaceId !== this.learning.summary().id) throw new Error("workspace_mismatch");
         const trial = this.learning.outcomes.get(session.topicId, session.study.id);
@@ -378,6 +391,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
         createdAt: now,
         provider: request.provider,
         style: request.style,
+        collaboration: request.collaboration,
         reasoning: selectReasoning(request.text, request.reasoning, Boolean(request.resumeTaskId || request.execution && request.execution !== "read")),
         ...(request.reasoning === "auto" ? { reasoningMode: "auto" as const } : {}),
         taskId: request.resumeTaskId ?? randomUUID(),
@@ -414,7 +428,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     if (request.topicId && request.topicId !== active.session.topicId) throw new Error("topic_change_requires_new_session");
     const pending = active.session.pendingRequests ??= [];
     if (pending.length >= MAX_PENDING_REQUESTS || active.session.messages.length + (pending.length + 1) * 2 > MAX_CONVERSATION_MESSAGES) throw new Error("queue_full");
-    const item = { id: randomUUID(), mode: request.mode, purpose: request.purpose, images: request.images, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
+    const item = { id: randomUUID(), collaboration: request.collaboration, mode: request.mode, purpose: request.purpose, images: request.images, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
     if (steer) pending.unshift(item); else pending.push(item);
     active.session.queuePaused = false;
     active.session.queueError = undefined;
@@ -511,7 +525,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     this.drainingSession = session;
     const item = session.pendingRequests[0]!;
     try {
-      await this.send({ sessionId: session.id, text: item.text, mode: item.mode, purpose: item.purpose, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, access: item.access, execution: item.execution, resumeTaskId: item.resumeTaskId, steerId: item.steerId }, true, item.id);
+      await this.send({ sessionId: session.id, text: item.text, collaboration: item.collaboration, images: item.images, mode: item.mode, purpose: item.purpose, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, access: item.access, execution: item.execution, resumeTaskId: item.resumeTaskId, steerId: item.steerId }, true, item.id);
       this.draining = null;
       this.drainingSession = null;
       await this.work;
@@ -562,7 +576,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     const started = Date.now();
     let savedAt = started;
     let mayDrain = true;
-    const timeout = AbortSignal.timeout(180_000);
+    const timeout = AbortSignal.timeout(request.collaboration?.mode && request.collaboration.mode !== "single" ? request.collaboration.timeoutMs : 180_000);
     const signal = AbortSignal.any([controller.signal, timeout]);
     const activities = new Map<string, number>();
     const previousAnswer = session.messages.slice(0, -2).at(-1);
@@ -578,8 +592,18 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     try {
       if (session.study?.protocol === "full_product" && this.learning) message.codeHash = (await this.learning.provenance()).codeHash;
       message.access = session.permissions ? accessSelection(session.permissions) : { materials: false, project: false, external: false };
+      const collaboration = teamConfigurationSchema.parse(request.collaboration ?? {});
+      if (collaboration.mode !== "single") {
+        if (session.study) throw new Error("team_study_unavailable");
+        const previous = request.resumeTaskId ? session.messages.slice(0, -2).findLast(item => item.taskId === message.taskId && item.steerId === message.steerId)?.team : undefined;
+        this.activeTeam = await TeamCoordinator.create({ config: collaboration, provider: request.provider, resolve: this.client, reasoning: message.reasoning ?? "balanced", question: request.text, images: request.images,
+          scope: { sessionId: session.id, topicId: session.topicId, permissions: session.permissions, contextAllowed: session.contextAllowed }, previous,
+          save: async team => { message.team = team; await this.store.save(session); this.patch(session, { team }); },
+        }, signal);
+      }
+      const taskClient = this.activeTeam?.client ?? client;
       const dialogue = restrictedStudy(session.study) ? { messages: [] } : await prepareDialogue(this.learning, session, request, async prompt => {
-        const result = await collectInvocation(providerRuntime(request.provider, client), { role: "tutor", providerId: request.provider, prompt,
+        const result = await collectInvocation(providerRuntime(request.provider, taskClient), { role: "tutor", providerId: request.provider, prompt,
           containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true, limits: { maxTurns: 1, maxOutputChars: 2000 }, onAudit: observer?.onAudit }, signal);
         if (result.partial) throw new Error("provider_incomplete");
         return result.text;
@@ -588,7 +612,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       messages.splice(Math.max(0, messages.length - 1), 0, ...dialogue.messages);
       const prompt = messages.map(item => `${item.role}: ${item.content}`).join("\n\n");
       const taskOptions: Parameters<typeof runAssistantTask>[0] = {
-        runId: message.id, providerId: request.provider, client, prompt, question: request.text,
+        runId: message.id, providerId: request.provider, client: taskClient, prompt, question: request.text,
         messages, teaching: session.teaching ?? null, structured: dialogue.structured, onAudit: observer?.onAudit, onTool: observer?.onTool,
         conversationHistory: restrictedStudy(session.study) ? undefined : session.messages.slice(0, -2),
         taskId: message.taskId, sessionId: session.id, resumeInput: request.resumeTaskId ? request.text : undefined, steerId: request.steerId, allowWrites: request.execution === "once" || session.executionAllowed === true,
@@ -639,9 +663,10 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       let result: Awaited<ReturnType<typeof runAssistantTask>>;
       if (dialogue.local !== undefined) {
         display(dialogue.local);
+        await this.activeTeam?.settleLocal();
         result = { contextMs: 0, modelMs: 0, toolMs: 0, turns: 0, toolCalls: 0, waiting: false };
       } else {
-        result = await runAssistantTask(taskOptions, signal);
+        result = this.activeTeam ? await this.activeTeam.run(taskOptions, signal) : await runAssistantTask(taskOptions, signal);
         signal.throwIfAborted();
         if (!result.waiting && !result.blocked) await dialogue.finish?.(message.text);
       }
@@ -651,6 +676,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (result.waiting || result.blocked) session.queuePaused = true;
     } catch (error) {
       message.status = controller.signal.aborted ? "interrupted" : "failed";
+      try { await this.activeTeam?.settleFailure(signal); } catch { mayDrain = false; }
       if (message.status === "failed") {
         message.error = timeout.aborted ? "等待回答超时，请重试。" : publicError(error);
         session.queuePaused = true;
@@ -660,6 +686,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       message.quality = inspectResponse(message.text, request.text, (message.citations ?? []).map(citationMarker));
       if (removedRepeat) message.quality.unshift({ code: "continuation_repeat_removed", detail: `已省略续写开头与上一条中断回答完全相同的 ${removedRepeat} 个字符。` });
       controller.abort();
+      this.activeTeam = undefined;
       await Promise.allSettled([...this.pendingEnqueues]);
       message.durationMs = Date.now() - started;
       session.updatedAt = new Date().toISOString();

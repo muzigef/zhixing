@@ -1,0 +1,1395 @@
+{
+  "version": 2,
+  "suite": "pilot",
+  "startedAt": "2026-09-09T10:18:30.410Z",
+  "finishedAt": "2026-09-09T10:25:45.080Z",
+  "planned": 12,
+  "datasetHash": "fc48209ef70342c6f55bf17b81d7b87a27c6f808c3061dc96d9cf4f1a4b2fb4c",
+  "bindings": [
+    {
+      "provider": "pi-codex",
+      "model": "gpt-5.6-terra",
+      "connection": "pi:openai-codex",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-flash",
+      "connection": "https://api.deepseek.com/v1/chat/completions",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "kimi-api",
+      "model": "kimi-k3",
+      "connection": "https://api.moonshot.cn/v1/chat/completions",
+      "reasoning": "balanced"
+    }
+  ],
+  "unavailable": {},
+  "reasoning": "balanced",
+  "rows": [
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-pi",
+      "completed": true,
+      "durationMs": 4825,
+      "firstTokenMs": 3619,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错处是减法应为340−17，而不是340−19。\"}",
+      "turns": [
+        {
+          "id": "f1b793ea-3eab-499a-b655-e6e3d57a3213",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错处是减法应为340−17，而不是340−19。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "7d68fd3f-a5b3-402a-9cf9-ac13990c850c",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错处是减法应为340−17，而不是340−19。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T10:18:30.414Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 66,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 16,
+            "startupMs": 967
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "b1605dde-48c2-40c8-a208-6f85ddf52d74",
+          "durationMs": 4814,
+          "firstTokenMs": 3619,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1362
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 967,
+              "requestMs": 3418,
+              "firstEventMs": 1664,
+              "firstTextMs": 2591,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4809,
+              "processTailMs": 365
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:35.229Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:35.229Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 4812,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4809,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 66,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 16,
+            "model": "gpt-5.6-terra",
+            "startupMs": 967
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "completed": true,
+      "durationMs": 14541,
+      "firstTokenMs": 3444,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。计算结果为整数，不需要保留小数位。容易出错的地方是把19近似看成20后，忘记减去多算的1个17。\"}",
+      "turns": [
+        {
+          "id": "d5e8e2a7-0a75-4613-8220-333eea496e75",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错处是把19误当成20后忘记减去17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "e2483571-0455-4c5c-bb5c-72daceaf2236",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=340−17=323。容易出错处是把19误当成20后忘记减去17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T10:18:35.239Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 88,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 38,
+            "startupMs": 638
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "85a2f9b5-dac3-4c1e-a71f-eba4dece5b9d",
+          "durationMs": 4392,
+          "firstTokenMs": 3444,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1362
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 638,
+              "requestMs": 3340,
+              "firstEventMs": 1274,
+              "firstTextMs": 2734,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4391,
+              "processTailMs": 342
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:39.633Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:39.633Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 4391,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "064fa10f-c3dd-4232-91ef-28c7e2cd4a45",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。上次计算结果正确，没有遗漏条件。容易出错的地方是将19看作20后，忘记减去多算的17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "23c64b80-9eeb-4a3c-8a8d-67098284fa5c",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。上次计算结果正确，没有遗漏条件。容易出错的地方是将19看作20后，忘记减去多算的17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T10:18:39.639Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1570,
+            "outputTokens": 92,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 23,
+            "startupMs": 621
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "38492ded-209a-4641-b443-1a747c40843e",
+          "durationMs": 5191,
+          "firstTokenMs": 3850,
+          "contextUsage": {
+            "estimatedInputTokens": 3892,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3003,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1570
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 621,
+              "requestMs": 4148,
+              "firstEventMs": 1623,
+              "firstTextMs": 3150,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 5189,
+              "processTailMs": 344
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:44.832Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:44.832Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 5190,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        },
+        {
+          "id": "61f0cd5c-7d82-457a-bd6f-61c647b6da5f",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。计算结果为整数，不需要保留小数位。容易出错的地方是把19近似看成20后，忘记减去多算的1个17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "ce5d3b6e-7627-4ff7-999f-1509f0c755c4",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20−1)=17×20−17=340−17=323。计算结果为整数，不需要保留小数位。容易出错的地方是把19近似看成20后，忘记减去多算的1个17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T10:18:44.836Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1688,
+            "outputTokens": 111,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 35,
+            "startupMs": 707
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "8e5da309-57a4-46f9-83e2-42b1d094c0e5",
+          "durationMs": 4937,
+          "firstTokenMs": 3795,
+          "contextUsage": {
+            "estimatedInputTokens": 4150,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3249,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1688
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 707,
+              "requestMs": 3821,
+              "firstEventMs": 1379,
+              "firstTextMs": 3031,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4936,
+              "processTailMs": 352
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:49.774Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:18:49.774Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 4937,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4391,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1362,
+            "outputTokens": 88,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 38,
+            "model": "gpt-5.6-terra",
+            "startupMs": 638
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 5189,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1570,
+            "outputTokens": 92,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 23,
+            "model": "gpt-5.6-terra",
+            "startupMs": 621
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4936,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1688,
+            "outputTokens": 111,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 35,
+            "model": "gpt-5.6-terra",
+            "startupMs": 707
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": true,
+      "durationMs": 20523,
+      "firstTokenMs": 19278,
+      "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=340-17=323。容易出错的是把19看成20后忘记减去一个17。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "same-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 90000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 240000
+          },
+          "team": {
+            "id": "f6d0b8bd-a557-44f3-ab0d-e3b6512a1efd",
+            "mode": "same-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "a46f9717-a9e3-4f82-b22a-30f736eb7dc2",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "reasoning-checker：独立核算 17×19，检查可用分配律或接近整数法验证结果，并确认最终数值为整数。",
+                "attempts": 1,
+                "durationMs": 6753,
+                "result": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=340-17=323。容易出错的是把19误当成20后忘记减去17。\"}",
+                "inputTokens": 259,
+                "outputTokens": 85
+              },
+              {
+                "id": "e410bd6b-1524-444b-8846-7575b76ab4d3",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "pi-codex",
+                  "model": "gpt-5.6-terra",
+                  "connection": "pi:openai-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "material-checker：核查用户要求的输出格式约束：仅 JSON 对象、含 value 与中文 explanation 字段、无需外部工具；确认解释应涵盖关键步骤和易错点。",
+                "attempts": 1,
+                "durationMs": 4272,
+                "result": "{\"value\":323,\"explanation\":\"计算：17×19=17×(20−1)=340−17=323。容易出错处是19比20少1，因此要从17×20的结果中减去17。\"}",
+                "inputTokens": 273,
+                "outputTokens": 76
+              }
+            ],
+            "modelTurns": 4,
+            "toolCalls": 0,
+            "reservedOutputTokens": 328,
+            "estimatedInputTokens": 5850,
+            "inputTokens": 2427,
+            "outputTokens": 328,
+            "unknownUsageRequests": 0,
+            "configHash": "2493ca88a9c1965cd42f69660d673624a3e2e7d68088832f30b7cf0f30280824",
+            "scopeHash": "3c02946138f204c1147e3b57d9682400fbf7a3792128d84d24b4a08cde416d9a",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed",
+            "preparationMs": 0
+          },
+          "id": "9cb348e7-b54c-42bd-8fd4-6033ef29a42a",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=340-17=323。容易出错的是把19看成20后忘记减去一个17。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "9c12716f-bcec-4504-8619-90c9f99f56d6",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"17×19=17×(20-1)=340-17=323。容易出错的是把19看成20后忘记减去一个17。\"}"
+            }
+          ],
+          "createdAt": "2026-09-09T10:18:49.781Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "model": "gpt-5.6-terra",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1728,
+            "outputTokens": 47,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "startupMs": 720
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "16c8a882-ec51-4058-ab5c-2642d06a6755",
+          "durationMs": 20517,
+          "firstTokenMs": 19278,
+          "contextUsage": {
+            "estimatedInputTokens": 4138,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 3172,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1728
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 720,
+              "requestMs": 2920,
+              "firstEventMs": 1557,
+              "firstTextMs": 2023,
+              "submittedReasoning": "medium",
+              "outputTokenLimit": 4096,
+              "providerContextWindow": 272000,
+              "providerMaxOutput": 128000,
+              "selectionMs": 0,
+              "totalMs": 4038,
+              "processTailMs": 337
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:19:10.298Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:19:10.298Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 4040,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "planning",
+          "durationMs": 5437,
+          "maxOutputTokens": 1024,
+          "completed": true,
+          "usage": {
+            "inputTokens": 167,
+            "outputTokens": 120,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 29,
+            "model": "gpt-5.6-terra",
+            "startupMs": 707
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 6751,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 259,
+            "outputTokens": 85,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 36,
+            "model": "gpt-5.6-terra",
+            "startupMs": 656
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "member",
+          "durationMs": 4270,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 273,
+            "outputTokens": 76,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 19,
+            "model": "gpt-5.6-terra",
+            "startupMs": 673
+          }
+        },
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 4038,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1728,
+            "outputTokens": 47,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 0,
+            "model": "gpt-5.6-terra",
+            "startupMs": 720
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 240028,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "mixed-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "provider": "deepseek-api",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "provider": "kimi-api",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 90000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 240000
+          },
+          "team": {
+            "id": "0fb74dce-81ee-4e5d-94cf-8fd4eef209e5",
+            "mode": "mixed-model-team",
+            "status": "interrupted",
+            "lead": {
+              "provider": "pi-codex",
+              "model": "gpt-5.6-terra",
+              "connection": "pi:openai-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "debf2e3e-f0e1-4d8a-aac8-9a938f12f054",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "deepseek-api",
+                  "model": "deepseek-v4-flash",
+                  "connection": "https://api.deepseek.com/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "cancelled",
+                "task": "独立解答并核查数学、代码与推理。寻找遗漏条件、反例和计算错误；说明能确认与不能确认的部分。",
+                "attempts": 0,
+                "inputTokens": 0,
+                "outputTokens": 0
+              },
+              {
+                "id": "146ebca4-4cdd-4d3b-85d4-5466e6b43f2d",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "kimi-api",
+                  "model": "kimi-k3",
+                  "connection": "https://api.moonshot.cn/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "cancelled",
+                "task": "独立核查事实、证据来源和题目约束。区分给定事实与推断；没有资料就明确缺少证据，不能编造引用。",
+                "attempts": 0,
+                "inputTokens": 0,
+                "outputTokens": 0
+              }
+            ],
+            "modelTurns": 0,
+            "toolCalls": 0,
+            "reservedOutputTokens": 0,
+            "estimatedInputTokens": 0,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "unknownUsageRequests": 0,
+            "configHash": "01c6e7a9746bc774f1992b8c0e1b52b0dae2233eb55c1e13489d98e6ea48b34f",
+            "scopeHash": "d48eb4e234c97cbcd1d0e6fc9092ceb9d393cb0b53f82145d2d179dac8f47317",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "pending"
+          },
+          "id": "ac15fd45-7b98-43c2-9f0f-25baf7a10875",
+          "role": "assistant",
+          "text": "",
+          "status": "interrupted",
+          "createdAt": "2026-09-09T10:19:10.305Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "0d8288c0-69a0-41e7-b2fa-5529b4975e36",
+          "durationMs": 240017
+        }
+      ],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "value": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": true,
+      "durationMs": 3995,
+      "firstTokenMs": 2869,
+      "text": "```json\n{\"value\":323,\"explanation\":\"计算17×19。关键技巧是把19看作(20−1)，先算17×20=340，再减去17×1得340−17=323。容易出错的地方在于做减法时要注意退位：340−17中，十位的4被借1后变3，个位0向十位借1变10，10−7=3，十位3−1=2，百位仍为3，结果为323。也可直接列竖式：9×17=153写在个位对齐，1×17=17向前移一位为170，153+170=323。\"}\n```",
+      "turns": [
+        {
+          "id": "1e0e4ec7-06c1-4dbc-9a4c-1ce4ddc6da5a",
+          "role": "assistant",
+          "text": "```json\n{\"value\":323,\"explanation\":\"计算17×19。关键技巧是把19看作(20−1)，先算17×20=340，再减去17×1得340−17=323。容易出错的地方在于做减法时要注意退位：340−17中，十位的4被借1后变3，个位0向十位借1变10，10−7=3，十位3−1=2，百位仍为3，结果为323。也可直接列竖式：9×17=153写在个位对齐，1×17=17向前移一位为170，153+170=323。\"}\n```",
+          "status": "completed",
+          "items": [
+            {
+              "id": "2b6776f4-59f4-4283-8007-58d0971ca0eb",
+              "kind": "final",
+              "text": "```json\n{\"value\":323,\"explanation\":\"计算17×19。关键技巧是把19看作(20−1)，先算17×20=340，再减去17×1得340−17=323。容易出错的地方在于做减法时要注意退位：340−17中，十位的4被借1后变3，个位0向十位借1变10，10−7=3，十位3−1=2，百位仍为3，结果为323。也可直接列竖式：9×17=153写在个位对齐，1×17=17向前移一位为170，153+170=323。\"}\n```"
+            }
+          ],
+          "createdAt": "2026-09-09T10:23:10.339Z",
+          "provider": "deepseek-api",
+          "style": "adaptive",
+          "model": "deepseek-v4-flash",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1393,
+            "outputTokens": 198,
+            "cacheReadTokens": 1280,
+            "reasoningTokens": 56
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "b8944511-37dc-4917-9418-65ed3fbd6a4d",
+          "durationMs": 3978,
+          "firstTokenMs": 2869,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1393
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 30,
+              "requestMs": 3944,
+              "firstEventMs": 2173,
+              "firstTextMs": 2838,
+              "submittedReasoning": "low",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 3974,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:23:14.319Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-09T10:23:14.319Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 3977,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "answer",
+          "durationMs": 3975,
+          "maxOutputTokens": 4096,
+          "completed": true,
+          "usage": {
+            "inputTokens": 1393,
+            "outputTokens": 198,
+            "cacheReadTokens": 1280,
+            "reasoningTokens": 56,
+            "model": "deepseek-v4-flash"
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": false,
+      "error": "操作未完成。请重试；若是模型连接问题，请检查所选模型的配置和网络。",
+      "durationMs": 149985,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [
+        {
+          "id": "82c78148-946d-42d5-9b82-e8a1b72606b2",
+          "role": "assistant",
+          "text": "",
+          "status": "failed",
+          "createdAt": "2026-09-09T10:23:14.335Z",
+          "error": "等待回答超时，请重试。",
+          "provider": "kimi-api",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "0563b7fc-0936-4fc4-a42a-d73749f53a94",
+          "durationMs": 149967,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "本轮未完成",
+              "status": "failed",
+              "at": "2026-09-09T10:25:44.303Z"
+            },
+            {
+              "label": "模型请求未完成",
+              "status": "failed",
+              "at": "2026-09-09T10:25:44.303Z"
+            }
+          ]
+        }
+      ],
+      "requests": [
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "answer",
+          "durationMs": 149964,
+          "maxOutputTokens": 4096,
+          "completed": false
+        }
+      ],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "value": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 751,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [
+        {
+          "id": "b767cded-7d53-4985-b3ab-89b62b9bf108",
+          "role": "assistant",
+          "text": "",
+          "status": "interrupted",
+          "createdAt": "2026-09-09T10:25:44.323Z",
+          "provider": "pi-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "329daa5c-c666-4f3b-ba24-221a3ce6b98a",
+          "durationMs": 744,
+          "contextUsage": {
+            "estimatedInputTokens": 3554,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2399,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "任务已停止",
+              "status": "failed",
+              "at": "2026-09-09T10:25:45.069Z"
+            },
+            {
+              "label": "模型请求已停止",
+              "status": "failed",
+              "at": "2026-09-09T10:25:45.069Z"
+            }
+          ]
+        }
+      ],
+      "requests": [
+        {
+          "provider": "pi-codex",
+          "model": "gpt-5.6-terra",
+          "phase": "answer",
+          "durationMs": 746,
+          "maxOutputTokens": 4096,
+          "completed": false
+        }
+      ],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 0,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-pi",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    }
+  ],
+  "summary": [
+    {
+      "arm": "single-pi",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 2413,
+      "p95Ms": 4825,
+      "modelRequests": 1,
+      "inputTokens": 1362,
+      "outputTokens": 66,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "self-review-pi",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 7646,
+      "p95Ms": 14541,
+      "modelRequests": 4,
+      "inputTokens": 4620,
+      "outputTokens": 291,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 1
+    },
+    {
+      "arm": "same-team",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 10262,
+      "p95Ms": 20523,
+      "modelRequests": 4,
+      "inputTokens": 2427,
+      "outputTokens": 328,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "mixed-team",
+      "count": 2,
+      "completed": 0,
+      "correct": 0,
+      "fullySuccessful": 0,
+      "meanFieldScore": 0,
+      "medianMs": 120014.5,
+      "p95Ms": 240028,
+      "modelRequests": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "single-deepseek",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 1997.5,
+      "p95Ms": 3995,
+      "modelRequests": 1,
+      "inputTokens": 1393,
+      "outputTokens": 198,
+      "cacheReadTokens": 1280,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "single-kimi",
+      "count": 2,
+      "completed": 0,
+      "correct": 0,
+      "fullySuccessful": 0,
+      "meanFieldScore": 0,
+      "medianMs": 74993,
+      "p95Ms": 149985,
+      "modelRequests": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 1
+    }
+  ],
+  "comparisons": [
+    {
+      "arm": "self-review-pi",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "same-team",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "mixed-team",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 1,
+      "losses": 1,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-deepseek",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-kimi",
+      "against": "single-pi",
+      "wins": 0,
+      "ties": 1,
+      "losses": 1,
+      "metric": "field_score_with_incomplete_zero"
+    }
+  ],
+  "limits": {
+    "maxModelRequestsPerArm": 12,
+    "rootDeadlineMs": 240000,
+    "memberDeadlineMs": 90000,
+    "maxOutputPerRequest": 4096,
+    "teamMaxOutputTokens": 16384
+  },
+  "limitations": [
+    "固定合成工程样本，不是独立人类盲评或真实教学效果试验",
+    "各组实际调用与计算量不同；预算上限不等于严格等算力",
+    "解释存在性不等于解释正确或教学有效",
+    "成本只报告用量，未知用量和订阅账单不能记为零"
+  ],
+  "interruption": {
+    "reason": "Stopped after mixed-team credential preparation timed out at 240 seconds with zero model calls; macOS SecurityAgent was running and manual authorization had not been confirmed. Remaining cases were not executed.",
+    "recordedAt": "2026-09-09T10:25:50.261711+00:00",
+    "plannedRows": 12,
+    "status": "incomplete",
+    "recordedRows": 12,
+    "successfullyCompletedRows": 4
+  },
+  "evaluatorSourceHash": "9db908b2540c528b8d461e5dac8526c9fea1f6e1bbd6952c13f92b004e5964c5",
+  "applicationAsarHash": "6245b383ca0dea2decac5d700d4baa3f2be496f5722d7c3b8f9bd2e4aa03b7ff"
+}

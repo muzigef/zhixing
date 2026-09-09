@@ -6,7 +6,7 @@ import { z } from "zod/v4";
 import { messageSchema, chatSchema, type ChatSession, type SessionSummary } from "./agent-session-contracts.js";
 export class AgentSessionStore {
   private metadata?: Map<string, { signature: string; summary?: SessionSummary }>;
-  private knownVersions = new Map<string, string>();
+  private knownVersions = new Map<string, { signature: string; version: number }>();
   private indexing?: Promise<SessionSummary[]>;
   private async signature(file: string): Promise<string> { await assertNotLinked(file); const stat = await fs.stat(file); return `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`; }
   private sessionWrites = new Map<string, Promise<void>>();
@@ -38,7 +38,7 @@ export class AgentSessionStore {
     const raw = await readJson(this.sessionPath(id), 12_000_000) as Record<string, unknown>;
     const session = chatSchema.parse(raw);
     if (raw.segments !== undefined) {
-      if (![7, 8].includes(Number(raw.version)) || session.id !== id) throw new Error("session_segment_invalid");
+      if (![7, 8, 9].includes(Number(raw.version)) || session.id !== id) throw new Error("session_segment_invalid");
       const segments = z.array(z.object({ hash: z.string().regex(/^[a-f0-9]{64}$/), count: z.number().int().min(1).max(250) }).strict()).max(80).parse(raw.segments);
       const prefix: typeof session.messages = []; let bytes = 0;
       for (const segment of segments) {
@@ -52,13 +52,19 @@ export class AgentSessionStore {
       if (Buffer.byteLength(JSON.stringify(session)) > 12_000_000) throw new Error("storage_limit");
     }
     if (session.id !== id) throw new Error("session_invalid");
-    session.version = 8;
-    for (const message of session.messages)
+    session.version = raw.version === 9 ? 9 : 8;
+    for (const message of session.messages) {
       if (message.status === "running") message.status = "interrupted";
+      if (message.team && ["preparing", "planning", "running", "merging"].includes(message.team.status)) {
+        message.team.status = "interrupted";
+        for (const member of message.team.members) if (["queued", "running"].includes(member.status)) member.status = "interrupted";
+      }
+    }
     return session;
   }
   async save(session: ChatSession): Promise<void> {
-    const checked = chatSchema.parse({ ...session, version: 8 });
+    const hasTeam = session.collaboration && session.collaboration.mode !== "single" || session.messages.some(message => message.team || message.collaboration && message.collaboration.mode !== "single") || session.pendingRequests?.some(request => request.collaboration && request.collaboration.mode !== "single");
+    const checked = chatSchema.parse({ ...session, version: session.version === 9 || hasTeam ? 9 : 8 });
     chatSchema.parse(session);
     if (Buffer.byteLength(JSON.stringify(checked)) > 12_000_000) throw new Error("storage_limit");
     const pending = (this.sessionWrites.get(checked.id) ?? Promise.resolve()).catch(() => undefined)
@@ -66,9 +72,10 @@ export class AgentSessionStore {
         const file = this.sessionPath(checked.id);
         try {
           const signature = await this.signature(file);
-          const old = this.knownVersions.get(checked.id) === signature ? { version: 8 } : await readJson(file, 12_000_000) as { version?: number };
-          if (![1, 2, 3, 4, 5, 6, 7, 8].includes(old.version ?? 0)) throw new Error("storage_version_unsupported");
-          if (old.version === 1 || old.version === 2 || old.version === 3 || old.version === 4 || old.version === 5 || old.version === 6 || old.version === 7) {
+          const known = this.knownVersions.get(checked.id);
+          const old = known?.signature === signature ? known : await readJson(file, 12_000_000) as { version?: number };
+          if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(old.version ?? 0) || old.version === 9 && checked.version !== 9) throw new Error("storage_version_unsupported");
+          if (old.version && old.version < checked.version) {
             await assertNotLinked(`${file}.v${old.version}.bak`);
             try { await fs.copyFile(file, `${file}.v${old.version}.bak`, constants.COPYFILE_EXCL); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
           }
@@ -86,7 +93,8 @@ export class AgentSessionStore {
           segments.push({ hash, count: messages.length }); offset += messages.length;
         }
         await atomicJson(file, { ...checked, messages: checked.messages.slice(offset), ...(segments.length ? { segments } : {}) }, 12_000_000);
-        this.knownVersions.set(checked.id, await this.signature(file)); this.metadata?.delete(checked.id);
+        this.knownVersions.set(checked.id, { signature: await this.signature(file), version: checked.version }); this.metadata?.delete(checked.id);
+        if (checked.version === 9) session.version = 9;
       });
     this.sessionWrites.set(checked.id, pending);
     try { await pending; }

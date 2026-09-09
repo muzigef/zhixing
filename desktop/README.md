@@ -5,15 +5,17 @@
 
 独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.9 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.9.2`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.10.0`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
 
 本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
+
+0.10 支持默认单 Agent、同模型团队和异模型团队。团队配置复用已有 Pi/API 连接，成员只读，可查看状态和停止，详见[三模式指南](../docs/agent-teams.md)。[真实初测](../docs/evidence/team-quality-comparison-20260909.md)未见团队正确率收益；完整留出对照等待本机系统凭据授权。0.10.0 已安装到本机，旧包保留备份，见[安装记录](../docs/evidence/agent-teams-installation.json)。
 
 ## 安装和使用
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/Zhixing-0.9.0-mac-arm64.dmg`。
+1. 打开本目录下的 `release/mac-arm64/知行.app`；本轮 0.10.0 已验证此目录包，未重新制作 DMG。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 

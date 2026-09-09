@@ -11,7 +11,7 @@ npm --prefix desktop run test:ui
 npm run eval:learning -- export-a.json export-b.json --output=summary.json
 ```
 
-UI 命令现包含聊天、学习、交互、`smoke-outcomes.mjs`、`smoke-projects.mjs` 和 `smoke-api.mjs` 六组 smoke，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
+UI 命令现包含聊天、学习、交互、`smoke-outcomes.mjs`、`smoke-projects.mjs` 、`smoke-api.mjs` 和 `smoke-team.mjs` 七组 smoke，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
 
 ```bash
 npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learning-outcomes-live-latest.json
@@ -263,3 +263,18 @@ Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目�
 `smoke-api.mjs` 覆盖内置 Kimi/DeepSeek 回归，以及自定义服务添加、改名、Key 留空保留、切换、连接测试、会话徽章、重启恢复、移除后无回退和配置冲突。HTTP 与 cipher 使用隔离合成夹具；此测试不证明任意厂商接口或真实系统加密。实际打包应用使用 `ZHIXING_DESKTOP_EXECUTABLE` 运行同一套六组 UI。
 
 真实本机 Kimi/DeepSeek 探针可在正常退出应用后，显式执行 `node desktop/scripts/check-installed-api.mjs --live --provider=kimi-api`。它打开安装应用并调用受控 IPC，不输出凭据、不创建对话，可能产生少量 API 用量。真实记录见[本轮 Evidence](evidence/dynamic-api-20260909.md)。
+
+## 0.10 团队与回答质量对照
+
+`npm run verify` 包含模型固定、共享预算、延迟工具权限、成员隔离、停止/恢复、真实 SIGKILL、CLI 模式持久化及确定性评分器。团队会话升级 v9 时保留旧格式副本，旧应用无法静默覆盖新团队记录；普通单 Agent 会话仍可保持 v8。
+
+`smoke-team.mjs` 通过隔离的 Electron、受控合成 HTTP 与假密文验证三模式入口、实际两成员调度、模型来源、部分失败与完整团队的新任务重跑。它不连接真实服务。
+
+真实评测通过打包应用的固定题目 IPC 执行，凭据只由应用安全存储处理；必须显式给出 `--live`，并保留应用禁止真实请求的设置。先关闭其他知行实例，确保三家模型已配置、没有运行中任务：
+
+```bash
+node desktop/scripts/evaluate-team.mjs --live --suite=pilot
+node desktop/scripts/evaluate-team.mjs --live --suite=holdout
+```
+
+默认使用 `~/Applications/知行.app`，也可用 `ZHIXING_DESKTOP_EXECUTABLE` 指定已验收的 `.app`。脚本退出时关闭其启动的应用。报告自动以唯一文件名写到 `docs/evidence/`，保留原答、成员、失败和用量；中间检查点位于本次评测创建的系统临时目录，不修改日常会话。具体条件和不能据此宣称的结论见[评测协议](agent-team-evaluation-protocol-20260909.md)。

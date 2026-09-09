@@ -1,3 +1,4 @@
+import type { ModelIdentity } from "./team-contracts.js";
 import type { ModelPhase, ModelTiming } from "./model-telemetry.js";
 import type { ModelCapabilities } from "./model-capabilities.js";
 import type { ContextBudget } from "./context-window.js";
@@ -13,7 +14,7 @@ export interface ModelToolDefinition { readonly name: string; readonly descripti
 export interface ModelTurn { readonly events: readonly ModelEvent[]; readonly toolResults: readonly ToolResultMessage[]; readonly feedback?: string; readonly toolState?: string; }
 /** Per-request context required for protocol-correct, isolated tool continuation. */
 export interface ModelRequestOptions { readonly tools?: readonly ModelToolDefinition[]; readonly history?: readonly ModelTurn[]; readonly messages?: readonly ModelMessage[]; readonly reasoning?: ReasoningProfile; readonly maxOutputTokens?: number; }
-export interface ModelClient { readonly capabilities?: ModelCapabilities; readonly contextBudget?: ContextBudget; stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
+export interface ModelClient { readonly identity?: ModelIdentity; freeze?(): Promise<ModelClient>; prepare?(signal: AbortSignal): Promise<void>; readonly capabilities?: ModelCapabilities; readonly contextBudget?: ContextBudget; stream(prompt: string, signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>; }
 export interface ToolResultMessage {
   readonly tool: string;
   readonly result: unknown;

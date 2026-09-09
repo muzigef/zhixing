@@ -31,5 +31,5 @@ export function environmentContextBudget(environment: NodeJS.ProcessEnv): Contex
   if (!value.success) throw new Error("context_budget_invalid"); return value.data;
 }
 export function withModelBudget(client: ModelClient, contextBudget?: ContextBudget): ModelClient {
-  return { stream: client.stream.bind(client), capabilities: capabilitiesFor(client), contextBudget: contextBudget ?? client.contextBudget, ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (client as ContinuableModelClient).continue.bind(client) } : {}) };
+  return { stream: client.stream.bind(client), ...(client.prepare ? { prepare: client.prepare.bind(client) } : {}), identity: client.identity, ...(client.freeze ? { freeze: async () => withModelBudget(await client.freeze!(), contextBudget) } : {}), capabilities: capabilitiesFor(client), contextBudget: contextBudget ?? client.contextBudget, ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (client as ContinuableModelClient).continue.bind(client) } : {}) };
 }
