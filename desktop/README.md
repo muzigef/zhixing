@@ -9,7 +9,7 @@
 
 本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
 
-0.10 支持默认单 Agent、同模型团队和异模型团队。团队配置复用已有 Pi/API 连接，成员只读，可查看状态和停止，详见[三模式指南](../docs/agent-teams.md)。[真实初测](../docs/evidence/team-quality-comparison-20260909.md)未见团队正确率收益；完整留出对照等待本机系统凭据授权。0.10.0 已安装到本机，旧包保留备份，见[安装记录](../docs/evidence/agent-teams-installation.json)。
+0.10 支持默认单 Agent、同模型团队和异模型团队。团队配置复用已有 Pi/API 连接，成员只读，可查看状态和停止，详见[三模式指南](../docs/agent-teams.md)。[96 个真实留出任务](../docs/evidence/team-quality-comparison-20260909.md)及逐条解释复核已完成：普通 Pi 完整且正确 16/16，同模型团队 12/16，混合团队 8/16，未证明团队质量更高；已验证本机授权和显式代理通路。0.10.0 已安装到本机，旧包保留备份，见[安装记录](../docs/evidence/agent-teams-installation.json)。
 
 ## 安装和使用
 
@@ -48,6 +48,20 @@ pi
 在 Pi 内执行 `/login`，选择 OpenAI Codex 并完成认证，再通过 `/model` 选择该 Provider 下可用的模型。回到知行设置刷新后重试。知行不保证任意账户可用或登录已成功；若暂未准备 Pi，可先配置 DeepSeek API。
 
 知行读取 `${PI_CODING_AGENT_DIR}/settings.json`，未设变量时为 `~/.pi/agent/settings.json`；要求 `defaultProvider` 为 `openai-codex`、存在 `defaultModel`，推理强度缺失时为 `medium`。桌面的项目级覆盖来自其数据目录 `runtime/.pi/settings.json`，**不会自动读取源码仓库的 `.pi/settings.json`**。详情见 [配置说明](../docs/CONFIGURATION.md#pi-codex-接入)。
+
+### Pi 需要本机代理时
+
+终端与 Finder 启动的应用不一定继承相同的代理环境。如果 Pi 已登录却连接超时，可先退出知行，再通过终端为本次启动指定 HTTP 代理。以下为本机已验证的端口，其他机器应替换为自己的地址：
+
+```bash
+NODE_USE_ENV_PROXY=1 \
+HTTPS_PROXY=http://127.0.0.1:15236 \
+HTTP_PROXY=http://127.0.0.1:15236 \
+NO_PROXY=localhost,127.0.0.1,::1 \
+"$HOME/Applications/知行.app/Contents/MacOS/知行"
+```
+
+安装在系统 Applications 时改用 `/Applications/知行.app/Contents/MacOS/知行`。这些变量只影响这次启动及其子进程，不是应用持久设置；本次真实 Pi 与三家模型对照已通过此环境发送请求，见[代理复验](../docs/evidence/pi-proxy-20260909.md)。
 
 ### 添加 DeepSeek API
 

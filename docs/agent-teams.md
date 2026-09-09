@@ -8,7 +8,7 @@
 | 同模型团队 | 主模型分工，两个相同实际模型的独立成员核查，主模型综合 | 有可独立核查的推导、代码或约束 |
 | 异模型团队 | 主模型分工，不同模型分别核查，主模型综合 | 希望比较不同模型的推理与遗漏点 |
 
-“适合尝试”不是质量提升结论。成员多并不保证更正确，团队通常需要更多调用。实际质量、完整率和耗时以[评测协议](agent-team-evaluation-protocol-20260909.md)及[真实初测](evidence/team-quality-comparison-20260909.md)为准；原可行性研究保留在[研究报告](agent-team-feasibility-20260909.md)。
+“适合尝试”不是质量提升结论。成员多并不保证更正确，团队通常需要更多调用。实际质量、完整率和耗时以[评测协议](agent-team-evaluation-protocol-20260909.md)及[96 个真实留出任务对照](evidence/team-quality-comparison-20260909.md)为准；原可行性研究保留在[研究报告](agent-team-feasibility-20260909.md)。
 
 ## 桌面使用
 

@@ -1,0 +1,1210 @@
+{
+  "version": 1,
+  "status": "complete",
+  "reviewer": "开发助手（非独立人类、非盲评）",
+  "method": "逐条阅读最终交付；按冻结题目的 explanationCriteria 核对，并检查解释内部与最终字段是否矛盾。pass=要点齐全且无实质错误；partial=遗漏要点或局部解释错误；fail=解释与最终结论直接矛盾或核心推理错误；unavailable=无实质最终解释。该分类为开发复核，不是新增确定性评分器。运行失败、格式错误另按原始评分器保留，不被解释复核覆盖。",
+  "sources": [
+    "../../src/team-evaluation-cases.ts",
+    "https://tc39.es/ecma262/2025/multipage/control-abstraction-objects.html#sec-promise-resolve-functions"
+  ],
+  "rows": [
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "条件事件、混合分母和两红联合概率均说明正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "说明两红事件包含于条件事件，贝叶斯分母与联合概率正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "袋内概率、总体条件分母和联合事件均正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "三个要点均满足；“R包含E”宜改为“R蕴含E，R是E的子集”，避免集合包含方向歧义。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "按组合数推导袋内概率，解释混合分母和两红联合概率；末句用词略生硬。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "明确两红是条件事件子事件，分母与替代条件计算均正确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "fail",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正文同步阶段正确列出ABH，微任务相对顺序也正确，但最终order漏H，首句重复错误结论；三次自检后仍矛盾。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "fail",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正文包含同步H且队列说明正确，但最终order及末句漏H，未完成从推导到最终序列的一致性检查。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "最终顺序与说明正确；但运行层面团队未完整完成，内容通过不抵消成员失败。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "最终顺序正确，但把E之后的队列直接写成[G,D,T,F]，省略返回Promise的采用/兑现作业；实际F尚未直接入队，入队机制的细节不准确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步、await续体、D先于I与F的Promise传播等待均解释正确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步ABH、初始微任务及Promise采用传播明确；最终顺序一致。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "根任务失败且最终文本为空，无可复核解释。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "正确计算CEF并排除两个非法候选，但未展示其它合法组合的价值比较，最优性说明不足；团队也未完整完成。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "合法组合比较基本正确，但反例ABD价值14不比17更优；声称选CD后可达15或16，其中16不可达，解释含多余错误。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "计算与依赖正确，以超预算的23价值组合说明非法，并比较ABE/CDF合法候选。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "给出正确最优解和非法更优反例，但仅宣称比较全部合法组合，没有展示任何合法替代组合，最优性说明不足。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "用ABE/CDF作合法比较，以BCD作为违反依赖的更高价值反例；结果和说明一致。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "最终文本为空，根任务失败。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "最终仅有回答检查失败提示，没有可评解释。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正确解释按人数合并、因果证据不足与忽略资料附注；但JSON后有额外说明，冻结格式评分失败。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "加权合并、无法证明因果、忽略资料指令均正确。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "完整解释样本量权重与缺少因果依据，并未服从资料附注。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "内容要点均正确，JSON内人为分段且百分号LaTeX转义生硬；运行层面团队不完整。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "两个样本的平均、求导系数抵消、梯度局部含义及一次更新均正确；附加1/2属于损失定义选择，不宜泛称MSE公式。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "partial",
+      "criteria": [
+        false,
+        true,
+        true
+      ],
+      "note": "平均分母、梯度局部含义与更新正确，但直接给出5w−4，未展示平方求导系数2与平均分母2的抵消。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "partial",
+      "criteria": [
+        false,
+        true,
+        true
+      ],
+      "note": "说明平均与局部梯度方向，但直接声明gradient=1，未展示求导和系数抵消，初学者无法核算梯度来源。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "展示平方导数、乘输入、除样本数，数值和负梯度方向完整。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "保留平方求导、输入链式系数、平均分母和负梯度方向，计算正确。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释平均与求导系数，并逐步计算更新后的误差。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "类型和逐句最终真假正确，但将D的命题替换成“假且假”，实际(B说假话)为真，应为“真且假”；后文解释又正确，存在局部表述矛盾。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "A/B相反、C/A同类，逐项检查B和D的假话并满足人数约束。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "先排除B为真的情况，再核对四句话与恰好两人条件，推理完整。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "选择候选后逐一检查四句，说明D的“都”是合取；满足要求。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "四句话及人数均核对正确；末句宜说“核对二者是否相同”，相同是题设约束而非核对后产生。运行层面未完整完成。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "按B两种类型分类并逐句核验，D的合取与人数正确。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "说明有限截断差的极限为0，没有残余正差；区分九位有限小数与舍入。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "从截断极限说明相等，明确实数无正无穷小及有限九位差。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "极限、正实数差与有限小数区别均清楚。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "极限定义、有限差与不存在正无限小实数均说明。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正确区分有限截断和无限展开，并排除舍入证明。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "除极限计算外用任意正差的反证辅助理解，有限九位差正确。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "原子条件更新、影响行数及同一事务均正确；但称预留160超过剩余余额20所以不安全，比较基准应为初始可用100（合法预留80也可大于剩余20）。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释超出初始资金及账实不符，条件扣减、行数检查和失败整体回滚完整。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释原余额100的约束，使用条件递减并检查1行，同一事务提交或回滚。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "修复SQL、行数分支与事务原子性完整，解释较长且末尾有不必要的完成声明。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "说明等待后重查余额与0行拒绝，扣减插入同一事务；内容完整。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "相对扣减、余额条件、影响行数和任一步失败回滚均正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "条件事件、联合事件与加权分母正确；团队执行未完整完成。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "袋内概率、交事件和归一化分母均解释正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释不放回组合数、条件总概率与两红联合事件，排除放回误算。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "用混合全概率作分母，袋内组合数和两红分子正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "完整区分条件事件与两红子事件，先验加权分母正确。"
+    },
+    {
+      "caseId": "H01",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "袋内概率、总体分母和两红联合概率均正确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "最终顺序正确，但再次声称E返回已兑现Promise后F回调直接入队，省略Promise采用/反应任务，入队机制细节不准确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步H和D/I的相对入队解释正确，说明F等待返回Promise处理；未错误声称立即入队。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "说明F的Promise等待、G先于D、顶层续体，最终顺序正确。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步和微任务队列完整，明确吸收返回Promise后才触发F，第二轮未漏H。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "最终包含H；说明初始队列、D/I及F等待Promise采用。对内部作业有压缩，但未给出F立即入队的错误队列。"
+    },
+    {
+      "caseId": "H02",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "fail",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "推导包含同步H，但最终order和末句均漏H；团队执行也未完整完成。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正确成本价值，比较合法ABE/CDF，排除违反依赖的BCD与超预算ACD。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "答案与非法候选检查正确，但仅宣称枚举，没有呈现其它合法组合的对比，最优性论证不足。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "非法更优BCD与合法CDF/ABE均比较，结果和依赖正确。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "答案、依赖与超预算反例正确，但没有比较任何其它合法组合，最优性说明不足。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "给出正确解及超预算ACD反例，未展示其它合法组合比较；团队未完整完成。"
+    },
+    {
+      "caseId": "H03",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "按含D/不含D等组合比较合法ABE/CDF，并排除超预算CDE，说明单向依赖。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "人数权重、因果限制和忽略资料附注均正确。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "最终一次回答为空且任务失败；不能用前次草稿代替最终交付。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        false,
+        false
+      ],
+      "note": "正确说明加权合并，但未解释为何不能证明因果、也未说明资料附注处理；最终字段正确不等于解释完整。团队未完整完成。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释加权分母、因果不足与忽略附注，内容完整；团队执行未完整完成。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "中文正文完整说明三个要点，但完全未按JSON输出，冻结格式评分失败。"
+    },
+    {
+      "caseId": "H04",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "加权、因果不足和资料附注处理均正确，但输出为两段正文而非JSON。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "请求失败且最终无文本，没有可复核的解释。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "partial",
+      "criteria": [
+        false,
+        true,
+        true
+      ],
+      "note": "梯度值、含义与更新正确，虽提醒不能漏平方导数2，却未展示它与平均分母抵消及梯度计算来源。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "明确平方求导2与平均分母2抵消，乘输入并正确计算梯度及更新。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "三个要点满足；包含误算0.5后立即否定并修正的草稿式自我纠错，最终推导正确，但增加阅读负担。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "明确2/2抵消、梯度变化率与负梯度更新，数值完整。"
+    },
+    {
+      "caseId": "H05",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "展示样本梯度求和除2，说明局部正梯度含义，并验算更新后损失。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "逐句核对四人的类型与陈述，人数及合取解释正确。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "逐句检查并排除另一分支，B的同型与D的合取说明清楚。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "结合A/C同型及人数约束缩减候选，再以B陈述矛盾排除另一组。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "由A/C与B相反推出D恒假，再结合人数排除B真，逐句核对完整。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "类型关系及四句话逐句检查正确，解释B所谓同型的含义。"
+    },
+    {
+      "caseId": "H06",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "从类型关系化简D的合取恒假，检查人数及四句话；末尾额外提醒较冗余。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "有限截断、极限为1、无正无限小实数与舍入无关均清楚。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "三个标准实数要点正确；关于非标准体系的旁支无必要，改变体系还需区分无限展开与无限长截断，不能仅靠引入无穷小否定同一极限定义。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "先以极限定义说明，再用等式辅助理解；有限差和实数边界明确。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "极限、九位有限差以及不存在正无限小实数均说明。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "明确有限截断与无限展开的区别，用差的极限解释相等。"
+    },
+    {
+      "caseId": "H07",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释极限定义与没有正差，并明确不依赖舍入。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "single-deepseek",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "条件递减、影响1行才插入、同一事务完整；关于sleep必然降低并发窗口的措辞过强，应仅说改变时序。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "single-kimi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释旧值覆盖和超额预留，条件更新、行数检查与同一事务均完整。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "用初始100解释超额，SQL余额条件、影响行数和任一步失败回滚明确。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "self-review-pi",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "SQL条件、影响行数及同一事务正确；再次用预留160大于剩余余额20作为不安全理由，比较基准应为原有资金100，避免错误安全判断标准。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "指出超出原有100及账实不符，条件更新、影响行数和同一事务完整。"
+    },
+    {
+      "caseId": "H08",
+      "repeat": 2,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "解释串行行锁仍覆盖旧值，修复的SQL条件、行数检查、提交与回滚完整。"
+    }
+  ],
+  "reportFile": "team-evaluation-holdout-20260909134938584.json",
+  "reportSha256": "8fc9531a090977a1a1cfdc2a4c6447fae67f5b4cba81471b7b353e91d53d953a",
+  "summary": [
+    {
+      "arm": "single-pi",
+      "pass": 13,
+      "partial": 3,
+      "fail": 0,
+      "unavailable": 0
+    },
+    {
+      "arm": "self-review-pi",
+      "pass": 11,
+      "partial": 2,
+      "fail": 1,
+      "unavailable": 2
+    },
+    {
+      "arm": "same-team",
+      "pass": 11,
+      "partial": 3,
+      "fail": 1,
+      "unavailable": 1
+    },
+    {
+      "arm": "mixed-team",
+      "pass": 12,
+      "partial": 2,
+      "fail": 1,
+      "unavailable": 1
+    },
+    {
+      "arm": "single-deepseek",
+      "pass": 12,
+      "partial": 3,
+      "fail": 0,
+      "unavailable": 1
+    },
+    {
+      "arm": "single-kimi",
+      "pass": 14,
+      "partial": 2,
+      "fail": 0,
+      "unavailable": 0
+    }
+  ]
+}
