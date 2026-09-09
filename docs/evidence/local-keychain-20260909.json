@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "startedAt": "2026-09-09T06:09:26.421Z",
+  "syntheticOnly": true,
+  "installation": "/Users/liqing93/Applications/知行.app",
+  "applicationCommit": "e0efa006a7d0a48a46044fee48d4aba44e44bb9f",
+  "codeHash": "7b1491e4f0403e6bbbe1672cb2ea50cd28df45db7fe2f77a321b3637656881c6",
+  "appAsarSha256": "def0ee99d1300660e116339c9a89243308f7afc51497839c7cbcef8221cfa263",
+  "passed": true,
+  "stages": [
+    {
+      "name": "native-encryption-roundtrip",
+      "passed": true,
+      "durationMs": 9202,
+      "nativeAvailable": true,
+      "roundtrip": true,
+      "ciphertextDoesNotContainPlaintext": true
+    },
+    {
+      "name": "application-save-synthetic-configuration",
+      "passed": true,
+      "durationMs": 33,
+      "configured": true,
+      "source": "desktop",
+      "ciphertextDoesNotContainPlaintext": true,
+      "fileMode": "0600"
+    },
+    {
+      "name": "restart-and-decrypt-persisted-synthetic-value",
+      "passed": true,
+      "durationMs": 12,
+      "configuredAfterRestart": true,
+      "persistedNativeDecryption": true
+    }
+  ],
+  "userDataUntouched": true,
+  "existingCredentialsRead": false,
+  "networkRequestsEnabled": false,
+  "appVersion": "0.9.0",
+  "finishedAt": "2026-09-09T06:09:37.253Z",
+  "probeSource": {
+    "file": "local-keychain-20260909-probe.txt",
+    "sha256": "ada1a8259900fdaa67e850614370e6711427bab0b474a2d225eee87104f3866a",
+    "purpose": "Historical exact synthetic-only acceptance probe; installed application path is specific to this machine."
+  },
+  "checks": [
+    {
+      "name": "targeted native storage acceptance",
+      "command": "node <recorded probe>",
+      "exitCode": 0,
+      "log": "/tmp/zhixing-keychain-acceptance-20260909.log",
+      "sha256": "1c31fbd5b9e9515c4a3857f3b8c28602abdf22c9c31c363fe7920ce1c4408298",
+      "output": [
+        "{\"stage\":\"native-encryption-roundtrip\",\"state\":\"started\",\"systemAuthorizationMayBeRequired\":true}",
+        "{\"stage\":\"native-encryption-roundtrip\",\"state\":\"passed\",\"durationMs\":9203}",
+        "{\"stage\":\"application-save-synthetic-configuration\",\"state\":\"started\",\"systemAuthorizationMayBeRequired\":true}",
+        "{\"stage\":\"application-save-synthetic-configuration\",\"state\":\"passed\",\"durationMs\":33}",
+        "{\"stage\":\"restart-and-decrypt-persisted-synthetic-value\",\"state\":\"started\",\"systemAuthorizationMayBeRequired\":true}",
+        "{\"stage\":\"restart-and-decrypt-persisted-synthetic-value\",\"state\":\"passed\",\"durationMs\":13}",
+        "{\"passed\":true,\"output\":\"/tmp/zhixing-keychain-acceptance-20260909.json\",\"isolatedTemporaryDataRemoved\":true}"
+      ]
+    },
+    {
+      "name": "original installed native cipher and desktop smoke",
+      "command": "ZHIXING_DESKTOP_NATIVE_CIPHER=1 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE=<installed app executable> node desktop/scripts/smoke.mjs",
+      "exitCode": 0,
+      "log": "/tmp/zhixing-keychain-installed-smoke-20260909.log",
+      "sha256": "33cc4c0185ee38e494da8ef806fbf4acfa5b8b7df30088da32214279652fb2d4",
+      "output": [
+        "Native cipher passed: synthetic encryption/decryption, no plaintext or existing API credential output.",
+        "Renderer burst passed: 1001 IPC deltas, exact final/copy text, snapshot precedence and session isolation; 54 ms including UI assertions.",
+        "Desktop UI passed: sandbox bridge, bundled Pi, streaming, math, copy, export, stop, rename, history, drafts, search, theme, IME, Pi-to-DeepSeek retry and persisted API model.",
+        "Screenshots: /var/folders/5k/7354dt152zscv7svrxwcm33h0000gn/T/zhixing-desktop-preview"
+      ]
+    },
+    {
+      "name": "repository documentation verification",
+      "command": "CI=1 npm run verify",
+      "exitCode": 0,
+      "log": "/tmp/zhixing-keychain-docs-verify-20260909.log",
+      "sha256": "3dc2c0d77a07b3ca92d065bad10df886c2d92194391944de3e891f70f67e351e",
+      "output": [
+        " Test Files  131 passed (131)",
+        "      Tests  631 passed (631)",
+        " Test Files  1 passed (1)",
+        "      Tests  9 passed (9)",
+        " Test Files  1 passed (1)",
+        "      Tests  6 passed (6)",
+        "verify passed: quality gates, sensitive scan, and diff whitespace check"
+      ]
+    }
+  ],
+  "systemInteraction": "User was prompted to handle any macOS dialog; no SecurityAgent automation used. No claim about which OS authorization button was selected.",
+  "interpretation": "Passed for the installed 0.9.0 identity and current macOS user. Real native cipher, synthetic configuration saved through installed application IPC, encrypted file mode and no-plaintext check, restart and native decryption passed. Does not verify validity of any real API key, formal signing, or authorization for future changed signatures."
+}

@@ -1,0 +1,48 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
+const require = createRequire('/Users/liqing93/document/study/agent/zhixing/desktop/package.json');
+const { _electron: electron } = require('playwright');
+const installation = '/Users/liqing93/Applications/知行.app';
+const executablePath = path.join(installation, 'Contents/MacOS/知行');
+const output = '/tmp/zhixing-keychain-acceptance-20260909.json';
+await fs.writeFile(output, '{}\n', {flag:'wx',mode:0o600});
+const data = await fs.mkdtemp(path.join(os.tmpdir(),'zhixing-native-keychain-acceptance-'));
+const marker = 'zhixing-synthetic-not-a-real-api-key-' + randomUUID();
+const provenance = JSON.parse(await fs.readFile(path.join(installation,'Contents/Resources/runtime/build-provenance.json'),'utf8'));
+const report = {version:1,startedAt:new Date().toISOString(),syntheticOnly:true,installation,applicationCommit:provenance.commit,codeHash:provenance.codeHash,appAsarSha256:createHash('sha256').update(await fs.readFile(path.join(installation,'Contents/Resources/app.asar'))).digest('hex'),passed:false,stages:[],userDataUntouched:true,existingCredentialsRead:false,networkRequestsEnabled:false};
+let current, stage='launch';
+const save = async () => fs.writeFile(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+async function bounded(work, milliseconds=180000) { let timer;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('acceptance_stage_timeout')),milliseconds);})]);}finally{clearTimeout(timer);} }
+async function closeOwned() {if(!current)return;const app=current;current=undefined;const process=app.process();try{await bounded(app.close(),5000);}catch{process?.kill('SIGKILL');await new Promise(resolve=>setTimeout(resolve,1000));}}
+async function launch() {
+ current=await electron.launch({executablePath,args:[],env:{...process.env,ZHIXING_DESKTOP_TEST_DATA:data,ZHIXING_DESKTOP_LIVE_CHECK:'0',ZHIXING_ALLOW_LIVE_PROVIDER:'0',PI_CODING_AGENT_DIR:path.join(data,'pi-fixture')},timeout:30000});
+ const page=await current.firstWindow({timeout:20000});await page.getByRole('button',{name:'发送消息',exact:true}).waitFor({timeout:20000});
+ const identity=await current.evaluate(({app})=>({version:app.getVersion(),userData:app.getPath('userData'),packaged:app.isPackaged}));
+ if(identity.userData!==data || !identity.packaged)throw new Error('isolation_check_failed');
+ report.appVersion=identity.version;
+ return page;
+}
+async function record(name, action) {stage=name;console.log(JSON.stringify({stage,state:'started',systemAuthorizationMayBeRequired:true}));const start=Date.now();await save();const result=await bounded(action());report.stages.push({name,passed:true,durationMs:Date.now()-start,...result});await save();console.log(JSON.stringify({stage,state:'passed',durationMs:Date.now()-start}));}
+try {
+ let page=await launch();
+ await record('native-encryption-roundtrip',()=>current.evaluate(async ({safeStorage},value)=>{if(!await safeStorage.isAsyncEncryptionAvailable())throw new Error('native_encryption_unavailable');const encrypted=await safeStorage.encryptStringAsync(value);const plain=(await safeStorage.decryptStringAsync(encrypted)).result;if(encrypted.includes(Buffer.from(value)) || plain!==value)throw new Error('native_roundtrip_failed');return {nativeAvailable:true,roundtrip:true,ciphertextDoesNotContainPlaintext:true};},marker));
+ await record('application-save-synthetic-configuration',async()=>{
+  const result=await page.evaluate(async value=>{const result=await window.zhixing.invoke({type:'configure-deepseek',apiKey:value});return {ok:result.ok,configured:result.ok&&result.data.api.configured,source:result.ok?result.data.api.source:undefined};},marker);
+  if(!result.ok || !result.configured || result.source!=='desktop')throw new Error('synthetic_save_failed');
+  const file=path.join(data,'deepseek.credential');const encrypted=await fs.readFile(file);const stat=await fs.lstat(file);
+  if(encrypted.includes(Buffer.from(marker)) || !stat.isFile() || stat.isSymbolicLink() || (stat.mode&0o777)!==0o600)throw new Error('synthetic_storage_boundary_failed');
+  return {configured:true,source:'desktop',ciphertextDoesNotContainPlaintext:true,fileMode:'0600'};
+ });
+ await closeOwned();page=await launch();
+ await record('restart-and-decrypt-persisted-synthetic-value',async()=>{
+  const status=await page.evaluate(async()=>{const r=await window.zhixing.invoke({type:'boot'});return {configured:r.ok&&r.data.api.configured,source:r.ok?r.data.api.source:undefined};});
+  if(!status.configured || status.source!=='desktop')throw new Error('synthetic_status_lost_after_restart');
+  const result=await current.evaluate(async({app,safeStorage},{root,value})=>{if(app.getPath('userData')!==root)throw new Error('isolation_check_failed');const fs=process.getBuiltinModule('node:fs/promises');const path=process.getBuiltinModule('node:path');const encrypted=await fs.readFile(path.join(root,'deepseek.credential'));if((await safeStorage.decryptStringAsync(encrypted)).result!==value)throw new Error('persisted_decryption_failed');return {configuredAfterRestart:true,persistedNativeDecryption:true};},{root:data,value:marker});
+  return result;
+ });
+ report.passed=true;
+} catch(error) { report.failure={stage,code:error?.message==='acceptance_stage_timeout'?'system_authorization_or_ipc_timeout':'acceptance_stage_failed',errorName:error?.name??'Error'};process.exitCode=1;console.log(JSON.stringify({stage,state:'failed',code:report.failure.code})); }
+finally{await closeOwned();report.finishedAt=new Date().toISOString();await save();await fs.rm(data,{recursive:true,force:true});console.log(JSON.stringify({passed:report.passed,output,isolatedTemporaryDataRemoved:true}));}

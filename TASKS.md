@@ -1,6 +1,6 @@
 # 知行前台开发任务清单
 
-> 当前任务：2026-09-09 [验收对齐与 Pi 复验](docs/acceptance-next-plan.md)。Pi 原配置真实请求、已安装 0.9 的 11 项检查及真实项目六项检查通过；验收脚本、共享回答核对、跨行公式和失败分类已修复。Pi 内容回归 20/24 全通过，DeepSeek 13/23 个可评分结果全通过且另有 1 次执行失败，仍不能宣布整体质量对齐。独立子 Agent 继续暂缓；真实研究、系统授权与正式签名条件仍待验。详见 [本轮证据](docs/evidence/acceptance-next.md)。
+> 当前任务：2026-09-09 [验收对齐与 Pi 复验](docs/acceptance-next-plan.md)。Pi 原配置真实请求、已安装 0.9 的 11 项检查及真实项目六项检查通过；验收脚本、共享回答核对、跨行公式和失败分类已修复。Pi 内容回归 20/24 全通过，DeepSeek 13/23 个可评分结果全通过且另有 1 次执行失败，仍不能宣布整体质量对齐。独立子 Agent 继续暂缓；本机 0.9 钥匙串/加密保存/重启读取已补验通过，见[本机加密验收](docs/evidence/local-keychain-20260909.md)；真实研究与正式签名仍待验。详见 [本轮证据](docs/evidence/acceptance-next.md)。
 
 > 0.9 上一轮交付：[剩余任务收口](docs/completion-plan.md)已完成图片、Windows/两种 Mac 实包、真实 MCP/语义模型/通知和本机 0.9 安装；[历史证据](docs/evidence/completion-0.9.md)保留当时延期 Pi 的状态，本轮已恢复验证。
 
