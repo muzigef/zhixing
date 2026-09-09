@@ -1,3 +1,4 @@
+import { customProviderSchema } from "./api-connection-config.js";
 import { imagesSchema } from "./image-input.js";
 import { MAX_INPUT_CHARACTERS, MAX_CONVERSATION_MESSAGES, MAX_PENDING_REQUESTS } from "./input-limits.js";
 import { teachingSessionSchema } from "./teaching-session-contracts.js";
@@ -10,7 +11,7 @@ import { outcomeModeSchema, outcomeProtocolSchema } from "./outcome-contracts.js
 import { responseObservationSchema } from "./response-quality.js";
 import { evidenceSupportSchema } from "./evidence-support.js";
 import { accessSelectionSchema, permissionSchema, writeGrantSchema } from "./agent-permissions.js";
-export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo", "mock", "codex-cli"]);
+export const providerSchema = z.union([customProviderSchema, z.enum(["pi-codex", "deepseek-api", "kimi-api", "demo", "mock", "codex-cli"])]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["quick", "balanced", "deep"]);
 export const reasoningRequestSchema = z.enum(["auto", "quick", "balanced", "deep"]);

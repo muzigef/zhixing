@@ -5,6 +5,8 @@
 
 **知行的目标是帮助学习者通过连续对话、动手实践和反馈，逐步形成能够独立运用的知识与技能。** 初期优先服务技术知识与实践技能学习，以独立解释、新情境应用和延迟复习表现检验教学效果。
 
+桌面支持 Pi Codex 订阅、DeepSeek、Kimi，以及**动态添加 OpenAI 兼容 API**：在设置中填写服务地址、模型 ID 和 Key，即可添加新服务或同一服务的多个模型，无需修改代码。密钥由系统加密独立保存，支持连接测试与模型切换。详见[配置说明](docs/CONFIGURATION.md#自定义-api-连接092)。
+
 ## 设计理念
 
 - **以学习效果决定开发优先级。** 功能应帮助用户理解概念、发现误解和解决新问题；回答质量、交互流畅度与执行速度共同服务于这些目标。
@@ -32,7 +34,7 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.9.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.9.1`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
@@ -40,7 +42,7 @@
 
 | 入口 | 当前能力 | 默认模型设置 |
 | --- | --- | --- |
-| 桌面版 | 连续对话、流式回答、公式排版、会话搜索与恢复、草稿、停止/继续/重试、复制和 Markdown 导出 | 新数据目录默认 `pi-codex`；可切换 `deepseek-api` 或离线 `demo` |
+| 桌面版 | 连续对话、流式回答、公式排版、会话搜索与恢复、草稿、停止/继续/重试、复制和 Markdown 导出 | 新数据目录默认 `pi-codex`；可切换 `deepseek-api`、`kimi-api` 或离线 `demo` |
 | CLI / REPL | 主题、资料库、课程与进度、个性化计划、教学练习、证据 Review、受控学习工具 | 无本地路由设置时，tutor / reviewer / lab 均为 `mock` |
 
 桌面现已接入课程、进度、资料导入与引用、真实产物验收、任务排队与纠正、持久目标及耗时诊断。完整使用步骤见 [0.3 升级指南](docs/agent-upgrade.md)。
@@ -52,7 +54,7 @@
 
 0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
 
-0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，尚未替换用户安装。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。独立子 Agent 继续暂缓。
+0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，尚未替换用户安装。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。独立子 Agent 已重新进入[三模式方案调研](docs/agent-team-feasibility-20260909.md)，尚未开发或启用。
 
 
 ## 快速开始
@@ -66,6 +68,8 @@
 安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。已有 macOS/Windows 构建与 draft release 流水线；macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装和安装后五组 UI 均已通过。设置可主动检查公开新版本，不会自动替换安装。
 
 桌面安装、快捷键和平台构建步骤见 [桌面版 README](desktop/README.md)。
+
+Kimi API 按 DeepSeek 相同方式配置：设置 → Kimi API → 输入 Key → 保存 → 测试连接。使用国内 Moonshot 接口和 Kimi K3，凭据独立加密；CLI 同样支持 `kimi-api`。详见 [API 配置](docs/CONFIGURATION.md#kimi-api) 与 [本轮验收](docs/evidence/kimi-api-20260909.md)。
 
 ### 从源码运行
 
@@ -298,6 +302,7 @@ npm --prefix desktop run test:ui
 | Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
 | 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
 | 核心设计与商业 Agent 对比 | [28 个核心模块评审：Codex / Claude Code 对比、取舍与优化建议](docs/agent-architecture-comparison-20260908.md) |
+| 三种 Agent 模式研究（尚未开发） | [单 Agent、同模型团队与异模型团队：可行性、案例与实现方案](docs/agent-team-feasibility-20260909.md) |
 | 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
 

@@ -12,6 +12,7 @@ import { LearningOutcomeStore } from "../../src/learning-outcomes.js";
 import type { LearningApplication } from "../../src/learning-application.js";
 import { PathPolicy } from "../../src/paths.js";
 import { DesktopStore } from "./store.js";
+import { ApiConnections } from "../../src/api-connections.js";
 
 const manifestSchema = z.object({ format: z.literal("zhixing-workspace-backup"), version: z.literal(1), appVersion: z.string().max(40), createdAt: z.string().datetime(), workspaceId: z.string().regex(/^[a-f0-9]{64}$/), files: z.array(z.object({ path: z.string().min(1).max(4096), bytes: z.number().int().nonnegative().max(2_000_000_000), sha256: z.string().regex(/^[a-f0-9]{64}$/) })).max(20000) });
 type Manifest = z.infer<typeof manifestSchema>;
@@ -20,7 +21,7 @@ const workspaceRoots = ["zhixing/agent/conversations", "zhixing/data", "zhixing/
 function allowed(relative: string): boolean {
   const parts = relative.split("/");
   if (path.isAbsolute(relative) || relative.includes("\\") || parts.some((part) => !part || part === "." || part === ".." || privateName.test(part))) return false;
-  return relative === "workspace/zhixing/db/zhixing.sqlite" || relative === "desktop/preferences.json" || relative.startsWith("desktop/conversations/") || workspaceRoots.some((root) => relative.startsWith(`workspace/${root}/`));
+  return relative === "workspace/zhixing/db/zhixing.sqlite" || relative === "desktop/preferences.json" || relative === "desktop/api-connections.json" || relative.startsWith("desktop/conversations/") || workspaceRoots.some((root) => relative.startsWith(`workspace/${root}/`));
 }
 function safe(root: string, relative: string): string { return new PathPolicy(root).resolveWorkspacePath(...relative.split("/")); }
 async function digest(file: string, signal: AbortSignal): Promise<{ bytes: number; sha256: string }> {
@@ -66,7 +67,7 @@ export async function createWorkspaceBackup(app: LearningApplication, store: Des
       await copy(safe(app.root, relative), safe(target, destination), signal); await record(destination);
     }
     const database = "workspace/zhixing/db/zhixing.sqlite"; await app.database.backup(safe(target, database)); await record(database);
-    for (const root of ["conversations", "preferences.json"]) for await (const relative of walk(store.root, root)) {
+    for (const root of ["conversations", "preferences.json", "api-connections.json"]) for await (const relative of walk(store.root, root)) {
       signal.throwIfAborted(); const destination = `desktop/${relative}`; if (!allowed(destination)) continue;
       await copy(safe(store.root, relative), safe(target, destination), signal); await record(destination);
     }
@@ -86,6 +87,7 @@ export async function inspectWorkspaceBackup(directory: string, signal: AbortSig
   }
   if (!seen.has("workspace/zhixing/db/zhixing.sqlite")) throw new Error("backup_invalid");
   inspectDatabaseSnapshot(safe(directory, "workspace/zhixing/db/zhixing.sqlite"));
+  for (const relative of ["desktop/api-connections.json", "workspace/zhixing/settings/api-connections.local.json"]) if (seen.has(relative)) await new ApiConnections(safe(directory, relative)).load();
   return manifest;
 }
 /** Non-destructive restore: new workspace, remapped conversation IDs, no inherited execution grants. */
@@ -128,6 +130,11 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
     const database = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
     try { McpSettings.revokeAll(database); PracticeProjects.clearSelections(database); new LearningOutcomeStore(database).remapSessions(ids);
       AgentExecutionStore.remapSessions(database, ids); } finally { database.close(); }
+    if (manifest.files.some(item => item.path === "desktop/api-connections.json")) {
+      const profiles = await new ApiConnections(safe(directory, "desktop/api-connections.json")).load();
+      const target = new ApiConnections(path.join(store.root, "api-connections.json"));
+      await target.merge(profiles.connections, (await target.load()).revision);
+    }
     return { workspace, sessions: chats.length };
   } catch (error) {
     // Keep partially restored data for inspection; never delete conversations already imported.

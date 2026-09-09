@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # 配置
 
-知行有 CLI 学习工作区和桌面对话两套偏好配置。CLI 默认使用 `mock`；桌面首次启动默认选择 `pi-codex`。两者可复用 Pi 的全局模型偏好及 macOS 上已有的知行 DeepSeek Keychain 项，模型选择和聊天独立；学习资料可通过显式连接同一工作区共用。
+知行有 CLI 学习工作区和桌面对话两套偏好配置。CLI 默认使用 `mock`；桌面首次启动默认选择 `pi-codex`。两者可复用 Pi 的全局模型偏好及 macOS 上已有的知行 DeepSeek / Kimi Keychain 项，模型选择和聊天独立；学习资料可通过显式连接同一工作区共用。
 
 ## 运行时与环境变量
 
@@ -64,11 +64,12 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 模型状态
 模型切换 tutor pi-codex --确认
 模型切换 tutor deepseek-api --确认
+模型切换 tutor kimi-api --确认
 模型切换 tutor mock --确认
 /style detailed
 ```
 
-三个切换命令是不同选择的示例，按需要执行其中一个。内置 Provider 为 `mock`、`deepseek-api`、`codex-cli` 与 `pi-codex`。保存路由不会自动安装 Provider 或验证登录。`/style` 支持 `concise`、`adaptive`（别名 `balanced`）、`detailed` 以及“简洁/适中/详细”；按主题保存，本轮明确的篇幅和格式要求优先。
+这些切换命令是不同选择的示例，按需要执行其中一个。内置 Provider 为 `mock`、`deepseek-api`、`kimi-api`、`codex-cli` 与 `pi-codex`。保存路由不会自动安装 Provider 或验证登录。`/style` 支持 `concise`、`adaptive`（别名 `balanced`）、`detailed` 以及“简洁/适中/详细”；按主题保存，本轮明确的篇幅和格式要求优先。
 
 学习画像包含 `goal`（2–240 字符）、`level`（1–80 字符）、`dailyMinutes`（15–480 整数）、`totalDays`（1–180 整数），没有自动填充的画像默认值。提醒配置包含 `time`（24 小时制 `HH:mm`）和 `enabled`；桌面运行或交互终端 REPL 打开时，由共享调度器每 15 秒检查；到点五分钟内按本地日期领取一次提醒，多主题合并。退出后不运行，错过不补发；系统可能静音通知。可用“提醒关闭”或桌面课程面板关闭。
 
@@ -81,6 +82,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 | `preferences.json` | Provider、回答风格、主题及 DeepSeek 模型。 |
 | `conversations/<UUID>.json` | v7 会话清单、尾部最多 250 条消息及状态；更早历史在同名 UUID 子目录中按哈希分段，完整会话最多 20,000 条/12 MB。 |
 | `deepseek.credential` | 新添加 API Key 的系统加密数据，不是 JSON 或明文配置。 |
+| `kimi.credential` | 独立的 Kimi API Key 系统加密数据，保存规则与 DeepSeek 相同。 |
 | `workspace.json` / `workspace/` | 显式连接的工作区路径 / 默认学习数据根。连接已有 CLI 根时不迁移用户数据。 |
 | `runtime/` | Pi 子进程的工作目录；应用启动时复制专用 `AGENTS.md`，不会加载开发仓库的学习资料。 |
 
@@ -99,7 +101,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 
 | 字段 | 可选值与限制 |
 | --- | --- |
-| `provider` | `pi-codex`、`deepseek-api`、`demo`；桌面没有 `codex-cli` 选项。 |
+| `provider` | `pi-codex`、`deepseek-api`、`kimi-api`、`demo`，以及自定义 `api-<32 位哈希>`；桌面没有 `codex-cli` 选项。 |
 | `style` | `concise`、`adaptive`、`detailed`；桌面是全局偏好，不按 CLI 主题分组。 |
 | `theme` | `system`、`light`、`dark`。 |
 | `deepseekModel` | 设置界面提供 `deepseek-v4-flash`、`deepseek-v4-pro`、实验性 `deepseek-v4-flash-vision-exp`（图片需此模型）；底层 schema 接受 1–128 字符、以字母/数字开头、其余为字母/数字/点/下划线/连字符的模型标识。格式有效不代表远端支持该模型。 |
@@ -115,6 +117,7 @@ CLI 使用 macOS Keychain，通过隐藏输入配置：
 ```bash
 npm start -- 模型添加 api-key deepseek-api
 npm start -- 模型切换 tutor deepseek-api --确认
+模型切换 tutor kimi-api --确认
 ```
 
 逻辑引用为 `keychain:zhixing/deepseek-api`，Keychain account 为 `zhixing`，service 为该引用。CLI 当前没有 Windows/Linux 的 Keychain 替代实现。不要将 Key 放进命令参数、偏好 JSON、`.env`、仓库或日志。
@@ -225,3 +228,43 @@ MCP 配置可指定 `isolation: "restricted"` 和 `readPaths`（最多八条绝�
 同步服务启动后显示临时访问码；调用时携带 `Authorization: Bearer <临时访问码>` 请求头，不放 URL、不持久化。重启后旧访问码失效，网页请求被拒绝。提醒每日领取标记保存在主题笔记的 `reminder-delivery/`，属于完整备份内容；已领取但通知前崩溃可能漏发。
 
 0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。
+
+## Kimi API
+
+桌面：设置 → Kimi API → 填写 Key → 保存 → 测试连接。国内开放平台地址为 <https://platform.kimi.com/>；使用开放平台 API Key，无需聊天会员。K3 需账户充值开通，具体要求见[官方指南](https://platform.kimi.com/docs/guide/kimi-k3-quickstart)。
+
+CLI 同样经过共享模型工厂和 AgentService：
+
+```bash
+npm start -- 模型添加 api-key kimi-api
+npm start -- 模型切换 tutor kimi-api --确认
+```
+
+第一条命令通过隐藏输入读取 Key，不能把 Key 追加到命令行。逻辑引用 `keychain:zhixing/kimi-api`；桌面密文 `kimi.credential`。桌面与 CLI 的会话/配置位置仍独立；macOS 桌面可读取 CLI 的 Kimi Keychain 项，桌面独立密文不会反向同步。
+
+当前支持固定模型 `kimi-k3` 和国内接口 `https://api.moonshot.cn/v1/chat/completions`；不能将国际平台的 Key 假定为国内接口可用。Kimi 不读取 `ZHIXING_DEEPSEEK_MODEL`。快速/均衡/深入思考映射为 `low`/`high`/`max`，全部开启思考；工具续接保留本轮原生 assistant 状态，只显示最终回答文本。
+
+“测试连接”也适用于 DeepSeek：不带历史、资料或工具，用快速档发送合成问题，输出预留 2,048 token、最长 60 秒；结果只返回成功与耗时，不返回密钥或推理内容，不写入聊天。账户余额、权限和限流错误会显示对应提示。当前工程和真实连通验收分开记录在 [Kimi Evidence](evidence/kimi-api-20260909.md)。
+
+## 自定义 API 连接（0.9.2）
+
+桌面打开 **设置 → 自定义 API 连接 → 添加 API 连接**，填写连接名称、API 根地址、模型 ID 和 Key，保存后选择该连接并点击“测试自定义连接”。服务商提供 OpenAI 兼容的 Chat Completions 接口与 Bearer API Key 认证时，无需修改代码即可接入。同一家服务的多个模型也可分别配置。内置 Pi / DeepSeek / Kimi 继续可用，已有密钥不用迁移。
+
+- 根地址形如 `https://api.example.com/v1`，程序追加 `/chat/completions`。不要粘贴完整聊天端点、查询参数、用户名或密钥；要求 HTTPS，本机 `localhost` / `127.0.0.1` / `::1` 可用 HTTP。携带密钥的请求不跟随重定向。
+- 模型 ID 必须来自服务商文档或控制台。连接名可自由修改。界面不推测账户能用哪些模型，也不以保存成功代替真实连通。
+- 默认开启工具调用，关闭图片，不发送额外思考参数；窗口 48,000、最大输出 4,096 Token。请按服务文档设置；文本模型应关闭工具和图片。全局预算与连接上限取较小值，保留相同的上下文裁剪策略。
+- 高级选项可选择 `max_tokens` / `max_completion_tokens`，关闭不兼容的流式用量字段，并选择 OpenAI、DeepSeek、Kimi 思考参数。OpenAI 快速/均衡/深入映射 low/medium/high；DeepSeek 沿用快速关闭、均衡 low、深入 high；Kimi 为 low/high/max。
+- 目前只支持该兼容协议及 Bearer 认证，不支持只提供 Responses、Anthropic 原生 Messages 或自定义鉴权头的接口。新增相同协议的厂商只需配置；新协议本身仍需适配器开发。协议依据为 [OpenAI Chat Completions 官方参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)。
+
+最多保存 20 个连接。主进程将公开定义写入桌面数据目录 `api-connections.json`，每个 Key 使用系统加密单独保存在 `api-<32 位哈希>.credential`；Key 不回填到输入框。连接身份由协议、地址、模型及兼容能力共同决定，不受名称改变影响。更换地址、模型或能力时应添加新连接并配置 Key，避免旧任务被重新指向不同端点。管理已有连接时 Key 留空表示保留，填写表示替换。
+
+移除连接只移除公开定义，保留对话和密文；不会替用户选择另一家模型。原连接的排队/恢复请求会明确失败，用户选择模型后可重新发起。完整备份包含公开连接定义并排除密文；恢复时合并缺失定义、保留本机同身份的现有名称，不自动切换模型。换电脑恢复后应重新输入 Key。
+
+CLI 使用同一连接定义、适配器工厂和 AgentService，公开配置保存在工作区 `zhixing/settings/api-connections.local.json`，密钥仍由 macOS Keychain 保存。与桌面用户数据目录独立，不自动互相复制凭据：
+
+```bash
+npm start -- '模型连接添加 {"name":"我的模型","baseUrl":"https://api.example.com/v1","model":"vendor/model-id"}'
+npm start -- 模型连接列表
+```
+
+第一条返回实际连接 ID。随后执行 `模型添加 api-key <连接 ID>`，在隐藏输入中填写 Key，再执行 `模型切换 tutor <连接 ID> --确认`。JSON 只接受公开字段，不能放 API Key。CLI 的聊天、教学模式和桌面均通过共享长对话及工具策略处理请求。

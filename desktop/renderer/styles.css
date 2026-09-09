@@ -1304,6 +1304,16 @@ kbd,
   padding: 6px 12px;
   font-size: 10px;
 }
+.api-connection-button {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+}
+.api-connection-button:hover:not(:disabled) { background: var(--hover); }
 
 .learning-toolbar { display: flex; align-items: center; gap: 12px; padding: 9px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; font-size: 12px; color: var(--secondary); }
 .learning-toolbar label, .learning-toolbar button { display: flex; align-items: center; gap: 6px; }
@@ -1411,3 +1421,29 @@ kbd,
 .image-attachments small { flex-basis: 100%; font-size: 11px; }
 .sent-images { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .sent-images img { max-width: min(100%, 400px); max-height: 300px; object-fit: contain; border-radius: 10px; }
+
+/* Data-driven API connections share the existing settings surface. */
+.custom-connections { margin: 0; }
+.connection-heading, .connection-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.connection-heading { justify-content: space-between; }
+.connection-heading h3 { margin: 0; }
+.connection-heading button { display: inline-flex; gap: 6px; align-items: center; }
+.connection-help, .connection-selected small { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.custom-connection-row { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+.custom-connection-row .provider-option { flex: 1; min-width: 0; justify-content: space-between; }
+.custom-connection-row .provider-option small { overflow-wrap: anywhere; }
+.connection-edit { align-self: center; padding: 9px; }
+.connection-selected { margin: 12px 0; }
+.connection-selected p { overflow-wrap: anywhere; font-size: 12px; color: var(--muted); }
+.connection-selected small { display: block; margin-top: 8px; }
+.connection-form { margin-top: 16px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.connection-form h4 { margin: 0 0 14px; }
+.connection-form > label, .connection-advanced > label { display: grid; gap: 6px; margin: 12px 0; font-size: 12px; }
+.connection-form input:not([type="checkbox"]), .connection-form select { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font: inherit; box-sizing: border-box; }
+.connection-form input[readonly] { opacity: .7; }
+.connection-advanced { margin: 16px 0; font-size: 12px; }
+.connection-advanced > label:has(input[type="checkbox"]) { display: flex; align-items: center; }
+.connection-remove { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px; font-size: 12px; line-height: 1.7; }
+
+.connection-heading button, .connection-actions button, .connection-remove button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; }
+.connection-heading button:hover:not(:disabled), .connection-actions button:hover:not(:disabled), .connection-remove button:hover:not(:disabled), .connection-edit:hover:not(:disabled) { background: var(--hover); }

@@ -11,7 +11,7 @@ npm --prefix desktop run test:ui
 npm run eval:learning -- export-a.json export-b.json --output=summary.json
 ```
 
-UI 命令现包含聊天、学习、交互、`smoke-outcomes.mjs` 和 `smoke-projects.mjs` 五组 smoke，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
+UI 命令现包含聊天、学习、交互、`smoke-outcomes.mjs`、`smoke-projects.mjs` 和 `smoke-api.mjs` 六组 smoke，使用临时工作区、演示模型和合成作答。领域测试注入时钟检查 72 小时边界；产品没有绕过等待的测试开关。真实 Pi 合成接入检查另行显式运行：
 
 ```bash
 npx tsx scripts/check-learning-outcomes.ts --live --output=docs/evidence/learning-outcomes-live-latest.json
@@ -249,3 +249,17 @@ Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目�
 默认 UI 回归使用隔离的合成数据，不主动访问系统加密。显式设置 `ZHIXING_DESKTOP_NATIVE_CIPHER=1` 可增加真实 safeStorage 的合成加解密检查，IPC 等待上限 20 秒；两个 GitHub 工作流都强制启用此检查，失败不能忽略。虽然没有读取已有 API Key，macOS 仍可能要求访问系统管理的主密钥，尤其在预览包重新签名后。本机需要用户在系统界面处理授权；未授权时应记录未验收，不应将普通 UI 通过替代这一结果。
 
 如果本机全局 npm 镜像不可用，可仅为本次审计追加 `--registry=https://registry.npmjs.org`，分别执行根目录与 desktop 的 `npm audit --omit=dev --audit-level=high`，保留最初的网络失败记录，不更改全局配置。
+
+## Kimi API 回归（2026-09-09）
+
+`npm run verify` 包含 Kimi/DeepSeek 共享传输、密钥隔离、推理参数、原生工具续接、断流拒绝执行和连接探针测试。`npm --prefix desktop run test:ui` 在原五组后增加 `smoke-api.mjs`：隔离目录中验证两家 Key 保存、切换清空草稿、连接测试、Kimi 会话标签、重启恢复和 DeepSeek 回归。
+
+新增 UI 测试使用合成密钥、模拟 HTTP 和模拟 OS cipher，不读取现有 Key，不证明真实账户或原生加密成功。实际包使用相同 `ZHIXING_DESKTOP_EXECUTABLE` 变量复测六组。真实账户验收通过用户本机保存 Key 后点击“测试连接”进行，见 [Kimi Evidence](evidence/kimi-api-20260909.md)。
+
+## 动态 API 连接验证
+
+`tests/api-connections.test.ts` 覆盖公开配置校验、修订冲突、身份绑定、独立密文、无回退路由、能力/预算/参数、安全错误、断流、实际 loopback HTTP 重定向拒绝及取消。`provider-tool-contract.test.ts` 对自定义服务验证 ToolHarness 参数失败修复和断流不执行工具；`interaction-cli.test.ts` 覆盖实际 CLI 配置与重启、长普通/教学对话和桌面相同请求；`workspace-backup.test.ts` 验证只恢复公开定义。
+
+`smoke-api.mjs` 覆盖内置 Kimi/DeepSeek 回归，以及自定义服务添加、改名、Key 留空保留、切换、连接测试、会话徽章、重启恢复、移除后无回退和配置冲突。HTTP 与 cipher 使用隔离合成夹具；此测试不证明任意厂商接口或真实系统加密。实际打包应用使用 `ZHIXING_DESKTOP_EXECUTABLE` 运行同一套六组 UI。
+
+真实本机 Kimi/DeepSeek 探针可在正常退出应用后，显式执行 `node desktop/scripts/check-installed-api.mjs --live --provider=kimi-api`。它打开安装应用并调用受控 IPC，不输出凭据、不创建对话，可能产生少量 API 用量。真实记录见[本轮 Evidence](evidence/dynamic-api-20260909.md)。

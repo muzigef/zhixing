@@ -1,3 +1,5 @@
+import { ApiConnectionsPanel } from "./api-connections-panel.js";
+import { isCustomProvider, providerLabel } from "../../src/api-connection-config.js";
 import { imageFromBytes, imageDataUrl, type ImageInput } from "../../src/image-input.js";
 import { MAX_INPUT_CHARACTERS } from "../../src/input-limits.js";
 import { restrictedStudy } from "../../src/outcome-contracts.js";
@@ -853,6 +855,8 @@ function App() {
                     ? "离线演示"
                     : settings.provider === "deepseek-api"
                       ? `DeepSeek · ${settings.deepseekModel.replace("deepseek-", "")}`
+                      : settings.provider === "kimi-api" ? "Kimi · K3"
+                      : isCustomProvider(settings.provider) ? providerLabel(settings.provider, boot?.apiConnections?.connections)
                       : (boot?.model.model ?? "Pi · Codex")}
                 </span>
                 <ChevronDown size={13} />
@@ -918,6 +922,8 @@ function App() {
                 ? "离线演示不会调用真实模型"
                 : settings.provider === "deepseek-api"
                   ? "通过 DeepSeek API 直接连接"
+                  : settings.provider === "kimi-api" ? "通过 Kimi API 直接连接"
+                  : isCustomProvider(settings.provider) ? `通过 ${providerLabel(settings.provider, boot?.apiConnections?.connections)} API 连接`
                   : "使用你在 Pi 中配置的 Codex 模型"}
             </span>
             <span>{isCurrentRunning ? "Enter 排队" : "Enter 发送"} · Shift + Enter 换行</span>
@@ -935,11 +941,13 @@ function App() {
           busy={!!activeId}
           onRestored={(state) => { setBoot(state); newChat(); setSelectedTopic(""); setContextAllowed(false); }}
           settings={settings}
+          profiles={boot?.apiConnections}
+          onUpdated={setBoot}
           model={boot?.model}
-          api={boot?.api}
+          api={settings.provider === "kimi-api" ? boot?.kimiApi : boot?.api}
           onConfigure={async (apiKey) => {
             const state = await invoke<BootState>({
-              type: "configure-deepseek",
+              type: settings.provider === "kimi-api" ? "configure-kimi" : "configure-deepseek",
               apiKey,
             });
             setBoot(state);
@@ -1029,11 +1037,7 @@ const Message = memo(
           <strong>知行</strong>
           {message.provider && (
             <span className="demo-badge">
-              {message.provider === "demo"
-                ? "离线演示"
-                : message.provider === "deepseek-api"
-                  ? "DeepSeek API"
-                  : "Pi · Codex"}
+              {isCustomProvider(message.provider) ? `API · ${message.model ?? "自定义模型"}` : providerLabel(message.provider)}
             </span>
           )}
         </div>
@@ -1225,7 +1229,7 @@ function Modal({
   );
 }
 function SettingsDialog({
-  busy, onRestored,
+  busy, onRestored, profiles, onUpdated,
   settings,
   model,
   api,
@@ -1236,6 +1240,7 @@ function SettingsDialog({
 }: {
   busy: boolean;
   onRestored: (state: BootState) => void;
+  profiles?: BootState["apiConnections"]; onUpdated: (state: BootState) => void;
   settings: DesktopSettings;
   model?: BootState["model"];
   api?: BootState["api"];
@@ -1244,11 +1249,17 @@ function SettingsDialog({
   onSave: (value: DesktopSettings) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
+  const [customBusy, setCustomBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [failure, setFailure] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [savingKey, setSavingKey] = useState(false);
   const [savedKey, setSavedKey] = useState(false);
+  const [checkingApi, setCheckingApi] = useState(false);
+  const [connection, setConnection] = useState("");
+  const isKimi = settings.provider === "kimi-api";
+  const apiName = isKimi ? "Kimi" : "DeepSeek";
+  useEffect(() => { setApiKey(""); setSavedKey(false); setFailure(""); setConnection(""); }, [settings.provider]);
   const refreshButton = (
     <button
       disabled={refreshing}
@@ -1272,6 +1283,7 @@ function SettingsDialog({
         <div className="provider-options">
           <button
             className={`provider-option ${settings.provider === "pi-codex" ? "chosen" : ""}`}
+            disabled={savingKey || checkingApi || customBusy}
             onClick={() => void onSave({ ...settings, provider: "pi-codex" })}
           >
             <span className="provider-icon">
@@ -1285,6 +1297,7 @@ function SettingsDialog({
           </button>
           <button
             className={`provider-option ${settings.provider === "deepseek-api" ? "chosen" : ""}`}
+            disabled={savingKey || checkingApi || customBusy}
             onClick={() =>
               void onSave({ ...settings, provider: "deepseek-api" })
             }
@@ -1299,7 +1312,17 @@ function SettingsDialog({
             {settings.provider === "deepseek-api" && <Check size={17} />}
           </button>
           <button
+            className={`provider-option ${isKimi ? "chosen" : ""}`}
+            disabled={savingKey || checkingApi || customBusy}
+            onClick={() => void onSave({ ...settings, provider: "kimi-api" })}
+          >
+            <span className="provider-icon"><MessageSquare size={19} /></span>
+            <span><strong>Kimi API</strong><small>月之暗面 · K3，使用独立 API Key</small></span>
+            {isKimi && <Check size={17} />}
+          </button>
+          <button
             className={`provider-option ${settings.provider === "demo" ? "chosen" : ""}`}
+            disabled={savingKey || checkingApi || customBusy}
             onClick={() => void onSave({ ...settings, provider: "demo" })}
           >
             <span className="provider-icon">
@@ -1330,11 +1353,11 @@ function SettingsDialog({
                 完成登录。回到这里点击刷新，即可继承已有配置。应用已包含 Pi
                 运行环境。
               </p>
-              <p>也可以直接切换到 DeepSeek API 使用。</p>
+              <p>也可以切换到 DeepSeek 或 Kimi API 使用。</p>
             </details>
           </div>
         )}
-        {settings.provider === "deepseek-api" && (
+        {(settings.provider === "deepseek-api" || isKimi) && (
           <div className="model-status">
             <div className="model-status-heading">
               <span
@@ -1346,7 +1369,7 @@ function SettingsDialog({
               {refreshButton}
             </div>
             <p>{failure || api?.message}</p>
-            <label className="api-model-row">
+            {isKimi ? <p>模型：Kimi K3 · 快速 / 均衡 / 深入分别使用低 / 高 / 最大推理强度。</p> : <label className="api-model-row">
               <span>模型</span>
               <select
                 aria-label="DeepSeek 模型"
@@ -1362,13 +1385,15 @@ function SettingsDialog({
                 <option value="deepseek-v4-pro">DeepSeek V4 Pro</option>
                 <option value="deepseek-v4-flash-vision-exp">DeepSeek V4 Flash Vision（实验性）</option>
               </select>
-            </label>
+            </label>}
+            {isKimi && <p>使用 Kimi 开放平台的 API Key，按量计费。K3 需账户完成充值后开通。</p>}
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 setSavingKey(true);
                 setFailure("");
                 setSavedKey(false);
+                setConnection("");
                 void onConfigure(apiKey)
                   .then(() => {
                     setApiKey("");
@@ -1378,12 +1403,12 @@ function SettingsDialog({
                   .finally(() => setSavingKey(false));
               }}
             >
-              <label className="api-key-label" htmlFor="deepseek-api-key">
+              <label className="api-key-label" htmlFor={`${settings.provider}-key`}>
                 {api?.configured ? "更新 API Key（可选）" : "API Key"}
               </label>
               <div className="api-key-input">
                 <input
-                  id="deepseek-api-key"
+                  id={`${settings.provider}-key`}
                   type="password"
                   autoComplete="off"
                   spellCheck={false}
@@ -1396,10 +1421,10 @@ function SettingsDialog({
                   placeholder={
                     api?.configured
                       ? "已有配置，无需重复填写"
-                      : "粘贴你的 DeepSeek API Key"
+                      : `粘贴你的 ${apiName} API Key`
                   }
                 />
-                <button disabled={savingKey || apiKey.trim().length < 8}>
+                <button disabled={savingKey || checkingApi || apiKey.trim().length < 8}>
                   {savingKey ? "保存中" : "保存"}
                 </button>
               </div>
@@ -1409,13 +1434,24 @@ function SettingsDialog({
                   : "密钥由系统加密保护，不写入聊天记录。"}
               </p>
             </form>
+            <button className="api-connection-button" disabled={busy || savingKey || checkingApi || !api?.configured} onClick={() => {
+              setCheckingApi(true); setConnection(""); setFailure("");
+              void invoke<{ firstTokenMs: number; durationMs: number }>({ type: "check-api", provider: isKimi ? "kimi-api" : "deepseek-api" })
+                .then(result => setConnection(`连接正常 · 首字 ${(result.firstTokenMs / 1000).toFixed(1)} 秒 · 总耗时 ${(result.durationMs / 1000).toFixed(1)} 秒`))
+                .catch(problem => setFailure(messageOf(problem)))
+                .finally(() => setCheckingApi(false));
+            }}>{checkingApi ? "测试中…" : "测试连接"}</button>
+            <p role="status">{connection || "测试只发送一条简短问题，按 API 用量计费。"}</p>
           </div>
         )}
       </div>
       <div className="setting-section">
+        <ApiConnectionsPanel profiles={profiles} settings={settings} busy={busy || savingKey || checkingApi} onSave={onSave} onUpdated={onUpdated} onBusy={setCustomBusy} />
+      </div>
+      <div className="setting-section">
         <h3>偏好</h3>
         <label className="setting-row"><span><strong>单轮上下文预算</strong><small>包含输入估算和回答预留；上限保持 48,000 Token。实际计费以模型报告为准。</small></span><select aria-label="上下文预算" value={settings.contextBudget?.windowTokens ?? 48000} onChange={event => void onSave({ ...settings, contextBudget: { windowTokens: Number(event.target.value), reserveOutputTokens: Math.min(settings.contextBudget?.reserveOutputTokens ?? 16384, Number(event.target.value) / 2) } })}><option value={48000}>48,000 Token</option><option value={24000}>24,000 Token</option><option value={8000}>8,000 Token</option></select></label>
-        <label className="setting-row"><span><strong>回答预留</strong><small>较小上限适合短回答；长推导可能需要继续。Pi 桌面与 DeepSeek 均传递此上限。</small></span><select aria-label="回答预留" value={settings.contextBudget?.reserveOutputTokens ?? 16384} onChange={event => void onSave({ ...settings, contextBudget: { windowTokens: settings.contextBudget?.windowTokens ?? 48000, reserveOutputTokens: Number(event.target.value) } })}>{[1024, 4096, 16384, ...(settings.contextBudget ? [settings.contextBudget.reserveOutputTokens] : [])].filter((value, index, values) => values.indexOf(value) === index && value < (settings.contextBudget?.windowTokens ?? 48000)).sort((a, b) => a - b).map(value => <option key={value} value={value}>{value.toLocaleString()} Token</option>)}</select></label>
+        <label className="setting-row"><span><strong>回答预留</strong><small>较小上限适合短回答；长推导可能需要继续。所有在线模型均传递此上限。</small></span><select aria-label="回答预留" value={settings.contextBudget?.reserveOutputTokens ?? 16384} onChange={event => void onSave({ ...settings, contextBudget: { windowTokens: settings.contextBudget?.windowTokens ?? 48000, reserveOutputTokens: Number(event.target.value) } })}>{[1024, 4096, 16384, ...(settings.contextBudget ? [settings.contextBudget.reserveOutputTokens] : [])].filter((value, index, values) => values.indexOf(value) === index && value < (settings.contextBudget?.windowTokens ?? 48000)).sort((a, b) => a - b).map(value => <option key={value} value={value}>{value.toLocaleString()} Token</option>)}</select></label>
         <label className="setting-row"><span><strong>本机语义检索</strong><small>填写已安装的 Ollama 嵌入模型（如 bge-m3），再到课程与资料构建索引。留空使用关键词与同义词。</small></span><input aria-label="Ollama 嵌入模型" defaultValue={settings.semanticModel ?? ""} placeholder="未启用" onBlur={(event) => { const value = event.target.value.trim(); if (/^(?:[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127})?$/.test(value)) void onSave({ ...settings, semanticModel: value }); }} /></label>
         <label className="setting-row">
           <span>

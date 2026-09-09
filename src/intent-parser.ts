@@ -56,7 +56,7 @@ const CONFIRMATION_REQUIRED_COMMANDS = [
   /^导入资料\s+[a-z0-9][a-z0-9-]*\/[\w./-]+$/,
   /^删除资料\s+[a-z0-9][a-z0-9-]*\s+[\w-]+\s+--确认$/,
   /^恢复数据库\s+[^\s]+\.sqlite\s+--确认$/,
-  /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli|pi-codex)$/,
+  /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|kimi-api|codex-cli|pi-codex|api-[a-f0-9]{32})$/,
 ] as const;
 
 export function isAutomatableConversationCommand(command: string): boolean {

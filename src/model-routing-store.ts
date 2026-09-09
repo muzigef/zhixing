@@ -1,3 +1,4 @@
+import { isCustomProvider } from "./api-connection-config.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ModelRole } from "./model.js";
@@ -17,7 +18,9 @@ export class ModelRoutingStore {
     if (!routes || typeof routes !== "object") return;
     for (const role of ROLES) {
       const provider = (routes as Record<string, unknown>)[role];
-      if (typeof provider !== "string" || !registry.providerIds().includes(provider)) continue;
+      if (typeof provider !== "string") continue;
+      if (isCustomProvider(provider) && !registry.client(provider)) registry.register({ id: provider, client: { stream() { throw new Error("provider_not_found"); } }, health: async () => "unavailable" });
+      if (!registry.providerIds().includes(provider)) continue;
       registry.route(role, provider);
     }
   }

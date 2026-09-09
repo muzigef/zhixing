@@ -1,5 +1,10 @@
+import { apiConnectionInputSchema } from "../src/api-connection-config.js";
+import { ApiConnections, connectionIdentity } from "../src/api-connections.js";
+import { createAgentModel } from "../src/agent-model-factory.js";
+import { PiApplicationClient } from "../src/pi-application-client.js";
 import { DesktopService } from "../desktop/core/service.js";
 import { LearningApplication } from "../src/learning-application.js";
+import { KimiClient } from "../src/kimi-client.js";
 import { DeepSeekClient } from "../src/deepseek-client.js";
 import { MemorySecretStore } from "../src/secret-store.js";
 import { execFile, spawn } from "node:child_process";
@@ -17,11 +22,15 @@ import { PathPolicy } from "../src/paths.js";
 const exec = promisify(execFile);
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true }))); });
+const customDefinition = apiConnectionInputSchema.parse({ name: "CLI 自定义测试", baseUrl: "https://compatible.example/v1", model: "third-party-model" });
+const customConnection = { ...customDefinition, id: connectionIdentity(customDefinition) };
+const syntheticPi = new PiApplicationClient({ projectDir: "/unused", executable: "/unused/node", worker: "/unused/worker", sdk: "/unused/sdk" });
 const answer = '## 注意力\n\n**先看结论**：模型按相关性组合信息。\n\n```ts\nconst score = 1;\n```\n\n用中文解释每个变量。';
-async function setup(teaching: "answer_questions" | "practice" | false = false, responses: Array<string | { text: string; partial?: boolean; stall?: boolean }> = [answer]) {
+async function setup(teaching: "answer_questions" | "practice" | false = false, responses: Array<string | { text: string; partial?: boolean; stall?: boolean }> = [answer], provider: "deepseek-api" | "kimi-api" | typeof customConnection.id = "deepseek-api") {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-interaction-cli-")); roots.push(root);
   const settings = path.join(root, "zhixing", "settings"); await fs.mkdir(settings, { recursive: true });
-  await fs.writeFile(path.join(settings, "model-routing.local.json"), JSON.stringify({ routes: { tutor: "deepseek-api", reviewer: "mock", lab: "mock" } }));
+  await fs.writeFile(path.join(settings, "model-routing.local.json"), JSON.stringify({ routes: { tutor: provider, reviewer: "mock", lab: "mock" } }));
+  if (provider === customConnection.id) await new ApiConnections(path.join(settings, "api-connections.local.json")).save(customDefinition, 0);
   const sessions = new TeachingSessionStore(new PathPolicy(root));
   if (teaching) await sessions.save("agent-development", { dayId: "D01", dayCard: "第1天：理解注意力", stage: teaching, quizRound: teaching === "practice" ? 1 : 0, currentExercise: teaching === "practice" ? "第一题：解释注意力。" : undefined, transcript: ["教师：上次只解释了查询向量。"] });
   const chat = emptyConversation("agent-development", teaching ? "lesson" : "chat");
@@ -45,7 +54,7 @@ globalThis.fetch = async (_url, init) => {
   const content = typeof reply === 'string' ? reply : reply.text;
   let stream = '';
   for (let i = 0; i < content.length; i += 7) stream += 'data: ' + JSON.stringify({ choices: [{ delta: { content: content.slice(i, i + 7) } }] }) + '\\n\\n';
-  if (!reply.partial && !reply.stall) stream += 'data: [DONE]\\n\\n';
+  if (!reply.partial && !reply.stall) stream += 'data: ' + JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop' }] }) + '\\n\\n' + 'data: [DONE]\\n\\n';
   if (reply.stall) return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(stream)); } }), { headers: { 'content-type': 'text/event-stream' } });
   return new Response(stream, { headers: { 'content-type': 'text/event-stream' } });
 };
@@ -106,8 +115,21 @@ globalThis.fetch = async (_url, init) => {
 }
 
 describe("natural interaction through the actual CLI", () => {
-  it.each(["chat", "lesson"] as const)("sends the same DeepSeek request as the desktop for a long %s session", async mode => {
-    const fixture = await setup(mode === "lesson" ? "practice" : false);
+  it("adds and switches a third-party connection through real CLI commands across restarts", async () => {
+    const fixture = await setup();
+    const added = await fixture.invoke(`模型连接添加 ${JSON.stringify(customDefinition)}`);
+    expect(added.stdout).toContain(customConnection.id);
+    expect((await fixture.invoke("模型连接列表")).stdout).toContain("CLI 自定义测试");
+    expect((await fixture.invoke(`模型切换 tutor ${customConnection.id} --确认`)).stdout).toContain(customConnection.id);
+    await fixture.invoke("解释一下注意力");
+    expect((await fixture.requests())[0]).toMatchObject({ model: customConnection.model, max_tokens: 4096 });
+    await fs.rm(path.join(fixture.root, "zhixing/settings/api-connections.local.json"));
+    const missing = await fixture.invoke("解释一下学习率").then(result => result.stdout + result.stderr).catch(error => String(error.stdout) + String(error.stderr));
+    expect(missing).toMatch(/移除|尚未配置/);
+    expect(await fixture.requests()).toHaveLength(1);
+  });
+  it.each([{ mode: "chat", provider: "deepseek-api" }, { mode: "lesson", provider: "deepseek-api" }, { mode: "chat", provider: "kimi-api" }, { mode: "lesson", provider: "kimi-api" }, { mode: "chat", provider: customConnection.id }, { mode: "lesson", provider: customConnection.id }] as const)("sends the same $provider request as the desktop for a long $mode session", async ({ mode, provider }) => {
+    const fixture = await setup(mode === "lesson" ? "practice" : false, undefined, provider);
     const chat = (await fixture.chats.current("agent-development"))!;
     const store = new AgentSessionStore(path.join(fixture.root, "zhixing", "agent"));
     const base = await store.load(chat.id);
@@ -120,13 +142,15 @@ describe("natural interaction through the actual CLI", () => {
     const app = await LearningApplication.open(fixture.root);
     const desktopStore = new AgentSessionStore(path.join(fixture.root, "desktop-synthetic"));
     const bodies: unknown[] = [];
-    const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "fixture-key");
-    const client = new DeepSeekClient(secrets, async (_url, init) => { bodies.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ choices: [{ message: { content: answer }, finish_reason: "stop" }] })); }, { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
+    const secrets = new MemorySecretStore(); await secrets.set(`keychain:zhixing/${provider}`, "fixture-key");
+    const ApiClient = provider === "kimi-api" ? KimiClient : DeepSeekClient;
+    const fetcher = async (_url: string, init: RequestInit) => { bodies.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ choices: [{ message: { content: answer }, finish_reason: "stop" }] })); };
+    const client = provider === customConnection.id ? createAgentModel(provider, { pi: syntheticPi, secrets, connection: customConnection, fetcher, environment: { ZHIXING_ALLOW_LIVE_PROVIDER: "1" } }) : new ApiClient(secrets, fetcher, { ...process.env, ZHIXING_ALLOW_LIVE_PROVIDER: "1" });
     const desktop = new DesktopService(desktopStore, () => client, app);
     try {
       if (originalTeaching) await app.teaching.save("agent-development", originalTeaching);
       await desktopStore.save(structuredClone(base));
-      await desktop.send({ sessionId: base.id, text: "解释一下恢复流程", provider: "deepseek-api", style: "adaptive" }); await desktop.idle(); await desktop.pauseMaintenance();
+      await desktop.send({ sessionId: base.id, text: "解释一下恢复流程", provider, style: "adaptive" }); await desktop.idle(); await desktop.pauseMaintenance();
       expect(bodies[0]).toEqual(actualCli);
       expect(JSON.stringify(actualCli)).toContain("旧摘要只讲过查询向量");
       expect(JSON.stringify(actualCli)).toContain("read_conversation_history");

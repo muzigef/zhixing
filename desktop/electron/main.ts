@@ -1,3 +1,5 @@
+import { ApiConnections } from "../../src/api-connections.js";
+import { isCustomProvider, type ApiConnection, type CustomProvider } from "../../src/api-connection-config.js";
 import { ReminderStore, ReminderScheduler } from "../../src/reminder-store.js";
 import { executionSupport } from "../../src/platform-support.js";
 import { skillMetadata } from "../../src/skill-catalog.js";
@@ -41,6 +43,7 @@ import { summarizePerformance } from "../core/diagnostics.js";
 import { checkRelease } from "../core/updates.js";
 import { withModelBudget } from "../../src/model-capabilities.js";
 import type { ContextBudget } from "../../src/context-window.js";
+import { checkApiConnection } from "../../src/api-connection.js";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const origin = "zhixing://app";
@@ -60,6 +63,20 @@ let window: BrowserWindow | null = null;
 let service: DesktopService;
 let pi: PiApplicationClient;
 let secrets: EncryptedDesktopSecrets;
+let kimiSecrets: EncryptedDesktopSecrets;
+let checkingApi = false;
+let apiConnections: ApiConnections;
+let connectionProfiles: ApiConnection[] = [];
+const customSecrets = new Map<CustomProvider, EncryptedDesktopSecrets>();
+function secretsFor(provider: "deepseek-api" | "kimi-api" | CustomProvider): EncryptedDesktopSecrets {
+  if (provider === "deepseek-api") return secrets;
+  if (provider === "kimi-api") return kimiSecrets;
+  if (!customSecrets.has(provider)) customSecrets.set(provider, desktopSecrets(app.getPath("userData"), provider));
+  return customSecrets.get(provider)!;
+}
+function apiModel(provider: "deepseek-api" | "kimi-api" | CustomProvider) {
+  return createAgentModel(provider, { pi, secrets: secretsFor(provider), connection: connectionProfiles.find(item => item.id === provider), fetcher: (url, options) => net.fetch(url, options), deepseekModel, contextBudget });
+}
 let deepseekModel = "deepseek-v4-flash";
 let semanticModel = "";
 let contextBudget: ContextBudget | undefined;
@@ -86,8 +103,12 @@ function connectService(store: DesktopStore): void {
   }, () => console.warn("reminder_delivery_unavailable"));
   if (Notification.isSupported()) reminderScheduler.start();
   learning.configureSemantic(semanticModel);
-  service = new DesktopService(store, (provider) => provider === "demo" ? withModelBudget(new DesktopDemoClient(), contextBudget) : provider === "deepseek-api"
-    ? createAgentModel("deepseek-api", { pi, secrets, fetcher: (url, options) => net.fetch(url, options), deepseekModel, contextBudget }) : createAgentModel("pi-codex", { pi, secrets, contextBudget }), learning);
+  service = new DesktopService(store, provider => {
+    if (provider === "demo") return withModelBudget(new DesktopDemoClient(), contextBudget);
+    if (provider === "pi-codex") return createAgentModel(provider, { pi, secrets, contextBudget });
+    if (provider === "deepseek-api" || provider === "kimi-api" || isCustomProvider(provider)) return apiModel(provider);
+    throw new Error("provider_not_found");
+  }, learning);
   const events = new AgentEventCoalescer(event => { if (window && !window.isDestroyed()) window.webContents.send("zhixing:event", event); });
   service.subscribe(event => events.push(event));
 }
@@ -109,30 +130,26 @@ async function modelStatus(): Promise<ModelStatus> {
     };
   }
 }
+async function apiStatus(store: EncryptedDesktopSecrets, name: string, model: string) {
+  let status: { configured: boolean; source?: "desktop" | "system-keychain" };
+  try { status = await store.status(); } catch { status = { configured: false }; }
+  return { ...status, model, message: status.configured
+    ? status.source === "system-keychain" ? "已找到现有知行 API 配置，可直接使用。有效性将在发送时检查。" : "API Key 已由系统加密保存。有效性将在发送时检查。"
+    : `未找到现有 ${name} 配置，可在下方添加 API Key。` };
+}
 async function boot(): Promise<BootState> {
   const settings = await service.store.settings();
-  let status: { configured: boolean; source?: "desktop" | "system-keychain" };
-  try {
-    status = await secrets.status();
-  } catch {
-    status = { configured: false };
-  }
   const page = await service.store.page();
+  const profiles = await apiConnections.load(); connectionProfiles = profiles.connections;
   return {
     workspace: learning.summary(),
     sessions: page.sessions, nextSessionCursor: page.nextCursor,
     settings,
+    apiConnections: { revision: profiles.revision, connections: await Promise.all(profiles.connections.map(async connection => ({ ...connection, configured: (await apiStatus(secretsFor(connection.id), connection.name, connection.model)).configured }))) },
     model: await modelStatus(),
     activeSessionId: service.activeSessionId,
-    api: {
-      ...status,
-      model: settings.deepseekModel,
-      message: status.configured
-        ? status.source === "system-keychain"
-          ? "已找到现有知行 API 配置，可直接使用。有效性将在发送时检查。"
-          : "API Key 已由系统加密保存。有效性将在发送时检查。"
-        : "未找到现有 DeepSeek 配置，可在下方添加 API Key。",
-    },
+    api: await apiStatus(secrets, "DeepSeek", settings.deepseekModel),
+    kimiApi: await apiStatus(kimiSecrets, "Kimi", "kimi-k3"),
   };
 }
 async function createWindow(): Promise<void> {
@@ -201,6 +218,9 @@ else {
         sdk: await resolvePackagedPiSdk(app.getAppPath()),
       });
       secrets = desktopSecrets(root);
+      kimiSecrets = desktopSecrets(root, "kimi-api");
+      apiConnections = new ApiConnections(path.join(root, "api-connections.json"));
+      connectionProfiles = (await apiConnections.load()).connections;
       const store = new DesktopStore(root);
       deepseekModel = (await store.settings()).deepseekModel;
       semanticModel = (await store.settings()).semanticModel ?? "";
@@ -228,7 +248,8 @@ else {
           )
             throw new Error("invalid_sender");
           const command = desktopCommandSchema.parse(raw);
-          if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
+          if (checkingApi && ["check-api", "configure-deepseek", "configure-kimi", "api-connection-save", "api-connection-remove", "settings", "send", "enqueue", "answer", "resume-queue", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
+          if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "configure-kimi", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
             case "reminder-status":
@@ -241,7 +262,7 @@ else {
             case "diagnostics": {
               const sessions = await service.store.list();
               const recent = await Promise.all(sessions.slice(0, 20).map((session) => service.load(session.id)));
-              data = { version: app.getVersion(), execution: executionSupport(), performance: summarizePerformance(recent.flatMap((session) => session.messages).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-200)) };
+              data = { version: app.getVersion(), connections: connectionProfiles, execution: executionSupport(), performance: summarizePerformance(recent.flatMap((session) => session.messages).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-200)) };
               break;
             }
             case "check-updates":
@@ -507,6 +528,7 @@ else {
               data = await service.rename(command.sessionId, command.title);
               break;
             case "settings":
+              if (isCustomProvider(command.settings.provider) && !connectionProfiles.some(item => item.id === command.settings.provider)) throw new Error("provider_not_found");
               await service.store.saveSettings(command.settings);
               deepseekModel = command.settings.deepseekModel;
               semanticModel = command.settings.semanticModel ?? "";
@@ -520,6 +542,35 @@ else {
                 command.apiKey,
               );
               data = await boot();
+              break;
+            case "configure-kimi":
+              await kimiSecrets.set("keychain:zhixing/kimi-api", command.apiKey);
+              data = await boot();
+              break;
+            case "api-connection-save":
+            case "api-connection-remove":
+              if (service.activeSessionId || learningController) throw new Error("learning_busy");
+              checkingApi = true;
+              try {
+                if (command.type === "api-connection-save") {
+                  await apiConnections.save(command.connection, command.revision, async connection => {
+                    const store = secretsFor(connection.id);
+                    if (command.apiKey) await store.set(`keychain:zhixing/${connection.id}`, command.apiKey);
+                    else if (!(await store.status()).configured) throw new Error("api_connections_key_required");
+                  });
+                } else {
+                  // Keep the selected ID and historical requests. Missing connections fail
+                  // explicitly until the user selects another model; no silent fallback.
+                  await apiConnections.remove(command.id, command.revision);
+                }
+                data = await boot();
+              } finally { checkingApi = false; }
+              break;
+            case "check-api":
+              if (service.activeSessionId || learningController) throw new Error("learning_busy");
+              checkingApi = true;
+              try { data = await checkApiConnection(apiModel(command.provider)); }
+              finally { checkingApi = false; }
               break;
             case "copy":
               clipboard.writeText(command.text);

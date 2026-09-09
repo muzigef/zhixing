@@ -1,6 +1,10 @@
 # 知行前台开发任务清单
 
-> 当前任务：2026-09-09 [验收对齐与 Pi 复验](docs/acceptance-next-plan.md)。Pi 原配置真实请求、已安装 0.9 的 11 项检查及真实项目六项检查通过；验收脚本、共享回答核对、跨行公式和失败分类已修复。Pi 内容回归 20/24 全通过，DeepSeek 13/23 个可评分结果全通过且另有 1 次执行失败，仍不能宣布整体质量对齐。独立子 Agent 继续暂缓；本机 0.9 钥匙串/加密保存/重启读取已补验通过，见[本机加密验收](docs/evidence/local-keychain-20260909.md)；真实研究与正式签名仍待验。详见 [本轮证据](docs/evidence/acceptance-next.md)。
+> 当前任务：动态 API 连接与 Kimi 真实复验。Kimi 设置密文已真实调用成功；兼容服务可在设置中配置新增，复用 CLI/桌面主策略。666 项工程测试、开发/实包各六组 UI 均通过，已安装 0.9.2，升级后原 Kimi 配置真实复验成功；见[执行证据](docs/evidence/dynamic-api-20260909.md)。不启用团队模式。
+
+> 前轮调研：2026-09-09 [三种 Agent 模式可行性与实现方案](docs/agent-team-feasibility-20260909.md)。用户重新开启独立子 Agent 的调研：单 Agent 默认、同模型团队、异模型团队；本轮仅完成研究与设计，T01–T08 尚未实施，未启用团队或修改安装应用。源码与文档核对见[调研记录](docs/evidence/agent-team-research-20260909.md)。
+
+> 上轮任务：[验收对齐与 Pi 复验](docs/acceptance-next-plan.md)。Pi 原配置真实请求、已安装 0.9 的 11 项检查及真实项目六项检查通过；验收脚本、共享回答核对、跨行公式和失败分类已修复。Pi 内容回归 20/24 全通过，DeepSeek 13/23 个可评分结果全通过且另有 1 次执行失败，仍不能宣布整体质量对齐。当轮独立子 Agent 暂缓；本机 0.9 钥匙串/加密保存/重启读取已补验通过，见[本机加密验收](docs/evidence/local-keychain-20260909.md)；真实研究与正式签名仍待验。详见 [本轮证据](docs/evidence/acceptance-next.md)。
 
 > 0.9 上一轮交付：[剩余任务收口](docs/completion-plan.md)已完成图片、Windows/两种 Mac 实包、真实 MCP/语义模型/通知和本机 0.9 安装；[历史证据](docs/evidence/completion-0.9.md)保留当时延期 Pi 的状态，本轮已恢复验证。
 

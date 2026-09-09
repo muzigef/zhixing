@@ -7,7 +7,7 @@ import { DeepSeekClient } from "../src/deepseek-client.js";
 import { DesktopService } from "../desktop/core/service.js";
 import { DesktopStore } from "../desktop/core/store.js";
 import { EncryptedDesktopSecrets } from "../desktop/core/secrets.js";
-import { settingsSchema } from "../desktop/core/contracts.js";
+import { settingsSchema, desktopCommandSchema } from "../desktop/core/contracts.js";
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(
@@ -28,6 +28,22 @@ const cipher = {
   decrypt: async (buffer: Buffer) => [...buffer.toString()].reverse().join(""),
 };
 describe("desktop API / Pi switching", () => {
+  it("keeps Kimi credentials independent and accepts the Kimi configuration contract", async () => {
+    const directory = await root();
+    const deepseek = new EncryptedDesktopSecrets(directory, cipher);
+    const kimi = new EncryptedDesktopSecrets(directory, cipher, undefined, "kimi-api");
+    await deepseek.set(reference, "fixture-deepseek-value");
+    expect(await kimi.status()).toEqual({ configured: false });
+    await kimi.set("keychain:zhixing/kimi-api", "fixture-kimi-value");
+    expect(await deepseek.get(reference)).toBe("fixture-deepseek-value");
+    expect(await new EncryptedDesktopSecrets(directory, cipher, undefined, "kimi-api").get("keychain:zhixing/kimi-api")).toBe("fixture-kimi-value");
+    const bytes = await fs.readFile(path.join(directory, "kimi.credential"));
+    expect(bytes.toString()).not.toContain("fixture-kimi-value");
+    if (process.platform !== "win32") expect((await fs.stat(path.join(directory, "kimi.credential"))).mode & 0o777).toBe(0o600);
+    await expect(kimi.get(reference)).rejects.toThrow("invalid_secret_reference");
+    expect(settingsSchema.parse({ provider: "kimi-api" }).provider).toBe("kimi-api");
+    expect(desktopCommandSchema.parse({ type: "configure-kimi", apiKey: "fixture-kimi-value" }).type).toBe("configure-kimi");
+  });
   it("switches a failed Pi conversation to the real API adapter while retaining context and selected-provider history", async () => {
     const secrets = new MemorySecretStore();
     await secrets.set(reference, "fixture-desktop-key");

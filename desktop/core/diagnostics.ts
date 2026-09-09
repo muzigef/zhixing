@@ -1,10 +1,11 @@
+import { isCustomProvider } from "../../src/api-connection-config.js";
 import type { ChatMessage } from "./contracts.js";
 export interface PerformanceVariant { submittedReasoning: string; inputBand: string; turnsPerSample?: number; windowTokens?: number; reserveOutputTokens?: number; model: string; reasoning: string; transport: string; samples: number; firstTokenP50?: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; startupP50?: number; measuredTurns: number; requestP50?: number; firstEventP50?: number; processTailP50?: number; }
-export interface ProviderPerformance { provider: "pi-codex" | "deepseek-api" | "demo"; completed: number; failed: number; interrupted: number; firstTokenP50?: number; firstTokenP95?: number; durationP50?: number; contextP50?: number; modelP50?: number; compactionP50?: number; variants: PerformanceVariant[]; }
+export interface ProviderPerformance { provider: NonNullable<ChatMessage["provider"]>; completed: number; failed: number; interrupted: number; firstTokenP50?: number; firstTokenP95?: number; durationP50?: number; contextP50?: number; modelP50?: number; compactionP50?: number; variants: PerformanceVariant[]; }
 function percentile(values: (number | undefined)[], fraction: number): number | undefined { const sorted = values.filter((value): value is number => value !== undefined && Number.isFinite(value)).sort((a, b) => a - b); return sorted.length ? sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)] : undefined; }
 /** Numeric metadata only. Demo and real providers are never combined. */
 export function summarizePerformance(messages: readonly ChatMessage[]): ProviderPerformance[] {
-  return (["pi-codex", "deepseek-api", "demo"] as const).map((provider) => {
+  return (["pi-codex", "deepseek-api", "kimi-api", "demo", ...new Set(messages.flatMap(message => message.provider && isCustomProvider(message.provider) ? [message.provider] : []))] as const).map((provider) => {
     const samples = messages.filter((message) => message.role === "assistant" && message.provider === provider && message.status !== "running");
     const completed = samples.filter((message) => message.status === "completed");
     const inputBand = (message: ChatMessage) => message.usage?.inputTokens === undefined ? "未记录" : message.usage.inputTokens < 4000 ? "<4k" : message.usage.inputTokens < 16_000 ? "4k–16k" : "≥16k";

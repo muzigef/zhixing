@@ -5,7 +5,7 @@
 
 独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.9 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.9.0`。提供连续学习对话、Pi Codex / DeepSeek 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.9.2`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
 
 本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
 
@@ -27,6 +27,8 @@
 | --- | --- |
 | **Pi · Codex** | 读取 Pi 的 Codex 模型偏好，认证和刷新由 Pi 自己处理；知行不读取认证文件。 |
 | **DeepSeek API** | 默认 `deepseek-v4-flash`，界面还提供 `deepseek-v4-pro` 和实验性 `deepseek-v4-flash-vision-exp`。可复用原知行的 macOS Keychain 项，或在设置中添加桌面独立 Key。 |
+| **自定义 API** | 在设置中填写 API 根地址、模型 ID、Key 即可添加兼容服务；支持多个连接、能力参数、独立加密和连接测试。详见[配置](../docs/CONFIGURATION.md#自定义-api-连接092)。 |
+| **Kimi API** | `kimi-k3`，通过国内 `api.moonshot.cn` 连接，独立保存 API Key；可使用文字、图片及受控工具调用。 |
 | **离线演示** | 固定的本地演示内容，不调用真实模型。 |
 
 首次使用且没有偏好文件时默认选择 `pi-codex`；已有偏好优先，重启会恢复上次选择。因此本机保存为 DeepSeek 并不意味着产品默认值是 DeepSeek。找到 Pi 模型偏好或 API 配置只代表配置存在，认证、余额和网络在真实请求时检查。
@@ -51,6 +53,16 @@ pi
 
 读取顺序为桌面加密文件优先；没有该文件时，macOS 可复用 CLI 原有的知行 Keychain 项。桌面新增 Key 不会覆盖旧 Keychain 项，CLI 也不会自动使用桌面加密文件。配置页提供的状态不等于已通过真实连接检查。
 
+### 添加 Kimi API
+
+在 Kimi 国内开放平台创建 API Key，再在知行“设置 → Kimi API”中输入并保存。无需购买聊天会员；K3 的账户充值开通要求以[官方指南](https://platform.kimi.com/docs/guide/kimi-k3-quickstart)为准。默认模型为 `kimi-k3`，接口固定为 `https://api.moonshot.cn/v1/chat/completions`。
+
+密钥保存为独立的 `kimi.credential`，与 DeepSeek 使用相同的主进程系统加密、文件权限和不回填规则。macOS 可复用 CLI 的 `keychain:zhixing/kimi-api` 项。切换模型时清空未保存的密钥输入，不将 DeepSeek Key 用于 Kimi 请求。
+
+两家 API 都提供“测试连接”：只发送一条简短合成问题，显示首字和总耗时，不发送学习资料或写入聊天记录；会产生少量 API 用量。配置存在不等于连通测试通过。
+
+Kimi K3 始终开启思考；快速、均衡、深入分别映射为 `low`、`high`、`max`。仍遵守应用的上下文预算、受控工具和统一记忆策略。适配器时限 150 秒，总任务时限 180 秒；连接测试最长 60 秒。验收范围见 [Kimi 接入记录](../docs/evidence/kimi-api-20260909.md)。
+
 ## 对话与快捷键
 
 支持会话搜索、重命名、Markdown 导出、代码/回答复制、数学公式、停止/继续/重试、每会话草稿，以及跟随系统/浅色/深色主题。回答风格可设为简洁、自然或详细，本轮明确要求优先。
@@ -73,7 +85,8 @@ pi
 Zhixing/
   conversations/<UUID>.json
   preferences.json
-  deepseek.credential       # 添加新 Key 后创建
+  deepseek.credential       # 添加 DeepSeek Key 后创建
+  kimi.credential           # 添加 Kimi Key 后创建
   runtime/
   workspace.json           # 显式连接的工作区路径
   workspace/               # 默认学习工作区
@@ -186,3 +199,7 @@ node desktop/scripts/check-deepseek.mjs --live
 桌面支持选择、粘贴或拖入 PNG/JPEG，CLI 使用 `/image`；两端通过共享图像契约，限制和视觉模型选择见[图片输入](../docs/image-input.md)。真实语义检索、第三方 MCP、系统通知和跨平台验收见[0.9 记录](../docs/evidence/completion-0.9.md)。
 
 macOS 预览包现在绑定并校验完整应用的 ad-hoc 签名，以满足 Electron 原生通知要求；这不是 Developer ID 签名或公证。应用退出前等待偏好写入，连续设置修改后的读取也等待已提交写入。真实教学研究仍需参与者、独立评阅者及实际 72 小时延迟。
+
+### 动态添加模型服务
+
+设置 → 自定义 API 连接 → 添加 API 连接。支持 OpenAI 兼容 Chat Completions / Bearer Key 接口，不再按厂家增加固定按钮。内置 Pi、DeepSeek 和 Kimi 不受影响。连接测试使用固定合成消息，不发送学习资料。更换端点/模型需添加新连接；移除配置保留对话和密文，旧任务不会悄悄切换服务。完整能力与协议边界见[配置说明](../docs/CONFIGURATION.md)。

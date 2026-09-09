@@ -1,0 +1,20 @@
+{
+  "version": "0.9.2",
+  "installedAt": "2026-09-09T16:28:13.442349+08:00",
+  "target": "/Users/liqing93/Applications/知行.app",
+  "backup": "/Users/liqing93/document/study/agent/zhixing/desktop/release/installed-backups/20260909-162805/知行.app",
+  "appAsarSha256": "80fa84b58c2abb9b4ce281d97ae0614609327418752abbc48b76c4ccc0ae9130",
+  "codeHash": "fd33cd290e7f4b998d9a35098ae7e7db7f523ab460979dbf7aff64a296af5517",
+  "commit": "47c121f48aef76d32d57300798c722f88f7868f0",
+  "dirty": true,
+  "sourceInputs": 391,
+  "codesignVerify": "passed",
+  "userDataTouchedByInstaller": false,
+  "postInstallKimiCheck": {
+    "configured": true,
+    "source": "desktop",
+    "model": "kimi-k3",
+    "firstTokenMs": 15767,
+    "durationMs": 15767
+  }
+}

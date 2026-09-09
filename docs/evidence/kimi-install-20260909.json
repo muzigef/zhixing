@@ -1,0 +1,14 @@
+{
+  "installedAt": "2026-09-09T15:42:54+0800",
+  "app": "/Users/liqing93/Applications/知行.app",
+  "version": "0.9.1",
+  "backup": "/Users/liqing93/document/study/agent/zhixing/desktop/release/installed-backups/20260909-154243/知行.app",
+  "codeHash": "2947bb18667cd9e02ab72308f326251161cbecbb206883bb50bf7e7c19c6e7c8",
+  "commit": "47c121f48aef76d32d57300798c722f88f7868f0",
+  "dirty": true,
+  "sourceFiles": 386,
+  "asarSha256": "63e54b9221fb9817637406300bcb8696058eacfa489ab198fe98cadd8fb144bb",
+  "codesignVerification": "passed_ad_hoc",
+  "realKimiCredentialConfigured": false,
+  "realKimiConnectionVerified": false
+}

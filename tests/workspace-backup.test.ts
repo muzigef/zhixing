@@ -74,3 +74,27 @@ it("includes CLI execution sessions and restores pending approvals with grants c
     } finally { copy.close(); }
   } finally { app.close(); await fs.rm(root, { recursive: true, force: true }); }
 });
+import { ApiConnections } from "../src/api-connections.js";
+import { apiConnectionInputSchema } from "../src/api-connection-config.js";
+
+it("backs up and restores public API definitions without copying credentials or replacing existing connections", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-backup-api-")); const app = await LearningApplication.open(path.join(root, "workspace"), process.cwd());
+  try {
+    const desktop = new DesktopStore(path.join(root, "desktop"));
+    const profiles = new ApiConnections(path.join(desktop.root, "api-connections.json"));
+    const definition = apiConnectionInputSchema.parse({ name: "原始名称", baseUrl: "https://compatible.example/v1", model: "test-model" });
+    const saved = await profiles.save(definition, 0);
+    await fs.writeFile(path.join(desktop.root, `${saved.connections[0]!.id}.credential`), "synthetic-encrypted-bytes");
+    const backup = await createWorkspaceBackup(app, desktop, path.join(root, "exports"), "0.9.2", new AbortController().signal);
+    const manifest = await inspectWorkspaceBackup(backup, new AbortController().signal);
+    expect(manifest.files.some(file => file.path === "desktop/api-connections.json")).toBe(true);
+    expect(manifest.files.some(file => file.path.includes("credential"))).toBe(false);
+    const destination = new DesktopStore(path.join(root, "other-desktop"));
+    const other = new ApiConnections(path.join(destination.root, "api-connections.json"));
+    await other.save({ ...definition, name: "现在的名称" }, 0);
+    await restoreWorkspaceBackup(backup, path.join(root, "restored"), destination, new AbortController().signal);
+    expect((await other.load()).connections).toHaveLength(1);
+    expect((await other.load()).connections[0]!.name).toBe("现在的名称");
+    expect((await fs.readdir(destination.root)).some(file => file.endsWith(".credential"))).toBe(false);
+  } finally { app.close(); await fs.rm(root, { recursive: true, force: true }); }
+});

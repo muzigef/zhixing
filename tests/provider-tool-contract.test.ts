@@ -1,3 +1,6 @@
+import { apiConnectionInputSchema } from "../src/api-connection-config.js";
+import { connectionIdentity } from "../src/api-connections.js";
+import { createAgentModel } from "../src/agent-model-factory.js";
 import { afterEach, expect, it } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -5,6 +8,7 @@ import os from "node:os";
 import { z } from "zod/v4";
 import { ToolHarness } from "../src/tool-harness.js";
 import { PiApplicationClient } from "../src/pi-application-client.js";
+import { KimiClient } from "../src/kimi-client.js";
 import { DeepSeekClient } from "../src/deepseek-client.js";
 import { MemorySecretStore } from "../src/secret-store.js";
 import { collectInvocation } from "../src/model-invocation.js";
@@ -23,14 +27,20 @@ async function adapter(provider: string, truncated = false) {
     yield { type: "stdout", data: Buffer.from([...events, ...(!truncated ? [{ type: "done" }] : [])].map(value => JSON.stringify(value)).join("\n") + "\n") };
     yield { type: "exit", code: 0 };
   } });
-  const deepseek = new DeepSeekClient(secrets, async (_url, options) => {
+  await secrets.set("keychain:zhixing/kimi-api", "synthetic-provider-contract");
+  const ApiClient = provider === "kimi-api" ? KimiClient : DeepSeekClient;
+  const fetcher = async (_url: string, options: RequestInit) => {
     requests.push(JSON.parse(String(options.body))); const call = next();
     const delta = round <= 2 ? { tool_calls: [{ index: 0, id: call.callId, type: "function", function: { name: "bounded", arguments: JSON.stringify(call.input) } }] } : { content: "已核验合成结果。" };
     return new Response(`data: ${JSON.stringify({ choices: [{ delta, finish_reason: round <= 2 ? "tool_calls" : "stop" }] })}\n\n${truncated ? "" : "data: [DONE]\n\n"}`, { headers: { "content-type": "text/event-stream" } });
-  }, {});
-  return { client: provider === "pi-codex" ? pi : deepseek, requests };
+  };
+  const definition = apiConnectionInputSchema.parse({ name: "合成第三方", baseUrl: "https://compatible.example/v1", model: "synthetic" });
+  const connection = { ...definition, id: connectionIdentity(definition) };
+  await secrets.set(`keychain:zhixing/${connection.id}`, "synthetic-provider-contract");
+  const client = provider === "custom" ? createAgentModel(connection.id, { pi, secrets, connection, fetcher, environment: {} }) : new ApiClient(secrets, fetcher, {});
+  return { client: provider === "pi-codex" ? pi : client, requests };
 }
-it.each(["pi-codex", "deepseek-api"])("%s preserves executable schemas, validation failures, call identities and output budgets across native continuation", async provider => {
+it.each(["pi-codex", "deepseek-api", "kimi-api", "custom"])("%s preserves executable schemas, validation failures, call identities and output budgets across native continuation", async provider => {
   const { client, requests } = await adapter(provider); const harness = new ToolHarness(); let executed = 0;
   harness.register({ name: "bounded", description: "合成参数验证", input: z.object({ value: z.number().int().min(1).max(9) }).strict(), risk: "read", idempotent: true, timeoutMs: 1000, execute: async input => { executed++; return { value: input.value }; } });
   const result = await collectInvocation(providerRuntime(provider, client), { role: "tutor", providerId: provider, prompt: "合成调用", containsUserMaterials: false, confirmed: false, tools: harness.definitions(), contextBudget: { windowTokens: 8000, reserveOutputTokens: 1024 }, onToolCall: (tool, input, signal) => harness.execute(tool, input, { topicId: "rag", signal }) }, new AbortController().signal);
@@ -47,7 +57,7 @@ it.each(["pi-codex", "deepseek-api"])("%s preserves executable schemas, validati
     expect(wire[1]!.messages.find((message: { role: string }) => message.role === "tool")).toMatchObject({ tool_call_id: "call-1", content: expect.stringContaining("tool_input_invalid") });
   }
 });
-it.each(["pi-codex", "deepseek-api"])("%s does not execute a tool from a truncated native stream", async provider => {
+it.each(["pi-codex", "deepseek-api", "kimi-api", "custom"])("%s does not execute a tool from a truncated native stream", async provider => {
   const { client } = await adapter(provider, true); let calls = 0;
   await expect(collectInvocation(providerRuntime(provider, client), { role: "tutor", providerId: provider, prompt: "合成断流", containsUserMaterials: false, confirmed: false, onToolCall: async () => { calls++; return {}; } }, new AbortController().signal)).rejects.toThrow("provider_incomplete");
   expect(calls).toBe(0);

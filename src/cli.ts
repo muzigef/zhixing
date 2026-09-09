@@ -1,3 +1,6 @@
+import { publicError } from "./agent-errors.js";
+import { ApiConnections, connectionIdentity } from "./api-connections.js";
+import { apiConnectionInputSchema, type ApiConnection } from "./api-connection-config.js";
 import { readImageFile } from "./image-file.js";
 import { executionSupport } from "./platform-support.js";
 import { CliAgentTransport } from "./cli-agent-transport.js";
@@ -78,7 +81,14 @@ providerRegistry.register({ id: "codex-cli", client: new CodexCliClient(undefine
 const piProvider = new PiApplicationClient({ projectDir: path.resolve(import.meta.dirname, ".."), executable: process.execPath,
   executableArgs: ["--import", "tsx"], worker: path.join(import.meta.dirname, "pi-model-worker.ts"), sdk: await resolvePiSdk(path.resolve(import.meta.dirname, "..")) });
 providerRegistry.register({ id: "deepseek-api", client: createAgentModel("deepseek-api", { pi: piProvider, secrets: keychain }), health: async () => await keychain.get("keychain:zhixing/deepseek-api") ? "healthy" : "unavailable" });
+providerRegistry.register({ id: "kimi-api", client: createAgentModel("kimi-api", { pi: piProvider, secrets: keychain }), health: async () => await keychain.get("keychain:zhixing/kimi-api") ? "healthy" : "unavailable" });
 providerRegistry.register({ id: "pi-codex", client: createAgentModel("pi-codex", { pi: piProvider, secrets: keychain }), health: async () => { if (process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") return "unavailable"; await piProvider.selection(); return "unknown"; } });
+const apiConnections = new ApiConnections(path.join(root, "zhixing", "settings", "api-connections.local.json"));
+function registerConnection(connection: ApiConnection): void {
+  if (providerRegistry.client(connection.id)) return;
+  providerRegistry.register({ id: connection.id, client: createAgentModel(connection.id, { pi: piProvider, secrets: keychain, connection }), health: async () => process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0" ? "unavailable" : "unknown" });
+}
+for (const connection of (await apiConnections.load()).connections) registerConnection(connection);
 providerRegistry.route("tutor", "mock");
 providerRegistry.route("reviewer", "mock");
 providerRegistry.route("lab", "mock");
@@ -112,7 +122,7 @@ let cliAgent = createCliAgent();
 chat = await cliAgent.recover(chat);
 teachingSession = await loadCurrentTeaching(activeTopic);
 function createCliAgent(): CliAgentTransport {
-  return new CliAgentTransport(root, learning, provider => providerRegistry.client(provider) ?? mockProvider,
+  return new CliAgentTransport(root, learning, provider => { const client = providerRegistry.client(provider); if (!client) throw new Error("provider_not_found"); return client; },
     text => { if (replMode) { if (liveText) liveText.write(text); else writeLive(text); } });
 }
 let replying = false;
@@ -274,6 +284,7 @@ async function execute(line: string): Promise<string> {
 - 排队：/queue 查看，/queue clear 撤回，/queue resume 继续持久队列
 - 任务：/task 查看计划与累计用量；/task revise <新目标> 保留旧计划并继续；/task verify 核对未知外部操作
 - 应用任务：/agent <任务> --允许外发；/answer <卡片 ID> allow|deny|回答内容
+- 自定义模型：模型连接列表；模型连接添加 <公开配置 JSON>（只含 name、baseUrl、model 和兼容选项，Key 用隐藏输入单独保存）
 - 调整计划：直接描述需求；确认草案后执行
 - 取消草案：/cancel-plan
 - 退出：退出 或 /exit
@@ -296,6 +307,19 @@ async function execute(line: string): Promise<string> {
   }
   if (command === "/plan") return "直接描述学习目标或调整要求，例如“帮我制定 14 天的 RAG 学习计划”。";
   if (command.startsWith("/plan ")) command = `帮我调整学习计划：${command.slice(6)}`;
+  if (command === "模型连接列表") {
+    const state = await apiConnections.load();
+    return state.connections.map(connection => `${connection.id} · ${connection.name} · ${connection.model} · ${connection.baseUrl}`).join("\n") || "还没有自定义 API 连接。用“模型连接添加 <公开配置 JSON>”添加，不要在 JSON 中填写 Key。";
+  }
+  if (command.startsWith("模型连接添加 ")) {
+    let input;
+    try { input = apiConnectionInputSchema.parse(JSON.parse(command.slice("模型连接添加 ".length))); }
+    catch { throw new Error("api_connections_invalid"); }
+    const current = await apiConnections.load();
+    const saved = await apiConnections.save(input, current.revision);
+    const id = connectionIdentity(input); registerConnection(saved.connections.find(connection => connection.id === id)!);
+    return `已保存公开连接配置：${input.name}（${id}）。\n模型添加 api-key ${id}\n通过隐藏输入保存 Key 后，使用“模型切换 tutor ${id} --确认”。`;
+  }
   const interaction = decideInteraction(command, nextInteractionMode(chat.mode === "lesson" && Boolean(teachingSession), Boolean(pendingConversationPlan)));
   const authorizationError = authorizationMessage(interaction);
   if (authorizationError) return authorizationError;
@@ -767,7 +791,7 @@ async function executeConversationCommand(command: string): Promise<string> {
   }
   const activatePlan = /^启用计划\s+(plan-[\dTZ-]+)(?:\s+--确认)?$/.exec(command)?.[1];
   if (activatePlan) return await runtime.activatePlan(activeTopic, activatePlan);
-  const switchModel = /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli|pi-codex)$/.exec(command);
+  const switchModel = /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|kimi-api|codex-cli|pi-codex|api-[a-f0-9]{32})$/.exec(command);
   if (switchModel) {
     providerRegistry.route(switchModel[1] as "tutor" | "reviewer" | "lab", switchModel[2]!);
     await routingStore.save(providerRegistry);
@@ -901,6 +925,7 @@ function presentError(error: unknown): string {
   const message = error instanceof Error ? error.message : "unknown_error";
   if (message === "pi_login_required") return "Pi 无法使用当前 Codex 登录信息。请通过 ./scripts/pi-safe.sh 进入 Pi，执行 /login 并选择 OpenAI Codex，完成登录后重试；无需在知行填写 API Key。";
   if (message === "pi_configuration_required") return "Pi 尚未配置有效的 Codex 默认模型。请在 Pi 中选择 openai-codex 模型并保存配置后重试。";
+  if (message.startsWith("api_connections_") || message === "provider_not_found") return publicError(error);
   if (message === "provider_model_mismatch") return "Pi 返回的模型与配置不一致，本轮已停止。请检查 Pi 模型设置。";
   if (message === "provider_tools_unsupported") return "当前 tutor 适配器不支持知行工具调用。请使用“模型切换 tutor deepseek-api --确认”后重试；mock、codex-cli 和 pi-codex 仍可使用原有学习命令。";
   if (error instanceof Error && error.name === "AbortError") return "已停止本轮回答，可以继续输入。";

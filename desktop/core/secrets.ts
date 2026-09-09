@@ -1,3 +1,4 @@
+import { isCustomProvider, type CustomProvider } from "../../src/api-connection-config.js";
 import fs from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
@@ -23,8 +24,10 @@ export class EncryptedDesktopSecrets implements SecretStore {
     root: string,
     private readonly cipher: DesktopCipher,
     private readonly legacy?: LegacySecret,
+    private readonly provider: "deepseek-api" | "kimi-api" | CustomProvider = "deepseek-api",
   ) {
-    this.file = path.join(root, "deepseek.credential");
+    if (!["deepseek-api", "kimi-api"].includes(provider) && !isCustomProvider(provider)) throw new Error("invalid_secret_reference");
+    this.file = path.join(root, isCustomProvider(provider) ? `${provider}.credential` : provider === "kimi-api" ? "kimi.credential" : "deepseek.credential");
   }
   async status(): Promise<SecretStatus> {
     if (await this.exists()) return { configured: true, source: "desktop" };
@@ -74,7 +77,7 @@ export class EncryptedDesktopSecrets implements SecretStore {
     throw new Error("secret_deletion_requires_confirmation");
   }
   private assertReference(reference: string): void {
-    if (reference !== "keychain:zhixing/deepseek-api")
+    if (reference !== `keychain:zhixing/${this.provider}`)
       throw new Error("invalid_secret_reference");
   }
   private async exists(): Promise<boolean> {

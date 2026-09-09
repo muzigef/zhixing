@@ -1,13 +1,14 @@
+import { isCustomProvider, type CustomProvider } from "../../src/api-connection-config.js";
 import { safeStorage } from "electron";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { MacOSKeychainSecretStore } from "../../src/macos-keychain.js";
 import { EncryptedDesktopSecrets, type LegacySecret } from "../core/secrets.js";
 
-export function desktopSecrets(root: string): EncryptedDesktopSecrets {
+export function desktopSecrets(root: string, provider: "deepseek-api" | "kimi-api" | CustomProvider = "deepseek-api"): EncryptedDesktopSecrets {
   // Tests are isolated from the user's real Keychain unless a live check is explicitly requested.
   const useLegacy =
-    process.platform === "darwin" &&
+    !isCustomProvider(provider) && process.platform === "darwin" &&
     (!process.env.ZHIXING_DESKTOP_TEST_DATA ||
       process.env.ZHIXING_DESKTOP_LIVE_CHECK === "1");
   const keychain = new MacOSKeychainSecretStore(async (args) => {
@@ -37,7 +38,7 @@ export function desktopSecrets(root: string): EncryptedDesktopSecrets {
                 "-a",
                 "zhixing",
                 "-s",
-                "keychain:zhixing/deepseek-api",
+                `keychain:zhixing/${provider}`,
               ],
               { timeout: 4000, maxBuffer: 16_000 },
               (error) => resolve(!error),
@@ -45,7 +46,7 @@ export function desktopSecrets(root: string): EncryptedDesktopSecrets {
             child.stdout?.resume();
             child.stderr?.resume();
           }),
-        get: () => keychain.get("keychain:zhixing/deepseek-api"),
+        get: () => keychain.get(`keychain:zhixing/${provider}`),
       }
     : undefined;
   return new EncryptedDesktopSecrets(
@@ -59,5 +60,6 @@ export function desktopSecrets(root: string): EncryptedDesktopSecrets {
         (await safeStorage.decryptStringAsync(value)).result,
     },
     legacy,
+    provider,
   );
 }

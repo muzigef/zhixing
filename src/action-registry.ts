@@ -28,7 +28,7 @@ const definitions: readonly Definition[] = [
   { id: "library.import", risk: "write", pattern: /^导入资料\s+(.+)$/, input: (m) => ({ source: m[1]!.trim() }) },
   { id: "library.delete", risk: "destructive", confirmationRequired: true, pattern: /^删除资料\s+([a-z0-9][a-z0-9-]*)\s+([\w-]+)$/, input: (m) => ({ topicId: topicId.parse(m[1]), documentId: m[2] }) },
   { id: "database.restore", risk: "destructive", confirmationRequired: true, pattern: /^恢复数据库\s+([^\s]+)$/, input: (m) => ({ backup: m[1] }) },
-  { id: "provider.route", risk: "provider", confirmationRequired: true, pattern: /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|codex-cli|pi-codex)$/, input: (m) => ({ role: m[1], provider: m[2] }) },
+  { id: "provider.route", risk: "provider", confirmationRequired: true, pattern: /^模型切换\s+(tutor|reviewer|lab)\s+(mock|deepseek-api|kimi-api|codex-cli|pi-codex|api-[a-f0-9]{32})$/, input: (m) => ({ role: m[1], provider: m[2] }) },
   { id: "memory.write", risk: "write", confirmationRequired: true, pattern: /^记住\s+(.+)$/, input: (m) => ({ content: m[1]!.trim() }) },
 ] as const;
 

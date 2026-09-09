@@ -1,3 +1,4 @@
+import { apiConnectionInputSchema, type ApiConnection, customProviderSchema } from "../../src/api-connection-config.js";
 import { accessSelectionSchema } from "../../src/agent-permissions.js";
 import { projectEditSchema, projectPathSchema } from "../../src/practice-projects.js";
 import { mcpServerSchema } from "../../src/mcp-settings.js";
@@ -10,7 +11,7 @@ import { assistanceSchema } from "../../src/learning-observations.js";
 import { recoveryReportSchema } from "../../src/task-continuity.js";
 import { contextBudgetSchema } from "../../src/model-capabilities.js";
 
-export const providerSchema = z.enum(["pi-codex", "deepseek-api", "demo"]);
+export const providerSchema = z.union([customProviderSchema, z.enum(["pi-codex", "deepseek-api", "kimi-api", "demo"])]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const settingsSchema = z.object({
@@ -63,6 +64,10 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("configure-deepseek"),
     apiKey: z.string().trim().min(8).max(4096),
   }),
+  z.object({ type: z.literal("configure-kimi"), apiKey: z.string().trim().min(8).max(4096) }),
+  z.object({ type: z.literal("check-api"), provider: z.union([customProviderSchema, z.enum(["deepseek-api", "kimi-api"])]) }),
+  z.object({ type: z.literal("api-connection-save"), revision: z.number().int().nonnegative(), connection: apiConnectionInputSchema, apiKey: z.string().trim().min(8).max(4096).optional() }).strict(),
+  z.object({ type: z.literal("api-connection-remove"), revision: z.number().int().nonnegative(), id: customProviderSchema }).strict(),
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
   z.object({ type: z.literal("learning-overview"), topicId: topicIdSchema }),
   z.object({ type: z.literal("project-list"), topicId: topicIdSchema }),
@@ -125,8 +130,10 @@ export interface ApiStatus {
   message: string;
 }
 export interface BootState {
+  apiConnections?: { revision: number; connections: (ApiConnection & { configured: boolean })[] };
   workspace?: WorkspaceSummary;
   api: ApiStatus;
+  kimiApi?: ApiStatus;
   sessions: SessionSummary[];
   nextSessionCursor?: string | null;
   settings: DesktopSettings;

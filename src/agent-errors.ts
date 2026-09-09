@@ -1,5 +1,7 @@
 export function publicError(error: unknown): string {
   const code = error instanceof Error ? error.message : "";
+  if (code === "provider_not_found") return "这个 API 连接已移除或尚未配置，请在设置中添加连接或选择其他模型。";
+  if (code.startsWith("api_connections_")) return ({ api_connections_conflict: "连接配置已改变，请关闭设置并重新打开后再保存。", api_connections_key_required: "请先填写这个连接的 API Key。", api_connections_limit: "最多保存 20 个 API 连接，请先移除不再使用的连接。", api_connections_invalid: "API 连接配置无效或与原地址不一致，请重新添加连接。" } as Record<string, string>)[code] ?? "API 连接未保存，请检查地址和模型配置。";
   if (code === "image_model_required") return "当前模型不支持图片。DeepSeek 请在设置中选择 V4 Flash Vision；或选择支持图片的 Pi 模型。";
   if (code.startsWith("image_")) return "图片无法使用。请提供每张不超过 512KB、长宽不超过 2048 像素的 PNG 或 JPEG，每次最多两张。";
   if (error instanceof Error && error.name === "AbortError" || /^(?:import_)?cancelled$/.test(code)) return "已取消本次操作。";
@@ -92,6 +94,14 @@ export function publicError(error: unknown): string {
   if (code === "platform_execution_unavailable") return "本机暂时没有可用的系统执行沙箱；请使用包含沙箱的 macOS 或 Windows 安装包，或继续使用对话与资料功能。";
   if (code === "mcp_isolation_unavailable") return "受限 MCP 当前需要 macOS 系统沙箱；本机可继续使用对话与资料功能。";
   if (learningErrors[code]) return learningErrors[code];
+  if (code.includes("compatible-api 未配置")) return "尚未配置这个连接的 API Key，请在设置中管理该连接。";
+  const compatibleHttp = /^provider_unavailable: compatible HTTP (\d{3})$/.exec(code)?.[1];
+  if (compatibleHttp) return ({ "400": "接口拒绝了请求，请核对模型 ID、工具能力和兼容选项。", "401": "API Key 无效或已过期，请在设置中更新该连接。", "402": "API 账户余额不足，请检查服务商账户。", "403": "API 访问被拒绝，请核对 Key 权限和模型开通状态。", "404": "没有找到 API 接口或模型，请核对根地址和模型 ID。", "429": "API 暂时限流或配额不足，请检查账户或稍后重试。" } as Record<string, string>)[compatibleHttp] ?? `API 服务暂时不可用（HTTP ${compatibleHttp}），请稍后重试。`;
+  if (code.includes("kimi-api 未配置")) return "尚未配置 Kimi API Key，请在设置中添加。";
+  if (code.includes("kimi HTTP 401")) return "Kimi API Key 无效或已过期，请在设置中更新。";
+  if (code.includes("kimi HTTP 402")) return "Kimi API 账户余额不足，请检查账户。";
+  if (code.includes("kimi HTTP 403")) return "Kimi API 访问被拒绝，请检查 Key 权限及账户是否已充值开通 K3。";
+  if (code.includes("kimi HTTP 429")) return "Kimi API 暂时限流，请稍后重试。";
   if (code.includes("deepseek-api 未配置"))
     return "尚未配置 DeepSeek API Key，请在设置中添加。";
   if (code.includes("deepseek HTTP 401"))

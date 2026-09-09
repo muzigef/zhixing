@@ -22,12 +22,12 @@ graph TD
   App --> Domain[LearningRuntime / TopicPlanLoader]
   App --> Stores[DocumentLibrary / EvidenceStore / SQLite / 笔记]
   Assistant --> Tools[当前主题 ToolHarness]
-  Assistant --> Model[Pi Codex / DeepSeek / demo]
+  Assistant --> Model[Pi Codex / DeepSeek / Kimi / demo]
   Agent --> Chat[AgentSessionStore / 会话快照]
   Assistant --> Journal[AgentExecutionStore / 执行检查点]
 ```
 
-模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。桌面 Pi SDK 与 DeepSeek 均支持受控应用工具续写；课程状态仍由实际证据和程序控制。
+模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。桌面 Pi SDK、DeepSeek 与 Kimi 均支持受控应用工具续写；课程状态仍由实际证据和程序控制。
 
 ### CLI 组合根
 
@@ -44,7 +44,7 @@ CLI / REPL
   -> TopicRegistry + TopicStore（内置或用户创建的本地主题）
   -> LearningRuntime（Day gate、进度、Review）
   -> DocumentLibrary + ZhixingDatabase（PDF/Markdown、关键词/同义词重排、记忆）
-  -> ProviderRuntime（mock / DeepSeek / Codex CLI / Pi Codex）
+  -> ProviderRuntime（mock / DeepSeek / Kimi / Codex CLI / Pi Codex）
   -> ActionRegistry / InteractionProtocol（输入分类与命令元数据）
   -> RunManager + WorkflowLedger（取消、单前台任务、SQLite 运行/步骤账本）
   -> AuditLogger（脱敏事件轨迹）
@@ -77,6 +77,7 @@ CLI / REPL
 | mock | CLI 本地 `MockModelClient`，也用于确定性验证 | 立即返回 |
 | demo | 桌面 `DesktopDemoClient`，明确标注离线演示 | 本地分片输出 |
 | deepseek-api | CLI 与桌面复用 `DeepSeekClient`；密钥来源由各入口注入 | 60 秒；SSE 单帧 64 KiB、整响应 8 MiB |
+| kimi-api | CLI 与桌面复用 `KimiClient`；国内 Moonshot K3，独立凭据，始终思考 | 150 秒；与 DeepSeek 共用有界 SSE 传输 |
 | codex-cli | 仅 CLI；`codex exec --sandbox read-only --ephemeral --json` | CLI 注入 150 秒；类构造默认值为 60 秒 |
 | pi-codex | 两端使用同一个仅模型能力的 Pi SDK worker；均读取 Pi 的模型与推理偏好 | 默认 150 秒 |
 
@@ -96,7 +97,7 @@ Pi 模型 worker 输出统一文本、工具、用量与完成事件；适配器
 
 `ModelEvent` 包含文本、工具请求、工具结果与终止事件；工具请求带 `callId`。模型发出的 `tool_result` 不可信，只有控制面实际执行的结果会进入续写。`collectInvocation` 在单个调用内持有完整的模型/工具历史，固定 Provider 路由，并在收到整个合法工具批次后执行；显式纯只读工具最多两个并行，结果仍按请求顺序记录。工具失败作为结构化观察反馈，模型可以调整下一步；未知工具和写权限不因模型要求而开放。
 
-PiApplicationClient 与 DeepSeekClient 均实现 ContinuableModelClient，经同一模型工厂应用预算。两个入口使用共享 ToolHarness、权限、完整工具配对和原文回读；CLI 的教学分类与业务指令位于 agent-dialogue.ts，不再自选历史或 runtime。
+PiApplicationClient、DeepSeekClient 与 KimiClient 均实现 ContinuableModelClient，经同一模型工厂应用预算。两个入口使用共享 ToolHarness、权限、完整工具配对和原文回读；CLI 的教学分类与业务指令位于 agent-dialogue.ts，不再自选历史或 runtime。
 
 REPL 持续读输入，普通消息串行执行，状态与取消即时响应，显式调整可抢占文本生成。短段落定时刷新；正在编辑输入时暂存新增显示。隐藏输入独占来源，不将其缓存重放进聊天。该界面仍是行式终端，未实现完整 TUI。
 
@@ -114,7 +115,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
 2. `DesktopService` 兼容导出实际使用 `AgentService.send`，以会话租约拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
-3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK 与 DeepSeek 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`message_patch`、`delta`、`settled` 事件按会话隔离。
+3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK、DeepSeek 与 Kimi 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`message_patch`、`delta`、`settled` 事件按会话隔离。
 4. 收到非空文本和明确 `done`，且应用计划已完成才标记 `completed`；提前结束会有界继续或返回 `blocked`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
 5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
@@ -136,7 +137,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 | 单次用户输入 | 20,000 字符 | `desktop/core/contracts.ts` |
 | 单条回答 | 64,000 字符 | `src/agent-service.ts` |
 | 单次生成 | 最多 10,000 个模型事件，服务总时限 180 秒 | `src/model-invocation.ts`、`src/agent-service.ts` |
-| 适配器时限 | DeepSeek 60 秒、Pi 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-client.ts` |
+| 适配器时限 | DeepSeek 60 秒、Pi / Kimi 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-client.ts` |
 | 保存的会话 | 最多 20,000 条消息；完整会话合计 12,000,000 字节，旧原文按 250 条分段 | `src/agent-session-contracts.ts`、`src/agent-session-store.ts` |
 | 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `src/agent-service.ts` |
 
@@ -145,7 +146,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 ## 安全与质量
 
 - `PathPolicy` 控制主题路径、导入根以及现存父目录/中间目录/叶子文件符号链接越界；它不代替防并发路径替换的 OS 沙箱；资料和用户本地状态不得提交。
-- CLI 的 DeepSeek API Key 通过 `MacOSKeychainSecretStore` 读写 macOS Keychain。CLI 模型审计记录 Provider、角色、耗时、状态及事件/回合/工具调用计数，不保存 prompt、回答或凭证；桌面模型任务写入同一 WorkflowLedger，同时保留消息状态、步骤、引用及时间元数据。
+- CLI 的 DeepSeek / Kimi API Key 通过 `MacOSKeychainSecretStore` 读写 macOS Keychain。CLI 模型审计记录 Provider、角色、耗时、状态及事件/回合/工具调用计数，不保存 prompt、回答或凭证；桌面模型任务写入同一 WorkflowLedger，同时保留消息状态、步骤、引用及时间元数据。
 - 删除资料、写长期记忆和恢复数据库均需命令级确认；恢复会先预校验备份，并在失败时重新打开原数据库。
 - 桌面新 API Key 通过主进程的 `EncryptedDesktopSecrets` 使用 Electron 异步 safeStorage 加密，保存为用户数据目录下的 `deepseek.credential`；加密不可用时拒绝保存，没有明文回退。macOS 可复用现有知行 Keychain 项，优先使用桌面加密文件。配置状态只检查文件/Keychain 元数据，实际请求才读取密钥；设置页不会回填已有密钥，密钥不进入偏好或聊天 JSON。Pi 认证仍由 Pi 独立管理。
 - renderer 启用 sandbox、context isolation、禁用 Node integration，通过受限 preload 使用应用接口；本地 `zhixing://app` 协议只提供打包资源，CSP 禁止 renderer 自行联网，导航、新窗口和权限请求默认拒绝。`open-link` 仅允许不含内嵌账号密码的 HTTP(S) URL，由主进程交给系统浏览器。
@@ -217,3 +218,17 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 会话当前写入 v8，首次保存 v1–v7 前保留原文件；SQLite 标记 6，旧应用拒绝打开。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。
 
 0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。
+
+## 0.9.1 Kimi API
+
+`DeepSeekClient` / `KimiClient` 在共享 `ChatCompletionsClient` 上定义各自的端点、模型、推理和超时策略。Kimi 原生 assistant 状态包含推理及原始工具参数，在本次调用内部续接；不进入用户可见聊天。跨供应商只投影共享公共历史。新增配置、会话 provider schema 和诊断支持 `kimi-api`，CLI / 桌面的同题长对话、教学请求一致性由真实入口的合成测试验证。
+
+连接探针是设置页显式操作，经同一模型工厂发送无上下文的合成问题，最多 2,048 输出 token / 60 秒；它不执行工具、不创建教学会话，也不写入学习状态。实际工程、安装和账户边界见 [Kimi 验收](evidence/kimi-api-20260909.md)。
+
+## 配置驱动的模型连接（0.9.2）
+
+`api-connection-config.ts` 定义公开、严格、有界的连接契约；`ApiConnections` 负责版本校验、原子写入和配置修订冲突检查。身份哈希绑定线上的完整配置，不允许同 ID 换端点。`createAgentModel` 同时接收内置 Provider 和自定义 ID，未知 ID 明确失败。新增兼容厂商不增加 Provider 枚举分支。
+
+桌面仅处理设置、模型选择和系统密文，CLI 使用同一契约/工厂，二者继续调用 AgentService。ChatCompletionsClient 复用有界 SSE、原生工具状态与取消策略；工具执行始终经过 ToolHarness。配置中的工具/图片能力和上下文/输出上限是声明与约束，不是假定所有模型能力相同。当前自定义协议是 OpenAI Chat Completions/Bearer；其他原生协议需新的适配器，不能靠改 URL 冒充兼容。
+
+密钥引用按连接身份隔离，公开 JSON 与备份不含凭据；连接管理变更和测试在主进程加互斥保护，修改旧任务端点不能靠改名或备份恢复实现。移除连接保留历史且无自动模型回退。详见[配置](CONFIGURATION.md#自定义-api-连接092)和[本轮验证](evidence/dynamic-api-20260909.md)。
