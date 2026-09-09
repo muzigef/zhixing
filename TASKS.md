@@ -1,6 +1,8 @@
 # 知行前台开发任务清单
 
-> 当前任务：2026-09-09 [0.9 剩余任务收口](docs/completion-plan.md)。图片、长历史回读、回答检查、盲评包和真实 MCP 兼容已开发并验证，真实语义模型与签名实包系统通知通过，两个 Mac 架构实包与本机 0.9 安装通过，Windows 原生隔离、NSIS 实际安装及安装后五组 UI 通过；详细状态见 [本轮证据](docs/evidence/completion-0.9.md)。明确延期 Pi Codex 故障、独立子 Agent。真实参与者/72 小时结果与正式签名条件不由合成测试替代。
+> 当前任务：2026-09-09 [验收对齐与 Pi 复验](docs/acceptance-next-plan.md)。Pi 原配置真实请求、已安装 0.9 的 11 项检查及真实项目六项检查通过；验收脚本、共享回答核对、跨行公式和失败分类已修复。Pi 内容回归 20/24 全通过，DeepSeek 13/23 个可评分结果全通过且另有 1 次执行失败，仍不能宣布整体质量对齐。独立子 Agent 继续暂缓；真实研究、系统授权与正式签名条件仍待验。详见 [本轮证据](docs/evidence/acceptance-next.md)。
+
+> 0.9 上一轮交付：[剩余任务收口](docs/completion-plan.md)已完成图片、Windows/两种 Mac 实包、真实 MCP/语义模型/通知和本机 0.9 安装；[历史证据](docs/evidence/completion-0.9.md)保留当时延期 Pi 的状态，本轮已恢复验证。
 
 > 0.8 历史基线：2026-09-08 [架构评审修复 N01–N10](docs/architecture-remediation-plan.md)工程修复与 macOS ARM64 本机验收完成，桌面 0.8.0：603 测试、开发/实包各五组 UI、两套生产依赖审计、DMG 关键内容及源码来源核对通过。DeepSeek 合成请求成功；Pi 两次 HTTP 请求阶段失败，真实连接待复测。图像/独立子 Agent 为未启用的条件性扩展，真实教学效果、其他平台及签名未验收。详见 [执行记录](docs/evidence/architecture-remediation.md)。
 

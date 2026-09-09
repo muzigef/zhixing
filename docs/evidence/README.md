@@ -6,6 +6,7 @@
 
 | 记录 | 范围与适用性 |
 | --- | --- |
+| [验收对齐与 Pi 复验](acceptance-next.md) | 原配置 HTTP 200、已安装 0.9 的 11 项真实检查/项目六项；共享格式与验收统计修复，Pi 内容 20/24，仍非全通过 |
 | [0.9 剩余任务验收](completion-0.9.md) | 图片、Windows 原生隔离/实际 NSIS 安装、两种 Mac 实包、真实 MCP/语义模型/通知；622 项测试，开放回答质量未全达标 |
 | [0.9 回答质量复核](completion-quality-review.md) | 完整原答与绑定哈希的开发助手评分，严格主集仅 9/24；不是独立人类或学习效果评价 |
 | [0.9 最终平台回执](completion-platforms.json) | Mac ARM/Intel 与 Windows 各自成功 job、具体提交、步骤和 artifact；原失败结果保留 |

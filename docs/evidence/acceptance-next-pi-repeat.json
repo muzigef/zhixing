@@ -1,0 +1,557 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-09T03:51:00.257Z",
+  "node": "v24.8.0",
+  "results": [
+    {
+      "id": "text-balanced-sse",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 1,
+      "start": 1788925860288,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 4027,
+      "firstTokenMs": 2960,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 4023,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 1168,
+          "requestMs": 2444,
+          "firstEventMs": 1250,
+          "firstTextMs": 1736,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 4018,
+          "processTailMs": 356
+        }
+      ],
+      "usage": {
+        "inputTokens": 1320,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 1168
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788925860297,
+          "events": [
+            {
+              "at": 1788925863249,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788925863958,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1320,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 1168
+              }
+            },
+            {
+              "at": 1788925863958,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925864315,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925860326,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925861524,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925862762,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925864291,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 4281,
+          "toolCount": 2
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-sse",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 1,
+      "start": 1788925864328,
+      "status": "completed",
+      "text": "当前主题为 RAG，当前无进行中的学习日，状态为“尚未开始”。",
+      "durationMs": 6229,
+      "firstTokenMs": 5338,
+      "timings": {
+        "contextMs": 14,
+        "modelMs": 6213,
+        "toolMs": 2,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 539,
+          "requestMs": 2173,
+          "firstEventMs": 1370,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 3107,
+          "processTailMs": 343
+        },
+        {
+          "transport": "sse",
+          "startupMs": 584,
+          "requestMs": 2069,
+          "firstEventMs": 1264,
+          "firstTextMs": 1526,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 3098,
+          "processTailMs": 346
+        }
+      ],
+      "usage": {
+        "inputTokens": 3573,
+        "outputTokens": 38,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 1123
+      },
+      "tools": [
+        {
+          "at": 1788925867454,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788925867456,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788925864345,
+          "events": [
+            {
+              "at": 1788925867109,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788925867109,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1706,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 539
+              }
+            },
+            {
+              "at": 1788925867109,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925867452,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925864377,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925864942,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925866303,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925867433,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5934,
+          "toolCount": 9
+        },
+        {
+          "start": 1788925867458,
+          "events": [
+            {
+              "at": 1788925869666,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788925870209,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1867,
+                "outputTokens": 24,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 584
+              }
+            },
+            {
+              "at": 1788925870209,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925870555,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925867507,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925868145,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925869400,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925870538,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 7612,
+          "toolCount": 9
+        }
+      ]
+    },
+    {
+      "id": "text-balanced-sse",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 2,
+      "start": 1788925870561,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 3944,
+      "firstTokenMs": 3411,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 3944,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 532,
+          "requestMs": 3006,
+          "firstEventMs": 2037,
+          "firstTextMs": 2830,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 3942,
+          "processTailMs": 356
+        }
+      ],
+      "usage": {
+        "inputTokens": 1320,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 532
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788925870563,
+          "events": [
+            {
+              "at": 1788925873972,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788925874148,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1320,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 532
+              }
+            },
+            {
+              "at": 1788925874148,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925874505,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925870592,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925871148,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925873177,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925874487,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 4281,
+          "toolCount": 2
+        }
+      ]
+    },
+    {
+      "id": "tool-balanced-sse",
+      "tool": true,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 2,
+      "start": 1788925874509,
+      "status": "completed",
+      "text": "当前 RAG 主题尚未开始，暂无进行中的学习日。",
+      "durationMs": 6628,
+      "firstTokenMs": 5776,
+      "timings": {
+        "contextMs": 4,
+        "modelMs": 6623,
+        "toolMs": 2,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 527,
+          "requestMs": 1858,
+          "firstEventMs": 1176,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 2857,
+          "processTailMs": 339
+        },
+        {
+          "transport": "sse",
+          "startupMs": 539,
+          "requestMs": 2827,
+          "firstEventMs": 1943,
+          "firstTextMs": 2323,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 3760,
+          "processTailMs": 347
+        }
+      ],
+      "usage": {
+        "inputTokens": 3573,
+        "outputTokens": 33,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 1066
+      },
+      "tools": [
+        {
+          "at": 1788925877373,
+          "type": "tool_start",
+          "tool": "learning_progress"
+        },
+        {
+          "at": 1788925877375,
+          "type": "tool_end",
+          "tool": "learning_progress"
+        }
+      ],
+      "turns": [
+        {
+          "start": 1788925874515,
+          "events": [
+            {
+              "at": 1788925877033,
+              "type": "worker_tool_call"
+            },
+            {
+              "at": 1788925877033,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1706,
+                "outputTokens": 14,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 527
+              }
+            },
+            {
+              "at": 1788925877033,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925877372,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925874627,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925875182,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925876351,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925877357,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 5934,
+          "toolCount": 9
+        },
+        {
+          "start": 1788925877377,
+          "events": [
+            {
+              "at": 1788925880285,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788925880789,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1867,
+                "outputTokens": 19,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 539
+              }
+            },
+            {
+              "at": 1788925880789,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925881136,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925877402,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925877967,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925879900,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925881119,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 7612,
+          "toolCount": 9
+        }
+      ]
+    }
+  ],
+  "fixture": {
+    "topicId": "rag",
+    "progress": "rag：尚未开始",
+    "activeDay": null
+  },
+  "workerSha256": "8d5eaec35431620be7887fbc0b343a2ad0ca48dcf6c0ad474a18ed2e4254e2a4",
+  "selection": {
+    "provider": "openai-codex",
+    "model": "gpt-5.6-terra",
+    "thinking": "medium"
+  }
+}

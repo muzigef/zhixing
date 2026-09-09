@@ -1,7 +1,20 @@
 import type { BuildProvenance } from "./build-provenance-contracts.js";
 import { createHash } from "node:crypto";
+import { publicError } from "./agent-errors.js";
 export interface QualityCase { id: string; prompt: string; criteria: string[]; seed?: { role: "user" | "assistant"; text: string; status: "completed" | "interrupted" }[]; }
 export interface QualityAnswer { status: string; text: string; error?: string; durationMs?: number; firstTokenMs?: number; model?: string; items?: unknown[]; usage?: unknown; reasoning?: string; timings?: { turns: number; toolCalls: number; [key: string]: unknown }; quality?: unknown; evidenceSupport?: unknown; modelTimings?: unknown; }
+/** Classify only known evidence; an empty final text does not identify a provider outage. */
+export function qualityFailure(answer: QualityAnswer): string {
+  if (answer.status === "interrupted") return "cancelled";
+  if (answer.status === "blocked") return "execution_blocked";
+  if (answer.status !== "failed") return "incomplete";
+  // Legacy reports contain the service's safe public message rather than an internal code.
+  if (answer.error === "repeated_tool_call" || answer.error === publicError(new Error("repeated_tool_call"))) return "execution_no_progress";
+  if (answer.error === "empty_answer") return "empty_answer";
+  if (answer.error === "provider_failure") return "provider_failure";
+  if (answer.error === "evaluation_exception") return "evaluation_failure";
+  return "unclassified_failure";
+}
 export function qualitySeed(id: string): { role: "user" | "assistant"; text: string; status: "completed" | "interrupted" }[] {
   const pair = (user: string, assistant: string, status: "completed" | "interrupted" = "completed") => [{ role: "user" as const, text: user, status: "completed" as const }, { role: "assistant" as const, text: assistant, status }];
   if (id === "R03") return pair("解释缓存的好处与更新代价，举网页例子。", "缓存能减少重复工作、降低延迟，但更新后可能读到过期结果，需要失效策略。网页缓存是一个例子。");
@@ -23,10 +36,10 @@ export async function evaluateQuality(cases: QualityCase[], providers: string[],
     for (let repetition = 1; repetition <= repetitions; repetition++) for (const task of cases) {
       const attempted = !unavailable;
       let answer: QualityAnswer;
-      if (unavailable) answer = { status: "failed", text: "", error: "provider_not_attempted", model: unavailable.model, reasoning: unavailable.reasoning };
-      else { try { answer = await run(provider, task, repetition); } catch { answer = { status: "failed", text: "", error: "provider_failure" }; } }
+      if (unavailable) answer = { status: "failed", text: "", error: "evaluation_not_attempted", model: unavailable.model, reasoning: unavailable.reasoning };
+      else { try { answer = await run(provider, task, repetition); } catch { answer = { status: "failed", text: "", error: "evaluation_exception" }; } }
       if (answer.status === "completed" && !answer.text.trim()) answer = { ...answer, status: "failed", error: "empty_answer" };
-      if (!answer.text && answer.status === "failed") unavailable = answer;
+      if (!answer.text && answer.status === "failed" && !["execution_no_progress", "empty_answer"].includes(qualityFailure(answer))) unavailable = answer;
       report.results.push({ provider, repetition, ...task, ...answer, attempted, review: ["completed", "waiting"].includes(answer.status) ? "pending_human_review" : "unavailable" });
       await checkpoint?.(report);
     }

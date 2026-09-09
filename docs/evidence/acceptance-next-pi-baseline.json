@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "startedAt": "2026-09-09T03:49:41.916Z",
+  "node": "v24.8.0",
+  "results": [
+    {
+      "id": "text-balanced-sse",
+      "tool": false,
+      "reasoning": "balanced",
+      "transport": "sse",
+      "repetition": 1,
+      "start": 1788925781963,
+      "status": "completed",
+      "text": "4",
+      "durationMs": 4969,
+      "firstTokenMs": 4465,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 4966,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 1111,
+          "requestMs": 3455,
+          "firstEventMs": 2082,
+          "firstTextMs": 3294,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 4961,
+          "processTailMs": 342
+        }
+      ],
+      "usage": {
+        "inputTokens": 1320,
+        "outputTokens": 5,
+        "cacheReadTokens": 0,
+        "reasoningTokens": 0,
+        "startupMs": 1111
+      },
+      "tools": [],
+      "turns": [
+        {
+          "start": 1788925781974,
+          "events": [
+            {
+              "at": 1788925786430,
+              "type": "worker_text_delta"
+            },
+            {
+              "at": 1788925786592,
+              "type": "worker_usage",
+              "usage": {
+                "inputTokens": 1320,
+                "outputTokens": 5,
+                "cacheReadTokens": 0,
+                "reasoningTokens": 0,
+                "model": "gpt-5.6-terra",
+                "startupMs": 1111
+              }
+            },
+            {
+              "at": 1788925786592,
+              "type": "worker_done"
+            },
+            {
+              "at": 1788925786933,
+              "type": "process_exit",
+              "code": 0
+            }
+          ],
+          "wire": [
+            {
+              "at": 1788925782004,
+              "type": "worker_preload"
+            },
+            {
+              "at": 1788925783148,
+              "type": "http_request_start"
+            },
+            {
+              "at": 1788925785216,
+              "type": "http_headers",
+              "status": 200
+            },
+            {
+              "at": 1788925786915,
+              "type": "worker_before_exit"
+            }
+          ],
+          "inputChars": 4281,
+          "toolCount": 2
+        }
+      ]
+    }
+  ],
+  "fixture": {
+    "topicId": "rag",
+    "progress": "rag：尚未开始",
+    "activeDay": null
+  },
+  "workerSha256": "8d5eaec35431620be7887fbc0b343a2ad0ca48dcf6c0ad474a18ed2e4254e2a4",
+  "selection": {
+    "provider": "openai-codex",
+    "model": "gpt-5.6-terra",
+    "thinking": "medium"
+  }
+}

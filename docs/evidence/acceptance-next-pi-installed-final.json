@@ -1,0 +1,552 @@
+{
+  "syntheticOnly": true,
+  "startedAt": "2026-09-09T04:20:13.046Z",
+  "packaged": true,
+  "passed": true,
+  "results": [
+    {
+      "id": "text",
+      "sessionId": "2b4b5e67-9547-4104-8675-e45cd267c9c3",
+      "receivedText": true,
+      "text": "4",
+      "status": "completed",
+      "durationMs": 3627,
+      "firstTokenMs": 3065,
+      "timings": {
+        "contextMs": 2,
+        "modelMs": 3624,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 777,
+          "requestMs": 2438,
+          "firstEventMs": 1823,
+          "firstTextMs": 2227,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 3618,
+          "processTailMs": 347
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "tool",
+      "sessionId": "e9696763-12a6-4abd-ac4d-c493b8c0cbab",
+      "receivedText": true,
+      "text": "当前学习日为 D01，状态：进行中。",
+      "status": "completed",
+      "durationMs": 7324,
+      "firstTokenMs": 6393,
+      "timings": {
+        "contextMs": 16,
+        "modelMs": 7308,
+        "toolMs": 2,
+        "compactionMs": 0,
+        "turns": 2,
+        "toolCalls": 1
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 534,
+          "requestMs": 1935,
+          "firstEventMs": 1307,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 2876,
+          "processTailMs": 351
+        },
+        {
+          "transport": "sse",
+          "startupMs": 565,
+          "requestMs": 3454,
+          "firstEventMs": 1252,
+          "firstTextMs": 2879,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 4423,
+          "processTailMs": 353
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "模型正在准备工具调用",
+        "正在完成本轮回答",
+        "查看学习进度",
+        "模型请求已完成",
+        "正在回答",
+        "回答已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "context",
+      "sessionId": "1c46044b-436a-42af-a75a-8842f6566b85",
+      "receivedText": true,
+      "text": "你正在学习 **D01「Agent 契约与状态边界」**，当前状态为**进行中**。",
+      "status": "completed",
+      "durationMs": 3185,
+      "firstTokenMs": 2268,
+      "timings": {
+        "contextMs": 7,
+        "modelMs": 3177,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 572,
+          "requestMs": 2199,
+          "firstEventMs": 1154,
+          "firstTextMs": 1623,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 3174,
+          "processTailMs": 339
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "context-2",
+      "sessionId": "bd08ebf6-4243-43a7-b05d-99e97ad0ae0f",
+      "receivedText": true,
+      "text": "你正在学习 **D01「Agent 契约与状态边界」**，当前状态为**进行中**。",
+      "status": "completed",
+      "durationMs": 3044,
+      "firstTokenMs": 2102,
+      "timings": {
+        "contextMs": 6,
+        "modelMs": 3038,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 535,
+          "requestMs": 2100,
+          "firstEventMs": 1104,
+          "firstTextMs": 1499,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 3034,
+          "processTailMs": 340
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "context-3",
+      "sessionId": "90bd9624-0d80-4052-9ad8-09b67c6abb38",
+      "receivedText": true,
+      "text": "你正在学习 **D01《Agent 契约与状态边界》**，当前状态为**进行中**。",
+      "status": "completed",
+      "durationMs": 3512,
+      "firstTokenMs": 2540,
+      "timings": {
+        "contextMs": 5,
+        "modelMs": 3506,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 524,
+          "requestMs": 2582,
+          "firstEventMs": 1583,
+          "firstTextMs": 1942,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 3502,
+          "processTailMs": 331
+        }
+      ],
+      "phases": [
+        "读取学习进度并检索当前主题资料",
+        "已读取学习进度与资料依据",
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "R01",
+      "sessionId": "10390456-dbfd-4049-aadd-1d508760caf9",
+      "receivedText": true,
+      "text": "RAG（检索增强生成）是在回答前从外部知识库、文档或数据库中检索相关内容，再把检索结果作为上下文交给模型生成答案；模型本身的参数通常不变，因此知识可较快更新，也更容易给出来源。微调则是用特定领域或任务的数据继续训练模型，使其参数发生改变，重点是让模型学习稳定的表达风格、任务流程或专业判断模式，但更新知识往往需要重新训练，且可能带来遗忘或数据质量风险。\n\n例如，企业内部制度问答适合优先使用 RAG：制度文件经常修订，可把最新版文档放入知识库，员工提问时检索对应条款并据此回答。若目标是让客服模型始终按固定话术、格式和处理流程回复，则可考虑微调；实践中也常将两者结合：微调规范行为，RAG 提供最新事实。",
+      "status": "completed",
+      "durationMs": 6713,
+      "firstTokenMs": 2506,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 6712,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 575,
+          "requestMs": 5739,
+          "firstEventMs": 1514,
+          "firstTextMs": 1877,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 1,
+          "totalMs": 6710,
+          "processTailMs": 344
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "dialogue-seed",
+      "sessionId": "0f5b1296-1e8e-4ebf-9073-93a0ebdef2c4",
+      "receivedText": true,
+      "text": "记住了。",
+      "status": "completed",
+      "durationMs": 2563,
+      "firstTokenMs": 2016,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 2563,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 558,
+          "requestMs": 1605,
+          "firstEventMs": 1069,
+          "firstTextMs": 1406,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 2561,
+          "processTailMs": 347
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "dialogue-recall",
+      "sessionId": "0f5b1296-1e8e-4ebf-9073-93a0ebdef2c4",
+      "receivedText": true,
+      "text": "蓝鲸314",
+      "status": "completed",
+      "durationMs": 3180,
+      "firstTokenMs": 2677,
+      "timings": {
+        "contextMs": 1,
+        "modelMs": 3179,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 599,
+          "requestMs": 2176,
+          "firstEventMs": 1167,
+          "firstTextMs": 2014,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 3176,
+          "processTailMs": 339
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    },
+    {
+      "id": "cancel",
+      "sessionId": "2efa7a40-8e05-405b-bfd3-01cc2c899b9f",
+      "receivedText": false,
+      "text": "",
+      "status": "interrupted",
+      "durationMs": 529,
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "模型请求已停止",
+        "任务已停止"
+      ],
+      "cancelRequested": true,
+      "cancelMs": 3
+    },
+    {
+      "id": "cancel-stream",
+      "sessionId": "d565ba72-a927-485e-933c-996e875ae028",
+      "receivedText": true,
+      "text": "数据库索引可以理解为“帮助快速查找数据",
+      "status": "interrupted",
+      "durationMs": 2801,
+      "firstTokenMs": 2782,
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "模型请求已停止",
+        "任务已停止"
+      ],
+      "cancelRequested": true,
+      "cancelMs": 5
+    },
+    {
+      "id": "after-cancel",
+      "sessionId": "ed334166-20ad-43d7-b4ca-e216b49724e1",
+      "receivedText": true,
+      "text": "42",
+      "status": "completed",
+      "durationMs": 2879,
+      "firstTokenMs": 2360,
+      "timings": {
+        "contextMs": 0,
+        "modelMs": 2879,
+        "toolMs": 0,
+        "compactionMs": 0,
+        "turns": 1,
+        "toolCalls": 0
+      },
+      "modelTimings": [
+        {
+          "transport": "sse",
+          "startupMs": 606,
+          "requestMs": 1871,
+          "firstEventMs": 1250,
+          "firstTextMs": 1701,
+          "submittedReasoning": "medium",
+          "outputTokenLimit": 16384,
+          "providerContextWindow": 272000,
+          "providerMaxOutput": 128000,
+          "selectionMs": 0,
+          "totalMs": 2877,
+          "processTailMs": 348
+        }
+      ],
+      "phases": [
+        "组织回答",
+        "准备模型",
+        "正在请求模型",
+        "等待模型内容",
+        "正在回答",
+        "正在完成本轮回答",
+        "回答已完成",
+        "模型请求已完成"
+      ],
+      "cancelRequested": false
+    }
+  ],
+  "version": "0.9.0",
+  "model": {
+    "configured": true,
+    "provider": "pi-codex",
+    "model": "gpt-5.6-terra",
+    "thinking": "medium",
+    "message": "已读取 Pi 模型配置；登录状态将在发送时检查。"
+  },
+  "diagnostics": {
+    "version": "0.9.0",
+    "execution": {
+      "available": true,
+      "platform": "darwin",
+      "verification": "runtime_result_required",
+      "reason": "sandbox_present",
+      "message": "已找到 macOS 系统沙箱；测试是否成功仍以实际运行结果为准。"
+    },
+    "performance": [
+      {
+        "provider": "pi-codex",
+        "variants": [
+          {
+            "submittedReasoning": "medium",
+            "inputBand": "<4k",
+            "turnsPerSample": 1,
+            "windowTokens": 48000,
+            "reserveOutputTokens": 16384,
+            "model": "gpt-5.6-terra",
+            "reasoning": "balanced",
+            "transport": "sse",
+            "samples": 8,
+            "firstTokenP50": 2360,
+            "inputTokens": 12994,
+            "outputTokens": 338,
+            "cacheReadTokens": 4608,
+            "startupP50": 572,
+            "measuredTurns": 8,
+            "requestP50": 2176,
+            "firstEventP50": 1167,
+            "processTailP50": 340
+          },
+          {
+            "submittedReasoning": "medium",
+            "inputBand": "<4k",
+            "turnsPerSample": 2,
+            "windowTokens": 48000,
+            "reserveOutputTokens": 16384,
+            "model": "gpt-5.6-terra",
+            "reasoning": "balanced",
+            "transport": "sse",
+            "samples": 1,
+            "firstTokenP50": 6393,
+            "inputTokens": 3485,
+            "outputTokens": 30,
+            "cacheReadTokens": 3072,
+            "startupP50": 534,
+            "measuredTurns": 2,
+            "requestP50": 1935,
+            "firstEventP50": 1252,
+            "processTailP50": 351
+          }
+        ],
+        "completed": 9,
+        "failed": 0,
+        "interrupted": 2,
+        "firstTokenP50": 2506,
+        "firstTokenP95": 6393,
+        "durationP50": 3185,
+        "contextP50": 2,
+        "modelP50": 3179,
+        "compactionP50": 0
+      },
+      {
+        "provider": "deepseek-api",
+        "variants": [],
+        "completed": 0,
+        "failed": 0,
+        "interrupted": 0
+      },
+      {
+        "provider": "demo",
+        "variants": [],
+        "completed": 0,
+        "failed": 0,
+        "interrupted": 0
+      }
+    ]
+  }
+}

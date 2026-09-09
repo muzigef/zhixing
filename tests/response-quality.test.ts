@@ -5,9 +5,20 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { AgentService } from "../src/agent-service.js";
 import { AgentSessionStore } from "../src/agent-session-store.js";
-import { ContinuationText, inspectResponse } from "../src/response-quality.js";
+import { ContinuationText, inspectResponse, turnResponseRules } from "../src/response-quality.js";
 
 const prior = "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n";
+it("focuses the current task's accuracy constraints without adding unrelated domains", () => {
+  const math = turnResponseRules("请解释矩阵形式的线性回归梯度");
+  expect(math).toContain("变化率"); expect(math).toContain("偏置");
+  expect(math).not.toContain("资料限定");
+  const sources = turnResponseRules("只依据资料正文说明没有覆盖的问题");
+  expect(sources).toContain("资料限定"); expect(sources).toContain("逐条");
+  expect(sources).not.toContain("偏置");
+  const comparison = turnResponseRules("用两段比较两种方案");
+  expect(comparison).toContain("恰好 2 段"); expect(comparison).toContain("实测");
+  expect(turnResponseRules("谢谢")).toBe("");
+});
 it("removes an exact long repeated prefix across arbitrary stream chunks", () => {
   const gate = new ContinuationText(prior); let text = "";
   for (const chunk of [prior.slice(0, 8), prior.slice(8, 40), prior.slice(40) + "重排", "会进一步比较相关性。"]) text += gate.push(chunk);
@@ -58,6 +69,36 @@ it("detects inline display delimiters and individual unmatched source markers wh
 it("normalizes display delimiters without changing math contents or fenced source code", async () => {
   const { normalizeDisplayMath } = await import("../src/response-quality.js");
   expect(normalizeDisplayMath("$$x^2+1$$\n\n```latex\n$$x^2+1$$\n```" )).toBe("$$\nx^2+1\n$$\n\n```latex\n$$x^2+1$$\n```");
+});
+it("normalizes complete multiline display wrappers while preserving ambiguous or literal source", async () => {
+  const { normalizeDisplayMath } = await import("../src/response-quality.js");
+  const formula = String.raw`L(w,b)=\frac{1}{2n}\sum_i e_i^2
+=\frac{1}{2n}\sum_i(wx_i+b-y_i)^2`;
+  const expected = `$$\n${formula}\n$$`;
+  for (const source of [`$$${formula}$$`, `$$\n${formula}$$`, `$$${formula}\n$$`, expected]) {
+    expect(normalizeDisplayMath(source)).toBe(expected);
+    expect(normalizeDisplayMath(normalizeDisplayMath(source))).toBe(expected);
+  }
+  for (const source of ["正文 $$x\ny$$ 尾文", "$$x\ny", "`$$x$$`", "    $$x$$", "~~~latex\n$$x\ny$$\n~~~", "$$x\n```latex\ny$$\n```", "$$x$$ 与 $$y$$"]) {
+    expect(normalizeDisplayMath(source)).toBe(source);
+  }
+  const oversized = `$$${"x".repeat(63_997)}$$`;
+  expect(normalizeDisplayMath(oversized)).toBe(oversized);
+});
+it("persists the same normalized math in shared service patches, final items and reloaded history", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-math-layout-"));
+  try {
+    const store = new AgentSessionStore(root);
+    const source = "$$x^2\n+1$$"; const expected = "$$\nx^2\n+1\n$$";
+    const service = new AgentService(store, () => ({ async *stream() { yield { type: "text_delta", text: source }; yield { type: "done" }; } }));
+    const session = await service.create(); let lastText: string | undefined;
+    service.subscribe(event => { if (event.type === "message_patch" && event.changes.text !== undefined) lastText = event.changes.text; });
+    await service.send({ sessionId: session.id, provider: "mock", style: "adaptive", text: "解释公式" }); await service.idle();
+    const answer = (await store.load(session.id)).messages.at(-1)!;
+    expect(lastText).toBe(expected); expect(answer.text).toBe(expected);
+    expect(answer.items?.find(item => item.kind === "final")).toMatchObject({ text: expected });
+    expect(answer.quality).not.toContainEqual(expect.objectContaining({ code: "math_layout" }));
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 it("retries an empty continuation once and never reports it as a completed answer", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-empty-continuation-"));

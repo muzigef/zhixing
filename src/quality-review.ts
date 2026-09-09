@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod/v4";
 import type { QualityReport } from "./quality-evaluation.js";
+import { qualityFailure } from "./quality-evaluation.js";
 
 export function qualityReportHash(report: QualityReport): string {
   const canonical = JSON.stringify(report, (_key, value) => value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])) : value);
@@ -37,7 +38,7 @@ export function summarizeQuality(report: QualityReport, supplied?: QualityReview
       group.attempted++;
       if (row.status === "completed") group.completed++;
       else if (row.status === "waiting") { group.waiting++; fail("waiting"); }
-      else fail(row.status === "failed" && !row.text ? "provider_failure" : row.status === "interrupted" ? "cancelled" : row.status === "blocked" ? "execution_blocked" : "incomplete");
+      else fail(qualityFailure(row));
       // Latency describes completed answers only; failures are counted separately above.
       if (row.status === "completed") { if (row.durationMs !== undefined) group.durations.push(row.durationMs); if (row.firstTokenMs !== undefined) group.firstTokens.push(row.firstTokenMs); }
     }

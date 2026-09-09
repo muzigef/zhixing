@@ -1,0 +1,88 @@
+{
+  "summary": {
+    "version": 1,
+    "reportHash": "dfb58cc2255f578c14d72cb29860898f83b84dfed7452526a56d3fb188611c17",
+    "datasetHash": "5f116da7b891eb22495865ae43b984bda160c8460cab1af65b1f97df894a6b4a",
+    "planned": 2,
+    "recorded": 2,
+    "attempted": 2,
+    "completed": 2,
+    "reviewed": 2,
+    "unreviewed": 0,
+    "passed": 0,
+    "passRate": 0,
+    "independentHumanReviewed": 0,
+    "reviewer": {
+      "name": "Codex 开发助手逐条复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "failures": {},
+    "qualityFailures": {
+      "accuracy": 2
+    },
+    "groups": [
+      {
+        "provider": "deepseek-api",
+        "model": "deepseek-v4-flash",
+        "reasoning": "balanced",
+        "planned": 2,
+        "attempted": 2,
+        "completed": 2,
+        "waiting": 0,
+        "latency": {
+          "samples": 2,
+          "p50": 12847,
+          "p95": 16152
+        },
+        "firstToken": {
+          "samples": 2,
+          "p50": 1298,
+          "p95": 2955
+        }
+      }
+    ],
+    "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+  },
+  "review": {
+    "version": 1,
+    "reportHash": "dfb58cc2255f578c14d72cb29860898f83b84dfed7452526a56d3fb188611c17",
+    "reviewer": {
+      "name": "Codex 开发助手逐条复核",
+      "kind": "development_assistant",
+      "independent": false
+    },
+    "scores": [
+      {
+        "provider": "deepseek-api",
+        "id": "R02",
+        "repetition": 1,
+        "criteria": [
+          "pass",
+          "pass",
+          "partial"
+        ],
+        "rationale": "所有显示公式定界符规范，偏导变化率、偏置、链式法则和数值计算正确；仍将平方损失写成正数而非非负数，严格内容标准保留部分通过。",
+        "failures": [
+          "accuracy"
+        ],
+        "verdict": "partial"
+      },
+      {
+        "provider": "deepseek-api",
+        "id": "R02",
+        "repetition": 2,
+        "criteria": [
+          "pass",
+          "pass",
+          "partial"
+        ],
+        "rationale": "显示公式格式已规范，负特征例和数值更新正确；结尾直接给多特征矩阵式却没有说明增广常数列如何保留已引入偏置。",
+        "failures": [
+          "accuracy"
+        ],
+        "verdict": "partial"
+      }
+    ]
+  }
+}

@@ -14,6 +14,9 @@ export function turnResponseRules(question: string): string {
   const rules: string[] = []; const paragraphs = requestedParagraphs(question);
   if (paragraphs) rules.push(`本轮格式要求：恰好 ${paragraphs} 段正文，不添加标题、列表、独立开场或总结。发送前检查段数。`);
   if (/^继续(?:回答|讲解|上次被打断的回答)?[。.!！]?$/i.test(question.trim())) rules.push("本轮是衔接最近回答：不要从第一个步骤重新开始，不复述已展示的段落。第一句直接进入尚未讲完的部分；只补剩余内容。");
+  if (/梯度|求导|偏导|线性回归|矩阵/.test(question)) rules.push("本轮计算核对：偏导数是其他变量固定时的变化率，不是变化量。每次引入或移除变量都要说明；加入偏置后，后续预测、残差及矩阵表达必须保留它，或明确改回不含偏置的模型。方向判断取决于完整导数的符号，不能只看误差而忽略相乘变量的符号。给出数值算例时逐项算出预测、误差、梯度，并用更新后损失检查结论；只有合适步长下才讨论下降。按用户要求完成本轮讲解，不把必要步骤留给下轮确认。");
+  if (/资料|原文|文档|正文|出处|材料/.test(question)) rules.push("本轮资料限定：逐条对应原文的对象、范围、条件和因果，保留限定词；不得把原文范围扩大后仍称为材料结论，也不得把明确写出的内容列为未知。仅依据资料时，用紧贴原句的短转述和相邻出处回答；未覆盖项单列，常识补充不能冒充材料依据。用户已要求解释或列出缺项时直接完成，不再询问是否需要这些已明确的工作。");
+  if (/比较|对比|区别|选型/.test(question)) rules.push("本轮比较核对：区分能力与效果、可能与必然。没有实测就不承诺普遍的成本、速度、质量优劣或固定量级；数据更新到可查询还可能有索引、同步和缓存环节，不能直接说立即对所有请求生效。给出适用条件和具体选择理由，遵守用户指定的段落或表格格式，完整回答后自然结束。");
   return rules.join("\n");
 }
 
@@ -57,18 +60,26 @@ export function inspectResponse(text: string, question: string, verifiedCitation
   return result;
 }
 
-/** Only complete, whole-line display wrappers are reformatted; formula bytes are preserved. */
+/** Only complete display blocks bounded by whole lines are reformatted; formula bytes are preserved. */
 export function normalizeDisplayMath(text: string): string {
-  let fence: string | undefined; let math = false;
-  const normalized = text.split("\n").map(line => {
+  let fence: string | undefined;
+  const output: string[] = []; let prose: string[] = [];
+  const flush = () => {
+    output.push(prose.join("\n").replace(/(^|\n)( {0,3})\$\$(?!\$)((?:(?!\$\$)[\s\S])+?)\$\$[ \t]*(?=\n|$)/g,
+      (_match, boundary: string, indent: string, formula: string) => `${boundary}${indent}$$${formula.startsWith("\n") ? "" : "\n"}${formula}${formula.endsWith("\n") ? "" : "\n"}${indent}$$`));
+    prose = [];
+  };
+  for (const line of text.split("\n")) {
     const marker = line.match(/^\s*(`{3,}|~{3,})/);
-    if (marker) { if (!fence) fence = marker[1]; else if (marker[1]![0] === fence[0] && marker[1]!.length >= fence.length) fence = undefined; return line; }
-    if (fence) return line;
-    if (line.trim() === "$$") { math = !math; return line; }
-    if (math) return line;
-    const whole = line.match(/^\s*\$\$([^\n]+?)\$\$\s*$/);
-    return whole && !whole[1]!.includes("$$") ? `$$\n${whole[1]}\n$$` : line;
-  }).join("\n");
+    if (marker) {
+      if (!fence) { if (prose.length) flush(); fence = marker[1]; }
+      else if (marker[1]![0] === fence[0] && marker[1]!.length >= fence.length && /^\s*(?:`+|~+)\s*$/.test(line)) fence = undefined;
+      output.push(line);
+    } else if (fence) output.push(line);
+    else prose.push(line);
+  }
+  if (prose.length) flush();
+  const normalized = output.join("\n");
   return normalized.length <= 64_000 ? normalized : text;
 }
 export function responseRepairReason(text: string, question: string): string | undefined {
