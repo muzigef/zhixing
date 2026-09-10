@@ -5,6 +5,15 @@ import { withModelBudget, resolveSdkBudget } from "../src/model-capabilities.js"
 import { summarizePerformance } from "../desktop/core/diagnostics.js";
 import type { ModelEvent } from "../src/model.js";
 import type { ChatMessage } from "../src/agent-session-contracts.js";
+it("preserves reported usage on truncated streams, distinguishes the cause, and never emits completion", async () => {
+  const secrets = new MemorySecretStore(); await secrets.set("keychain:zhixing/deepseek-api", "synthetic");
+  const body = 'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"length"}]}\n\ndata: {"choices":[],"usage":{"prompt_tokens":12,"completion_tokens":4096}}\n\ndata: [DONE]\n\n';
+  const client = new DeepSeekClient(secrets, async () => new Response(body, { headers: { "content-type": "text/event-stream" } }), {});
+  const events: ModelEvent[] = [];
+  await expect((async () => { for await (const event of client.stream("synthetic", new AbortController().signal)) events.push(event); })()).rejects.toThrow("provider_incomplete: length");
+  expect(events.filter(event => event.type === "usage")).toEqual([{ type: "usage", usage: expect.objectContaining({ inputTokens: 12, outputTokens: 4096 }) }]);
+  expect(events.some(event => event.type === "done" || event.type === "tool_call")).toBe(false);
+});
 it("keeps an explicitly configured client budget and clamps SDK limits before a network request", () => {
   const client = { contextBudget: { windowTokens: 8000, reserveOutputTokens: 1024 }, async *stream() { yield { type: "done" as const }; } };
   expect(withModelBudget(client).contextBudget).toEqual(client.contextBudget);

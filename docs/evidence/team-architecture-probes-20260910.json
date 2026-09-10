@@ -1,0 +1,170 @@
+{
+  "capturedAt": "2026-09-10T06:20:52.662Z",
+  "kind": "current_architecture_diagnostics",
+  "liveRequests": 0,
+  "fileHashes": [
+    {
+      "path": "src/team-coordinator.ts",
+      "sha256": "482947e6d440acffcd7cb7809602643fa96a8ca87b09c2f65e3dcfd6357948b6"
+    },
+    {
+      "path": "src/team-contracts.ts",
+      "sha256": "4c65d9c64966db6d36820c5eb823b113ae51819d911d95163f7082e4a58b32bf"
+    },
+    {
+      "path": "src/team-quality.ts",
+      "sha256": "3b07110924eb274e5b8a63df0a62dd73dc56fcfd5329bd7bae0b22e0bec8f0fa"
+    },
+    {
+      "path": "src/team-budget.ts",
+      "sha256": "3735422f467d3098006542b27d2fa93e854ad4ae0fa143e927d9ee6ffa34ff32"
+    },
+    {
+      "path": "src/assistant-runtime.ts",
+      "sha256": "238812f568158d5d7338b002c207728a2430dd43bd0be442edff3e1d2db4840d"
+    },
+    {
+      "path": "src/model-invocation.ts",
+      "sha256": "c8fbc2c7b75e568f4cdbfd8953dffc55225ccdd7b0516076896bc827476df616"
+    }
+  ],
+  "interpretation": "Assertions reproduce current mechanics; success does not certify desired behavior or real-model quality.",
+  "probes": [
+    {
+      "id": "AP01",
+      "finding": "optional preparation failure aborts all dispatch",
+      "status": "failed",
+      "modelCalls": 0
+    },
+    {
+      "id": "AP02",
+      "finding": "optional member execution failure permits the final answer",
+      "status": "partial",
+      "blocked": false,
+      "calls": [
+        {
+          "phase": "PLAN",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "demo",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "REVIEW",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "FINAL",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        }
+      ]
+    },
+    {
+      "id": "AP03",
+      "finding": "uncertain review does not prevent execution completion",
+      "status": "completed",
+      "verdict": "uncertain",
+      "issues": [
+        "关键条件缺少证明。"
+      ],
+      "blocked": false
+    },
+    {
+      "id": "AP04",
+      "finding": "unresolved follow-up has no second closure gate",
+      "status": "completed",
+      "verdict": "needs-check",
+      "uncertainties": [
+        "关键条件尚未证实。"
+      ],
+      "calls": [
+        {
+          "phase": "PLAN",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "REVIEW",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "FOLLOWUP",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "FINAL",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        }
+      ]
+    },
+    {
+      "id": "AP05",
+      "finding": "shared history reaches members but not planner or reviewer",
+      "shareContext": true,
+      "calls": [
+        {
+          "phase": "PLAN",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        },
+        {
+          "phase": "MEMBER",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        },
+        {
+          "phase": "REVIEW",
+          "provider": "mock",
+          "receivesPriorCondition": false
+        },
+        {
+          "phase": "FINAL",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        }
+      ]
+    },
+    {
+      "id": "AP06",
+      "finding": "resume uses saved reports but does not rerun failed verification",
+      "status": "partial",
+      "reviewStatus": "failed",
+      "blocked": true,
+      "calls": [
+        {
+          "phase": "FINAL",
+          "provider": "mock",
+          "receivesPriorCondition": true
+        }
+      ]
+    }
+  ]
+}

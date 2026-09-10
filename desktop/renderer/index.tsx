@@ -389,7 +389,7 @@ function App() {
     providerOverride?: DesktopSettings["provider"],
     steer = false,
     resumeTaskId?: string,
-    overrides?: { collaboration?: DesktopSettings["collaboration"]; images?: ImageInput[] },
+    overrides?: { collaboration?: DesktopSettings["collaboration"]; images?: ImageInput[]; retryTeamTaskId?: string },
   ) {
     const generation = attachmentGeneration.current;
     const selectedImages = overrides?.images ?? (resumeTaskId ? undefined : attachments.length ? attachments : undefined);
@@ -440,7 +440,7 @@ function App() {
         style: settings.style,
         reasoning: settings.reasoning, collaboration: overrides?.collaboration ?? settings.collaboration,
         execution,
-        resumeTaskId,
+        resumeTaskId, retryTeamTaskId: overrides?.retryTeamTaskId,
         ...(resumeTaskId ? { collaboration: target.messages.findLast(item => item.taskId === resumeTaskId)?.collaboration, ...(target.messages.findLast(item => item.taskId === resumeTaskId)?.team ? { provider: target.messages.findLast(item => item.taskId === resumeTaskId)!.provider as DesktopSettings["provider"] } : {}) } : {}),
         ...(selectedTopic ? { topicId: selectedTopic, access: { materials: contextAllowed, project: projectAllowed, external: externalAllowed } } : {}),
       });
@@ -746,6 +746,7 @@ function App() {
                   }
                   onFork={() => void forkConversation(message)}
                   onStopMember={id => { void invoke({ type: "team-stop-member", sessionId: session.id, memberId: id }).catch(problem => setError(messageOf(problem))); }}
+                  onRetryTeamTask={id => { void send("请补做指定核查任务，保留其他已完成工作。", message.provider as DesktopSettings["provider"], false, message.taskId, { retryTeamTaskId: id }); }}
                   onRerunTeam={() => { const user = session.messages.slice(0, session.messages.findIndex(item => item.id === message.id)).findLast(item => item.role === "user"); void send(message.team?.question ?? user?.text ?? "请重新核查", message.provider as DesktopSettings["provider"], false, undefined, { collaboration: message.collaboration, images: user?.images ?? [] }); }}
                   onTask={() => { if (message.taskId) setTaskView({ sessionId: session.id, taskId: message.taskId }); }}
                   onEdit={(text) => void forkConversation(message, text)}
@@ -1022,6 +1023,7 @@ const Message = memo(
     onTask,
     onStopMember,
     onRerunTeam,
+    onRetryTeamTask,
   }: {
     message: ChatMessage;
     elapsed: number;
@@ -1038,6 +1040,7 @@ const Message = memo(
     onTask: () => void;
     onStopMember: (id: string) => void;
     onRerunTeam: () => void;
+    onRetryTeamTask: (id: string) => void;
   }) {
     if (message.role === "user")
       return (
@@ -1057,7 +1060,7 @@ const Message = memo(
             </span>
           )}
         </div>
-        {message.team && <TeamCard team={message.team} running={message.status === "running"} onStop={onStopMember} onRerun={onRerunTeam} canRerun={canSend} />}
+        {message.team && <TeamCard team={message.team} running={message.status === "running"} onStop={onStopMember} onRerun={onRerunTeam} onRetryTask={onRetryTeamTask} canRerun={canSend} />}
         {!!message.activities?.length && <details className="task-activities"><summary>任务进展 · {message.activities.length} 项活动</summary><ul>{message.activities.map((activity, index) => <li key={index}>{activity.status === "completed" ? "✓" : activity.status === "failed" ? "!" : "…"} {activity.label}</li>)}</ul></details>}
         {message.taskId && <button className="compare-trigger" disabled={!canSend} onClick={onTask}>任务详情</button>}
         {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}

@@ -1,0 +1,88 @@
+{
+  "date": "2026-09-10",
+  "certificateFingerprint": "45295689F7DC96DF059E2F30C503D98E57052F40",
+  "policy": "codesigning",
+  "unchangedDesignatedRequirement": true,
+  "distinctBuildHashes": true,
+  "nativeRuns": [
+    {
+      "phase": "first",
+      "requirement": "designated => identifier \"com.zhixing.desktop\" and certificate leaf = H\"45295689f7dc96df059e2f30c503d98e57052f40\"",
+      "bundleHash": "541ac4f0de46eb5de248df21ac8de151866482c2da5aad94baf9254185b1cfe5",
+      "startedAt": "2026-09-10T03:26:43.834Z",
+      "native": {
+        "available": true,
+        "syntheticDecryption": true,
+        "availabilityMs": 10365,
+        "totalMs": 10366
+      },
+      "ok": true,
+      "cleanExit": true
+    },
+    {
+      "phase": "restart",
+      "requirement": "designated => identifier \"com.zhixing.desktop\" and certificate leaf = H\"45295689f7dc96df059e2f30c503d98e57052f40\"",
+      "codeHash": "ba846116af472d2673139578d49522c88a441c46",
+      "bundleHash": "541ac4f0de46eb5de248df21ac8de151866482c2da5aad94baf9254185b1cfe5",
+      "startedAt": "2026-09-10T03:27:48.651Z",
+      "native": {
+        "available": true,
+        "syntheticDecryption": true,
+        "availabilityMs": 10,
+        "totalMs": 11
+      },
+      "ok": true,
+      "cleanExit": true
+    },
+    {
+      "phase": "updated",
+      "requirement": "designated => identifier \"com.zhixing.desktop\" and certificate leaf = H\"45295689f7dc96df059e2f30c503d98e57052f40\"",
+      "codeHash": "846e365dda354fc3d2d6530af45a59098cc89b98",
+      "bundleHash": "cfdf67c19462815adb117e7cd07908ff510769ac5dd3aa187da897f1d3d21199",
+      "startedAt": "2026-09-10T03:31:12.419Z",
+      "native": {
+        "available": true,
+        "syntheticDecryption": true,
+        "availabilityMs": 8037,
+        "totalMs": 8038
+      },
+      "ok": true,
+      "cleanExit": true
+    }
+  ],
+  "repeatedPromptObservation": "pending_user_confirmation",
+  "engineChecks": {
+    "testFiles": 144,
+    "tests": 718,
+    "integration": 9,
+    "eval": 6,
+    "command": "CI=1 npm run verify",
+    "exitCode": 0
+  },
+  "finalPackCommand": "npm --prefix desktop run pack",
+  "finalPackExitCode": 0,
+  "packagedUi": {
+    "groups": 7,
+    "exitCode": 0,
+    "nativeCipher": true
+  },
+  "providerChecks": [
+    {
+      "provider": "kimi-api",
+      "model": "kimi-k3",
+      "source": "desktop",
+      "completed": true,
+      "durationMs": 3981,
+      "exitCode": 0
+    },
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-flash",
+      "source": "system-keychain",
+      "completed": true,
+      "durationMs": 1682,
+      "firstTokenMs": 1619,
+      "exitCode": 0
+    }
+  ]
+}

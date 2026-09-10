@@ -24,6 +24,7 @@ import { onDemandTools } from "./agent-efficiency.js";
 import { inspectEvidenceSupport, evidenceRepairReason, type EvidenceSupport } from "./evidence-support.js";
 import { attachExecutionHistory, attachConversationHistory } from "./execution-history.js";
 import type { ChatMessage } from "./agent-session-contracts.js";
+import { executionEvidence, type ExecutionEvidence } from "./execution-evidence.js";
 
 export interface TaskActivity { label: string; status: "running" | "completed" | "failed"; at: string; }
 export function providerRuntime(providerId: string, client: ModelClient): ProviderRuntime {
@@ -38,11 +39,13 @@ export async function runAssistantTask(options: {
   runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
   messages?: readonly ModelMessage[];
   structured?: boolean;
+  responseCheck?: (text: string) => string | undefined;
   readOnly?: boolean;
   limits?: Partial<import("./model-invocation.js").InvocationLimits>;
   teaching?: import("./teaching-session-contracts.js").TeachingSession | null;
   onAudit?: (record: ModelAuditRecord) => void | Promise<void>;
   onTool?: (name: string, phase: "started" | "finished" | "failed") => void | Promise<void>;
+  onToolReceipt?: (receipt: ExecutionEvidence) => void | Promise<void>;
   conversationHistory?: readonly ChatMessage[];
   permissions?: AgentPermissions; writeGrants?: WriteGrant[];
   taskId?: string; sessionId?: string; resumeInput?: string; steerId?: string; allowWrites?: boolean;
@@ -136,10 +139,11 @@ export async function runAssistantTask(options: {
       canReplayTool: (name) => tools?.harness.isReplaySafe(name) ?? false,
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
-      responseCheck: !options.structured && isContinuableModelClient(options.client) ? text => {
+      responsePurpose: options.structured ? "internal" : "answer",
+      responseCheck: options.responseCheck ?? (!options.structured && isContinuableModelClient(options.client) ? text => {
         const support = inspectEvidenceSupport(text, [...sourceEvidence.values()]); options.onEvidenceSupport?.(support);
         return (sourceEvidence.size ? evidenceRepairReason(support) : undefined) ?? responseRepairReason(text, options.question);
-      } : undefined,
+      } : undefined),
       onTiming: options.onTiming,
       onContext: options.onContext,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
@@ -192,6 +196,8 @@ export async function runAssistantTask(options: {
         await options.onTool?.(name, "started");
         const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: writeAllowed ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         await options.onTool?.(name, result.ok ? "finished" : "failed");
+        const receipt = options.onToolReceipt ? executionEvidence(taskId, callId ?? key, name, input, result) : undefined;
+        if (receipt) await options.onToolReceipt!(receipt);
         if (name === "save_artifact" && result.ok) {
           const artifact = result.output as { id: string }; const value = input as { dayId: string; kind: string; text: string };
           options.onItem?.({ id: randomUUID(), kind: "artifact", artifactId: artifact.id, dayId: value.dayId, artifactKind: value.kind, text: value.text });
@@ -208,7 +214,7 @@ export async function runAssistantTask(options: {
         }
         const staleSkill = ["list_skills", "read_skill"].includes(name) && result.ok && (Array.isArray(result.output) ? result.output : [result.output]).some(item => (item as { status?: string } | null)?.status === "stale");
         activity(key, staleSkill ? "技能更新未通过校验，使用上次有效的参考流程" : labels[name] ?? "执行学习查询", result.ok ? "completed" : "failed");
-        return result;
+        return receipt ? { ...result, receipt } : result;
       } : undefined,
     }, signal);
     if (!result.waiting && (result.partial || !(result.finalText ?? result.text).trim())) throw new Error(result.stopReason ?? "provider_incomplete");
@@ -218,7 +224,7 @@ export async function runAssistantTask(options: {
     activity("model", result.waiting ? "等待你的回复" : "模型请求已完成", "completed");
     ledger?.finish(options.runId, result.waiting ? "waiting" : result.blocked ? "failed" : "completed", result.blocked ? "task_incomplete" : undefined);
     const task = tasks?.snapshot(taskId, options.topicId!);
-    return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(result.blocked ? { blocked: true } : {}), ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
+    return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(result.blocked ? { blocked: true, stopReason: result.stopReason } : {}), ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
   } catch (error) {
     activity("model", signal.aborted ? "模型请求已停止" : "模型请求未完成", "failed");
     activity("answer", signal.aborted ? "任务已停止" : "本轮未完成", "failed");

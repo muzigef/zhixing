@@ -5,9 +5,11 @@
 
 独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.9 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.10.0`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
+知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.11.0`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
 
 本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
+
+0.11 增加独立核查报告、分歧审查、一次定向复核及成员档位配置；32 个新题与解释复核完成，未证明团队更优。后续内部格式和图片边界补修后 723 项测试、实际目录包七组隔离 UI 通过；最新包原生加密仍等待系统授权，旧题回归与安装待完成。当前安装仍是 0.10.0。见[本轮记录](../docs/evidence/team-quality-optimization-20260910.md)。
 
 0.10 支持默认单 Agent、同模型团队和异模型团队。团队配置复用已有 Pi/API 连接，成员只读，可查看状态和停止，详见[三模式指南](../docs/agent-teams.md)。[96 个真实留出任务](../docs/evidence/team-quality-comparison-20260909.md)及逐条解释复核已完成：普通 Pi 完整且正确 16/16，同模型团队 12/16，混合团队 8/16，未证明团队质量更高；已验证本机授权和显式代理通路。0.10.0 已安装到本机，旧包保留备份，见[安装记录](../docs/evidence/agent-teams-installation.json)。
 
@@ -15,7 +17,7 @@
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/mac-arm64/知行.app`；本轮 0.10.0 已验证此目录包，未重新制作 DMG。
+1. 打开本目录下的 `release/mac-arm64/知行.app`；本轮 0.11.0 已验证此目录包，未重新制作 DMG。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
@@ -65,7 +67,7 @@ NO_PROXY=localhost,127.0.0.1,::1 \
 
 ### 添加 DeepSeek API
 
-在设置中选择 DeepSeek API，输入 Key 后点击保存。主进程使用 Electron 异步 `safeStorage` 加密，保存为独立的 `deepseek.credential`；系统加密不可用时拒绝保存。macOS 在预览包重新签名后可能要求系统钥匙串授权，需在系统弹窗中处理；应用不接收系统密码。已有 Key 不回填到输入框，也不写入偏好或聊天 JSON。
+在设置中选择 DeepSeek API，输入 Key 后点击保存。主进程使用 Electron 异步 `safeStorage` 加密，保存为独立的 `deepseek.credential`；系统加密不可用时拒绝保存。macOS 临时签名包重新构建会改变钥匙串识别的应用身份；本地打包现在要求先[固定开发签名证书](../docs/macos-local-signing.md)，首次迁移时在系统弹窗中授权，后续复用同一证书。应用不接收系统密码。已有 Key 不回填到输入框，也不写入偏好或聊天 JSON。
 
 读取顺序为桌面加密文件优先；没有该文件时，macOS 可复用 CLI 原有的知行 Keychain 项。桌面新增 Key 不会覆盖旧 Keychain 项，CLI 也不会自动使用桌面加密文件。配置页提供的状态不等于已通过真实连接检查。
 
@@ -150,7 +152,7 @@ npm --prefix desktop run test:ui
 npm --prefix desktop run dist:mac
 ```
 
-该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前版本对应 `Zhixing-0.9.0-mac-arm64.dmg` / `.zip`。上述本地命令不发布 Release 或安装到 Applications。没有签名证书时为预览包；明确构建未签名产物可设置 `CSC_IDENTITY_AUTO_DISCOVERY=false`。
+该脚本生成 `desktop/release/mac-arm64/知行.app`、DMG 和 ZIP，当前源码版本对应 `Zhixing-0.11.0-mac-arm64.dmg` / `.zip`；不代表这些安装器已经生成。上述本地命令不发布 Release 或安装到 Applications。macOS 须先[配置固定本地签名](../docs/macos-local-signing.md)；证书不可用时在修改旧包前失败。一次性测试包须显式设置 `ZHIXING_ALLOW_ADHOC=1`，其更新可能再次触发钥匙串询问；单独设置 `CSC_IDENTITY_AUTO_DISCOVERY=false` 不再允许静默生成临时签名包。
 
 验证实际 `.app` 时，在 `desktop/` 内执行：
 
@@ -214,7 +216,7 @@ node desktop/scripts/check-deepseek.mjs --live
 
 桌面支持选择、粘贴或拖入 PNG/JPEG，CLI 使用 `/image`；两端通过共享图像契约，限制和视觉模型选择见[图片输入](../docs/image-input.md)。真实语义检索、第三方 MCP、系统通知和跨平台验收见[0.9 记录](../docs/evidence/completion-0.9.md)。
 
-macOS 预览包现在绑定并校验完整应用的 ad-hoc 签名，以满足 Electron 原生通知要求；这不是 Developer ID 签名或公证。应用退出前等待偏好写入，连续设置修改后的读取也等待已提交写入。真实教学研究仍需参与者、独立评阅者及实际 72 小时延迟。
+macOS 本地构建现在绑定并校验固定证书的应用签名，以保持更新前后的钥匙串身份；已有 ad-hoc 产物不会自动变为固定签名。一次性测试可显式选择 ad-hoc，两者均不等于 Developer ID 签名或公证。设置及验收边界见[本地签名说明](../docs/macos-local-signing.md)。应用退出前等待偏好写入，连续设置修改后的读取也等待已提交写入。真实教学研究仍需参与者、独立评阅者及实际 72 小时延迟。
 
 ### 动态添加模型服务
 

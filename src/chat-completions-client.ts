@@ -54,6 +54,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
     const timeout = AbortSignal.timeout(this.timeoutMs);
     const signal = AbortSignal.any([parent, timeout]);
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let usage: ModelUsage | undefined; let usageReported = false;
     try {
       const key = await abortable(() => this.secrets.get(`keychain:zhixing/${this.connection?.id ?? `${this.provider}-api`}`), signal);
       if (!key) throw new Error(`provider_unavailable: ${this.provider}-api 未配置`);
@@ -86,7 +87,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       let completed = false;
       let finishReason: string | undefined;
       let hasText = false;
-      let answer = ""; let textSize = 0; let reasoning = ""; let usage: ModelUsage | undefined;
+      let answer = ""; let textSize = 0; let reasoning = "";
       const model = this.model;
       const calls = new Map<number, WireTool>();
       const consume = function* (payload: Payload): Generator<ModelEvent> {
@@ -152,7 +153,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       }
       signal.throwIfAborted();
       if (this.connection && (!finishReason || calls.size && (!this.connection.tools || finishReason !== "tool_calls"))) throw new Error("provider_protocol_error");
-      if (finishReason && !["stop", "tool_calls"].includes(finishReason)) throw new Error("provider_incomplete");
+      if (finishReason && !["stop", "tool_calls"].includes(finishReason)) throw new Error(finishReason === "length" ? "provider_incomplete: length" : finishReason === "content_filter" ? "provider_incomplete: content_filter" : "provider_incomplete");
       if (!hasText && !calls.size) throw new Error(`provider_unavailable: ${this.provider} 空响应`);
       const ids = new Set<string>();
       // Validate the entire batch before yielding any executable request.
@@ -168,15 +169,17 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       if (this.connection) yield { type: "provider_state", result: { model: this.model, connectionId: this.connection.id, compatibleAssistant: { role: "assistant", content: answer || null, ...(reasoningStateRequired ? { reasoning_content: reasoning } : {}), ...(calls.size ? { tool_calls: [...calls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call) } : {}) } } };
       else if (this.provider === "kimi") yield { type: "provider_state", result: { model: this.model, kimiAssistant: { role: "assistant", content: answer || null, reasoning_content: reasoning, ...(calls.size ? { tool_calls: [...calls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call) } : {}) } } };
       else if (reasoning) yield { type: "provider_state", result: { deepseekReasoning: reasoning } };
-      if (usage) yield { type: "usage", usage };
+      if (usage) { usageReported = true; yield { type: "usage", usage }; }
       const finishedAt = Date.now();
       yield { type: "timing", timing: { transport: "sse", startupMs, selectionMs: 0, totalMs: finishedAt - started, requestMs: finishedAt - requestedAt, firstEventMs, firstTextMs, processTailMs: 0, submittedReasoning: effort, outputTokenLimit: outputLimit } };
       yield { type: "done" };
     } catch (error) {
+      // A failed generation can still have known billable usage. Never emit done or tools here.
+      if (usage && !usageReported) { usageReported = true; yield { type: "usage", usage }; }
       if (parent.aborted) throw new DOMException("cancelled", "AbortError");
       if (timeout.aborted) throw new Error(`provider_timeout: ${this.provider}-api 请求超时`);
       const safeErrors = new Set(["secret_store_unavailable", "invalid_secret_reference", "provider_protocol_error", "provider_protocol_error: missing body", "provider_protocol_error: invalid JSON", "provider_protocol_error: invalid tool arguments", "provider_protocol_error: missing call id", "provider_protocol_error: missing tool result", "provider_output_limit", "provider_incomplete", "provider_model_mismatch", `provider_unavailable: ${this.provider}-api 未配置`, `provider_unavailable: ${this.provider} 空响应`]);
-      if (error instanceof Error && (safeErrors.has(error.message) || /^provider_unavailable: (deepseek|kimi|compatible) HTTP [1-5]\d{2}$/.test(error.message))) throw error;
+      if (error instanceof Error && (safeErrors.has(error.message) || /^provider_incomplete: (length|content_filter)$/.test(error.message) || /^provider_unavailable: (deepseek|kimi|compatible) HTTP [1-5]\d{2}$/.test(error.message))) throw error;
       // Network exceptions can contain authorization headers or request content.
       throw new Error(`provider_unavailable: ${this.provider}-api 请求或读取失败`);
     } finally {

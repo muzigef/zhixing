@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-10",
+  "testBundleVersion": "0.11.0",
+  "testBundleHash": "5aeb4715b3204937c76dcc9812108a40e159c968d8f64c258397571eb5c3c240",
+  "deepseekProductProbe": {
+    "ok": true,
+    "source": "system-keychain",
+    "model": "deepseek-v4-flash",
+    "firstTokenMs": 1388,
+    "durationMs": 1489
+  },
+  "kimiProductProbe": {
+    "ok": false,
+    "source": "desktop",
+    "model": "kimi-k3",
+    "error": "provider_timeout",
+    "deadlineMs": 60000
+  },
+  "testBundleNativeAvailability": {
+    "ok": false,
+    "phase": "availability",
+    "error": "native_cipher_timeout",
+    "durationMs": 30002
+  },
+  "installedBundleNativeAvailability": {
+    "available": true,
+    "version": "0.10.0",
+    "durationMs": 8
+  },
+  "observations": [
+    "The two mixed regression roots stopped in preparation with zero model requests.",
+    "No SecurityAgent window was observed; the AuthenticationServicesAgent inspection was denied, so absence of all system prompts is not established.",
+    "CUA selection of the test app timed out; no screenshot permission reset was performed.",
+    "Hanging test processes were terminated only after their results had been saved and graceful exit did not complete.",
+    "No credential values or files were read by the development tools; the product used its existing controlled provider interfaces."
+  ],
+  "conclusion": "Native async encryption initialization hangs in the new bundle. Signature/OS authorization is a hypothesis, not a proven diagnosis. API answer quality cannot be inferred from these preparation failures.",
+  "pending": "User check in the opened 0.11.0 preview: Settings > Kimi > Test connection. Complete any OS prompt locally; never share the password."
+}

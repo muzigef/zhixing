@@ -5,7 +5,17 @@ import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { AgentService } from "../src/agent-service.js";
 import { AgentSessionStore } from "../src/agent-session-store.js";
-import { ContinuationText, inspectResponse, turnResponseRules } from "../src/response-quality.js";
+import { ContinuationText, inspectResponse, turnResponseRules, requestedParagraphs, responseRepairReason } from "../src/response-quality.js";
+
+it("distinguishes source counts and quoted instructions from an explicit response paragraph contract", () => {
+  for (const question of ["只能使用两段资料，输出 JSON", "请用两段代码举例", "把原文分为三段材料", "资料说：‘请用两段说明’。请判断。", "不要用两段回答", "不必只用两段解释"]) {
+    expect(requestedParagraphs(question), question).toBeUndefined();
+    expect(responseRepairReason('{"answer":4}', question), question).toBeUndefined();
+  }
+  expect(requestedParagraphs("使用两段资料，用三段说明区别")).toBe(3);
+  expect(requestedParagraphs("请用两段说明")).toBe(2);
+  expect(requestedParagraphs("回答分成四段")).toBe(4);
+});
 
 const prior = "检索先找到可能相关的资料片段，再根据问题筛选候选。这一步只负责召回，并不能保证每个片段都能支持最终结论。\n\n";
 it("focuses the current task's accuracy constraints without adding unrelated domains", () => {

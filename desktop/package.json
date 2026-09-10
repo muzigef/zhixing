@@ -1,6 +1,6 @@
 {
   "name": "zhixing-desktop",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "知行 · 让学习成为连续的对话",
   "author": "Zhixing",
   "license": "UNLICENSED",
@@ -11,9 +11,10 @@
     "build": "node scripts/build.mjs",
     "start": "npm run prepare:runtime && npm run build && electron .",
     "typecheck": "tsc --noEmit",
-    "pack": "npm run prepare:runtime && npm run build && electron-builder --dir --publish never",
-    "dist:mac": "npm run prepare:runtime && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
-    "dist:win": "npm run prepare:runtime && npm run build && electron-builder --win nsis --x64 --publish never",
+    "pack": "node scripts/dist.mjs --dir",
+    "dist:mac": "node scripts/dist.mjs --platform=darwin --arch=arm64",
+    "dist:win": "node scripts/dist.mjs --platform=win32 --arch=x64",
+    "signing:configure": "node scripts/configure-signing.mjs",
     "test:ui": "node scripts/smoke.mjs && node scripts/smoke-learning.mjs && node scripts/smoke-interactions.mjs && node scripts/smoke-outcomes.mjs && node scripts/smoke-projects.mjs && node scripts/smoke-api.mjs && node scripts/smoke-team.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
     "dist:host": "node scripts/dist.mjs",
@@ -29,6 +30,7 @@
     "pdfjs-dist": "6.2.108"
   },
   "devDependencies": {
+    "@electron/osx-sign": "1.3.3",
     "@electron/rebuild": "4.2.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

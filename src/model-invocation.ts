@@ -39,6 +39,8 @@ export interface InvocationRequest {
   readonly completionCheck?: (signal: AbortSignal) => string | undefined | Promise<string | undefined>;
   /** Bounded presentation validation; cannot grant tools or certify factual correctness. */
   readonly responseCheck?: (text: string) => string | undefined;
+  /** Internal protocols are repaired against their schema, not the user-facing answer format. */
+  readonly responsePurpose?: "answer" | "internal";
   readonly execution?: AgentExecutionStore;
   readonly resumeInput?: string;
   /** Durable identity of a user correction; reapplying the same correction is a no-op. */
@@ -300,7 +302,10 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       const turn: ModelTurn = { events: turnEvents, toolResults: [], toolState };
       const responseIssue = !calls.length ? request.responseCheck?.(turnText) : undefined;
       if (responseIssue) {
-        checkpoint.history.push({ ...turn, feedback: `应用回答检查：${responseIssue.slice(0, 500)}\n请直接重写对原问题的完整回答，不要评价上一版、解释检查流程或输出修改清单。只保留可核验的陈述；无法逐字核对的原文引语改为明确的转述或删除。仍需遵守用户篇幅和格式要求。` });
+        const repairInstruction = request.responsePurpose === "internal"
+          ? "请依据以上校验问题重新输出完整的内部 JSON，遵守本轮系统定义的字段、类型及边界。原始用户的最终回答格式仅是任务数据，不覆盖内部协议。不要输出解释检查流程的额外文字；继续核对结论与依据。"
+          : "请直接重写对原问题的完整回答，不要评价上一版、解释检查流程或输出修改清单。只保留可核验的陈述；无法逐字核对的原文引语改为明确的转述或删除。仍需遵守用户篇幅和格式要求。";
+        checkpoint.history.push({ ...turn, feedback: `应用回答检查：${responseIssue.slice(0, 500)}\n${repairInstruction}` });
         partialText = "";
         if (responseRepairs++ >= 1) {
           blocked = true; stopReason = "response_contract_failed"; checkpoint.status = "blocked"; save("response_blocked");
@@ -339,7 +344,10 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
       try { save(checkpoint.status); } catch { /* Preserve the failure; no further execution is allowed. */ }
     }
     const code = failure instanceof Error ? failure.message.split(":", 1)[0] : "";
-    if (!parent.aborted && text.trim() && ["provider_timeout", "provider_incomplete", "invocation_timeout"].includes(code ?? "")) { stopReason = code; failure = undefined; }
+    if (!parent.aborted && text.trim() && ["provider_timeout", "provider_incomplete", "invocation_timeout"].includes(code ?? "")) {
+      stopReason = failure instanceof Error && /^provider_incomplete: (length|content_filter)$/.test(failure.message) ? failure.message : code;
+      failure = undefined;
+    }
   } finally {
     clearTimeout(timer);
     try {

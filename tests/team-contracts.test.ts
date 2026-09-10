@@ -45,4 +45,10 @@ describe("shared collaboration and frozen model contracts", () => {
     expect(pinned.binding).toMatchObject({ provider: "deepseek-api", model: "deepseek-v4-flash", reasoning: "quick" });
     await expect(bindAgentModel("deepseek-api", client, "quick", new AbortController().signal, { ...pinned.binding, model: "deepseek-v4-pro" })).rejects.toThrow("team_model_mismatch");
   });
+  it("supports model-specific bounded member profiles while preserving saved legacy timeouts", () => {
+    expect(teamConfigurationSchema.parse({}).memberTimeoutMs).toBe(180_000);
+    expect(teamConfigurationSchema.parse({ memberTimeoutMs: 90_000 }).memberTimeoutMs).toBe(90_000);
+    expect(teamConfigurationSchema.parse({ members: [{ role: "material-checker", reasoning: "quick", timeoutMs: 150_000, maxOutputTokens: 8192 }] }).members[0]).toMatchObject({ reasoning: "quick", timeoutMs: 150_000 });
+    expect(teamConfigurationSchema.safeParse({ members: [{ role: "material-checker", maxOutputTokens: 1_000_000 }] }).success).toBe(false);
+  });
 });

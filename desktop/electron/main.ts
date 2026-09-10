@@ -499,8 +499,9 @@ else {
               break;
             case "send":
               if (learningController) throw new Error("learning_busy");
-              deepseekModel = (await service.store.settings()).deepseekModel;
-              data = await service.send(agentInput(command));
+              data = await service.send(agentInput(command), false, undefined, undefined, async () => {
+                deepseekModel = (await service.store.settings()).deepseekModel;
+              });
               break;
             case "fork":
               data = await service.fork(command.sessionId, command.messageId, command.edit);

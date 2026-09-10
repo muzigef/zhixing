@@ -34,7 +34,7 @@
 
 ## 当前实现与边界
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.10.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
+当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.11.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
 
 当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
 
@@ -54,6 +54,10 @@
 
 0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
 
+团队内核已加入结构化任务依赖、成员工作上下文、实际工具回执、逐项审查和定向补做。CLI 与桌面共用执行策略；设计、能力边界与验证见[团队内核设计](docs/agent-team-kernel.md)。流程完成不等于回答正确性认证。 新内核会话为 v11；历史模型评测仍按下段原实验条件解读。
+
+早期0.11 增加结构化成员核查、分歧审查、一次定向复核和独立成员配置，并补齐取消与会话 v10 恢复保护。[32 个真实新题及解释复核](docs/evidence/team-quality-v3-comparison-20260910.md)已完成：单 Pi / 自检 / 同模型 / 异模型严格通过 7/8、8/8、6/8、1/8，未证明团队优势。运行后修复内部格式冲突、字段诊断及图片边界，723 项测试与最终实包七组隔离 UI 通过；该新包原生加密再次等待系统授权，旧题回归和安装尚未完成。当前安装仍为 0.10.0，见[本轮实现、回归与待验收项](docs/evidence/team-quality-optimization-20260910.md)。
+
 0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，当时尚未替换用户安装；本轮已安装 0.10.0，见[安装记录](docs/evidence/agent-teams-installation.json)。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。0.10 源码已实现单 Agent、同模型团队和异模型团队，共用执行与权限内核；团队暂为实验性；六组 96 个真实留出任务已完成：普通 Pi 完整且正确 16/16，同模型团队 12/16，混合团队 8/16，未证明团队质量更高；应用格式误判与连接失败如实保留，见[质量对照与边界](docs/evidence/team-quality-comparison-20260909.md)。使用、预算与恢复边界见[三模式指南](docs/agent-teams.md)，实验条件见[评测协议](docs/agent-team-evaluation-protocol-20260909.md)。
 
 
@@ -65,7 +69,7 @@
 
 在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
 
-安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。已有 macOS/Windows 构建与 draft release 流水线；macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装和安装后五组 UI 均已通过。设置可主动检查公开新版本，不会自动替换安装。
+安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。macOS 源码打包需先[固定本地开发签名](docs/macos-local-signing.md)，以解决临时签名包更新后反复询问钥匙串授权的问题；代码已接入，专用证书及跨构建实测状态见[修复记录](docs/evidence/keychain-signing-fix-20260910.md)。已有 macOS/Windows 构建与 draft release 流水线；macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装和安装后五组 UI 均已通过。设置可主动检查公开新版本，不会自动替换安装。
 
 桌面安装、快捷键和平台构建步骤见 [桌面版 README](desktop/README.md)。
 
@@ -286,7 +290,7 @@ npm --prefix desktop run build
 npm --prefix desktop run test:ui
 ```
 
-`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行聊天、学习、交互、学习效果和项目五组 UI 回归。
+`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行聊天、学习、交互、学习效果、项目、动态 API 和团队七组 UI 回归。
 
 历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。该时点 Pi 未通过真实调用；2026-09-07 已完成[登录后验证](docs/evidence/pi-availability-20260907.md)，后续性能修复见上方记录。这些是各次执行证据，不代表每次阅读本文时重新运行过检查。
 
@@ -303,7 +307,8 @@ npm --prefix desktop run test:ui
 | 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
 | 核心设计与商业 Agent 对比 | [28 个核心模块评审：Codex / Claude Code 对比、取舍与优化建议](docs/agent-architecture-comparison-20260908.md) |
 | 三模式使用与恢复 | [单 Agent、同模型团队与异模型团队](docs/agent-teams.md) |
-| 团队质量对照 | [真实质量对照、解释复核与工程边界](docs/evidence/team-quality-comparison-20260909.md) · [冻结协议](docs/agent-team-evaluation-protocol-20260909.md) |
+| 0.11 团队优化与验收 | [实现、真实回归与质量验收](docs/evidence/team-quality-optimization-20260910.md) · [新冻结协议](docs/agent-team-quality-evaluation-protocol-20260909.md) |
+| 0.10 团队质量对照 | [真实质量对照、解释复核与工程边界](docs/evidence/team-quality-comparison-20260909.md) · [冻结协议](docs/agent-team-evaluation-protocol-20260909.md) |
 | 三种 Agent 模式研究（首版范围以三模式指南为准） | [单 Agent、同模型团队与异模型团队：可行性、案例与实现方案](docs/agent-team-feasibility-20260909.md) |
 | 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
 | 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |

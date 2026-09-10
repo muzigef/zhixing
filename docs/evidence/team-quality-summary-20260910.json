@@ -1,0 +1,826 @@
+{
+  "source": "docs/evidence/team-evaluation-quality-20260910041023097.json",
+  "completed": 32,
+  "reviewed": 32,
+  "summaries": [
+    {
+      "arm": "single-pi",
+      "count": 8,
+      "completed": 7,
+      "correct": 7,
+      "fullySuccessful": 7,
+      "meanFieldScore": 0.875,
+      "medianMs": 14335.5,
+      "p95Ms": 20397,
+      "modelRequests": 8,
+      "inputTokens": 10830,
+      "outputTokens": 4129,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 1,
+      "reviewed": 8,
+      "explanationPass": 7,
+      "fieldAndExplanationPass": 7,
+      "completeCorrectExplained": 7,
+      "medianFirstTokenMs": 8522,
+      "medianCompletedMs": 15178
+    },
+    {
+      "arm": "self-review-pi",
+      "count": 8,
+      "completed": 8,
+      "correct": 8,
+      "fullySuccessful": 8,
+      "meanFieldScore": 1,
+      "medianMs": 80476,
+      "p95Ms": 105182,
+      "modelRequests": 40,
+      "inputTokens": 106701,
+      "outputTokens": 25684,
+      "cacheReadTokens": 3072,
+      "unknownUsageRequests": 0,
+      "reviewed": 8,
+      "explanationPass": 8,
+      "fieldAndExplanationPass": 8,
+      "completeCorrectExplained": 8,
+      "medianFirstTokenMs": 6944.5,
+      "medianCompletedMs": 80476
+    },
+    {
+      "arm": "same-team",
+      "count": 8,
+      "completed": 8,
+      "correct": 7,
+      "fullySuccessful": 7,
+      "meanFieldScore": 0.9583333333333334,
+      "medianMs": 63730,
+      "p95Ms": 90548,
+      "modelRequests": 42,
+      "inputTokens": 48457,
+      "outputTokens": 19441,
+      "cacheReadTokens": 0,
+      "unknownUsageRequests": 0,
+      "reviewed": 8,
+      "explanationPass": 6,
+      "fieldAndExplanationPass": 6,
+      "completeCorrectExplained": 6,
+      "medianFirstTokenMs": 56646,
+      "medianCompletedMs": 63730
+    },
+    {
+      "arm": "mixed-team",
+      "count": 8,
+      "completed": 2,
+      "correct": 7,
+      "fullySuccessful": 2,
+      "meanFieldScore": 0.875,
+      "medianMs": 98641,
+      "p95Ms": 143540,
+      "modelRequests": 52,
+      "inputTokens": 66479,
+      "outputTokens": 34998,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 2,
+      "reviewed": 8,
+      "explanationPass": 6,
+      "fieldAndExplanationPass": 6,
+      "completeCorrectExplained": 1,
+      "medianFirstTokenMs": 89927,
+      "medianCompletedMs": 93265.5
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "Q01",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 15178,
+      "failures": []
+    },
+    {
+      "caseId": "Q01",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 60669,
+      "failures": []
+    },
+    {
+      "caseId": "Q01",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 65314,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15862
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 16658
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与甲乙的计算一致：A总体81/100=0.81，B总体27/100=0.27；但基础较好层B为9/10=0.9，高于A的80/90；基础薄弱层B为18/90=0.2，高于A的1/10=0.1。构成权重不同造成总体与分层反转。丙的自选课程信息不足以证明任何教学方法的因果优势；附注与证据冲突，应不采纳。",
+        "durationMs": 14403
+      }
+    },
+    {
+      "caseId": "Q01",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 96729,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "failed",
+          "failureCode": "invalid_report",
+          "durationMs": 9431
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 70045
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论的总体率、分层率、辛普森悖论式权重解释、非随机自选导致不能作因果证明，以及附注应排除的处理均与题目资料一致。",
+        "durationMs": 6516
+      }
+    },
+    {
+      "caseId": "Q02",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 79203,
+      "failures": []
+    },
+    {
+      "caseId": "Q02",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 59933,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15539
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 16417
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与题设一致：初始损失1.5，dw=-1，db=-2；同步更新后w=1.1、b=0.2，更新后损失1.105。正则项0.5w²对w的导数为w，且b必须按其梯度同步更新。",
+        "durationMs": 6029
+      }
+    },
+    {
+      "caseId": "Q02",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 100553,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "failed",
+          "failureCode": "invalid_report",
+          "durationMs": 12533
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 69358
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选报告的损失、梯度、同步更新及两类错误的更正均与题设一致：beforeLoss=1.5，dw=-1，db=-2，更新后w=1.1、b=0.2、afterLoss=1.105。",
+        "durationMs": 7423
+      }
+    },
+    {
+      "caseId": "Q02",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 15607,
+      "failures": []
+    },
+    {
+      "caseId": "Q03",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 54912,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 13707
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15298
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "独立核对：A→C→E→G时长为3+4+2+2=11，构成依赖下界；给出的两工位排程在时刻11完成，且各依赖与同时占用不超过两工位的约束均满足。其他通向G的路径最长为B→D→E→G=9，因此该最长路径唯一。",
+        "durationMs": 7825
+      }
+    },
+    {
+      "caseId": "Q03",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": false,
+      "explanation": "unavailable",
+      "durationMs": 143540,
+      "failures": [
+        {
+          "provider": "pi-codex",
+          "phase": "answer",
+          "failureCode": "unavailable"
+        }
+      ],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "completed",
+          "durationMs": 5245
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 93058
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "needs-check",
+        "issues": [
+          "成员2称总工时为18，但任务时长之和实际为17；该数值错误未影响关键路径下界11及所给排程的可行性。"
+        ],
+        "guidance": "两份排程均满足依赖、非抢占和两工位限制，且A-C-E-G长度为11，结论minimumTime=11、criticalPath=[A,C,E,G]、attainableWithTwoWorkers=true有充分支持；但应更正总工时计算。",
+        "durationMs": 11812,
+        "followUp": {
+          "member": 2,
+          "question": "请复核任务总工时；A至G的时长之和是否应为17而非18？",
+          "status": "completed",
+          "report": {
+            "summary": "复核确认：A至G时长之和为17，不是18；候选报告2中“总工时18/2=9”的依据有误，但产能下界按17计算为ceil(17/2)=9，仍不改变关键路径下界11。维持结论：minimumTime=11，criticalPath=[A,C,E,G]，attainableWithTwoWorkers=true。",
+            "claims": [
+              {
+                "key": "任务总工时",
+                "value": "17",
+                "basis": "A3+B2+C4+D3+E2+F1+G2=3+2+4+3+2+1+2=17；因此候选报告2所写总工时18为算术错误。"
+              },
+              {
+                "key": "产能/平均负载下界",
+                "value": "8.5，整数完工下界为9",
+                "basis": "两相同工位总产能为2，平均负载下界17/2=8.5；若完工时刻为整数则至少ceil(17/2)=9。即便误写18/2=9，得到的整数下界同为9，但不影响后续结论。"
+              },
+              {
+                "key": "依赖路径最长者",
+                "value": "A-C-E-G，长度11",
+                "basis": "完整到G的依赖链枚举：A-C-E-G=3+4+2+2=11；B-D-E-G=2+3+2+2=9；B-F-G=2+1+2=5。最长唯一为A-C-E-G。"
+              },
+              {
+                "key": "minimumTime",
+                "value": "11",
+                "basis": "下界取max(关键路径11, 产能整数下界9)=11；存在两工位非抢占排程在时刻11完工，故最优为11。"
+              },
+              {
+                "key": "criticalPath",
+                "value": "[\"A\",\"C\",\"E\",\"G\"]",
+                "basis": "唯一最长依赖路径，长度11，严格大于其余路径长度9和5。"
+              },
+              {
+                "key": "attainableWithTwoWorkers",
+                "value": "true",
+                "basis": "可行排程：工位1 A[0,3)、C[3,7)、E[7,9)、G[9,11)；工位2 B[0,2)、D[2,5)、F[5,6)。依赖均满足：C在A后，D/F在B后，E在C/D后，G在E/F后；并发区间0-2:A,B；2-3:A,D；3-5:C,D；5-6:C,F；6-7:C；7-9:E；9-11:G，峰值不超过2。"
+              }
+            ],
+            "uncertainties": []
+          },
+          "durationMs": 25289
+        }
+      }
+    },
+    {
+      "caseId": "Q03",
+      "arm": "single-pi",
+      "completed": false,
+      "fields": false,
+      "explanation": "unavailable",
+      "durationMs": 10671,
+      "failures": [
+        {
+          "provider": "pi-codex",
+          "phase": "answer",
+          "failureCode": "unavailable"
+        }
+      ]
+    },
+    {
+      "caseId": "Q03",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 67391,
+      "failures": []
+    },
+    {
+      "caseId": "Q04",
+      "arm": "mixed-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "partial",
+      "durationMs": 116359,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "completed",
+          "durationMs": 6498
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 52812
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "needs-check",
+        "issues": [
+          "成员2称 E+A+B+F 成本为12且非法；实际成本为3+3+2+2=10、价值19，虽不影响最优解 E+A+B+G（价值21），但全局最优证明中的比较陈述有误。",
+          "成员1报告前段保留了“最优为[A,B,C]”的过时结论，后段已修正为[A,B,E,G]；最终输出应避免该内部矛盾。"
+        ],
+        "guidance": "依据题目数值，{A,B,E,G}成本10、价值21，满足B→A、G→E且不含C，故与E/C互斥不冲突。按含E/不含E分组，含E时C、D排除，{A,B,E,G}优于可行的{A,B,E,F}（价值19）；不含E时G排除，最佳为{A,B,C}价值17。因此全局最优应为selected=[\"A\",\"B\",\"E\",\"G\"], cost=10, value=21。",
+        "durationMs": 10943,
+        "followUp": {
+          "member": 2,
+          "question": "请复核并更正“E+A+B+F成本12非法”的算术；其实际成本和价值分别是多少，以及这是否改变最优结论？",
+          "status": "completed",
+          "report": {
+            "summary": "复核更正：E+A+B+F 的实际成本是 10、价值是 19，并非“成本12非法”；它可行但低于 {A,B,E,G} 的价值21，因此最优结论不变，仍为 selected=[A,B,E,G], cost=10, value=21。",
+            "claims": [
+              {
+                "key": "E+A+B+F 成本",
+                "value": "10",
+                "basis": "E3 + A3 + B2 + F2 = 10；此前写成12是算术错误。"
+              },
+              {
+                "key": "E+A+B+F 价值",
+                "value": "19",
+                "basis": "E6 + A4 + B6 + F3 = 19。"
+              },
+              {
+                "key": "E+A+B+F 合法性",
+                "value": "可行",
+                "basis": "B→A 已满足，F→A 已满足；未选 C，故 E 与 C 不互斥；未选 G，无需满足 G→E；总成本10≤10。"
+              },
+              {
+                "key": "是否改变最优",
+                "value": "不改变",
+                "basis": "{A,B,E,G}: A3+B2+E3+G2=10，价值 A4+B6+E6+G5=21；21>19，故 E+A+B+F 虽可行但不是最优。"
+              },
+              {
+                "key": "全局最优复核",
+                "value": "selected=[\"A\",\"B\",\"E\",\"G\"], cost=10, value=21",
+                "basis": "有E时 C、D 禁选；B需A、G需E。含E可比项：A+B+E=16，A+B+E+F=19，A+B+E+G=21，A+E+F+G=18；五件 A+B+E+F+G 成本12>10。无E时 G 禁选；A+B+C=17，A+C+D=16，A+B+F=13，A+B+C+D成本11>10。两支穷尽，最高21。"
+              },
+              {
+                "key": "依赖与互斥",
+                "value": "B→A，D→C，F→A，G→E，E与C互斥",
+                "basis": "按题面逐条核对；最优解含B则含A，含G则含E，不含C故无E/C冲突。"
+              }
+            ],
+            "uncertainties": []
+          },
+          "durationMs": 29414
+        }
+      }
+    },
+    {
+      "caseId": "Q04",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 20397,
+      "failures": []
+    },
+    {
+      "caseId": "Q04",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 97010,
+      "failures": []
+    },
+    {
+      "caseId": "Q04",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "partial",
+      "durationMs": 68459,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 19031
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 18953
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与题目约束一致：A、B、E、G成本10、价值21，满足B依赖A、G依赖E及E/C互斥。按选E与不选E分组可穷尽可行解，其他分组最高价值不超过21。",
+        "durationMs": 8469
+      }
+    },
+    {
+      "caseId": "Q05",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 17351,
+      "failures": []
+    },
+    {
+      "caseId": "Q05",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 105182,
+      "failures": []
+    },
+    {
+      "caseId": "Q05",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 90548,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15850
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 42352
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "两份核对对微任务 FIFO、Promise 链反应任务及两处 await 恢复注册顺序的结论一致且可由代码验证：order 为 SATPCQRDBUV，syncPrefix 为 SAT。最终答复应严格使用题目要求的 order、syncPrefix、explanation 顶层 JSON 字段。",
+        "durationMs": 13312
+      }
+    },
+    {
+      "caseId": "Q05",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 106844,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "failed",
+          "failureCode": "invalid_report",
+          "durationMs": 14392
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 67475
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "独立推导结果为 order=\"SATPCQRDBUV\"、syncPrefix=\"SAT\"。初始微任务为 P、C；P 入队 Q 并使链式 R 入队，故 C 先于 Q；C 再入队 D。R 完成 job 后，按 await 注册顺序入队 B、U，而 D 已在其前；U 再恢复后入队 V。",
+        "durationMs": 10887
+      }
+    },
+    {
+      "caseId": "Q06",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 88813,
+      "failures": []
+    },
+    {
+      "caseId": "Q06",
+      "arm": "same-team",
+      "completed": true,
+      "fields": false,
+      "explanation": "partial",
+      "durationMs": 90440,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15346
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 27497
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "needs-check",
+        "issues": [
+          "“循环开始时”的 mid 在原代码中尚未计算；候选将其按每轮计算 mid 后的状态解释，需确认题目预期。",
+          "若按严格 JavaScript 执行，未声明 mid 可能报错；需按题目伪代码语义处理。"
+        ],
+        "guidance": "在伪代码且将状态理解为每轮计算 mid 后，原程序在 [1,3]、target=2 时状态恒为 [0,1,0]，不终止；修复应为 lo=mid+1，修复后每轮区间严格缩小。",
+        "durationMs": 11527,
+        "followUp": {
+          "member": 1,
+          "question": "请核对 firstTwoStates 中“循环开始时”是否应将 mid 视为本轮计算后的值，还是需说明首次循环开始时 mid 尚未定义？",
+          "status": "completed",
+          "report": {
+            "summary": "应修正：严格按“循环开始时”理解，首次进入 while 时 mid 尚未计算；候选中的 [[0,1,0],[0,1,0]] 实际对应每轮计算 mid 后（或条件判断前）的状态。",
+            "claims": [
+              {
+                "key": "firstTwoStates",
+                "value": "首次循环开始时 mid 未定义；若将“循环开始”约定为执行 mid=Math.floor(...) 后，则为 [[0,1,0],[0,1,0]]",
+                "basis": "mid 的赋值语句位于 while 循环体内。进入第一轮、执行该语句前，只有 lo=0、hi=1 已初始化，mid 尚无本轮值。执行 mid=floor((0+1)/2)=0 后，a[0]=1<2，lo=mid=0，第二轮开始时 lo=0、hi=1，且在伪代码的变量保留语义下 mid 保留为0；第二轮重新计算后仍为0。"
+              },
+              {
+                "key": "terminates",
+                "value": "false（按题目意图的伪代码/已声明 mid 语义）",
+                "basis": "第一轮更新 lo=mid=0 不改变边界，之后每轮均有 lo=0、hi=1、mid=0，while(0<1) 永真。"
+              },
+              {
+                "key": "JavaScript逐字语义",
+                "value": "存在额外歧义：若 mid 从未声明且处于严格模式，首次 mid=... 会抛出 ReferenceError，而非进入无限循环",
+                "basis": "题干未写 let/var/const mid；但其要求分析二分循环和三种修复，通常应按伪代码或 mid 已声明解释。"
+              }
+            ],
+            "uncertainties": [
+              "题目要求 firstTwoStates 为 [lo,hi,mid] 数组，却又明确称“循环开始时”；未规定 mid 未定义时的 JSON 表示。应在主答案中说明时间点，或将“循环开始时”解释为 mid 计算后的循环体状态。"
+            ]
+          },
+          "durationMs": 15070
+        }
+      }
+    },
+    {
+      "caseId": "Q06",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 93825,
+      "failures": [
+        {
+          "provider": "pi-codex",
+          "phase": "review",
+          "failureCode": "unavailable"
+        }
+      ],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "completed",
+          "durationMs": 8186
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 69188
+        }
+      ],
+      "review": {
+        "status": "failed",
+        "failureCode": "unavailable",
+        "durationMs": 9262
+      }
+    },
+    {
+      "caseId": "Q06",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 13493,
+      "failures": []
+    },
+    {
+      "caseId": "Q07",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 55387,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15500
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 13699
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与题设一致：posterior=36/47≈0.7659574468095238，atLeastOnePositive=0.106425；两次检测给定真实状态条件独立，但边际上无条件不独立。“双阳性超过99%确定”忽略了1%的低基率及合格件误报，正确后验约76.6%。",
+        "durationMs": 6361
+      }
+    },
+    {
+      "caseId": "Q07",
+      "arm": "mixed-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 70172,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "completed",
+          "durationMs": 6640
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 32327
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "数值、贝叶斯推导、至少一次阳性概率及条件独立与无条件独立的说明均正确，且符合原题要求的 JSON 字段和格式。",
+        "durationMs": 18037
+      }
+    },
+    {
+      "caseId": "Q07",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 12541,
+      "failures": []
+    },
+    {
+      "caseId": "Q07",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 81749,
+      "failures": []
+    },
+    {
+      "caseId": "Q08",
+      "arm": "mixed-team",
+      "completed": false,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 67426,
+      "failures": [],
+      "members": [
+        {
+          "provider": "deepseek-api",
+          "status": "failed",
+          "failureCode": "invalid_report",
+          "durationMs": 10806
+        },
+        {
+          "provider": "kimi-api",
+          "status": "completed",
+          "durationMs": 37979
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与题设严格大于版本规则一致：v3删除建立版本3墓碑，后续v2和重复v3均拒绝；丢失墓碑及版本记录后，旧v2会复活。修复应持久化带版本的删除墓碑。",
+        "durationMs": 7902
+      }
+    },
+    {
+      "caseId": "Q08",
+      "arm": "single-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 10630,
+      "failures": []
+    },
+    {
+      "caseId": "Q08",
+      "arm": "self-review-pi",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 61893,
+      "failures": []
+    },
+    {
+      "caseId": "Q08",
+      "arm": "same-team",
+      "completed": true,
+      "fields": true,
+      "explanation": "pass",
+      "durationMs": 62146,
+      "failures": [],
+      "members": [
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 15709
+        },
+        {
+          "provider": "pi-codex",
+          "status": "completed",
+          "durationMs": 13601
+        }
+      ],
+      "review": {
+        "status": "completed",
+        "verdict": "ready",
+        "issues": [],
+        "guidance": "候选结论与题设严格版本单调规则一致：v3删除建立版本3墓碑，随后v2及重复v3均拒绝；若重启丢失墓碑和版本记录，v2会被误接受而复活。修复应持久化带版本的删除墓碑。",
+        "durationMs": 14372
+      }
+    }
+  ]
+}

@@ -1,4 +1,6 @@
-# 功能与验收（当前实现）
+# 功能与验收
+
+2026-09-10 补充：0.11 已实现共享三模式团队、结构化报告、分歧审查与一次定向复核，验收以[三模式指南](agent-teams.md)和[最新证据索引](evidence/README.md)为准。以下 0.4–0.5 内容是历史阶段快照，其中“多 Agent 未实现”等历史限制不描述当前版本。
 
 2026-09-07 源码补充：[学习效果验证](learning-outcomes.md)已接入桌面。验证入口为 `tests/learning-outcomes.test.ts`、`tests/desktop-outcomes.test.ts`、`tests/outcome-report.test.ts`、`tests/workspace-backup.test.ts` 及 `desktop/scripts/smoke-outcomes.mjs`。现有安装器尚未更新，本轮实际运行证据见[教学验证记录](evidence/learning-outcomes-20260907.md)。
 

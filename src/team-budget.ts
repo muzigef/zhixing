@@ -33,15 +33,15 @@ export class TeamBudget {
     signal.throwIfAborted(); const token = Symbol(); slots.add(token);
     return () => { slots.delete(token); for (const wake of [...this.changed]) wake(); };
   }
-  wrap(client: ModelClient, purpose: "lead" | "member" | "planning"): ModelClient {
+  wrap(client: ModelClient, purpose: "lead" | "member" | "planning" | "review" | "followup", requestedCap?: number): ModelClient {
     const capabilities = capabilitiesFor(client);
-    const cap = Math.min(capabilities.maxOutputTokens, purpose === "planning" ? 1024 : 4096);
+    const cap = Math.min(capabilities.maxOutputTokens, requestedCap ?? (purpose === "planning" ? 1024 : purpose === "review" ? 2048 : 4096));
     const stream = (prompt: string, signal: AbortSignal, options?: ModelRequestOptions) => this.request(client, purpose, cap, prompt, signal, options);
     return { identity: client.identity, ...(client.prepare ? { prepare: client.prepare.bind(client) } : {}), capabilities: { ...capabilities, maxOutputTokens: cap },
       contextBudget: { windowTokens: client.contextBudget?.windowTokens ?? capabilities.contextWindowTokens, reserveOutputTokens: Math.min(cap, client.contextBudget?.reserveOutputTokens ?? cap) }, stream,
       ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (prompt: string, results: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions) => this.request(client, purpose, cap, prompt, signal, options, results) } : {}) };
   }
-  private async *request(client: ModelClient, purpose: "lead" | "member" | "planning", cap: number, prompt: string, signal: AbortSignal, options?: ModelRequestOptions, results?: readonly ToolResultMessage[]): AsyncIterable<ModelEvent> {
+  private async *request(client: ModelClient, purpose: "lead" | "member" | "planning" | "review" | "followup", cap: number, prompt: string, signal: AbortSignal, options?: ModelRequestOptions, results?: readonly ToolResultMessage[]): AsyncIterable<ModelEvent> {
     const release = await this.acquire(client, signal);
     let reserved = 0; let reported = false;
     try {
@@ -50,7 +50,8 @@ export class TeamBudget {
       await this.mutate(() => {
         signal.throwIfAborted();
         const reserveLead = purpose === "lead" ? 0 : Math.min(4096, Math.floor(this.config.maxOutputTokens / 2));
-        reserved = Math.min(cap, options?.maxOutputTokens ?? cap, this.config.maxOutputTokens - this.state.reservedOutputTokens - reserveLead);
+        const reserveReview = this.state.protocol && ["member", "planning"].includes(purpose) && this.state.review?.status === "pending" ? Math.min(2048, Math.floor(this.config.maxOutputTokens / 8)) : 0;
+        reserved = Math.min(cap, options?.maxOutputTokens ?? cap, this.config.maxOutputTokens - this.state.reservedOutputTokens - reserveLead - reserveReview);
         if (reserved < 128 || this.state.modelTurns >= this.config.maxModelTurns - (purpose === "lead" ? 0 : 2) || this.state.estimatedInputTokens + input > this.config.maxInputTokens) throw new Error("team_budget_exhausted");
         this.state.modelTurns++; this.state.reservedOutputTokens += reserved; this.state.estimatedInputTokens += input; this.state.unknownUsageRequests++;
       });

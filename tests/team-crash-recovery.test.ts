@@ -4,6 +4,7 @@ import path from "node:path";
 import { fork } from "node:child_process";
 import { once } from "node:events";
 import { expect, it } from "vitest";
+import { fixtureTeamReport } from "./team-fixtures.js";
 
 it("survives SIGKILL after one durable result without paying for either child again", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-crash-"));
@@ -26,7 +27,7 @@ const client={async *stream(prompt, signal, options) {
     process.send({ready:true,sessionId:session.id,taskId:service.activeTaskId});
     await new Promise(resolve=>signal.addEventListener('abort',resolve,{once:true}));signal.throwIfAborted();
   }
-  yield {type:'text_delta',text:kind==='plan'?'{"tasks":["核查计算","检查条件"]}':kind==='member'?'成员一已完成独立核查。':'主 Agent 保留已有结论，并明确成员二未完成。'};
+  yield {type:'text_delta',text:kind==='plan'?'{"tasks":["核查计算","检查条件"]}':kind==='member'?${JSON.stringify(fixtureTeamReport)}:'主 Agent 保留已有结论，并明确成员二未完成。'};
   yield {type:'usage',usage:{inputTokens:10,outputTokens:20}};yield {type:'done'};
 }};
 const store=new AgentSessionStore(path.join(root,'chats'));const service=new AgentService(store,()=>client,app);

@@ -45,7 +45,7 @@ export class CliAgentTransport {
   async invoke(chat: ConversationSession, request: Omit<SendRequest, "sessionId">, observer: AgentObserver = {}) {
     const session = await this.ensure(chat);
     const previous = session.messages.at(-1);
-    const resumeTaskId = this.pendingResume ?? (/^(?:继续|重试|接着)/.test(request.text) && previous?.status !== "completed" ? previous?.taskId : undefined);
+    const resumeTaskId = request.resumeTaskId ?? this.pendingResume ?? (/^(?:继续|重试|接着)/.test(request.text) && previous?.status !== "completed" ? previous?.taskId : undefined);
     this.pendingResume = undefined;
     const raw = { ...request, sessionId: chat.id, mode: request.mode ?? chat.mode, resumeTaskId, steerId: this.pendingSteerId };
     this.pendingSteerId = undefined;

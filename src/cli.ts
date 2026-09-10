@@ -1,7 +1,9 @@
+import { teamTaskStatusLabels, teamVerificationLabels } from "./team-contracts.js";
 import { TeamSettings } from "./team-settings.js";
 import { teamModeConfiguration, collaborationLabels, teamStatusLabels, memberStatusLabels, type CollaborationMode } from "./team-contracts.js";
 import { publicError } from "./agent-errors.js";
 import { ApiConnections, connectionIdentity } from "./api-connections.js";
+import { formatTeamReport, teamFailureLabels } from "./team-quality.js";
 import { apiConnectionInputSchema, type ApiConnection } from "./api-connection-config.js";
 import { readImageFile } from "./image-file.js";
 import { executionSupport } from "./platform-support.js";
@@ -203,9 +205,23 @@ async function execute(line: string): Promise<string> {
   }
   if (command.startsWith("/team config ")) { collaboration = await teamSettings.save(JSON.parse(command.slice(13))); return `已保存${collaborationLabels[collaboration.mode]}配置。`; }
   if (command.startsWith("/team stop ")) { await cliAgent.service.stopTeamMember(chat.id, command.slice(11).trim()); return "已请求停止该成员。"; }
+  if (command.startsWith("/team retry ")) return run("retry_team_task", activeTopic, async (_lifecycle, signal) => {
+    const id = command.slice(12).trim(); const state = await cliAgent.ensure(chat);
+    const message = state.messages.findLast(message => message.team?.tasks?.some(task => task.id === id));
+    if (!message?.taskId) throw new Error("team_task_not_retryable");
+    try {
+      const result = await cliAgent.invoke(chat, { text: "请补做指定核查任务，保留其他已完成工作。", provider: message.provider ?? "mock", style: message.style ?? "adaptive", reasoning: message.reasoning, collaboration: message.collaboration, resumeTaskId: message.taskId, retryTeamTaskId: id }, { signal });
+      return modelReply(result, false);
+    } finally { chat = await chats.save(await cliAgent.projection(chat)); }
+  });
   if (command === "/team") {
     const state = await cliAgent.ensure(chat); const team = state.messages.findLast(message => message.team)?.team;
-    return `新任务模式：${collaborationLabels[collaboration.mode]}\n${JSON.stringify(collaboration)}\n${team ? `${collaborationLabels[team.mode]} · ${teamStatusLabels[team.status]} · 主模型 ${team.lead.model}\n${team.members.map(member => `${member.id} · ${member.binding.model} · ${memberStatusLabels[member.status]}\n${member.result ?? member.error ?? member.task}`).join("\n")}\n总请求 ${team.modelTurns}，已报告输入 ${team.inputTokens} / 输出 ${team.outputTokens} token，${team.unknownUsageRequests} 次用量未知。` : "尚无团队任务。"}`;
+    const taskText = team?.tasks?.map(task => `${task.id} · 成员 ${task.member} · ${teamTaskStatusLabels[task.status]} · ${task.goal}\n交付条件：${task.acceptance.join("；")}\n前置：${task.dependsOn.join("、") || "无"}`).join("\n") ?? "";
+    const verification = team?.verification;
+    const verificationText = verification ? `\n${teamVerificationLabels[verification.status]}：覆盖 ${verification.covered}/${verification.total}，关联工具依据 ${verification.linked} 项\n${verification.issues.join("\n")}` : "";
+    const review = team?.review;
+    const reviewText = review ? `\n分歧审查：${({ pending: "等待", running: "进行中", completed: "已返回意见", failed: "未完成", skipped: "未执行", interrupted: "已中断" } as const)[review.status]}\n${review.guidance ?? (review.failureCode ? teamFailureLabels[review.failureCode] : "")}\n${review.issues?.join("\n") ?? ""}${review.followUp ? `\n定向复核：${review.followUp.question}\n${review.followUp.report ? formatTeamReport(review.followUp.report) : review.followUp.failureCode ? teamFailureLabels[review.followUp.failureCode] : "尚未取得完整结果"}` : ""}` : "";
+    return `新任务模式：${collaborationLabels[collaboration.mode]}\n${JSON.stringify(collaboration)}\n${team ? `${collaborationLabels[team.mode]} · ${teamStatusLabels[team.status]} · 主模型 ${team.lead.model}\n${team.members.map(member => `${member.id} · ${member.binding.model} · ${memberStatusLabels[member.status]}\n${member.report ? formatTeamReport(member.report) : member.result ?? member.error ?? member.task}`).join("\n")}${reviewText}\n${taskText}${verificationText}\n/team retry <任务 ID> 补做指定任务，保留原预算并可能再次计费。\n总请求 ${team.modelTurns}，已报告输入 ${team.inputTokens} / 输出 ${team.outputTokens} token，${team.unknownUsageRequests} 次用量未知。` : "尚无团队任务。"}`;
   }
   if (command === "/task" || command.startsWith("/task ")) {
     await cliAgent.ensure(chat); const session = await cliAgent.service.load(chat.id);

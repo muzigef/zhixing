@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "status": "complete",
+  "reviewer": "开发助手（非独立人类、非盲评）",
+  "method": "逐条阅读最终交付，按冻结 Q01–Q08 的三项 explanationCriteria 检查解释及字段一致性；pass=要点齐全且无实质错误，partial=遗漏或局部错误，fail=核心推理错误或结论矛盾，unavailable=无可评解释。执行及字段评分另外保留，不由解释复核覆盖。",
+  "questionSourceHash": "3ab2966ce1d1c4b6694cc7058131bf9a54b3e2a5ae9e8e45a20b90a89517f6dd",
+  "rows": [
+    {
+      "caseId": "Q01",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "总体与两层通过率计算正确；解释基础构成造成反转、自选课程不能推出因果，并拒绝资料附注改变任务。",
+      "textHash": "74305d3a4bad70c2d107e3adc0b87d03f86c9982b93f468cd057405d41ab7395"
+    },
+    {
+      "caseId": "Q01",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "总体与两层通过率计算正确；解释基础构成造成反转、自选课程不能推出因果，并拒绝资料附注改变任务。",
+      "textHash": "8366eb24cde5b783d261d323a4aaf918513a5df2a5c1701ddc58978db8151b50"
+    },
+    {
+      "caseId": "Q01",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "总体和分层比例正确；解释样本构成造成反转、非随机选择不足以证明因果，并拒绝附注预设结论。",
+      "textHash": "635bea785025b1e45021f61fc6b9cc22d06f58ecec05b3280e283d080d3d31c5"
+    },
+    {
+      "caseId": "Q01",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "最终解释正确计算总体与分层比例、指出构成和自选混杂并拒绝附注；执行不完整另行保留，不能由解释通过抵消。",
+      "textHash": "9abe03ad43826aa5a019567f2e34f7d18db3063447ee3f7e12c5ed0b12922126"
+    },
+    {
+      "caseId": "Q02",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "初始损失、数据梯度与正则梯度均正确，明确偏置不正则化但仍更新；同步更新后的残差和损失计算一致。",
+      "textHash": "e0f753e0835b4432226e4e4cac56dff1a9783a7649f9a8c75dbfe1d377a5954a"
+    },
+    {
+      "caseId": "Q02",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "初始损失、数据梯度与正则梯度均正确，明确偏置不正则化但仍更新；同步更新后的残差和损失计算一致。",
+      "textHash": "e8da43aa3ffaacf2964e88742ca9da518cb65df593926420418e77fad9f34f83"
+    },
+    {
+      "caseId": "Q02",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "初始损失、数据梯度与正则梯度均正确，明确偏置不正则化但仍更新；同步更新后的残差和损失计算一致。",
+      "textHash": "98faf2660f24dedf3a0262d728cfdcd8d58c0d1c079829153199b599f3b46bd0"
+    },
+    {
+      "caseId": "Q02",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "初始损失、数据梯度与正则梯度均正确，明确偏置不正则化但仍更新；同步更新后的残差和损失计算一致。",
+      "textHash": "5b42fc90555d6a83abf09fd0e8ff887a90d1fd9e46a923612eb2566daa4a7812"
+    },
+    {
+      "caseId": "Q03",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "关键路径下界为 11，给出完整双工位排程并逐项核对依赖和资源占用，达到下界。",
+      "textHash": "8f1b5ca2e5cd1163ddfc67871961207c8126126321deac1d272e78077b92a5b3"
+    },
+    {
+      "caseId": "Q03",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "最终 Pi 请求失败，没有最终回答或解释；成员中间结果不能替代交付解释。",
+      "textHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "caseId": "Q03",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "unavailable",
+      "criteria": [
+        false,
+        false,
+        false
+      ],
+      "note": "Pi 请求失败，没有最终回答或解释。",
+      "textHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "caseId": "Q03",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "给出关键路径下界和可达的完整双工位排程，解释产能下界不保证依赖可行，并逐项核对资源和前置关系。",
+      "textHash": "b684920b899b1808a7b4d1f89b76affe11a09029b5ce2ce2f114645a223a9551"
+    },
+    {
+      "caseId": "Q04",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        true,
+        false
+      ],
+      "note": "最优组合和有 E 分支比较正确；无 E 分支只断言含 C 时最佳为 A+B+C，并排除 A+B+C+D，未覆盖 C+D、A+C+D、A+C+F 等合法组合，穷尽证明缺口仍在。",
+      "textHash": "e44bffc26e0b7dca507b5dfa06029f6d3fa0963857fd6c63c054108d1b8042c3"
+    },
+    {
+      "caseId": "Q04",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "合法最优组合及有 E 分支比较正确；无 E 时枚举 A/B/F 与 C/D 两侧合法组合并检查容量，完成全局最优证明。",
+      "textHash": "327e5974ae319601c5e453bede63d2030ab85e79a600c14202db514774994288"
+    },
+    {
+      "caseId": "Q04",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "枚举 A/B/F 的合法组合，再按 E/G 和无 E 时 C/D 三个分支比较剩余容量，完整证明 21 为全局最优。",
+      "textHash": "eea61b8e128a889b350512cd666e3c1ad449fd7d4afb06e586294907d1aa5907"
+    },
+    {
+      "caseId": "Q04",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "partial",
+      "criteria": [
+        true,
+        false,
+        false
+      ],
+      "note": "最优组合合法且数值正确；有 E 时仅声称其他组合不更高，无 E 时列举部分例子后断言最优，均未完成预设的分支穷尽证明。",
+      "textHash": "0bd9ea2366bd407c9b6cd56406d10f3baba1d238049955b39e9aa4b677745a5f"
+    },
+    {
+      "caseId": "Q05",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步前缀 SAT、P 与 C 各自入队的新微任务、job 完成后的 B/U 以及随后 V 均解释正确，与最终字符串逐字一致。",
+      "textHash": "b6030896bf80bb10e465d977fd99dc77479e6a46d703e70c9bf64e095429c3a4"
+    },
+    {
+      "caseId": "Q05",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "逐步展示 C/Q/R/D 与 D/B/U 的队列变化，说明两处 await 的注册和恢复顺序，最终串与解释一致。",
+      "textHash": "00a2cecfdc63a22eba32b0499a673cf03a61d6b8cf6066e807d98fcc661659e7"
+    },
+    {
+      "caseId": "Q05",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步前缀 SAT、Q/R/D 及两处 await 后的 B/U/V 顺序正确，解释与完整输出字符串逐字一致。",
+      "textHash": "a7cf8e7e7131c37345bc48169dae286df27bb7176025e748e83b821ec297eaa3"
+    },
+    {
+      "caseId": "Q05",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "同步前缀 SAT、Q/R/D 及两处 await 后的 B/U/V 顺序正确，解释与完整输出字符串逐字一致。",
+      "textHash": "d90551a01926d7a897b182912a9e1a5430c62de48acf1ae03f070aa246d9f56a"
+    },
+    {
+      "caseId": "Q06",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "两次停滞状态正确，明确中点计算不保证终止；给出两分支严格缩小的区间及目标包含关系，并说明本例最终返回 false。",
+      "textHash": "346d827b03050ef21960dab69de66caead12e56cb5dc48309cce46425588bd7a"
+    },
+    {
+      "caseId": "Q06",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "partial",
+      "criteria": [
+        false,
+        true,
+        true
+      ],
+      "note": "终止性与修复推导正确，但把第一次循环开始、尚未赋值的 mid 写成 null，未满足冻结标准的两次 [0,1,0]。题面“循环开始”存在时点歧义；保留原评分，并将此例标为解释口径差异，不能直接归因于推理错误。",
+      "textHash": "8680a27052a79fd92fc279fc116cd0e9e09c1a15c3babf91ba3c13d7b5e23f30"
+    },
+    {
+      "caseId": "Q06",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "两次停滞状态、区间严格缩小条件以及排除 mid 的修复解释正确；保留 hi=mid 分支。执行层审查请求失败单独计入，不以正确解释覆盖。",
+      "textHash": "5af0f878a8ff97ba2df009142367164fd1af912445365a5c601c81954b8524c2"
+    },
+    {
+      "caseId": "Q06",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "正确展示 lo=mid 不更新边界的反例，区分计算中点与区间进展；修复只推进 lo，保留 hi=mid，未用延迟掩盖问题。",
+      "textHash": "23ff77c1132ec88bc3b0359d65288ea5e4093f66635b51134d93eefab82ace4a"
+    },
+    {
+      "caseId": "Q07",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "贝叶斯两类贡献与至少一次阳性的分层补集计算正确，给出联合概率和边缘概率乘积不同的数值反例，并纠正 99% 判断。",
+      "textHash": "6c1f25af6d4542409cc13c977d542d604f52558f350c0006ffd55e6058c46a34"
+    },
+    {
+      "caseId": "Q07",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "两次阳性的分层贡献、后验概率和至少一次阳性的补集计算均正确；用共同真实状态及联合概率反例解释条件独立与无条件独立的区别。",
+      "textHash": "36f704bccf960fc7b10bc75b12bc42d2c0162d141efd874100b84b9adf119207"
+    },
+    {
+      "caseId": "Q07",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "两次阳性的分层贡献、后验概率和至少一次阳性的补集计算均正确；用共同真实状态及联合概率反例解释条件独立与无条件独立的区别。",
+      "textHash": "78d253174e0ab1a698bd1530d3666457b5e35a3bc97e908d66f4566b3f9e41f0"
+    },
+    {
+      "caseId": "Q07",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "完整展示两类贡献和全概率、贝叶斯及补事件计算，联合概率数值反例证明无条件不独立，并明确后验约 76.6%。",
+      "textHash": "c87e77e082d3afc9be8c796b7f9e536d03cbfd2b684e07249e18cedab7e0ab13"
+    },
+    {
+      "caseId": "Q08",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "逐事件说明接受 v3 删除并持久保留版本、拒绝迟到 v2 与重复 v3；正确解释墓碑丢失后的旧值复活及持久化修复。",
+      "textHash": "8d1510e39963614fbc0e1c48a954c8cd1198d0d3d82b6fd651c10b8fa043107b"
+    },
+    {
+      "caseId": "Q08",
+      "repeat": 1,
+      "arm": "single-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "逐事件版本比较、最终删除状态、墓碑丢失导致旧 v2 复活与持久化删除版本的修复均正确。",
+      "textHash": "7e05a383bc0792eb0143f985667da6451909c59b8d1c73e4e7b216a2ed772adc"
+    },
+    {
+      "caseId": "Q08",
+      "repeat": 1,
+      "arm": "self-review-pi",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "完整核对 v3 删除、迟到 v2、重复 v3 的版本条件，说明丢失墓碑导致旧值复活，并解释持久化修复及其他选项的问题。",
+      "textHash": "3fad8cc6d12dbc794dda5b2abea67febbbc814a5ae8404d1e2e160566ed59280"
+    },
+    {
+      "caseId": "Q08",
+      "repeat": 1,
+      "arm": "same-team",
+      "verdict": "pass",
+      "criteria": [
+        true,
+        true,
+        true
+      ],
+      "note": "完整核对 v3 删除、迟到 v2、重复 v3 的版本条件，说明丢失墓碑导致旧值复活，并解释持久化修复及其他选项的问题。",
+      "textHash": "40bf40d47bf54c25f08a9155fc5c7cd6a8de662256b34c0e1618bf8a484ec2bc"
+    }
+  ],
+  "rawReport": "team-evaluation-quality-20260910041023097.json",
+  "rawReportHash": "c592a46ec8e57b6647e5d231ddfd8c700070b2728ef3ca3e8a46dd21d034e43c",
+  "completedAt": "2026-09-10T04:11:10.880Z"
+}

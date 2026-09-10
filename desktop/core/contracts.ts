@@ -35,7 +35,7 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("team-evaluate"), suite: z.enum(["pilot", "holdout"]) }).strict(),
+  z.object({ type: z.literal("team-evaluate"), suite: z.enum(["pilot", "holdout", "regression", "quality"]) }).strict(),
   z.object({ type: z.literal("team-evaluation-status") }).strict(),
   z.object({ type: z.literal("team-stop-member"), sessionId: z.string().uuid(), memberId: z.string().uuid() }).strict(),
   z.object({ type: z.literal("reminder-status"), topicId: topicIdSchema }),

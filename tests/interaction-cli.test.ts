@@ -18,6 +18,7 @@ import { emptyConversation, ConversationSessionStore } from "../src/conversation
 import { AgentSessionStore } from "../src/agent-session-store.js";
 import { ZhixingDatabase } from "../src/database.js";
 import { PathPolicy } from "../src/paths.js";
+import { fixtureTeamReport, fixtureTeamReview } from "./team-fixtures.js";
 
 const exec = promisify(execFile);
 const roots: string[] = [];
@@ -116,13 +117,27 @@ globalThis.fetch = async (_url, init) => {
 
 describe("natural interaction through the actual CLI", () => {
   it("persists team mode across CLI restarts and runs two real isolated member invocations", async () => {
-    const fixture = await setup(false, ['{"tasks":["核查计算","检查条件"]}', "计算结果是 4。"]);
+    const fixture = await setup(false, ['{"tasks":["核查计算","检查条件"]}', fixtureTeamReport, fixtureTeamReport, fixtureTeamReview, "计算结果是 4。"]);
     expect((await fixture.invoke("/mode same")).stdout).toContain("同模型团队");
     await fixture.invoke("/agent 计算 2+2");
     const report = (await fixture.invoke("/team")).stdout;
     expect(report).toContain("同模型团队"); expect(report).toContain("deepseek-v4-flash"); expect(report).toContain("已完成");
-    expect(JSON.parse(await fs.readFile(path.join(fixture.root, "requests.json"), "utf8"))).toHaveLength(4);
+    expect(report).toContain("分歧审查"); expect(report).toContain("候选计算与原条件一致");
+    expect(JSON.parse(await fs.readFile(path.join(fixture.root, "requests.json"), "utf8"))).toHaveLength(5);
     expect((await fixture.invoke("/mode single")).stdout).toContain("单 Agent");
+  });
+  it("retries a selected durable team task through the real CLI without replaying its completed peer", async () => {
+    const fixture = await setup(false, ['{"tasks":["核查计算","检查条件"]}', fixtureTeamReport, fixtureTeamReport, fixtureTeamReview, "计算结果是 4。", fixtureTeamReport, fixtureTeamReview, "补做完成，结果是 4。"]);
+    await fixture.invoke('/team config {"mode":"same-model-team","maxOutputTokens":48000}');
+    await fixture.invoke("/agent 计算 2+2");
+    const chat = await fixture.chats.current("agent-development"); const store = new AgentSessionStore(path.join(fixture.root, "zhixing", "agent")); const session = await store.load(chat!.id);
+    const message = session.messages.at(-1)!; const task = message.team!.tasks![1]!;
+    task.status = "failed"; task.failureCode = "unavailable"; message.team!.status = "partial"; message.team!.members[1]!.status = "failed"; message.status = "blocked"; await store.save(session);
+    const reply = await fixture.invoke(`/team retry ${task.id}`); expect(reply.stdout).toContain("补做完成");
+    expect(await fixture.requests()).toHaveLength(8);
+    const resumed = (await store.load(chat!.id)).messages.at(-1)!;
+    expect(resumed.taskId).toBe(message.taskId); expect(resumed.team?.tasks?.[0]?.attempts).toBe(1); expect(resumed.team?.tasks?.[1]?.attempts).toBe(2);
+    expect((await fixture.invoke("/team")).stdout).toContain("待核查");
   });
   it("adds and switches a third-party connection through real CLI commands across restarts", async () => {
     const fixture = await setup();

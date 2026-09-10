@@ -246,7 +246,7 @@ npm --prefix desktop run test:ui
 
 Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目录，核对 6 个关键运行文件，再针对安装路径执行五组 UI；安装回执作为 artifact 保留。手动定位可选 platform，tag 发布始终运行全部平台。异步 IPC 条件使用有总期限的 `waitForIpc` 逐次等待，不能把 Promise 对象当成条件已满足。
 
-默认 UI 回归使用隔离的合成数据，不主动访问系统加密。显式设置 `ZHIXING_DESKTOP_NATIVE_CIPHER=1` 可增加真实 safeStorage 的合成加解密检查，IPC 等待上限 20 秒；两个 GitHub 工作流都强制启用此检查，失败不能忽略。虽然没有读取已有 API Key，macOS 仍可能要求访问系统管理的主密钥，尤其在预览包重新签名后。本机需要用户在系统界面处理授权；未授权时应记录未验收，不应将普通 UI 通过替代这一结果。
+默认 UI 回归使用隔离的合成数据，不主动访问系统加密。显式设置 `ZHIXING_DESKTOP_NATIVE_CIPHER=1` 可增加真实 safeStorage 的合成加解密检查，IPC 等待上限 20 秒；两个 GitHub 工作流都强制启用此检查，失败不能忽略。虽然没有读取已有 API Key，macOS 仍可能要求访问系统管理的主密钥。ad-hoc 每次构建可能改变应用身份；本地打包需先[固定开发签名证书](macos-local-signing.md)，首次授权后另验重启及跨构建连续性。未完成时应记录待验，不应将普通 UI 通过替代这一结果。`desktop-signing.test.js` 覆盖签名固定和失败边界，不能替代本机系统弹窗验收。
 
 如果本机全局 npm 镜像不可用，可仅为本次审计追加 `--registry=https://registry.npmjs.org`，分别执行根目录与 desktop 的 `npm audit --omit=dev --audit-level=high`，保留最初的网络失败记录，不更改全局配置。
 
@@ -264,11 +264,11 @@ Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目�
 
 真实本机 Kimi/DeepSeek 探针可在正常退出应用后，显式执行 `node desktop/scripts/check-installed-api.mjs --live --provider=kimi-api`。它打开安装应用并调用受控 IPC，不输出凭据、不创建对话，可能产生少量 API 用量。真实记录见[本轮 Evidence](evidence/dynamic-api-20260909.md)。
 
-## 0.10 团队与回答质量对照
+## 0.10–0.11 团队与回答质量对照
 
-`npm run verify` 包含模型固定、共享预算、延迟工具权限、成员隔离、停止/恢复、真实 SIGKILL、CLI 模式持久化及确定性评分器。团队会话升级 v9 时保留旧格式副本，旧应用无法静默覆盖新团队记录；普通单 Agent 会话仍可保持 v8。
+`npm run verify` 包含模型固定、共享预算、延迟工具权限、成员隔离、停止/恢复、真实 SIGKILL、CLI 模式持久化及确定性评分器。旧团队会话 v9、新复核协议 v10 均保留升级前副本，旧应用无法静默覆盖新团队记录；普通单 Agent 会话仍可保持 v8。
 
-`smoke-team.mjs` 通过隔离的 Electron、受控合成 HTTP 与假密文验证三模式入口、实际两成员调度、模型来源、部分失败与完整团队的新任务重跑。它不连接真实服务。
+`smoke-team.mjs` 通过隔离的 Electron、受控合成 HTTP 与假密文验证三模式入口、实际两成员调度、模型来源、分歧审查、一次定向复核、部分失败与完整团队的新任务重跑。它不连接真实服务。
 
 真实评测通过打包应用的固定题目 IPC 执行，凭据只由应用安全存储处理；必须显式给出 `--live`，并保留应用禁止真实请求的设置。先关闭其他知行实例，确保三家模型已配置、没有运行中任务：
 
@@ -278,3 +278,5 @@ node desktop/scripts/evaluate-team.mjs --live --suite=holdout
 ```
 
 默认使用 `~/Applications/知行.app`，也可用 `ZHIXING_DESKTOP_EXECUTABLE` 指定已验收的 `.app`。脚本退出时关闭其启动的应用。报告自动以唯一文件名写到 `docs/evidence/`，保留原答、成员、失败和用量；中间检查点位于本次评测创建的系统临时目录，不修改日常会话。具体条件和不能据此宣称的结论见[评测协议](agent-team-evaluation-protocol-20260909.md)。
+
+0.11 增加 `--suite=regression`（H02/H04，四组，8 根任务）与 `--suite=quality`（Q01–Q08，四组，32 根任务）。新题与评分条件在首次留出前冻结；解释另外逐条复核。五轮单 Agent 自检对照、成员原生思考档位、统一总预算和样本限制见[0.11 协议](agent-team-quality-evaluation-protocol-20260909.md)。新脚本记录实际 `app.asar` 哈希，并拒绝评测期间更换构建；不能将开发目录源码哈希冒充实际执行二进制身份。

@@ -97,6 +97,15 @@ describe("desktop conversation runtime", () => {
     });
     expect(service.activeSessionId).toBeNull();
   });
+  it("includes asynchronous transport preparation in the shared stop boundary", async () => {
+    let prepared = false; let calls = 0; let release!: () => void;
+    const ready = new Promise<void>(resolve => { release = resolve; });
+    const { service, store, session } = await fixture({ async *stream() { calls++; yield { type: "done" }; } });
+    const pending = service.send({ sessionId: session.id, text: "准备期间停止", provider: "demo", style: "adaptive" }, false, undefined, undefined, async () => { prepared = true; await ready; });
+    service.stop(); release(); await pending; await service.idle();
+    expect(prepared).toBe(true); expect(calls).toBe(0);
+    expect((await store.load(session.id)).messages.at(-1)?.status).toBe("interrupted");
+  });
   it("does not turn a missing completion or provider failure into a successful response", async () => {
     const { service, store, session } = await fixture({
       async *stream() {

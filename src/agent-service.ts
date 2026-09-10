@@ -1,3 +1,4 @@
+import { retryableTask } from "./team-task-graph.js";
 import { imageDataUrl } from "./image-input.js";
 import { capabilitiesFor } from "./model-capabilities.js";
 import { prepareDialogue } from "./agent-dialogue.js";
@@ -307,7 +308,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     await this.store.save(session);
     return { sessionId, text, provider: message.provider ?? "pi-codex", style: "adaptive", reasoning: message.reasoning, collaboration: message.collaboration, resumeTaskId: message.taskId };
   }
-  async send(raw: SendRequest, fromQueue = false, queuedRequestId?: string, observer?: AgentObserver): Promise<ChatSession> {
+  async send(raw: SendRequest, fromQueue = false, queuedRequestId?: string, observer?: AgentObserver, prepare?: () => Promise<void>): Promise<ChatSession> {
     const request = sendSchema.parse(raw);
     request.reasoning ??= "balanced";
     if (this.active || this.starting || this.draining && !fromQueue) throw new Error("run_active");
@@ -318,14 +319,24 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     let releaseSession: (() => void) | undefined; let releaseTeaching: (() => void) | undefined; let handedOff = false;
     try {
       await this.pauseMaintenance();
+      // Transport preference reads belong inside the same cancellation boundary.
+      await prepare?.();
       releaseSession = this.learning ? AgentExecutionStore.claimSession(this.learning.database, request.sessionId) : undefined;
       const client = this.client(request.provider);
       if (request.images?.length && !capabilitiesFor(client).inputModalities.includes("image")) throw new Error("image_model_required");
       const session = await this.store.load(request.sessionId);
+      if (request.retryTeamTaskId && (!request.resumeTaskId || request.steerId)) throw new Error("team_task_not_retryable");
       if (request.resumeTaskId) {
         const previous = session.messages.findLast(item => item.taskId === request.resumeTaskId);
         request.collaboration ??= previous?.collaboration;
-        if (previous?.team) request.reasoning = previous.reasoning;
+        if (request.retryTeamTaskId) retryableTask(previous?.team?.tasks, request.retryTeamTaskId);
+        if (previous?.team) {
+          request.reasoning = previous.reasoning;
+          const original = session.messages.slice(0, session.messages.indexOf(previous)).findLast(item => item.role === "user");
+          if (request.images && JSON.stringify(request.images) !== JSON.stringify(original?.images)) throw new Error("team_scope_changed");
+          request.images ??= original?.images;
+          if (request.images?.length && !capabilitiesFor(client).inputModalities.includes("image")) throw new Error("image_model_required");
+        }
         if (JSON.stringify(teamConfigurationSchema.parse(request.collaboration ?? {})) !== JSON.stringify(teamConfigurationSchema.parse(previous?.collaboration ?? {})) || previous?.team && previous.provider !== request.provider) throw new Error("team_configuration_changed");
       }
       if (session.study) {
@@ -428,7 +439,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     if (request.topicId && request.topicId !== active.session.topicId) throw new Error("topic_change_requires_new_session");
     const pending = active.session.pendingRequests ??= [];
     if (pending.length >= MAX_PENDING_REQUESTS || active.session.messages.length + (pending.length + 1) * 2 > MAX_CONVERSATION_MESSAGES) throw new Error("queue_full");
-    const item = { id: randomUUID(), collaboration: request.collaboration, mode: request.mode, purpose: request.purpose, images: request.images, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
+    const item = { id: randomUUID(), collaboration: request.collaboration, mode: request.mode, purpose: request.purpose, images: request.images, text: request.text, provider: request.provider, style: request.style, reasoning: request.reasoning, topicId: request.topicId, contextAllowed: request.contextAllowed, access: request.access, execution: request.execution, retryTeamTaskId: request.retryTeamTaskId, resumeTaskId: steer ? active.session.messages.at(-1)?.taskId : request.resumeTaskId, steerId: steer ? randomUUID() : request.steerId, enqueuedAt: new Date().toISOString() };
     if (steer) pending.unshift(item); else pending.push(item);
     active.session.queuePaused = false;
     active.session.queueError = undefined;
@@ -525,7 +536,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     this.drainingSession = session;
     const item = session.pendingRequests[0]!;
     try {
-      await this.send({ sessionId: session.id, text: item.text, collaboration: item.collaboration, images: item.images, mode: item.mode, purpose: item.purpose, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, access: item.access, execution: item.execution, resumeTaskId: item.resumeTaskId, steerId: item.steerId }, true, item.id);
+      await this.send({ sessionId: session.id, text: item.text, collaboration: item.collaboration, images: item.images, mode: item.mode, purpose: item.purpose, provider: item.provider, style: item.style, reasoning: item.reasoning, topicId: item.topicId, contextAllowed: item.contextAllowed, access: item.access, execution: item.execution, resumeTaskId: item.resumeTaskId, retryTeamTaskId: item.retryTeamTaskId, steerId: item.steerId }, true, item.id);
       this.draining = null;
       this.drainingSession = null;
       await this.work;
@@ -596,7 +607,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (collaboration.mode !== "single") {
         if (session.study) throw new Error("team_study_unavailable");
         const previous = request.resumeTaskId ? session.messages.slice(0, -2).findLast(item => item.taskId === message.taskId && item.steerId === message.steerId)?.team : undefined;
-        this.activeTeam = await TeamCoordinator.create({ config: collaboration, provider: request.provider, resolve: this.client, reasoning: message.reasoning ?? "balanced", question: request.text, images: request.images,
+        this.activeTeam = await TeamCoordinator.create({ config: collaboration, provider: request.provider, resolve: this.client, reasoning: message.reasoning ?? "balanced", question: request.text, images: request.images, retryTaskId: request.retryTeamTaskId,
           scope: { sessionId: session.id, topicId: session.topicId, permissions: session.permissions, contextAllowed: session.contextAllowed }, previous,
           save: async team => { message.team = team; await this.store.save(session); this.patch(session, { team }); },
         }, signal);

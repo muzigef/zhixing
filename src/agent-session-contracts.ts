@@ -52,7 +52,7 @@ export const messageSchema = z.object({
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({
   collaboration: teamConfigurationSchema.optional(),
-  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(10), z.literal(11)]),
   id: z.string().uuid(),
   title: z.string().min(1).max(80),
   customTitle: z.boolean().default(false),
@@ -75,7 +75,7 @@ export const chatSchema = z.object({
     summarySourceHash: z.string().regex(/^[a-f0-9]{64}$/).optional(), summaryAttemptFailed: z.boolean().optional(),
     lastAttemptId: z.string().uuid().optional(),
   }).optional(),
-  pendingRequests: z.array(z.object({ collaboration: teamConfigurationSchema.optional(), mode: z.enum(["chat", "lesson"]).optional(), purpose: z.enum(["answer", "planning", "intent", "guidance", "evidence"]).optional(), id: z.string().uuid(), images: imagesSchema.optional(), text: z.string().min(1).max(MAX_INPUT_CHARACTERS), provider: providerSchema, style: styleSchema, reasoning: reasoningRequestSchema.optional(), topicId: topicIdSchema.optional(), contextAllowed: z.boolean().optional(), access: accessSelectionSchema.optional(), execution: z.enum(["read", "once", "session"]).optional(), resumeTaskId: z.string().uuid().optional(), steerId: z.string().uuid().optional(), enqueuedAt: z.string().datetime() })).max(MAX_PENDING_REQUESTS).optional(),
+  pendingRequests: z.array(z.object({ collaboration: teamConfigurationSchema.optional(), mode: z.enum(["chat", "lesson"]).optional(), purpose: z.enum(["answer", "planning", "intent", "guidance", "evidence"]).optional(), id: z.string().uuid(), images: imagesSchema.optional(), text: z.string().min(1).max(MAX_INPUT_CHARACTERS), provider: providerSchema, style: styleSchema, reasoning: reasoningRequestSchema.optional(), topicId: topicIdSchema.optional(), contextAllowed: z.boolean().optional(), access: accessSelectionSchema.optional(), execution: z.enum(["read", "once", "session"]).optional(), resumeTaskId: z.string().uuid().optional(), retryTeamTaskId: z.string().uuid().optional(), steerId: z.string().uuid().optional(), enqueuedAt: z.string().datetime() })).max(MAX_PENDING_REQUESTS).optional(),
   queuePaused: z.boolean().optional(),
   queueError: z.string().max(500).optional(),
 }).refine(value => !value.teaching || value.teaching.topicId === value.topicId, { message: "cross_topic_teaching_denied" });
@@ -99,7 +99,7 @@ export const agentSendSchema = z.object({
   contextAllowed: z.boolean().optional(),
   access: accessSelectionSchema.optional(),
   execution: z.enum(["read", "once", "session"]).optional(),
-  resumeTaskId: z.string().uuid().optional(),
+  resumeTaskId: z.string().uuid().optional(), retryTeamTaskId: z.string().uuid().optional(),
   steerId: z.string().uuid().optional(),
 }).strict();
 export type SendRequest = z.infer<typeof agentSendSchema>;

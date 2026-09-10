@@ -7,8 +7,15 @@ export const responseObservationSchema = z.object({
 export type ResponseObservation = z.infer<typeof responseObservationSchema>;
 
 export function requestedParagraphs(question: string): number | undefined {
-  const match = question.match(/(?<!不要|不必|无需)(?:只写|只用|仅写|仅用|请用|用|分成|分为)\s*([两二三四五2-5])\s*(?:个)?段(?:落)?/);
-  return match ? ({ 两: 2, 二: 2, 三: 3, 四: 4, 五: 5 } as Record<string, number>)[match[1]!] ?? Number(match[1]) : undefined;
+  // Quoted source instructions and counts of input material are not output contracts.
+  const prose = question.replace(/```[\s\S]*?```|`[^`\n]*`|“[^”]*”|‘[^’]*’|"[^"\n]*"/g, " ");
+  for (const match of prose.matchAll(/(?:只写|只用|仅写|仅用|请用|用|分成|分为)\s*([两二三四五2-5])\s*(?:个)?段(?:落)?/g)) {
+    const before = prose.slice(0, match.index); const after = prose.slice(match.index + match[0].length);
+    if (/(?:不要|不必|无需|不能|不需要|禁止)(?:\s|只|仅|再|请)*$/.test(before)) continue;
+    if (/^\s*(?:的)?(?:资料|材料|原文|文档|代码|引文|文本|内容|视频|音频)/.test(after)) continue;
+    return ({ 两: 2, 二: 2, 三: 3, 四: 4, 五: 5 } as Record<string, number>)[match[1]!] ?? Number(match[1]);
+  }
+  return undefined;
 }
 export function turnResponseRules(question: string): string {
   const rules: string[] = []; const paragraphs = requestedParagraphs(question);

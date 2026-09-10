@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "recordedAt": "2026-09-10T07:54:08.328Z",
+  "scope": "Local architecture and regression verification only",
+  "teamProtocol": 3,
+  "sessionVersion": 11,
+  "evaluationReportVersion": 4,
+  "verification": {
+    "command": "CI=1 npm run verify",
+    "exitCode": 0,
+    "suites": [
+      {
+        "files": 148,
+        "tests": 746
+      },
+      {
+        "files": 1,
+        "tests": 9
+      },
+      {
+        "files": 1,
+        "tests": 6
+      }
+    ],
+    "logHash": "c997e8e079f8143abe556cef2cb8b30dc063e63ed526fff038ee18c5aa2c3b63"
+  },
+  "ui": {
+    "command": "ZHIXING_DESKTOP_NATIVE_CIPHER=0 npm --prefix desktop run test:ui",
+    "exitCode": 0,
+    "suites": 7,
+    "isolatedHttpAndCipher": true,
+    "logHash": "fa445ae6788f7af6e6189971cef943b042f59b15f244286b5675c0f947e0be8a",
+    "finalTeamRegressionHash": "c88fd677d3bd084a6d8e15123408e3f9a407caacc66c77c686ecf9e816b650f0",
+    "targetedRetryRequests": 3,
+    "completedPeerReplayed": false
+  },
+  "realProviderEvaluation": false,
+  "nativeKeychainAcceptance": false,
+  "installedAppReplaced": false,
+  "sourceFiles": {
+    "src/team-coordinator.ts": "21e93c2bee743eec23777c1ea4bc8a803589849c087dc469ee40d37862670b87",
+    "src/team-contracts.ts": "e5fe968e4c97d5f3e42b35202cc34502b24ca406810c240c5d2a430ecd90ed63",
+    "src/team-work-contracts.ts": "bd9fad16a8448c700fbf421a4e3303bfe5133d16b01cfc4e672c61e00f50f175",
+    "src/team-task-graph.ts": "daaf6ed0a5d4a34b7e6799671662d3ba80f1c732b9f9a88c670b6762110a6f3c",
+    "src/team-task-packet.ts": "7604785fe1e60f5305eeceab75bfd6d93bf493ea65b0c3e45a5ba760d7219d04",
+    "src/team-preparation.ts": "7a4924190a44c0037338ad2ceaefdccc45af0ebdadee7635c22cebb91e17a470",
+    "src/team-verification.ts": "f999318c476f321b88452164f48717947e185f2ee084da4861b6605d6903ba11",
+    "src/team-quality.ts": "ad0ec34c752fe72fa3340738b8f5b710509aa2eca0b57be54ee6ae8fb1edda5d",
+    "src/team-budget.ts": "8aa7e0bde71207b3b42687e13cc3763188f9ea42c8883513ff527481f80843a2",
+    "src/execution-evidence.ts": "620919f5ca9f1969ccce99cbf2dbd12cbd143c52e786c82080faf65409d2ca3d",
+    "src/assistant-runtime.ts": "449ae9079ba516eae1c7ff9d76c9d3a9c681db5ac8ae04622b0d917e7e0853dc",
+    "src/agent-service.ts": "5312d33ff4d4892a94b618c9d524e863531781ac1b87cc77340fee4a6b12e243",
+    "src/agent-session-contracts.ts": "c20961d8e43a32704e2b91ec8e2bb94436050a6aff065d731a99454f6d16bb0d",
+    "src/agent-session-store.ts": "27c307f55cd7faa41d8e051501f4377b9e3187d98c09cf7cae281464d17ca528",
+    "src/cli-agent-transport.ts": "6b491ef9f5978b9452b5fc010337351b5005207903efeb03f38e48699691e6da",
+    "src/cli.ts": "ec56fd4944ced51a6db0c8ddae1792a38c1d66ea8d33c751511d323c17d838f3",
+    "src/team-evaluation.ts": "2181f6791064a4774ff2c5db0241bad3d4eda1cdd3487d0a7b09a9d498f5f58d",
+    "desktop/renderer/team-panel.tsx": "5fc78719be91b7c4fe367a902cd8df9270cf19e1d0ea85eeb11812e89f198ee3",
+    "desktop/renderer/index.tsx": "579e5d232fe5e6de37f72c3ab4ffdb6cc45e6412004364fa04bc5b34528be81f",
+    "desktop/scripts/smoke-team.mjs": "112185f4db37c482c6eda6e146108f5bb682e9d2dfcb6d86f13df2f505922029"
+  }
+}
