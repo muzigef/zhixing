@@ -1,5 +1,7 @@
 # 知行 0.6：任务连续性与教学验证
 
+> 历史计划或版本记录：下文保留当时的设计、范围及验证结果，不是当前功能清单或新的开发指令。现行实现、已完成的后续改动与待验收项见 [当前状态](current-status.md) 和 [文档导航](README.md)。
+
 0.6 保持 CLI/桌面共用的模块化单体架构和 Pi Codex / DeepSeek 通道。定位仍是帮助学习者独立理解与实践，架构改动服务于可恢复执行、清楚的授权和可追溯的教学记录。执行状态见 [C01–C12 计划](agent-architecture-next-plan.md)与[本轮证据](evidence/agent-architecture-next.md)。
 
 ## 使用变化

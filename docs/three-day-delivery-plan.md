@@ -1,5 +1,7 @@
 # 三天 AI 自动开发与验证计划
 
+> 历史计划或版本记录：下文保留当时的设计、范围及验证结果，不是当前功能清单或新的开发指令。现行实现、已完成的后续改动与待验收项见 [当前状态](current-status.md) 和 [文档导航](README.md)。
+
 > 状态：历史三天排期，相关阶段验收已归档。以下 Node 20+、pnpm、Claude/本地模型、全局 profile 等是原始设想，不是当前配置或已交付承诺。当前基线为 Node 24.8.x + npm、四种 CLI Provider 与独立桌面应用，见 [开发计划](development-plan.md)、[任务台账](../TASKS.md) 和 [配置](CONFIGURATION.md)。
 > 范围：仅 `zhixing/`；不修改已有学习计划、skills 或 `learning-notes/` 的既有内容。
 > 决策基线：[已确认产品决策](decisions.md)

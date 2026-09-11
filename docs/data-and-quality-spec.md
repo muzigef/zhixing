@@ -1,6 +1,7 @@
+<!-- generated-by: gsd-doc-writer -->
 # 数据、记忆与质量契约
 
-> 核对日期：2026-09-06，桌面 0.4.0 升级代码。第 1–6 节以 CLI 数据为主，第 7 节说明桌面会话和共享学习数据。源码中的实际校验优先于设计目标。
+> 核对日期：2026-09-11，桌面包 0.11.0 当前代码。第 1–6 节以 CLI 数据为主，第 7 节说明桌面会话和共享学习数据。源码中的实际校验优先于设计目标。
 
 ## 1. Topic Plan Schema
 
@@ -29,7 +30,7 @@ days:
 
 ## 2. SQLite Schema
 
-数据库位于 `<ZHIXING_ROOT>/zhixing/db/zhixing.sqlite`，启用 foreign keys、WAL；当前迁移记录为 1、2、3、4、5。CLI 默认根为代码仓库的父目录，见 [配置](CONFIGURATION.md)。主要业务数据表带 `topic_id`；`workflow_steps` 经 `run_id` 关联运行所属主题，`schema_migrations` 是全局元数据。显式全局记忆查询是跨主题读取入口。
+数据库位于 `<ZHIXING_ROOT>/zhixing/db/zhixing.sqlite`，启用 foreign keys、WAL；当前全局迁移记录为 1–6；各领域 Store 再创建自己负责的表，不能仅凭本节基础表清单推断完整数据库结构。CLI 默认根为代码仓库的父目录，见 [配置](CONFIGURATION.md)。主要业务数据表带 `topic_id`；`workflow_steps` 经 `run_id` 关联运行所属主题，`schema_migrations` 是全局元数据。显式全局记忆查询是跨主题读取入口。
 
 | 表 | 核心字段 | 用途与索引 |
 | --- | --- | --- |
@@ -79,9 +80,9 @@ Session snapshot 和审计日志仍以文件保存；数据库只保存需要检
 
 ## 6. 质量、预算与隐私
 
-当前离线 Eval 覆盖主题隔离、证据不足、导入失败分类、session 恢复等固定断言；不能将它描述为完整统计型 groundedness 基准。`groundedAnswer` 要求非空证据与可定位来源，发送最多 3 条，并检查回答至少有一个 citation 且所有引用都来自所给位置；它不逐句验证事实是否由证据支持。桌面检索返回来源经主题/文档/页码/anchor/chunkId 校验，但自由生成内容没有逐句事实核实。
+离线 Eval 覆盖主题隔离、证据不足、导入失败分类、session 恢复等固定断言；不能将它描述为完整统计型 groundedness 基准。`groundedAnswer` 要求非空证据与可定位来源，发送最多 3 条，并检查回答至少有一个 citation 且所有引用都来自所给位置；另有 `EvidenceSupport` 对当前取得片段中的量化结论、过强措辞、长引语和引用歧义执行有界风险检查；仍不逐句证明语义蕴含。桌面检索返回来源经主题/文档/页码/anchor/chunkId 校验，但自由生成内容没有逐句事实核实。
 
-Provider 有调用超时与大小限制；每个 OCR 子进程有 30 秒上限，普通导入另有 120 秒总 deadline。Provider 审计记录角色、耗时、状态、事件数、模型回合数与工具调用数，不记录 prompt、回答或工具参数。当前没有通用并发、精确 token 或费用预算；这些属于后续能力。
+Provider 有调用超时与大小限制；每个 OCR 子进程有 30 秒上限，普通导入另有 120 秒总 deadline。Provider 审计记录角色、耗时、状态、事件数、模型回合数与工具调用数，不记录 prompt、回答或工具参数。当前有纯只读工具最多两个并行、团队最多两个成员并发及持久累计 token 预留；没有精确计费 tokenizer 或货币费用预算。原生任务的 token 只能事后观测，未知用量不当作零消耗。
 
 设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 会禁止真实 Provider；本地 embedding 不会外发。已配置 Provider 时当前策略默认允许调用；不同命令的发送范围见 [配置](CONFIGURATION.md)。
 
@@ -92,28 +93,28 @@ Provider 有调用超时与大小限制；每个 OCR 子进程有 30 秒上限�
 | 约束 | 当前值与行为 |
 | --- | --- |
 | IPC | 判别联合命令、UUID、字符串长度校验；没有任意文件或 Shell 命令 |
-| 新输入 | trim 后 1–20,000 字符 |
+| 新输入 | 共享发送契约与桌面为 trim 后 1–20,000 字符；当前 CLI execute 另有8,000字符前置限制，属于尚待统一的入口差异 |
 | 会话 | 最多 20,000 条消息；完整会话上限 12,000,000 字节，较早原文按 250 条分段，满额要求新建会话 |
 | 模型历史 | 最多 24 条；目标与历史片段约 40,000 字符预算；当前请求、约束、摘要和授权学习资料另计，裁剪不删除显示历史 |
-| 运行 | 应用全局仅一个生成；最多 10,000 个事件、64,000 字符回答、180 秒总限时，Provider 更短超时仍生效 |
-| 状态 | `running`、`completed`、`interrupted`、`failed`、`waiting`；保留部分回答，收到合法完成事件且有文本才视为完成 |
+| 运行 | 每个 AgentService 实例仅一个前台生成，跨入口以会话/教学租约协调；ModelClient 最多10,000事件、64,000字符回答，单任务180秒，团队默认240秒，后端更短超时仍生效 |
+| 状态 | `running`、`completed`、`interrupted`、`failed`、`waiting`、`blocked`；保留部分回答，合法完成事件、非空文本及计划/检查约束共同决定完成，模型声称完成无效 |
 | 恢复 | 生成中约每 750 ms 尝试保存快照，重启将遗留 running 显示为 interrupted；不自动重放请求 |
-| 凭据 | `deepseek.credential` 只存系统加密结果；已有 Key 不回传 renderer，状态仅提供配置元数据 |
+| 凭据 | 内置 Provider 与自定义连接按身份保存独立 `.credential` 密文；已有 Key 不回传 renderer，状态仅提供配置元数据；官方订阅认证由官方运行时管理 |
 
 会话另含 topicId、workspaceId、contextAllowed、持久目标/约束/摘要、最多 10 条待办及暂停状态。输入从队列移除和追加 user/running 消息同一原子保存；重启不自动外发。实现见 `desktop/core/contracts.ts`、`store.ts`、`service.ts`、`src/assistant-runtime.ts`。
 
 ## 8. 实施状态与后续范围
 
-- **P0/P1**：Topic Plan Schema、SQLite migration、PDF/Markdown 导入、FTS5、引用、结构化记忆、主题隔离、删除、备份、复习与 session 已实现。
-- **P2**：Tesseract OCR、低置信度状态、本地 `HashEmbeddingModel`、`chunk_embeddings` SQLite 兼容表、混合检索/重排序，以及 loopback Web/SSE 契约已实现。当前不使用 `sqlite-vec` 二进制扩展。
-- **P6–P9**：多轮工具调用限制、持久对话与教学恢复、Pi 文本适配已落地；**P10**：独立桌面聊天及双 Provider 切换已交付 macOS arm64 预览。
+- **学习与资料**：课程契约、SQLite、PDF/Markdown、FTS5、可定位引用、显式记忆、主题隔离、删除、备份和复习均有实现；Tesseract OCR、低置信度状态、本地 HashEmbedding 和可选 loopback 语义检索继续保留。
+- **共享执行**：两端复用 AgentService、连续摘要、分段历史、教学检查点、工具审批与恢复。三类 API 协议与官方订阅执行器使用不同后端契约，单 Agent / 同模型 / 异模型团队使用共同权限及预算。
+- **客户端与平台**：桌面当前包版本0.11.0，CLI包0.1.0；支持 macOS/Windows 构建配置及对应本地实践沙箱，具体包是否安装/测试需查看该构建的证据，不能由配置推断。
 - **后续范围**：逐句事实评估、加密备份、远程同步和冲突合并尚未完成；桌面 UI 已存在，独立浏览器 Web 产品未实现。
 
 ## 9. 实际产物与性能
 
-EvidenceStore 在 `learning-notes/topics/<topicId>/evidence/<DNN>/` 保存带哈希的追加式文本和元数据；检查重新验证实际字节，旧布尔参数无效。用户提交的测试报告标为未复跑；macOS 固定 JS 测试运行器的结果与实现/脚本哈希绑定。Review 只评估计划要求的完整性，来源写入 Day 日志；状态仅在显式 Review 时更新。详细限制见 [升级指南](agent-upgrade.md)。
+EvidenceStore 在 `learning-notes/topics/<topicId>/evidence/<DNN>/` 保存带哈希的追加式文本和元数据；检查重新验证实际字节，旧布尔参数无效。用户提交的测试报告标为未复跑；macOS / Windows 受控 JS 测试运行器的结果与实现/脚本哈希绑定。Review 只评估计划要求的完整性，来源写入 Day 日志；状态仅在显式 Review 时更新。详细限制见 [升级指南](agent-upgrade.md)。
 
-消息保存 contextMs/modelMs/compactionMs、firstTokenMs/durationMs 与回合/工具数。诊断只返回数字，按 Provider 分组，不导出正文；最近 20 段会话、最多 200 条消息，成功回答计算 P50/P95。Provider 可报告 Token 用量，未配置费用预算；真实质量结果见本轮 Evidence。
+消息保存 contextMs/modelMs/compactionMs、firstTokenMs/durationMs 与回合/工具数。诊断返回脱敏性能数字与 Provider、型号、档位等条件标签，不导出正文；最近 20 段会话、最多 200 条消息，成功回答计算 P50/P95。Provider 可报告 Token 用量，未配置费用预算；真实质量结果见本轮 Evidence。
 
 ## 0.4 数据追加
 
@@ -123,10 +124,18 @@ EvidenceStore 在 `learning-notes/topics/<topicId>/evidence/<DNN>/` 保存带哈
 
 ## 0.6 持久化补充
 
-会话格式 v7 保存三类访问绑定、限定写入授权、完整产品试验协议、逐轮构建/预算/授权证据。读取 v1–v6 不改写，首次保存前保留原文件；SQLite 标记 6 使旧应用拒绝新语义。存储中的原始历史和未知操作不因模型上下文裁剪而删除。
+历史 v7 格式保存三类访问绑定、限定写入授权、完整产品试验协议、逐轮构建/预算/授权证据。读取 v1–v6 不改写，首次保存前保留原文件；SQLite 标记 6 使旧应用拒绝新语义。存储中的原始历史和未知操作不因模型上下文裁剪而删除。
 
 课程检查题库 `2026-09-08.2` 在每主题/学习日交替下发两种情境，题目、答案键、知识点、题库版本、题卷 ID 先持久保存；提交按该次原题评分，旧记录缺失新版本字段时仍用原题。帮助方式仍分别记录。效果验证保留原三份情境卷 v1，另用 `prompt_only` / `full_product` 区分试验协议，不能混为同一处理组。
 
 新增表由所属 Store 创建：`tool_result_payloads`（有界工具原文）、`agent_task_usage`（累计用量）、项目快照/修改日志/回执表；会话索引为可重建缓存。导出、备份和实际数据契约见 [0.6 指南](agent-0.6.md)。
 
-0.8 v7 会话清单保存尾部最多 250 条，旧原文位于同名 UUID 子目录，以 SHA-256 内容哈希校验；备份必须包含分段。teaching 检查点属于当前会话，旧格式缺省与新格式显式空值分开迁移。摘要的覆盖来源以 ID 和原文哈希复核，内容仍为未独立验证的模型概括。详见[统一记忆设计](agent-memory.md)。
+历史0.8引入分段结构；当前基础v8及后续会话清单保存尾部最多250条，旧原文位于同名 UUID 子目录，以 SHA-256 内容哈希校验；备份必须包含分段。teaching 检查点属于当前会话，旧格式缺省与新格式显式空值分开迁移。摘要的覆盖来源以 ID 和原文哈希复核，内容仍为未独立验证的模型概括。详见[统一记忆设计](agent-memory.md)。
+
+## 当前格式与领域存储
+
+会话按所含能力保存：v8 基础/图片，v9 团队，v10 早期审查，v11 团队协议3任务图，v12 原生任务预算，v13 成员资源策略。升级前保留 `.vN.bak`，未知版本和降级覆盖明确拒绝；聊天版本与 SQLite 全局标记6并不相同。执行检查点独立使用v1/v2/v3，当前统一上限4,000,000字节、128轮、10,000执行事件。
+
+除基础资料表外，`AgentExecutionStore` 管理执行日志/累计用量/会话与教学租约，`TaskExecutionStore` 管理任务、修订及操作回执，`AssessmentStore` / `LearningObservations` / `LearningOutcomeStore` 管理作答与试验，`PracticeProjects` 管理文件快照/恢复日志/回执，`ToolResultStore` 管理分页原文。表定义由相应模块负责，详见[架构](architecture.md)和[统一记忆](agent-memory.md)。完整备份会包含这些本地用户数据，但不包含 API Key 或官方订阅凭据，恢复清除授权与运行租约。
+
+字段校验与边界测试来源：[`agent-session-contracts.ts`](../src/agent-session-contracts.ts)、[`agent-session-store.ts`](../src/agent-session-store.ts)、[`database.ts`](../src/database.ts)、[分段与兼容测试](../tests/segmented-conversation.test.ts)、[团队资源策略测试](../tests/team-resource-policy.test.ts)。本次文档复核没有重新运行模型质量或教学试验。

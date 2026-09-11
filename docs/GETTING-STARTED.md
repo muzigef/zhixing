@@ -1,11 +1,11 @@
 <!-- generated-by: gsd-doc-writer -->
 # 快速开始
 
-桌面版用于连续学习对话；CLI / REPL 用于课程、资料、练习与进度管理。它们分别保存数据和模型选择，桌面尚未接入 CLI 的学习工具。
+桌面版与 CLI / REPL 都通过共享 AgentService 管理学习对话、记忆、教学、权限和工具策略。界面与会话目录独立；桌面可显式连接 CLI 工作区，共用课程、资料、进度和证据。当前桌面源码版本为 `0.11.0`，安装与验证状态见[当前状态](current-status.md)。
 
 ## 直接使用桌面安装包
 
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.3.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。当前已验收的是 macOS Apple Silicon、macOS 13.0 及以上的本地预览版，没有 Apple Developer ID 签名和公证；Windows 已有构建/UI/发布流水线，尚未实机验收。
+已有本地构建产物时，可打开 `desktop/release/mac-arm64/知行.app`；若执行过 `dist:mac`，当前版本的安装器名为 `desktop/release/Zhixing-0.11.0-mac-arm64.dmg`。将「知行」拖入 Applications 后启动。当前本机候选包验证基于 macOS Apple Silicon；历史 macOS Intel 与 Windows runner 实包验证范围见[平台证据](evidence/completion-0.9.md)，不代表本版在所有平台重新验收。macOS 本地固定签名与正式 Developer ID 签名/公证不同，见[签名说明](macos-local-signing.md)。
 
 安装包内附 Electron 和 Pi 运行时，运行应用不需要另外安装 Node.js。`desktop/release/` 被 Git 忽略，克隆仓库不会带上这些产物；从源码运行或构建见下文。更多使用说明见 [桌面版 README](../desktop/README.md)。
 
@@ -16,7 +16,7 @@
 - Git、Node.js `24.8.x` 和 npm；CLI 启动时会校验 Node 版本。
 - 根目录和 `desktop/` 各有一个 `package-lock.json`，完整开发/验证需要安装两套依赖。
 - 可选：`tesseract` 和 `pdftoppm`，仅 CLI 扫描 PDF 的本地 OCR 需要。
-- CLI 使用 Pi 时需系统中另有 `pi` 和 `bash`；使用 `codex-cli` 时需另有已登录的官方 Codex CLI。CLI 的 DeepSeek 凭据存储目前仅实现 macOS Keychain。
+- Pi 模型调用使用项目依赖中的公共 SDK；首次登录仍需通过 Pi 官方客户端完成，`pi:safe` 辅助脚本另需系统 `pi` 和 `bash`。使用 `native-codex` 或旧别名 `codex-cli` 时需已登录的官方 Codex CLI；它不随桌面包内附。CLI 的 API 凭据存储目前仅实现 macOS Keychain。
 
 ## 安装与首次运行
 
@@ -61,6 +61,9 @@
 桌面新数据目录默认选择 **Pi · Codex**，不会自动切换成 DeepSeek。设置页可改为：
 
 - **DeepSeek API**：macOS 可识别原知行 Keychain 配置，也可在桌面输入新 Key 并由系统加密保存。默认模型为 `deepseek-v4-flash`，可选 `deepseek-v4-pro`。
+- **官方 Codex**：已有 ChatGPT 订阅时，在官方客户端完成登录；在设置的“官方 Agent 账号”检查程序能力并选择 Codex。当前适配器只启用已验证的 `0.153.4`，程序路径与固定模型可配置，不经 Pi。能力检查不是账号连通检查。
+- **Kimi API**：在设置中保存独立 API Key，内置模型 `kimi-k3`；使用国内端点对应的 Key。
+- **自定义 API**：通过十家模板或自定义表单添加兼容 Chat Completions、Responses、Messages 的服务。模板存在不等于该厂商真实账户已经验收。
 - **Pi · Codex**：复用 Pi 的模型偏好和登录。若尚未登录，在已安装 Pi 的终端环境中运行 `pi`，使用 `/login` 选择 OpenAI Codex，再用 `/model` 选择该 Provider 下可用的模型。知行当前没有内置 Pi 登录按钮；运行时内附 Pi 不等于已完成认证。回到知行设置刷新后再发起请求。
 - **离线演示**：固定的本地演示回答，用于检查界面，不是真实模型。
 
@@ -75,7 +78,9 @@ CLI 无本地路由设置时，tutor / reviewer / lab 均使用 `mock`。在 REP
 解释 RAG 和微调的区别，用表格比较
 ```
 
-如果已经配置并登录 Pi，可改用 `模型切换 tutor pi-codex --确认`。该命令只修改 CLI 的 tutor 路由，不改变桌面设置。Pi、官方 Codex CLI 和 DeepSeek 的完整配置、数据外发规则见 [配置说明](CONFIGURATION.md)。
+已有官方 Codex 订阅可用 `模型切换 tutor native-codex --确认`；已经配置并登录 Pi 则可用 `模型切换 tutor pi-codex --确认`。这些命令只修改 CLI 的 tutor 路由，不改变桌面设置。Claude 原生单 Agent 适配器已实现但真实订阅尚未验收，Gemini CLI 保留扩展入口。完整配置、数据外发规则见[配置说明](CONFIGURATION.md)。
+
+默认使用单 Agent。在“团队配置”中可选同模型团队或异模型团队，配置最多两名成员、上下文分享和整题预算。官方 Codex 可作为固定主模型，DeepSeek/Kimi 可作为 API 成员；团队可能增加延迟和用量，并不保证比单 Agent 更准确。开始前阅读[团队指南](agent-teams.md)。
 
 ## 最小 CLI 学习流程
 
@@ -113,7 +118,7 @@ npm run start -- '读取技能草案 rag-interview' --topic rag
 npm run start -- '启用技能草案 rag-interview --确认' --topic rag
 ```
 
-将 `<version>` 替换为生成命令返回的版本。画像、计划和 Skill 草案均按当前主题保存，上述操作不需要模型。若要额外运行 `学习建议`，它会使用当前 tutor 路由，发送画像与资料名称；该命令接受的 `--允许外发` 是兼容语法，不应与学习助手正文检索所需的按次授权混淆。
+将 `<version>` 替换为生成命令返回的版本。画像、计划和 Skill 草案均按当前主题保存，上述操作不需要模型。`学习建议` 会使用当前 tutor 与共享会话策略；需要模型访问学习画像或资料时先用 `/permissions --允许外发`，也可在请求中附 `--允许外发`。这会授予当前会话的学习材料访问，直到显式撤回；不会连带授权项目或 MCP。
 
 ## 导入与查询资料
 
@@ -157,6 +162,4 @@ npm --prefix desktop run test:ui
 
 更多问题见 [故障排查](TROUBLESHOOTING.md)。修改代码前继续阅读 [开发指南](DEVELOPMENT.md)、[测试指南](TESTING.md) 和 [架构](architecture.md)。
 
-桌面 0.3 可选择主题并打开“课程与资料”，共用课程、资料、进度和实际证据；支持排队与立即调整。完整步骤见 [升级使用指南](agent-upgrade.md)。
-
-0.6 的项目快照/Python、独立授权、任务核对、Skill 版本和完整产品学习验证，按 [更新指南](agent-0.6.md) 使用。学习资料授权不再自动包括项目或外部工具；升级前可在设置中导出完整备份。
+桌面选择主题后打开“课程与资料”，管理进度和实际证据；学习资料、实践项目和外部 MCP 分别授权。项目副本、快照、受限 JavaScript/Python 测试、任务核对与技能目录都有独立入口，详见[功能与验收](features-and-acceptance.md)。升级前可在设置中导出完整备份；备份排除凭据，恢复后重新授权。

@@ -2,6 +2,8 @@
 
 本文件是仓库开发指令，也由从项目目录启动的 Pi 加载。它提供行为规则；Pi 工具的路径、命令和网络限制由 `.pi/extensions/zhixing-guard.ts` 强制执行。桌面打包运行时加载 `desktop/runtime-AGENTS.md` 的副本，不将本文件作为聊天任务指令。
 
+项目概览见 [agent.md](agent.md)，文档入口见 [docs/README.md](docs/README.md)，当前实现与验收状态见 [docs/current-status.md](docs/current-status.md)。`agent.md` 是设计导航，本文是开发约束；不要假定小写单数文件会被所有 Agent 工具自动加载。
+
 ## 目标与顺序
 
 1. 以当前用户任务和 `TASKS.md` 为准，按 `docs/ai-execution-protocol.md` 完成可验收切片；P0 固定顺序是历史记录，不重新执行已完成任务。
@@ -20,10 +22,10 @@
 ## 工程边界
 
 - 只修改当前 `zhixing/` 项目内的实现、测试、主题计划、Skill、文档和非敏感夹具。
-- 不执行 git commit、push、reset、clean、外部网络下载、系统权限变更或通过 bash 启动 `codex` CLI。
+- 未经用户相应授权，不执行 git commit/push、破坏性 Git 操作、范围外下载或系统权限变更。已有授权持续有效；用户明确要求提交、推送或安装时按授权执行。官方 Codex 集成使用受控无 shell 进程调用，不通过 bash 启动。
 - 使用 `./scripts/pi-safe.sh` 启动 Pi 原生 Codex Provider；不要将 `codex exec` 当作受 Pi 工具限制的子 Agent。
 - 不得使用 `it.skip`、`it.only` 或忽略失败退出码；每个切片完成前运行 `npm run verify`。
-- 不因未实现功能而引入 Web、向量库、OCR、多 Agent 或范围外依赖。
+- 不因修复困难引入范围外框架或依赖。当前已实现受限本地语义检索/OCR、MCP、实践项目和三模式团队；新增能力依当前用户授权，不把历史阶段的范围限制误读为这些功能未实现。
 
 ## P10 已授权的桌面范围
 
@@ -47,3 +49,14 @@
 - 用户要求桌面与 CLI 的记忆和长对话策略完全相同；两端必须调用共享 AgentService，禁止前端构造最终 prompt、挑选模型历史或注入自定义 runtime。
 - 两端 Pi 共用 src/pi-model-worker.ts，SDK 只生成模型结果；业务模式通过共享请求契约表示。
 - 统一设计与验收见 docs/agent-memory.md 和 docs/evidence/unified-agent.md。
+
+## 当前通用模型接入约束
+
+- API 连接经共享 ModelClient / 工厂接入；官方订阅任务经 AgentExecutor 接入。新增兼容厂商优先配置，新的协议或运行时才增加适配器。
+- 原生目录和注册表由 CLI / 桌面共享。当前官方 Codex 执行仅开放有界文本能力；Gemini 占位不可用，Claude 真实账号未验收，不因目录中存在名称就报告可用。
+- 团队与单 Agent 共用权限、上下文、任务恢复；历史任务保留具体模型身份和资源策略，不静默切换模型或付费通道。
+- 模板、mock、真实连接、回答质量、教学效果、构建、安装与远端 CI 分别验收。历史测试数量和失败记录不得改写成新运行结果。
+
+## 数学展示
+
+讲解数学、机器学习、图形学或梯度时使用 Markdown + LaTeX：行内用 `$...$`，重要公式/分式/矩阵/多步推导用独立 `$$` 块，定界符各占一行。不要把正常展示公式放入代码块或输出裸 LaTeX。重要公式后解释读法、变量、计算方向与代码对应，面向初学者说明必要概念。不能渲染时保留定界符并附中文或纯文本解释。

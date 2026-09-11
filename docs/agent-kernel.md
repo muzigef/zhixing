@@ -1,6 +1,7 @@
+<!-- generated-by: gsd-doc-writer -->
 # 共享 Agent 内核与恢复
 
-2026-09-08 按当前兼容与恢复实现更新。架构以成熟 Agent 的任务连续性、受控执行和真实验证为目标；默认功能继续服务学习、实践与反馈。三项内核历史验收见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)，0.6 增量和交付结果见 [本轮记录](evidence/agent-architecture-next.md)。
+2026-09-11 按当前兼容与恢复实现更新。架构以成熟 Agent 的任务连续性、受控执行和真实验证为目标；默认功能继续服务学习、实践与反馈。三项内核历史验收见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)，0.6 增量和交付结果见 [本轮记录](evidence/agent-architecture-next.md)。
 
 ## 共用入口
 
@@ -10,16 +11,15 @@ CLI 的 `CliAgentTransport` 与 Electron 的 `DesktopService` 都调用 `src/age
 
 ```mermaid
 flowchart TD
-  CLI[CLI / REPL] --> Adapter[CliAgentTransport]
-  Desktop[Electron IPC] --> Service[AgentService]
-  Adapter --> Service
+  CLI[CLI / CliAgentTransport] --> Service[AgentService]
+  Desktop[Electron IPC] --> Service
   Service --> Chat[AgentSessionStore]
-  Service --> Loop[collectInvocation]
-  Loop --> Journal[AgentExecutionStore]
-  Loop --> Provider[Pi Codex / DeepSeek]
+  Service --> Loop[runAssistantTask / collectInvocation]
+  Service --> Native[AgentExecutor / 官方仅上下文任务]
+  Loop --> Journal[AgentExecutionStore / 检查点]
+  Loop --> Provider[Pi / 内置与自定义 API]
   Loop --> Harness[ToolHarness]
-  Harness --> App[LearningApplication]
-  App --> Operations[TaskExecutionStore / 实际产物与测试]
+  Harness --> App[LearningApplication / TaskExecutionStore]
 ```
 
 ## 执行与完成规则
@@ -40,7 +40,7 @@ flowchart TD
 - 模型可以补充、重排或解释计划，不能删除既有步骤或更改其完成条件；目标范围变化应建立新任务。完成步骤绑定实际操作，结束前重新核对产物完整性及通过测试的实现/脚本哈希，代码变更使旧通过结果失效，包含通过其他入口保存的变更。
 - 异步完成检查受同一取消和超时约束，取消后不写回完成状态。核验发现旧结果失效时，在事务中读取最新计划，只更新仍绑定原操作的步骤，保留期间新增的步骤、标题和完成结果。
 
-默认单轮任务上限为 6 个模型回合，用户已连接项目时为 12 个；两者均最多 32 次工具调用、10,000 个模型事件、64,000 输出字符、128,000 上下文字符和 180 秒。检查点最多 1 MB、128 轮记录、10,000 条执行事件；它不是无限续航。流式文字约每 750 ms 保存一次，强杀可能丢失这段窗口内的增量；未通过完整协议校验的工具不会因此执行。
+ModelClient 路径默认单轮任务上限为 6 个模型回合，已连接并开放项目工具时为 12 个；两者均最多 32 次工具调用、10,000 个模型事件、64,000 输出字符、128,000 上下文字符和 180 秒。执行检查点当前统一上限 4,000,000 字节、128 轮记录、10,000 条执行事件；它不是无限续航。流式文字约每 750 ms 保存一次，强杀可能丢失这段窗口内的增量；未通过完整协议校验的工具不会因此执行。
 
 恢复时，尚需分发的工具与本轮新调用共享次数预算，待执行批次计入上下文体积；每次工具分发前重新检查空间，超限保留已完成结果和游标，不继续执行后续副作用。
 
@@ -48,7 +48,7 @@ flowchart TD
 
 普通聊天、工具问答和教学回答使用共享服务。普通对话生成中最多持久排队 10 条；`/queue` 查看，`/queue clear` 撤回，`/queue resume` 手动恢复。`/steer 新要求` 或“等等，……”调整同一任务。本地命令的 REPL 队列仍最多 16 条。
 
-DeepSeek 路由下可显式启动受控应用任务：
+在支持工具续轮的 Pi / API 路由下可显式启动受控应用任务：
 
 ```text
 /agent 保存当前示例并运行测试 --允许外发
@@ -57,16 +57,18 @@ DeepSeek 路由下可显式启动受控应用任务：
 /answer <卡片 ID> 使用数组举例
 ```
 
-课程产物保存和实验针对已开始的当前主题学习日；独立实践项目使用用户显式选择的当前主题项目，不要求先开始课程。审批会展示实际文件差异或操作输入。`--允许外发` 允许主题学习上下文，具体写入仍需逐次审批；桌面也可显式授予会话执行权限。CLI 和桌面 Pi SDK、DeepSeek 均支持应用工具恢复；Pi 原生文件和 shell 工具不开放。
+课程产物保存和实验针对已开始的当前主题学习日；独立实践项目使用用户显式选择的当前主题项目，不要求先开始课程。审批会展示实际文件差异或操作输入。`--允许外发` 允许主题学习上下文，具体写入仍需逐次审批；桌面也可显式授予会话执行权限。CLI 和桌面 Pi SDK、DeepSeek、Kimi 及声明支持工具的自定义 API 均共用应用工具恢复。官方 Codex / Claude 的 AgentExecutor 当前仅处理提供的文本上下文，不开放应用或原生工具，也不复用待执行工具检查点；不能把外部完整任务冒充一次普通模型调用。
 
 CLI 旧的每主题最近 6 轮历史继续读写，作为兼容投影；完整会话现在保存在工作根目录的 `zhixing/agent/conversations/`，该目录被 Git 和源码扫描排除。桌面会话仍存于系统应用数据目录。两端使用相同契约，但不会自动合并聊天列表。
 
-新会话格式为 v5；读取 v1/v2/v3/v4 不改写文件，首次保存前保留对应 `.v1.bak`、`.v2.bak` 、`.v3.bak` 或 `.v4.bak`。旧版应用拒绝 v5，避免静默丢失项目/MCP 审批预览、诊断及恢复字段。执行检查点另有 v1/v2 格式：最多两个显式纯只读工具并行时保存 v2 的已启动范围，保持模型请求顺序记录结果；恢复重新检查范围内每个调用的可重放权限。
+基础会话保存为 v8；团队、审查、协议3任务图、原生预算、成员资源策略依次需要 v9–v13。读取旧文件不改写，升级保存前保留对应 `.vN.bak`，不接受未知版本或降级覆盖。执行检查点版本独立：v1 基础、v2 只读并行已启动范围、v3 图片；当前统一受 4 MB 上限约束。最多两个显式纯只读工具并行，结果保持模型请求顺序；恢复重新检查每个调用的可重放权限。
 
 完整工作区备份包含执行 SQLite 和 CLI/桌面会话。恢复在新工作区进行，桌面会话 ID 重新映射；CLI ID 保留以衔接旧历史指针。两者均清除执行授权、上下文授权、队列和旧租约，待执行交互重新确认。旧版无 callId 的交互卡保留兼容处理路径，新卡使用原生工具续接。
 
 ## 验证范围
 
-见[开发验收记录](evidence/p0-development-20260907.md)和[最新恢复边界核查](evidence/p0-recovery-audit-20260907.md)。验证覆盖真实本地实验、进程 SIGKILL、两个入口、双 Provider 工具协议、备份授权和 Electron UI。这些链接保留 P0 当轮证据；本轮真实双模型质量集、项目执行、五组开发/实包 UI 与安装器验证另见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)。合成任务不证明开放任务成功率、教学效果或与商业 Agent 全面相当；Windows/Intel 实机、签名、公证仍待验。
+见[开发验收记录](evidence/p0-development-20260907.md)和[最新恢复边界核查](evidence/p0-recovery-audit-20260907.md)。验证覆盖真实本地实验、进程 SIGKILL、两个入口、双 Provider 工具协议、备份授权和 Electron UI。这些链接保留 P0 当轮证据；当时的真实双模型质量集、项目执行、五组开发/实包 UI 与安装器验证另见 [P1/P2 记录](evidence/agent-p1-p2-20260907.md)。合成任务不证明开放任务成功率、教学效果或与商业 Agent 全面相当。平台及安装验收须绑定具体构建；2026-09-11 本机固定本地签名包与三家连接记录见[通用架构验收](evidence/provider-architecture-20260911.md)，不能替代正式 Developer ID、公证或真实学习者验证。
 
 0.6 在这些已完成内核上增加任务详情、只读核对、独立权限、原文续读、统一 schema 与回执恢复；不是重新实施三项 P0。范围与本轮验证见 [增量指南](agent-0.6.md)和[执行记录](evidence/agent-architecture-next.md)。
+
+团队使用同一服务和运行器，同时增加持久累计预算、任务依赖、只读成员范围及定向恢复。官方任务的 token 仅返回后核算，未知用量保守保留，不以订阅账户推断零成本。详见[团队内核](agent-team-kernel.md)与[接入架构](provider-architecture.md)。

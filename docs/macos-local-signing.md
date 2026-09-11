@@ -1,10 +1,13 @@
+<!-- generated-by: gsd-doc-writer -->
 # macOS 本地签名与钥匙串授权
+
+当前打包代码核对日期：2026-09-11。以下流程用于首次配置或受控换证，已有有效固定身份不需要再次创建证书。当前安装/候选包状态见[当前状态](current-status.md)。
 
 ## 为什么“始终允许”之后还会询问
 
 macOS 依据应用的代码签名要求（designated requirement，DR）记住钥匙串访问许可。临时签名 `codesign --sign -` 的 DR 只包含当前构建的代码哈希；改动程序并重新打包后，哈希会变。相同的应用名称和 `com.zhixing.desktop` 标识不足以保持授权连续性。
 
-2026-09-10 检查确认：本机 0.10 已安装应用和 0.11 测试应用都是 ad-hoc，DR 不同。旧包的原生加密初始化成功，新包此前等待授权超时；用户随后确认新包确实出现钥匙串密码提示。这是打包身份连续性缺陷，不应要求用户靠反复授权解决。
+2026-09-10 修复前的检查确认：当时本机 0.10 已安装应用和 0.11 测试应用都是 ad-hoc，DR 不同。旧包的原生加密初始化成功，新包此前等待授权超时；用户随后确认新包确实出现钥匙串密码提示。这是打包身份连续性缺陷。该历史记录不描述固定签名修复后的当前候选包。
 
 依据：[Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)、[Apple 代码签名要求](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/RequirementLang/RequirementLang.html)。固定签名不能阻止钥匙串锁定、用户撤销许可或换证书后合理的系统询问。
 
@@ -51,3 +54,5 @@ macOS 依据应用的代码签名要求（designated requirement，DR）记住�
 完整本机验收还需：同一证书签出两个内容不同的实际应用；核对 DR 相同而代码哈希不同；首次允许后，验证原生加密读写、重启和第二个构建；最后通过产品“测试连接”检查现有 Kimi 配置。不得读取、打印或导出真实 API Key。若尚未完成，应将状态记为“代码完成，本机跨构建授权验收待完成”。
 
 2026-09-10 本机已完成固定证书配置、两个不同构建的 DR 连续性、原生合成密文跨重启/跨构建读取及既有两家 API 真实连接检查。重复弹窗的用户观察仍待确认；具体结果见[验收记录](evidence/keychain-signing-fix-20260910.md)。
+
+2026-09-11 通用接入候选包继续使用既有固定身份完成构建，并通过 DeepSeek/Kimi 产品 IPC 的真实短连接检查，见[记录](evidence/provider-architecture-20260911.md)。没有创建新证书，也不能据此宣称已经取得 Developer ID、公证或永久免授权。证书/私钥是后续构建的身份依据；删除前先核对正在使用的公开指纹，不因名字相似就删除。

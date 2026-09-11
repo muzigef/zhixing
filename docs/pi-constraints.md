@@ -1,17 +1,18 @@
+<!-- generated-by: gsd-doc-writer -->
 # Pi 项目约束部署
 
 ## 已部署组件
 
 - `AGENTS.md`：仓库开发会话和从仓库启动 Pi 时的项目指令；桌面使用 `desktop/runtime-AGENTS.md` 的运行副本。
 - `.pi/extensions/zhixing-guard.ts`：工具调用前的强制守卫。
-- `.pi/settings.json`：关闭安装遥测、禁用图片发送、禁用 Provider 内层重试。
+- 项目 Pi 设置与启动器控制开发会话；适配器实际使用的模型能力和图片策略以共享工厂/SDK为准，不从开发设置推断产品禁用视觉。
 
 ## 强制守卫规则
 
 守卫在 Pi 的 `tool_call` 事件运行，对显式命中以下规则的调用返回拒绝。路径判断是词法检查，不是完整文件系统隔离：
 
 - `write` / `edit` 的显式 `path` 若位于工作目录外，或路径分段命中 `.pi`、`.git`、`.env`、`.ssh`、`.codex`、`auth.json`、`credentials`、`keychain`、`node_modules` 等列表，会被拒绝。
-- `read` 等含字符串 `path` 的工具采用同类检查；没有 `path` 字段的参数不经该路径分支校验。
+- `read` 等含字符串 `path` 的工具检查敏感/用户数据路径及项目外路径；`.git`、`.pi` 只在写入保护列表，不应声称读取这两个目录必被本守卫拒绝。没有 `path` 字段的参数不经该路径分支校验。
 - `bash` 与 `user_bash` 使用命令字符串白名单/黑名单，允许指定项目脚本与部分只读检查，拒绝命中的网络、凭据、删除、权限变更和 Git 写命令；不对所有命令参数另作文件系统范围校验。
 - 直接路径分段命中 `inbox/`、`data/`、`db/`、`learning-notes/` 会被拒绝；产品要求资料由受控 Runtime 导入。守卫本身没有 `realpath`/`lstat` 检查，不能据此保证符号链接解析后的路径隔离，也不能保证覆盖所有敏感文件名变体。
 - 被阻止的调用仅记录规则名与工具类型到 `data/audit/pi-guard.jsonl`，不记录参数或敏感内容。
@@ -32,7 +33,7 @@ CLI 的 `PathPolicy` 对其受控 Store 路径另有符号链接检查，不应�
 
 安全启动器固定 `--approve --no-extensions -e ./.pi/extensions/zhixing-guard.ts`：它不加载未知全局/项目 Extension，只显式加载已审查守卫。`--approve` 只对本次运行信任项目资源；若要持久启用，在交互式 Pi 中执行 `/trust`，然后重启 Pi。不要绕过启动器，也不要使用 `--no-context-files` 或 `--no-approve`。
 
-使用 Pi 原生 `/login` 选择 OpenAI Codex Provider；不要让模型通过 `bash` 调用 `codex` CLI。原生 Provider 的模型工具调用才能被本项目 Extension 拦截。
+使用 Pi 原生 `/login` 选择 OpenAI Codex Provider；项目 Pi 守卫禁止模型通过 `bash` 调用 `codex` CLI；这是开发会话的限制。产品新加入的 `NativeAgentExecutor` 使用独立受控进程与官方权限策略直接接入 Codex，不能将 Pi 开发守卫误当其安全边界。
 
 ## 模型接入与桌面差异
 
@@ -40,7 +41,7 @@ CLI 的 `PathPolicy` 对其受控 Store 路径另有符号链接检查，不应�
 
 桌面将同一守卫编译后随应用附带，通过 Electron 的 Node 模式运行 Pi 0.85.0 的仅模型公共 SDK worker，无需系统 bash/Node/Pi。工作目录为系统应用目录下的 `runtime`，不加载仓库开发指令。模型可以请求知行声明的受控应用工具，不能调用 Pi 原生文件/shell 工具。0.4.1 默认 SSE；完整轮次经过协议与退出码检查后才执行工具。离线模型发现设置不代替 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。
 
-Pi 配置存在不证明认证可用；2026-09-07 已完成[登录后实际验证](evidence/pi-availability-20260907.md)。配置与登录步骤见 [配置](CONFIGURATION.md#pi-codex-接入)，旧失败记录仍保留；当前延迟修复见 [0.4.1 证据](evidence/pi-latency-fix-20260907.md)。
+Pi 配置存在不证明认证可用；2026-09-07 已完成[登录后实际验证](evidence/pi-availability-20260907.md)。配置与登录步骤见 [配置](CONFIGURATION.md#pi-codex-接入)，旧失败记录仍保留；早期延迟修复见 [0.4.1 证据](evidence/pi-latency-fix-20260907.md)。这些是对应日期的历史记录，不保证今天的账号或网络状态。当前可选官方 Codex 接入已不依赖 Pi，见[通用架构](provider-architecture.md)。
 
 ## 历史启动验证
 

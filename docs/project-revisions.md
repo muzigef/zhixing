@@ -1,3 +1,4 @@
+<!-- generated-by: gsd-doc-writer -->
 # 实践项目的修改与恢复
 
 项目仍保存在知行管理的独立目录，不修改导入源。每项目最多 40 个文件，每文件 24,000 字节，总计 256,000 字节；一次多文件修改最多 10 个文件。路径、大小写冲突、链接、原文哈希和整体大小均在修改前校验。
@@ -8,4 +9,6 @@
 
 模型可用 `project_edit_many` 统一修改或删除多文件，`project_patch` 根据唯一、不重叠的原文片段修改，`project_restore` 恢复快照；审批显示实际差异。局部修改和恢复持久化实际结果回执（每项目最近 64 条），外层任务回执未落盘时仍可核对已发生的变更。差异显示三行上下文；超长展示明确标记截断，校验使用完整内容。
 
-项目可选择 JavaScript 或 Python 模板。实际测试包括 `.test.mjs` 和 `test_*.py`，混合项目运行两者，合计执行预算维持 10 秒。Python 使用标准库 unittest、隔离启动选项和受控临时目录，不安装第三方包；零测试不算通过。本机已验证 Xcode Python 3.9 的直接解释器路径，沙箱允许解释器/标准库和系统随机设备的必要读取，拒绝网络与工作区访问。其他平台或解释器不可用时返回 unavailable，不能据此生成通过记录或 Git 验证检查点。
+项目可选择 JavaScript 或 Python 模板。实际测试包括 `.test.mjs` 和 `test_*.py`，混合项目运行两者，合计执行预算维持 10 秒。Python 使用标准库 unittest、隔离启动选项和受控临时目录，不安装第三方包；零测试不算通过。macOS 通过受限系统沙箱运行，Windows 通过 AppContainer 并准备受控运行时副本；选择逻辑见 `src/python-runner.ts`，Windows 排除商店跳转路径并验证实际解释器。历史本机验收使用 Xcode Python 3.9，不表示当前所有机器必须或已经使用同一解释器。Linux、沙箱或解释器不可用时返回 unavailable，不能据此生成通过记录或 Git 验证检查点。
+
+事务、哈希与恢复实现见[`PracticeProjects`](../src/practice-projects.ts)、[差异计算](../src/project-diff.ts)和[真实进程崩溃/补丁回执测试](../tests/project-revisions.test.ts)。文件快照回退与 Git 历史回退是不同操作，恢复文件不会隐式移动 Git 分支。

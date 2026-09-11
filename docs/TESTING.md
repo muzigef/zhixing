@@ -1,9 +1,19 @@
 <!-- generated-by: gsd-doc-writer -->
+# 测试与验证
 
-2026-09-10 多服务商增量验证：`tests/provider-protocols.test.ts` 验证三种协议配置、Messages/Responses 角色及工具续接、加密思考状态、Gemini 签名、取消、错误脱敏、重复工具与断流；`tests/provider-tool-contract.test.ts` 将新增协议送入实际 ToolHarness，验证错误参数修正和不完整流拒绝执行。`tests/native-agent.test.ts` 验证独立执行契约、原生进程取消、订阅/API 区分、CLI 共享历史及拒绝未固定模型的原生团队。
+## 当前验证状态
+
+文档核对日期：2026-09-11，桌面源码 `0.11.0`。最近本地代码验收记录为 **153 个测试文件 / 814 项测试、签名候选包七组 UI、Codex/DeepSeek/Kimi 最小真实连接检查通过**，见[通用架构验收](evidence/provider-architecture-20260911.md)。这些结果不是本次文档编辑中新跑的测试，也不是所有模型或教学质量通过。
+
+本轮文档更新另行重跑 `CI=1 npm run verify` 并通过：153 个文件 / 814 项测试，以及单独重跑的 integration 9 项、eval 6 项和 mock smoke；包括 lint、两端类型检查、敏感扫描与 diff 检查。integration/eval 已在全量测试内，不重复计为新增测试。本轮没有重跑桌面 UI 或真实模型，见[文档验收](evidence/documentation-refresh-20260911.md)。
+
+**提交 `60570bc` 的远端 verify 工作流失败**：两套生产依赖审计和 `npm run verify` 成功，桌面前六组 UI 成功，第七组 `smoke-team.mjs:53` 等待“发送消息”按钮可点击超时。本地七组通过不能替代该次远端失败；定位和修复状态见[当前状态](current-status.md)。
+
+## 多服务商与通用扩展回归
+
+`tests/provider-protocols.test.ts` 验证三种协议配置、Messages/Responses 角色及工具续接、加密思考状态、Gemini 签名、取消、错误脱敏、重复工具与断流；`tests/provider-tool-contract.test.ts` 将新增协议送入实际 ToolHarness，验证错误参数修正和不完整流拒绝执行。`tests/native-agent.test.ts` 验证独立执行契约、原生进程取消、订阅/API 区分、CLI 共享历史及拒绝未固定模型的原生团队。
 
 `smoke-api.mjs` 已增加十家模板选择、两种原生 API 协议的保存/探针/对话，以及通过合成可执行文件验证官方 Agent 程序位置、能力检查、单 Agent 切换和回答展示。HTTP、加密、原生账号均为隔离夹具，不是十家真实服务验收。新增 Codex 程序、模型保存与订阅回答亦使用合成进程覆盖。真实三家状态见[本轮证据](evidence/provider-three-20260910.md)。
-# 测试与验证
 
 ## 学习效果验证专项
 
@@ -99,10 +109,10 @@ ZHIXING_DESKTOP_LIVE_CHECK=0 npm --prefix desktop run test:ui
 ```bash
 npm --prefix desktop run dist:mac
 ZHIXING_DESKTOP_LIVE_CHECK=0 ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" npm --prefix desktop run test:ui
-hdiutil verify desktop/release/Zhixing-0.9.0-mac-arm64.dmg
+hdiutil verify desktop/release/Zhixing-0.11.0-mac-arm64.dmg
 ```
 
-安装包文件名中的版本来自桌面包，升级后需同步替换。当前各平台结果见 [0.9 验收记录](evidence/completion-0.9.md)；Windows NSIS 构建配置不等于运行隔离或实包测试通过。
+安装包文件名中的版本来自桌面包，升级后需同步替换；只有成功执行 `dist:mac` 后才应验证 DMG，`pack` 只生成目录包。本机固定签名要求见[签名说明](macos-local-signing.md)。历史各平台结果见[0.9 验收记录](evidence/completion-0.9.md)，当前版本范围见[当前状态](current-status.md)；Windows NSIS 构建配置不等于运行隔离或实包测试通过。
 
 ## 新测试与夹具
 
@@ -132,11 +142,13 @@ Agent 故障覆盖：`agent-limits`、`agent-continuation`、`learning-agent`、
 
 本地 npm registry 不可达时，可以在安装/审计命令末尾临时添加 `--registry=https://registry.npmjs.org`，无需修改全局配置。依赖升级同时更新 `package.json` 与对应锁文件，再用 `npm ci` 验证可复现安装；PDF.js 和内附 Pi 的修复记录见 [依赖安全 Evidence](evidence/dependency-security.md)。
 
-CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。既有基线保留历史含义；最新提交与平台运行链接见 [0.9 验收记录](evidence/completion-0.9.md)，不能用配置代替实际结果。
+CI 已安装根目录与 desktop 两套依赖并执行 Electron UI。`desktop-release.yml` 另提供 macOS/Windows 的本机架构构建、实际包 UI、校验和与 draft release。既有基线保留历史含义；当前提交的失败/通过状态见[当前状态](current-status.md)，不能用配置或历史成功替代实际结果。
 
 [`scripts/verify.mjs`](../scripts/verify.mjs) 还扫描源码/文档中的疑似凭证及 focused/skipped 测试，并执行 `git diff --check`。扫描排除依赖、用户 data/db/inbox、编译与发布产物等目录，是有限规则检查，不等于完整秘密检测或安全审计。
 
 ## 0.3 回归与人工质量集
+
+以下按能力首次引入的版本保留测试来源索引，版本号及当时测试数量均属历史；运行当前源码时，完整 `test:ui` 始终执行包脚本定义的七组。正式验收还需对应当前包，不能用历史章节的“本轮通过”代替当前执行结果。
 
 `npm run eval:agent` 聚合 `agent-quality-eval`、`desktop-tasks`、`evidence-application`、`desktop-diagnostics`。新增 `smoke-learning.mjs` 验证真实主题/课程/进度、Markdown 和文字 PDF 导入、引用、产物 Review、本地 JavaScript 测试、排队/立即调整/停止/重启恢复、持久目标与主题隔离。与原有 UI smoke 同时在实际安装包运行。
 
@@ -183,7 +195,7 @@ npm run verify
 npm --prefix desktop run test:ui
 ```
 
-桌面现为五组：聊天、学习、交互、学习效果、项目。第五组通过实际窗口修改文件、预览差异、运行失败/通过测试、保存 Git 检查点并重启核验；非 macOS 必须显示隔离不可用，不能将未运行记为通过。MCP 使用实际本地 stdio 协议夹具，未连接未指定的生产服务。
+当时新增的第五组项目 UI 通过实际窗口修改文件、预览差异、运行失败/通过测试、保存 Git 检查点并重启核验。当前七组回归还含 API/团队；macOS 与 Windows 走各自系统沙箱，缺失隔离时必须显示不可用，不能将未运行记为通过。MCP 使用实际本地 stdio 协议夹具，不默认连接生产服务。
 
 两套生产依赖审计：
 
@@ -194,7 +206,7 @@ npm audit --prefix desktop --omit=dev --audit-level=high
 
 若镜像不提供审计接口，可仅对这次命令指定 `--registry=https://registry.npmjs.org`，不更改全局设置。报告接口错误不能当作零漏洞。
 
-安装器仍须指定 `ZHIXING_DESKTOP_EXECUTABLE` 跑同一五组，再做 DMG 验证、只读挂载检查及 SHA-256 核验。当前完整结果、真实 Pi/DeepSeek 合成请求和失败修复记录见 [P1/P2 证据](evidence/agent-p1-p2-20260907.md)。质量题与人工评分用法见 [评测指南](agent-quality-evaluation.md)；真实参与者和三天复习效果不由这些自动化测试证明。
+安装器仍须指定 `ZHIXING_DESKTOP_EXECUTABLE` 跑当前完整七组，再做 DMG 验证、只读挂载检查及 SHA-256 核验。当时的真实 Pi/DeepSeek 合成请求和失败修复记录见[P1/P2 证据](evidence/agent-p1-p2-20260907.md)。质量题与人工评分用法见[评测指南](agent-quality-evaluation.md)；真实参与者和三天复习效果不由这些自动化测试证明。
 
 ```bash
 node --import tsx scripts/audit-agent-p0.ts
@@ -228,13 +240,13 @@ npm --prefix desktop run test:ui
 
 真正启动 CLI 并对比桌面 DeepSeek 请求体，覆盖长普通/教学会话；共享服务另对比工具目录、摘要内容与来源、上下文用量，验证撤权与同主题教学竞争。Pi 测试启动同一个源码 worker，并通过合成公共 SDK 验证错误、取消和恢复；这些测试不读取真实凭据、不证明真实账号连接。完整备份测试验证恢复后不会继承教学租约。
 
-发布前设置 `ZHIXING_DESKTOP_EXECUTABLE` 指向实际打包应用的可执行文件，重跑上面五组 UI。具体版本、命令退出码和未验证范围见 [U01–U04 Evidence](evidence/unified-agent.md)。
+发布前设置 `ZHIXING_DESKTOP_EXECUTABLE` 指向实际打包应用的可执行文件，重跑当前完整七组 UI。当时的版本、命令退出码和未验证范围见[U01–U04 Evidence](evidence/unified-agent.md)。
 
 ## 0.8 架构修复回归
 
 `npm run verify` 覆盖连续摘要、相关记忆、会话分段/备份、独立教学检查点、真实回复契约、SDK 能力预算、同步访问码/活跃 SSE 关闭、提醒去重和跨平台预检。`tests/mcp-isolation.test.ts` 在本机实际启动沙箱子进程验证文件与网络拒绝，不只是断言参数。新增文件索引与每次执行结果见[架构修复证据](evidence/architecture-remediation.md)。
 
-桌面五组 smoke 包含提醒设置/关闭、学习流程、MCP 连接、项目测试、任务恢复及效果报告。实际安装包验收使用 `ZHIXING_DESKTOP_EXECUTABLE` 指向打包后的应用可执行文件再运行同一 UI 命令；不能用开发目录启动替代。UI 全部采用临时数据和演示模型，不证明 OS 通知一定送达、真实学习效果、Apple 签名或其他平台已通过。
+当时的五组 smoke 包含提醒设置/关闭、学习流程、MCP 连接、项目测试、任务恢复及效果报告，当前完整命令已扩为七组。实际安装包验收使用 `ZHIXING_DESKTOP_EXECUTABLE` 指向打包后的应用可执行文件再运行同一 UI 命令；不能用开发目录启动替代。UI 采用临时数据和受控模型夹具，不证明 OS 通知一定送达、真实学习效果、Apple 签名或其他平台已通过。
 
 ## 0.9 新增验收
 
@@ -246,9 +258,9 @@ npm --prefix desktop run test:ui
 - `node --import tsx scripts/check-semantic-model.ts --model=embeddinggemma --output=new-report.json`：本机已有真实模型时，检查中英文相关查询、隔离、取消和词法回退；不会自动下载模型。
 - `node desktop/scripts/check-notification.mjs --native`：真实调度与原生通知事件；使用 `ZHIXING_DESKTOP_EXECUTABLE` 选择实包。若 OS 回调失败，验收应报告失败，不能以调用 show 代替显示成功。
 
-本轮不运行真实 Pi 排障；Pi 相关 Vitest 使用离线 SDK/协议夹具。旧留出集 H03 已用于修复，整个旧集合按回归集记录，不再称为未见盲测。独立人工评分及真实学习效果仍需外部人员。
+0.9 当时未运行真实 Pi 排障；Pi 相关 Vitest 使用离线 SDK/协议夹具。旧留出集 H03 已用于修复，整个旧集合按回归集记录，不再称为未见盲测。后续 Pi/Codex 真实连接记录按执行日期查看；独立人工评分及真实学习效果仍需外部人员。
 
-Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目录，核对 6 个关键运行文件，再针对安装路径执行五组 UI；安装回执作为 artifact 保留。手动定位可选 platform，tag 发布始终运行全部平台。异步 IPC 条件使用有总期限的 `waitForIpc` 逐次等待，不能把 Promise 对象当成条件已满足。
+Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目录，核对 6 个关键运行文件，再针对安装路径执行当前七组 UI；安装回执作为 artifact 保留。手动定位可选 platform，tag 发布始终运行全部平台。异步 IPC 条件使用有总期限的 `waitForIpc` 逐次等待，不能把 Promise 对象当成条件已满足。
 
 默认 UI 回归使用隔离的合成数据，不主动访问系统加密。显式设置 `ZHIXING_DESKTOP_NATIVE_CIPHER=1` 可增加真实 safeStorage 的合成加解密检查，IPC 等待上限 20 秒；两个 GitHub 工作流都强制启用此检查，失败不能忽略。虽然没有读取已有 API Key，macOS 仍可能要求访问系统管理的主密钥。ad-hoc 每次构建可能改变应用身份；本地打包需先[固定开发签名证书](macos-local-signing.md)，首次授权后另验重启及跨构建连续性。未完成时应记录待验，不应将普通 UI 通过替代这一结果。`desktop-signing.test.js` 覆盖签名固定和失败边界，不能替代本机系统弹窗验收。
 
@@ -258,13 +270,13 @@ Windows 发布流水线会把实际 NSIS 安装到一次性 runner 的独立目�
 
 `npm run verify` 包含 Kimi/DeepSeek 共享传输、密钥隔离、推理参数、原生工具续接、断流拒绝执行和连接探针测试。`npm --prefix desktop run test:ui` 在原五组后增加 `smoke-api.mjs`：隔离目录中验证两家 Key 保存、切换清空草稿、连接测试、Kimi 会话标签、重启恢复和 DeepSeek 回归。
 
-新增 UI 测试使用合成密钥、模拟 HTTP 和模拟 OS cipher，不读取现有 Key，不证明真实账户或原生加密成功。实际包使用相同 `ZHIXING_DESKTOP_EXECUTABLE` 变量复测六组。真实账户验收通过用户本机保存 Key 后点击“测试连接”进行，见 [Kimi Evidence](evidence/kimi-api-20260909.md)。
+新增 UI 测试使用合成密钥、模拟 HTTP 和模拟 OS cipher，不读取现有 Key，不证明真实账户或原生加密成功。实际包使用相同 `ZHIXING_DESKTOP_EXECUTABLE` 变量复测当前七组。真实账户验收通过用户本机保存 Key 后点击“测试连接”进行；早期记录见[Kimi Evidence](evidence/kimi-api-20260909.md)，最新三家探针见[通用架构验收](evidence/provider-architecture-20260911.md)。
 
 ## 动态 API 连接验证
 
 `tests/api-connections.test.ts` 覆盖公开配置校验、修订冲突、身份绑定、独立密文、无回退路由、能力/预算/参数、安全错误、断流、实际 loopback HTTP 重定向拒绝及取消。`provider-tool-contract.test.ts` 对自定义服务验证 ToolHarness 参数失败修复和断流不执行工具；`interaction-cli.test.ts` 覆盖实际 CLI 配置与重启、长普通/教学对话和桌面相同请求；`workspace-backup.test.ts` 验证只恢复公开定义。
 
-`smoke-api.mjs` 覆盖内置 Kimi/DeepSeek 回归，以及自定义服务添加、改名、Key 留空保留、切换、连接测试、会话徽章、重启恢复、移除后无回退和配置冲突。HTTP 与 cipher 使用隔离合成夹具；此测试不证明任意厂商接口或真实系统加密。实际打包应用使用 `ZHIXING_DESKTOP_EXECUTABLE` 运行同一套六组 UI。
+`smoke-api.mjs` 覆盖内置 Kimi/DeepSeek 回归，以及自定义服务添加、改名、Key 留空保留、切换、连接测试、会话徽章、重启恢复、移除后无回退和配置冲突。HTTP 与 cipher 使用隔离合成夹具；此测试不证明任意厂商接口或真实系统加密。实际打包应用使用 `ZHIXING_DESKTOP_EXECUTABLE` 运行当前完整七组 UI。
 
 真实本机 Kimi/DeepSeek 探针可在正常退出应用后，显式执行 `node desktop/scripts/check-installed-api.mjs --live --provider=kimi-api`。它打开安装应用并调用受控 IPC，不输出凭据、不创建对话，可能产生少量 API 用量。真实记录见[本轮 Evidence](evidence/dynamic-api-20260909.md)。
 

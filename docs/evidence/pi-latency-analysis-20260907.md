@@ -1,5 +1,7 @@
 # Pi / Codex 延迟分析
 
+> 历史验收快照：下文的测试数量、失败、安装及“待验”状态仅适用于记录当次执行；未重新运行或改写历史结果。当前实现与后续进展见 [当前状态](../current-status.md) 和 [证据索引](README.md)。
+
 日期：2026-09-07。基于 `13b88f0` 的桌面调用链、Pi SDK 0.85.0、`gpt-5.6-terra`。本次完成原因分析、诊断脚本及真实对照；性能修复尚未进入产品代码。
 
 ## 结论
@@ -76,7 +78,7 @@ SSE 总耗时中位数更小，但也出现 18.239 秒的工具任务；不能�
 
 源码关系：
 
-- [worker](../../desktop/electron/pi-model-worker.ts) 使用 `streamSimple`，未指定 transport、sessionId 或完成后的资源生命周期策略。
+- 历史桌面 worker（已合并到[共享 worker](../../src/pi-model-worker.ts)；以下描述当时实现）使用 `streamSimple`，未指定 transport、sessionId 或完成后的资源生命周期策略。
 - [PiApplicationClient](../../src/pi-application-client.ts) 每轮新建进程；只有同时读到协议 done 和成功退出后，才向应用发出 done。
 - [runPiProcess](../../src/pi-client.ts) 等待子进程 stdout 结束和 close。
 - 安装的 Pi SDK `dist/api/openai-codex-responses.js`：默认 transport 为 auto；未传 sessionId 时 `acquireWebSocket` 创建临时连接，并在 release 时调用 close；`processWebSocketStream` 收尾后才交付 SDK done。其 close 调用不等待握手完成，但未关闭的连接仍使 worker 进程存活。

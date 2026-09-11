@@ -1,9 +1,9 @@
-> 0.8：两个入口由 AgentService 统一执行；连续摘要、相关记忆、分段原文、会话独立教学、MCP 隔离和提醒/同步边界已更新。见 [统一记忆设计](agent-memory.md)与[修复证据](evidence/architecture-remediation.md)。
-
 <!-- generated-by: gsd-doc-writer -->
 # 知行架构（当前实现）
 
 > 本文描述仓库当前代码，而不是目标架构。后续设想会明确标注，不能作为已交付能力。
+
+核对日期：2026-09-11，桌面包版本 0.11.0，CLI 包版本 0.1.0。核心执行统一，但入口设置与会话目录独立。API 协议、官方订阅执行器和模型能力边界见[通用接入架构](provider-architecture.md)；历史版本小节记录演进，不覆盖当前源码契约。
 
 ## 系统概览与运行入口
 
@@ -11,23 +11,20 @@
 
 ```mermaid
 graph TD
-  CLI[CLI / REPL] --> Adapter[CliAgentTransport]
-  Adapter --> Agent[AgentService]
-  CLI --> App[LearningApplication]
-  UI[React renderer] --> IPC[受控 IPC]
-  IPC --> Agent
-  IPC --> App
-  Agent --> Assistant[Assistant Runtime / collectInvocation]
-  Assistant --> App
-  App --> Domain[LearningRuntime / TopicPlanLoader]
-  App --> Stores[DocumentLibrary / EvidenceStore / SQLite / 笔记]
-  Assistant --> Tools[当前主题 ToolHarness]
-  Assistant --> Model[Pi Codex / DeepSeek / Kimi / demo]
-  Agent --> Chat[AgentSessionStore / 会话快照]
-  Assistant --> Journal[AgentExecutionStore / 执行检查点]
+  CLI[CLI / CliAgentTransport] --> Agent[AgentService]
+  UI[React / 受控 Electron IPC] --> Agent
+  Agent --> Team[可选 TeamCoordinator]
+  Agent --> Runtime[runAssistantTask]
+  Team --> Runtime
+  Runtime --> Model[ModelClient / collectInvocation]
+  Runtime --> Native[AgentExecutor / 官方运行时]
+  Model --> Tools[ToolHarness / 授权与验证]
+  Tools --> App[LearningApplication / 确定性学习域]
+  Agent --> Stores[会话快照 / SQLite / 执行检查点]
+  App --> Stores
 ```
 
-模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。桌面 Pi SDK、DeepSeek 与 Kimi 均支持受控应用工具续写；课程状态仍由实际证据和程序控制。
+模型循环与状态写入保持分离：模型可查询受授权的当前主题资料；开始课程、导入、提交证据和 Review 由显式用户操作经共享应用服务执行。Pi SDK、DeepSeek、Kimi 及声明支持工具的自定义 API 可受控续写。官方 Codex / Claude 当前是仅依据提供上下文的文本执行，不开放原生工具或知行工具；这条路径共用业务策略，不冒充逐轮 ModelClient。课程状态仍由实际证据和程序控制。
 
 ### CLI 组合根
 
@@ -44,7 +41,7 @@ CLI / REPL
   -> TopicRegistry + TopicStore（内置或用户创建的本地主题）
   -> LearningRuntime（Day gate、进度、Review）
   -> DocumentLibrary + ZhixingDatabase（PDF/Markdown、关键词/同义词重排、记忆）
-  -> ProviderRuntime（mock / DeepSeek / Kimi / Codex CLI / Pi Codex）
+  -> ProviderRegistry（ModelClient 与 AgentExecutor 分开注册；模型路由与官方执行分别调度）
   -> ActionRegistry / InteractionProtocol（输入分类与命令元数据）
   -> RunManager + WorkflowLedger（取消、单前台任务、SQLite 运行/步骤账本）
   -> AuditLogger（脱敏事件轨迹）
@@ -78,8 +75,14 @@ CLI / REPL
 | demo | 桌面 `DesktopDemoClient`，明确标注离线演示 | 本地分片输出 |
 | deepseek-api | CLI 与桌面复用 `DeepSeekClient`；密钥来源由各入口注入 | 60 秒；SSE 单帧 64 KiB、整响应 8 MiB |
 | kimi-api | CLI 与桌面复用 `KimiClient`；国内 Moonshot K3，独立凭据，始终思考 | 150 秒；与 DeepSeek 共用有界 SSE 传输 |
-| codex-cli | 仅 CLI；`codex exec --sandbox read-only --ephemeral --json` | CLI 注入 150 秒；类构造默认值为 60 秒 |
+| native-codex | 两端直接使用官方 Codex 订阅；固定实际模型与已验收 CLI 版本，仅上下文文本，无工具/图片 | 原生执行 150 秒；预检有独立时限 |
+| native-claude | 单 Agent 适配器已实现，须通过官方 CLI 能力/订阅预检；真实订阅未验收，不支持团队 | 原生执行 150 秒 |
+| native-gemini | 目录扩展位置，执行器未实现，明确不可用 | 不发模型请求 |
+| codex-cli | CLI 的旧路由标识，现在注册为官方 Codex AgentExecutor 的兼容别名 | 同 native-codex |
 | pi-codex | 两端使用同一个仅模型能力的 Pi SDK worker；均读取 Pi 的模型与推理偏好 | 默认 150 秒 |
+| 自定义 api-* | Chat Completions / Responses / Messages 三协议；能力与连接身份由公开配置声明 | 默认 150 秒 |
+
+官方 Codex 当前仅启用通过验收的 CLI 0.153.4，模型默认 `gpt-6-astra`；升级 CLI 后须重新验证隔离和事件协议。订阅由官方运行时管理，知行不读取或导入其 token，也不静默转用 API 余额。原生完成事件只表示任务完成，核验状态始终为 `unverified`；首次完整消息时间不等于流式首 token。
 
 CLI 与桌面会话共用目标、约束、有界历史、摘要和授权的学习快照。资料/画像/记忆/教学状态受会话学习上下文授权控制，项目和外部 MCP 分别授权；凭据、审计原文和其他主题资料不加入上下文。
 
@@ -101,11 +104,11 @@ PiApplicationClient、DeepSeekClient 与 KimiClient 均实现 ContinuableModelCl
 
 REPL 持续读输入，普通消息串行执行，状态与取消即时响应，显式调整可抢占文本生成。短段落定时刷新；正在编辑输入时暂存新增显示。隐藏输入独占来源，不将其缓存重放进聊天。该界面仍是行式终端，未实现完整 TUI。
 
-默认预算为 6 个模型回合、32 次工具请求、10,000 个事件、64,000 字符总文本、128,000 字符上下文估算和 180 秒总时限。超过预算明确停止；这不是 tokenizer 精确计数，也不是费用预算。SSE 按 UTF-8 字节限制单帧 64 KiB、整响应 8 MiB，支持 CRLF 和跨块分片；`[DONE]` 立即关闭读取，断流、坏帧和截断输出不报成功。取消约束覆盖取密钥、HTTP、流读取、工具 dispatch 和下一模型轮。
+默认预算为 6 个模型回合（已连接项目且开放项目工具时为 12 个）、32 次工具请求、10,000 个事件、64,000 字符总文本、128,000 字符上下文估算和 180 秒单任务总时限。团队另受累计预算及默认 240 秒整题时限约束。超过预算明确停止；这不是 tokenizer 精确计数，也不是费用预算。SSE 按 UTF-8 字节限制单帧 64 KiB、整响应 8 MiB，支持 CRLF 和跨块分片；`[DONE]` 立即关闭读取，断流、坏帧和截断输出不报成功。取消约束覆盖取密钥、HTTP、流读取、工具 dispatch 和下一模型轮。
 
 教学转移由 `completeTeachingTurn` 在模型成功返回后计算。索要答案、批改和澄清不会覆盖原练习；新出题才增加轮次，仍保留原有 20 轮上限。部分回答可保留为未完成转录，但不推进阶段或写入学习者作答。转录保存前有明确截断标记；切换主题时清除旧主题的内存对话和待确认草案。
 
-CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影只用于兼容显示；适配器时限随 Provider 不同。当前没有费用预算或通用并行调度、自动网络重试、Claude/本地 HTTP Provider、DOCX 导入或云同步；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
+CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影只用于兼容显示；适配器时限随 Provider 不同。当前有有界团队调度和最多两个纯只读工具并行；没有精确费用预算、无限通用调度、自动网络重试、DOCX 导入或云同步。Claude Messages / 自定义 HTTPS 与显式确认的 loopback HTTP 连接已可配置，官方 Claude 订阅适配仍待真实账号验收；桌面界面基于 React，但没有独立部署的浏览器 Web 产品。
 
 ## 桌面对话链路
 
@@ -115,7 +118,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 1. renderer 通过 preload 暴露的 `window.zhixing.invoke` 发出 `send`；主进程验证窗口、主 frame、页面 URL，并用 `desktopCommandSchema` 校验参数。
 2. `DesktopService` 兼容导出实际使用 `AgentService.send`，以会话租约拒绝并发生成，在异步读取会话前固定本轮客户端；组装受限历史，然后先保存用户消息和 `running` 状态的助手消息。
-3. `runAssistantTask` 通过共享 `collectInvocation` 执行模型/工具回合。Pi SDK、DeepSeek 与 Kimi 都支持当前主题的应用工具，资料/执行权限分别由应用控制。真实工具结果才能续写；`session`、`message_patch`、`delta`、`settled` 事件按会话隔离。
+3. `runAssistantTask` 对 ModelClient 使用共享 `collectInvocation` 执行模型/工具回合，对 AgentExecutor 执行官方仅上下文任务。Pi、内置/自定义 API 的工具能力按适配器与授权决定，原生当前无工具。真实工具结果才能续写；`session`、`message_patch`、`delta`、`settled` 事件按会话隔离。
 4. 收到非空文本和明确 `done`，且应用计划已完成才标记 `completed`；提前结束会有界继续或返回 `blocked`；用户停止为 `interrupted`，超时、断流或其他错误为 `failed`。部分文本保留，首字和总耗时写入消息元数据。
 5. 输出增量到达且距离上次保存超过 750 ms 时保存快照，结束再保存；退出应用会停止模型/导入/本地验证并等待最终保存。强制终止仍可能丢失尚未落盘的增量，重启加载时把遗留 `running` 消息转为 `interrupted`。
 
@@ -127,17 +130,17 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 - 会话按更新时间排序，可重命名、重新载入和导出 Markdown。导出由主进程弹出系统保存对话框，仅导出所选桌面对话，不是 CLI 学习数据备份。
 - 草稿按会话保存在 renderer 的 localStorage，`last-session` 保存最后打开的会话；它们不属于会话 JSON，也不会随 Markdown 导出。设置保存串行化，renderer 用修订号避免旧响应覆盖新的选择。
 - 设置包含 Provider、回答风格、显示主题和 DeepSeek 模型；源码默认依次为 `pi-codex`、`adaptive`、`system`、`deepseek-v4-flash`。本机已保存设置可覆盖默认值。
-- 全应用同一时间只生成一个回答，期间可排队最多 10 条、立即调整、撤回待办或浏览历史；停止会暂停队列，重启须手动继续。停止不会清除部分文本；“继续回答”和失败重试保留原 taskId，从检查点续接；Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
+- 每个 AgentService 实例同一时间只处理一个前台生成，跨进程对同会话及教学主题用租约协调；期间可排队最多 10 条、立即调整、撤回待办或浏览历史；停止会暂停队列，重启须手动继续。停止不会清除部分文本；“继续回答”和失败重试保留原 taskId，从检查点续接；Pi 失败后点击 DeepSeek 切换按钮会保存 Provider 选择，并在原会话追加新一轮请求，旧失败记录保留。
 - Enter 发送、Shift+Enter 换行，中文输入法组合输入不触发发送；只有视图处于底部时自动跟随新内容。Cmd/Ctrl+N 新对话、Cmd/Ctrl+K 搜索、Cmd/Ctrl+, 打开设置。
 
 ### 桌面资源上限
 
 | 项目 | 当前限制 | 代码位置 |
 | --- | --- | --- |
-| 单次用户输入 | 20,000 字符 | `desktop/core/contracts.ts` |
+| 单次用户输入 | 桌面/共享契约20,000字符；CLI execute前置限制8,000字符，尚待统一 | `src/input-limits.ts`、`src/cli.ts` |
 | 单条回答 | 64,000 字符 | `src/agent-service.ts` |
-| 单次生成 | 最多 10,000 个模型事件，服务总时限 180 秒 | `src/model-invocation.ts`、`src/agent-service.ts` |
-| 适配器时限 | DeepSeek 60 秒、Pi / Kimi 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-client.ts` |
+| 单次生成 | ModelClient 最多 10,000 个事件；单 Agent 服务时限 180 秒，团队默认 240 秒 | `src/model-invocation.ts`、`src/agent-service.ts` |
+| 适配器时限 | DeepSeek 60 秒；Pi、Kimi、自定义 API、原生执行默认 150 秒；可能先于服务时限结束 | `src/deepseek-client.ts`、`src/pi-application-client.ts`、`src/native-agent.ts` |
 | 保存的会话 | 最多 20,000 条消息；完整会话合计 12,000,000 字节，旧原文按 250 条分段 | `src/agent-session-contracts.ts`、`src/agent-session-store.ts` |
 | 发给模型的历史 | 最多 24 条；目标和历史片段约 40,000 字符预算；另加本次输入、约束、摘要与授权的主题上下文 | `src/agent-service.ts` |
 
@@ -148,7 +151,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 - `PathPolicy` 控制主题路径、导入根以及现存父目录/中间目录/叶子文件符号链接越界；它不代替防并发路径替换的 OS 沙箱；资料和用户本地状态不得提交。
 - CLI 的 DeepSeek / Kimi API Key 通过 `MacOSKeychainSecretStore` 读写 macOS Keychain。CLI 模型审计记录 Provider、角色、耗时、状态及事件/回合/工具调用计数，不保存 prompt、回答或凭证；桌面模型任务写入同一 WorkflowLedger，同时保留消息状态、步骤、引用及时间元数据。
 - 删除资料、写长期记忆和恢复数据库均需命令级确认；恢复会先预校验备份，并在失败时重新打开原数据库。
-- 桌面新 API Key 通过主进程的 `EncryptedDesktopSecrets` 使用 Electron 异步 safeStorage 加密，保存为用户数据目录下的 `deepseek.credential`；加密不可用时拒绝保存，没有明文回退。macOS 可复用现有知行 Keychain 项，优先使用桌面加密文件。配置状态只检查文件/Keychain 元数据，实际请求才读取密钥；设置页不会回填已有密钥，密钥不进入偏好或聊天 JSON。Pi 认证仍由 Pi 独立管理。
+- 桌面新 API Key 通过主进程的 `EncryptedDesktopSecrets` 使用 Electron 异步 safeStorage 加密，按内置 Provider 或自定义连接身份保存为用户数据目录下的独立 `.credential` 文件；加密不可用时拒绝保存，没有明文回退。macOS 可复用现有知行 Keychain 项，优先使用桌面加密文件。配置状态只检查文件/Keychain 元数据，实际请求才读取密钥；设置页不会回填已有密钥，密钥不进入偏好或聊天 JSON。Pi 认证仍由 Pi 独立管理。
 - renderer 启用 sandbox、context isolation、禁用 Node integration，通过受限 preload 使用应用接口；本地 `zhixing://app` 协议只提供打包资源，CSP 禁止 renderer 自行联网，导航、新窗口和权限请求默认拒绝。`open-link` 仅允许不含内嵌账号密码的 HTTP(S) URL，由主进程交给系统浏览器。
 - 桌面文件存储检查目标及直接父目录的符号链接，读取文件使用 `O_NOFOLLOW`；这些检查和 CLI 的 `PathPolicy` 不应描述为覆盖所有祖先目录和并发路径替换的 OS 沙箱。Electron renderer 沙箱也不意味着整个主进程或 Pi 子进程处于同一个 OS 沙箱中。
 - 质量门是根目录 `npm run verify`；桌面交互另运行 `npm --prefix desktop run test:ui`，安装包还需对实际打包应用运行 UI 验证。真实 Provider smoke 为单独环境验收，不因本地协议测试通过就声称登录或联网成功。
@@ -160,7 +163,8 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 | `LearningApplication` / `EvidenceStore` | 两个入口共用学习边界与实际产物校验：`src/learning-application.ts`、`src/evidence-store.ts` |
 | `LearningRuntime` | 确定性课程状态机与 Review 入口：`src/runtime.ts` |
 | `authorizeConversationTransition` / `decideInteraction` | 授权、原文证据与输入分类：`src/conversation-policy.ts`、`src/interaction-protocol.ts` |
-| `ModelClient` / `ContinuableModelClient` | 文本流及可选工具续写协议：`src/model.ts` |
+| `AgentBackend` / `AgentExecutor` / `ModelClient` | 完整官方任务与逐轮模型调用分开，工具续写由可续接 ModelClient 实现：`src/agent-executor.ts`、`src/model.ts` |
+| `NativeRuntimeAdapter` / `nativeRuntimeCatalog` | 厂商协议与公共进程宿主分离，两端共享目录：`src/native-runtime-contract.ts`、`src/native-runtime-catalog.ts` |
 | `ProviderRuntime` / `collectInvocation` | CLI 路由、回退、模型/工具回合与预算：`src/provider-runtime.ts`、`src/model-invocation.ts` |
 | `ToolHarness` | 当前主题受控工具注册与执行：`src/tool-harness.ts` |
 | `ZhixingDatabase` / `WorkflowLedger` | 资料检索、记忆及持久运行账本：`src/database.ts`、`src/workflow-ledger.ts` |
@@ -175,11 +179,11 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 `desktop/scripts/build.mjs` 用 esbuild 分别生成主进程 ESM、preload CJS、renderer 静态资源以及守卫模块。electron-builder 将内附 Pi 依赖展开到 `app.asar.unpacked/node_modules/`，并将 runtime 规则与守卫放入额外资源；桌面独立安装 SQLite/PDF 依赖；prepare-runtime 先安装项目内 Electron 并探测/重建 Electron ABI，根包 SQLite 保持 Node ABI。只将四个内置课程与运行规则打包，不收集用户主题。
 
-`desktop/package.json` 提供 macOS arm64/x64 DMG/ZIP 和 Windows x64 NSIS 配置。0.9 的两个 Mac 架构已通过远端构建及实际包五组 UI，本机 ARM64 已安装；Windows AppContainer 原生 6 项、实际 NSIS 安装及安装后五组 UI 均已通过。Windows 流水线实际安装 NSIS 并核对安装文件后运行 UI；手动运行可选择平台，tag 发行始终检查全部平台。macOS 预览包完整 ad-hoc 签名，Developer ID 与公证条件仍缺失。0.9 未执行真实 Pi 排障；DeepSeek 真实样本、内容评分、安装与各平台结果见 [当前验收](evidence/completion-0.9.md)，早期双 Provider 记录保留为 [P1/P2 历史证据](evidence/agent-p1-p2-20260907.md)。
+`desktop/package.json` 提供 macOS arm64/x64 DMG/ZIP 和 Windows x64 NSIS 配置。0.9 的两个 Mac 架构已通过远端构建及实际包五组 UI，本机 ARM64 已安装；Windows AppContainer 原生 6 项、实际 NSIS 安装及安装后五组 UI 均已通过。Windows 流水线实际安装 NSIS 并核对安装文件后运行 UI；手动运行可选择平台，tag 发行始终检查全部平台。上述 0.9 为历史构建验收，不代表当前包在各平台重跑。当前 macOS 构建支持固定本地证书签名；2026-09-11 候选包沿用既有身份并通过七组实包 UI，见[通用架构验收](evidence/provider-architecture-20260911.md)。固定本地签名不等于 Apple Developer ID 发布签名或公证；正式发布条件仍需单独验收。0.9 未执行真实 Pi 排障；DeepSeek 真实样本、内容评分、安装与各平台结果见 [当前验收](evidence/completion-0.9.md)，早期双 Provider 记录保留为 [P1/P2 历史证据](evidence/agent-p1-p2-20260907.md)。本机历史通过不等于最新远端CI通过，当前状态以[状态记录](current-status.md)为准。
 
 ## 后续设计（未实现）
 
-后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、定时备份、跨设备同步。完整学习备份已实现。桌面课程/资料/进度/证据与任务上下文已落地；通用 Shell、任意代码编辑、多 Agent、MCP 市场不在本轮范围。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
+后续范围：所有旧 CLI 命令统一注册表分派、其他 Provider 工具适配、精确 token/费用预算、任意写操作的逐步骤幂等恢复、主题删除、定时备份、跨设备同步。完整学习备份已实现。桌面课程/资料/进度/证据与任务上下文已落地；当前已有独立实践项目的受控文件编辑、单 Agent / 同模型团队 / 异模型团队及 MCP 本地连接；通用 Shell、任意用户工作树编辑、自由通信或可写成员、MCP 市场仍未开放。实现和验证见 [升级指南](agent-upgrade.md)、[Evidence](evidence/agent-upgrade.md)。
 
 ## 0.4 的新增结构
 
@@ -215,7 +219,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 | `AgentSessionStore` / `AgentEventCoalescer` | 正文外元数据索引、游标分页；16 ms 合并文本增量、活动增量补丁、最终事件前清空缓冲；UI 分段加载消息。 |
 | `LearningOutcomeStore` / `BuildProvenance` | 独立题目和作答存储、两种试验协议；源码/安装包来源绑定，按构建和真实模型条件分组。 |
 
-会话当前写入 v8，首次保存 v1–v7 前保留原文件；SQLite 标记 6，旧应用拒绝打开。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。
+会话当前按实际字段写入 v8–v13：基础会话 v8，团队 v9，早期审查 v10，任务图协议3 为 v11，原生任务预算 v12，成员资源策略 v13；升级保存前保留旧版本副本，禁止降级覆盖。SQLite 标记仍为 6。完整恢复不继承访问、记住的写操作、MCP 启用状态或项目选择。详细配额和验证见 [0.6 指南](agent-0.6.md)与[执行证据](evidence/agent-architecture-next.md)。
 
 0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。
 
@@ -229,7 +233,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 `api-connection-config.ts` 定义公开、严格、有界的连接契约；`ApiConnections` 负责版本校验、原子写入和配置修订冲突检查。身份哈希绑定线上的完整配置，不允许同 ID 换端点。`createAgentModel` 同时接收内置 Provider 和自定义 ID，未知 ID 明确失败。新增兼容厂商不增加 Provider 枚举分支。
 
-桌面仅处理设置、模型选择和系统密文，CLI 使用同一契约/工厂，二者继续调用 AgentService。ChatCompletionsClient 复用有界 SSE、原生工具状态与取消策略；工具执行始终经过 ToolHarness。配置中的工具/图片能力和上下文/输出上限是声明与约束，不是假定所有模型能力相同。当前自定义协议是 OpenAI Chat Completions/Bearer；其他原生协议需新的适配器，不能靠改 URL 冒充兼容。
+桌面仅处理设置、模型选择和系统密文，CLI 使用同一契约/工厂，二者继续调用 AgentService。ChatCompletionsClient 复用有界 SSE、原生工具状态与取消策略；工具执行始终经过 ToolHarness。配置中的工具/图片能力和上下文/输出上限是声明与约束，不是假定所有模型能力相同。当前支持 Chat Completions、Responses、Messages 三协议，分别保留各自工具调用 ID、思考签名/私有续接状态及完成语义。十家目录只是可选模板，目录外的兼容服务也可配置；不同新协议仍需适配器，不能靠改 URL 冒充兼容。
 
 密钥引用按连接身份隔离，公开 JSON 与备份不含凭据；连接管理变更和测试在主进程加互斥保护，修改旧任务端点不能靠改名或备份恢复实现。移除连接保留历史且无自动模型回退。详见[配置](CONFIGURATION.md#自定义-api-连接092)和[本轮验证](evidence/dynamic-api-20260909.md)。
 
@@ -241,12 +245,18 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 
 `TeamBudget` 在真实请求前原子保存预留，覆盖分工、成员、审查、定向复核、综合及格式修复轮次；保存失败时禁止继续请求。连接准备只通过受控适配器，不向协调器返回凭据。准备耗时计入整题，Pi 同连接按顺序启动成员，释放请求槽后再执行工具。取消/未知用量保留保守预留，不伪造零消耗。
 
-团队真相保存于原子会话文件。普通会话仍 v8，旧团队配置或记录可保持 v9，早期复核协议写为 v10，新任务图协议写为 v11，保留旧副本并阻止降级覆盖。重启保留已完成结果、把未知成员、运行中审查与复核标为中断，不自动重复调用；恢复/迁移校验会话和权限范围。显式补做可恢复指定失败任务及尚未执行的阻塞依赖分支，成功任务不重放、原预算不清零；显式新任务重跑保留原任务。成员失败保持 partial，必需成员缺失会阻止整轮标为完成。详见[三模式指南](agent-teams.md)。
+团队真相保存于原子会话文件。普通会话仍 v8，旧团队配置或记录可保持 v9，早期复核协议写为 v10，新任务图协议写为 v11，涉及原生执行预算写为 v12，含自动成员资源策略写为 v13；保留旧副本并阻止降级覆盖。重启保留已完成结果、把未知成员、运行中审查与复核标为中断，不自动重复调用；恢复/迁移校验会话和权限范围。显式补做可恢复指定失败任务及尚未执行的阻塞依赖分支，成功任务不重放、原预算不清零；显式新任务重跑保留原任务。成员失败保持 partial，必需成员缺失会阻止整轮标为完成。详见[三模式指南](agent-teams.md)。
 
-0.11 的首轮成员返回带 schema 的结论、可核查依据和不确定性，报告不会被后续意见覆盖。规划、成员和审查共用有界授权任务包；主系统指令不转发。逐项核查可通过 sourceTask 关联后续修正依据，实际工具回执由共享 Runtime 产生并校验引用。新成员默认继承主 Agent 思考档位，显式配置及历史绑定优先。
+0.11 的首轮成员返回带 schema 的结论、可核查依据和不确定性，报告不会被后续意见覆盖。规划、成员和审查共用有界授权任务包；主系统指令不转发。逐项核查可通过 sourceTask 关联后续修正依据，实际工具回执由共享 Runtime 产生并校验引用。新成员默认以主 Agent 档位为起点；推理和正文共享额度的适配器再按可用预算选择自动档位，显式配置及历史绑定优先。
 
 任务依赖已支持，调度为有界批次；无限补查、自由通信与团队写入未开放。0.10 保留[固定六组对照](agent-team-evaluation-protocol-20260909.md)；0.11 使用[新回归与留出协议](agent-team-quality-evaluation-protocol-20260909.md)，运行完成不等于质量认证。
 
 ## 团队内核更新（2026-09-10）
 
-当前团队使用协议3 / 会话v11，以任务图、独立阶段检查点、成员产物上下文和逐项核查记录组织执行。共同数据契约与 Node 执行代码分离；两个入口复用同一内核与定向恢复契约。详见[团队内核设计](agent-team-kernel.md)与[验收记录](evidence/team-kernel-alignment-20260910.md)。
+当前团队使用协议3 / 按字段保存的会话v11–v13，以任务图、独立阶段检查点、成员产物上下文和逐项核查记录组织执行。共同数据契约与 Node 执行代码分离；两个入口复用同一内核与定向恢复契约。详见[团队内核设计](agent-team-kernel.md)与[验收记录](evidence/team-kernel-alignment-20260910.md)。
+
+## 2026-09-11 的通用接入与资源契约
+
+`AgentBackend = ModelClient | AgentExecutor` 是接入分界：API 与 Pi 由知行运行每轮工具循环，官方 CLI 由自己的运行时完成一次仅上下文任务。主 Agent 与团队成员共用该联合契约、身份冻结、上下文投影、权限和预算；原生内部轮次不记成知行模型/工具调用。SDK / App Server 可后续实现 AgentExecutor，当前没有已交付的常驻 App Server。
+
+`memberResourcePolicy` 只对适配器声明的共享输出额度生效：快速、均衡、深入的本地目标依次为 4096、8192、16384 token；先预留规划、审查与最终回答容量，再计算成员份额。默认整题仍为 16384，用户可提高上限，系统不因失败自动加额。原生订阅的 token 是返回后观测，任务数、时限和可见输出长度才是可强制的限制。详细取舍及四题二十次历史真实对照见[预算验收](evidence/team-resource-budget-20260911.md)，不能推导团队普遍优于单 Agent。

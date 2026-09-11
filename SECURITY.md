@@ -1,4 +1,7 @@
+<!-- generated-by: gsd-doc-writer -->
 # 安全说明
+
+对应当前桌面源码 `0.11.0`，核对日期 2026-09-11。实际运行证据与未完成项见[当前状态](docs/current-status.md)；本文件描述控制措施和限制，不承诺不存在漏洞。
 
 ## 安全边界
 
@@ -12,6 +15,8 @@
 - Electron renderer 启用 sandbox、context isolation 和 CSP，经本地 `zhixing://app` 协议加载；禁用任意导航、新窗口、远程图片及权限申请。preload 只暴露受控命令和事件，主进程检查来源、Zod 参数、UUID 与长度。
 - 两个入口经同一 AgentService / LearningApplication 接入学习工作区，只有本会话授权后才提供当前主题上下文与读取工具，写入另需本次或会话授权；不给模型开放任意 Shell 或文件工具。内附 Pi SDK 不提供原生工具执行器；认证由 Pi 自己处理。
 - DeepSeek / Kimi 的 CLI 配置分别存入 macOS Keychain。桌面新增配置通过主进程的异步 `safeStorage` 独立加密写入 `deepseek.credential` / `kimi.credential`；没有对应桌面配置时可复用同一 Provider 的 macOS Keychain 项。状态查询不返回 Key，读取现有 Key 只供受控 API 调用使用。密码输入内容在提交时经过 renderer，但没有将已保存 Key 回读给页面的接口。
+- 官方 Codex/Claude 使用独立 AgentExecutor 与受信任适配器，认证由官方运行时管理；不导入订阅 token，不透传任意环境变量。当前执行只基于受控上下文，临时目录、空工具与客户端隔离能力检查共同约束；非兼容版本失败，不以 API Key 回退。目录中的 Gemini 未实现，不会执行其他厂商替代。该边界不表示知行已经支持官方客户端的全部工具。
+- 团队成员为只读核查，材料分享受主会话授权与冻结范围约束；成员报告属于不可信模型输出，不能扩大权限或代替工具证据。任务图、审查、预算及恢复均有界，原生内部推理 token 只能核算，不能保证实时硬限。
 - 聊天记录是应用目录内的明文 JSON，草稿保存在 renderer 的本地存储；API Key 加密不等于全部会话加密。Markdown 导出和复制会把所选内容写入用户指定文件或系统剪贴板。
 - 桌面会话原子保存，拒绝预先存在的会话目录/文件符号链接；CLI 路径策略检查信任根之下的路径组件。这些检查不等同于防御任意本机进程的 OS 隔离。
 
@@ -30,7 +35,7 @@ npm audit --prefix desktop --omit=dev --audit-level=high
 
 CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均有充分依据；桌面引用元数据经主题/文档/页码/锚点/片段 ID 校验，但不保证每句回答均得到引用支持。loopback 同步服务只提供本机 progress JSON/SSE，不是云同步。历史 Provider smoke 只证明当次请求结果，不证明当前登录持续有效。
 
-桌面 macOS arm64 包目前为本地预览，没有 Developer ID 签名、公证。版本检查只在用户点击后查询 GitHub 公开元数据，不自动下载/执行更新。已有 macOS/Windows 构建与 draft release 工作流；两个 Mac 架构实包及 Windows 原生隔离、NSIS 实际安装和安装后 UI 均通过；系统加密为真实 safeStorage 合成往返检查，实际用户新密钥保存另行验收。详见 [当前证据](docs/evidence/completion-0.9.md)。
+桌面 macOS arm64 包目前为本地预览，使用固定本地签名保持身份连续性，未完成正式 Developer ID/公证。版本检查只在用户点击后查询 GitHub 公开元数据，不自动下载/执行更新。macOS/Windows 历史实包及 Windows 原生隔离/NSIS 证据见[0.9 记录](docs/evidence/completion-0.9.md)，本机跨构建 safeStorage 和 API 探针见[本地签名记录](docs/evidence/keychain-signing-fix-20260910.md)。这些有日期的验收不代表本版所有平台重新通过，也不保证所有系统设置下永不弹窗。
 
 ## 报告问题
 
@@ -38,19 +43,19 @@ CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均
 
 实现边界与限制见 [安全约束](docs/pi-constraints.md) 和 [架构](docs/architecture.md)。
 
-本地产物验证只在 macOS 受限沙箱中运行明确提交的 JavaScript 与测试脚本，禁止网络、限制文件内容访问与时间/输出；其他平台拒绝执行。用户测试报告标为未复跑，Review 分数只代表证据完整性。详见 [升级契约](docs/agent-upgrade.md)。
+本地产物验证在 macOS 系统沙箱或 Windows AppContainer 中运行明确提交的代码，禁止网络、限制文件内容访问与时间/输出；无受支持沙箱时拒绝执行。Python 另需通过运行时检查，不能把“可用”预检当作代码已通过。用户测试报告标为未复跑，Review 分数只代表证据完整性。详见[实践项目](docs/practice-projects.md)。
 
-## 0.4 的应用工具与恢复边界
+## 应用工具与恢复边界
 
 两个入口共用的 Pi SDK worker 没有原生工具执行器；Pi、DeepSeek 和 Kimi 产生的请求只由应用 ToolHarness 校验执行。学习资料、当前项目与外部 MCP 分别授权，写入权限绑定目标和操作；撤回会清除未执行的旧批准，未知副作用仍保留，写操作预览持久化后等待用户选择，模型不能授予自己权限。任务结果缓存会验证保存产物是否完整；实验仍使用 OS 隔离。
 
 全量备份由用户操作触发，仅包含应用拥有的学习数据、会话与偏好，不包含凭据；文件夹备份没有加密。恢复先验证清单/哈希/数据库版本，创建新工作区与新会话，保留原数据，关闭继承的授权及自动队列。路径检查不构成对恶意本地进程并发换路径的 OS 沙箱。可选语义索引只访问 loopback Ollama，不会自动下载模型或连接外部向量服务。详细限制见 [0.4 指南](docs/agent-0.4.md)。
 
-0.6 使用会话 v5 / SQLite 标记 5，旧二进制拒绝新格式；升级前可导出完整备份。项目修改前快照和日志恢复不会替代 OS 隔离；Python 仅在已验证的 macOS 环境运行标准库测试，禁止网络和工作目录外正文读取。完整产品效果试验不向模型自动暴露检查作答，构建来源不包含凭据/用户数据。详见 [0.6 指南](docs/agent-0.6.md)。
+普通会话保存为 v8，团队根据能力保存为 v9–v13；SQLite 标记为 6，旧二进制拒绝不兼容格式，首次升级保存前保留原版本备份。项目修改前快照和日志恢复不会替代 OS 隔离；Python 标准库测试支持受检的 macOS/Windows 运行时。完整产品效果试验不向模型自动暴露检查作答，构建来源不包含凭据/用户数据。
 
-0.7 将学习画像、显式记忆、教学检查点和资料统一纳入会话授权。选择 Provider 不是授权；CLI 的材料标志不自动授权项目或 MCP。严格请求 schema 拒绝前端 prompt/history/runtime 覆盖；同主题教学租约防止跨入口并发覆盖，备份恢复清除临时租约。会话当前版本为 7，数据库版本为 6，旧版本拒绝覆盖新语义。见 [统一记忆设计](docs/agent-memory.md)。
+学习画像、显式记忆、教学检查点和资料统一纳入会话授权。选择 Provider 不是授权；CLI 的材料标志不自动授权项目或 MCP。严格请求 schema 拒绝前端 prompt/history/runtime 覆盖；同主题教学租约防止跨入口并发覆盖，备份恢复清除临时租约。见[统一记忆设计](docs/agent-memory.md)。
 
-## 0.8 本地访问收紧
+## 本地访问
 
 MCP 的 `trusted` 模式保留账户权限信任边界；`restricted` 模式在 macOS 通过系统沙箱仅开放指定可执行程序、显式读取路径及临时工作目录写入，并禁止网络。目录读取授权包含子目录，应避免授权整个主目录。其他平台不能静默回退；工具 read 声明不替代 OS 隔离。
 
@@ -58,6 +63,6 @@ loopback 同步要求每个进程随机生成的临时访问码并限制 Host/Or
 
 v7 原文片段逐一校验来源和内容哈希，缺失/损坏拒绝恢复；首次保存旧格式留备份。摘要哈希只证明引用原文一致，不能证明模型内容正确。教学检查点按会话保存，不让同主题其他对话覆盖当前练习。
 
-0.9 图像采用受限内联 PNG/JPEG，不自动加载远程图片；视觉请求先检查模型能力。macOS 预览包的完整 ad-hoc 签名只满足本机应用身份/通知要求，不等同于 Developer ID 信任或公证。Windows AppContainer 隔离与实际平台验收范围见[当前证据](docs/evidence/completion-0.9.md)。
+图像采用受限内联 PNG/JPEG，不自动加载远程图片；视觉请求先检查模型能力。macOS 本地固定签名与临时 ad-hoc 包均不等同于 Developer ID 信任或公证；固定签名的适用条件见[说明](docs/macos-local-signing.md)。Windows AppContainer 隔离与历史平台验收范围见[证据](docs/evidence/completion-0.9.md)。
 
-自定义 API 连接只接受严格的公开配置和 Bearer Key 认证。身份哈希绑定地址、模型、协议和能力；同 ID 不能重指向新端点。桌面为每个连接单独保存系统密文，根地址禁止 URL 认证/查询参数、远端 HTTP 和自动重定向。未找到原连接时明确失败；备份排除密文，恢复只合并公开定义。移除配置不删除对话或密文。更多边界见[配置](docs/CONFIGURATION.md#自定义-api-连接092)。
+自定义 API 连接只接受严格公开配置；Chat Completions/Responses 使用 Bearer Key，Messages 使用原生 API Key 请求头，不开放任意 header 或 payload 注入。身份哈希绑定地址、模型、协议和能力；同 ID 不能重指向新端点。桌面为每个连接单独保存系统密文，根地址禁止 URL 认证/查询参数、远端 HTTP 和自动重定向。未找到原连接时明确失败；备份排除密文，恢复只合并公开定义。移除配置不删除对话或密文。新增服务配置即选择新的数据接收方，十家模板不等于逐家安全/账户验收。更多边界见[配置](docs/CONFIGURATION.md#自定义-api-连接092)。

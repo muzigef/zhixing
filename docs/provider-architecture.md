@@ -1,17 +1,17 @@
+<!-- generated-by: gsd-doc-writer -->
 # 可扩展模型接入架构
 
 2026-09-11 用户确认：本轮目标是通用架构，并以 Codex 订阅、DeepSeek API、Kimi API 验证实际落地。其他七家保留目录、协议配置和适配扩展位置，不要求本轮逐家开通账号。十家调研是选型依据，不是框架允许接入的厂商白名单。
 
 ```mermaid
 flowchart TD
-  UI[桌面与 CLI] --> Service[共享 AgentService]
-  Service --> State[教学、记忆、上下文、任务、团队与预算]
+  UI[桌面与 CLI] --> Service[共享 AgentService / 教学记忆权限团队]
   Service --> Backend[AgentBackend]
   Backend --> Model[ModelClient：逐轮模型生成]
   Backend --> Agent[AgentExecutor：完整外部任务]
   Model --> Protocol[Chat Completions / Responses / Messages]
   Protocol --> API[任意符合已支持协议的 API 连接]
-  Agent --> Native[公共进程执行器 + NativeRuntimeAdapter]
+  Agent --> Native[公共进程执行器 / NativeRuntimeAdapter]
   Native --> Drivers[独立官方运行时适配器]
   Agent --> Future[后续 SDK / App Server 执行器]
 ```

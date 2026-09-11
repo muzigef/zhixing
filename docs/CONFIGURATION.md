@@ -1,7 +1,9 @@
 <!-- generated-by: gsd-doc-writer -->
 # 配置
 
-## 十家服务商与原生协议（2026-09-10）
+本文对应桌面 `0.11.0` 的源码契约；最近核对日期为 2026-09-11。实际安装、账号连通与验收状态以[当前状态](current-status.md)为准。历史版本指南用于说明当时增量，不能覆盖本文的当前配置。
+
+## 通用服务商与原生协议
 
 当前采用[通用接入架构](provider-architecture.md)。目录提供模板，同协议的其他厂商可直接选择自定义；官方订阅通过独立受信任适配器扩展，不能仅凭模板存在认定可用。
 
@@ -50,6 +52,12 @@ CLI 和源码开发要求 Node.js `24.8.x`，CLI 启动时会检查版本。已�
 | `ZHIXING_ROOT` | 否 | CLI 源码所在项目的父目录 | CLI 学习工作区根目录；相对值按启动进程的工作目录解析。桌面不使用它。注意 CLI 会在该目录下追加 `zhixing/`。 |
 | `ZHIXING_ALLOW_LIVE_PROVIDER` | 否 | 未设置，允许真实 Provider 调用 | CLI 和桌面都识别；只有字符串 `0` 会禁止真实 Provider 请求。它不会配置账号、修改保存的路由，或自动选择 mock/demo。 |
 | `ZHIXING_DEEPSEEK_MODEL` | 否 | `deepseek-v4-flash` | CLI 的 DeepSeek 模型名，在创建适配器时读取。桌面显式传入 `preferences.json` 中的 `deepseekModel`，因此桌面模型选择不受此变量覆盖。 |
+| `ZHIXING_CODEX_EXECUTABLE` / `ZHIXING_CLAUDE_EXECUTABLE` | 否 | 常用 Homebrew 路径或 PATH 中的 `codex` / `claude` | 官方程序路径；桌面已保存的对应路径优先于启动环境。路径配置不能绕过运行时能力检查。 |
+| `ZHIXING_GEMINI_EXECUTABLE` | 否 | 常用路径或 `gemini` | 通用目录的程序发现入口；当前只提供状态检查，不启用 Gemini 原生执行。 |
+| `ZHIXING_CODEX_MODEL` | 否 | `gpt-6-astra` | 官方 Codex 模型；桌面已保存的 `nativeCodexModel` 优先。模型固定后才允许团队使用。 |
+| `ZHIXING_CONTEXT_WINDOW_TOKENS` / `ZHIXING_OUTPUT_TOKENS` | 否 | `48000` / `16384` | 共享模型工厂读取的上下文窗口/输出预留；桌面显式预算优先。窗口 512–48000、预留 128–16384，预留必须小于窗口，还受适配器能力限制。 |
+| `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY`（以及原生通道的小写形式） | 否 | 继承启动环境 | 原生进程仅透传白名单代理变量；实际协议支持由所用运行时决定。API/Pi 的 Node 代理需其运行时支持，见桌面代理说明。 |
+| `NODE_USE_ENV_PROXY` | 否 | 未设置 | 可用于支持该选项的 Node/Electron API/Pi 环境代理；官方原生进程不透传此变量。不要假定它配置系统代理。 |
 | `PI_CODING_AGENT_DIR` | 否 | `~/.pi/agent` | CLI 和桌面所读取的 Pi 全局配置目录；知行仅解析其中的 `settings.json` 模型偏好。 |
 | `ZHIXING_PI_TRANSPORT` | 否 | `sse` | 两端 Pi SDK 的传输策略，可设为 `auto` 做兼容性对照；无效值拒绝请求。不会修改 Pi 偏好、模型或思考强度，同样作用于 CLI Pi。 |
 | `NO_COLOR` | 否 | 未设置 | CLI 中只要存在就关闭终端颜色，包括空字符串；不改变桌面主题。 |
@@ -105,7 +113,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 /style detailed
 ```
 
-这些切换命令是不同选择的示例，按需要执行其中一个。内置 Provider 为 `mock`、`deepseek-api`、`kimi-api`、`codex-cli` 与 `pi-codex`。保存路由不会自动安装 Provider 或验证登录。`/style` 支持 `concise`、`adaptive`（别名 `balanced`）、`detailed` 以及“简洁/适中/详细”；按主题保存，本轮明确的篇幅和格式要求优先。
+这些切换命令是不同选择的示例，按需要执行其中一个。内置 Provider 为 `mock`、`deepseek-api`、`kimi-api`、`codex-cli` 与 `pi-codex`，官方运行时目录另注册 `native-codex`、`native-claude`、`native-gemini`；注册不代表全部已实现。自定义连接使用 `api-<32 位哈希>`。保存路由不会自动安装 Provider 或验证登录。`/style` 支持 `concise`、`adaptive`（别名 `balanced`）、`detailed` 以及“简洁/适中/详细”；按主题保存，本轮明确的篇幅和格式要求优先。
 
 学习画像包含 `goal`（2–240 字符）、`level`（1–80 字符）、`dailyMinutes`（15–480 整数）、`totalDays`（1–180 整数），没有自动填充的画像默认值。提醒配置包含 `time`（24 小时制 `HH:mm`）和 `enabled`；桌面运行或交互终端 REPL 打开时，由共享调度器每 15 秒检查；到点五分钟内按本地日期领取一次提醒，多主题合并。退出后不运行，错过不补发；系统可能静音通知。可用“提醒关闭”或桌面课程面板关闭。
 
@@ -115,8 +123,9 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 
 | 路径（相对于桌面数据目录） | 用途 |
 | --- | --- |
-| `preferences.json` | Provider、回答风格、主题及 DeepSeek 模型。 |
-| `conversations/<UUID>.json` | v7 会话清单、尾部最多 250 条消息及状态；更早历史在同名 UUID 子目录中按哈希分段，完整会话最多 20,000 条/12 MB。 |
+| `preferences.json` | Provider、回答风格、界面主题、推理档位、上下文预算、团队配置、语义模型及官方程序/模型偏好。 |
+| `conversations/<UUID>.json` | 共享会话清单、尾部最多 250 条消息及状态；更早历史在同名 UUID 子目录中按哈希分段，完整会话最多 20,000 条/12,000,000 字节。普通会话 v8，团队按能力保存为 v9–v13，详见下文。 |
+| `api-connections.json` / `api-<32 位哈希>.credential` | 自定义连接公开配置 / 对应系统加密密文；密文不进入备份。 |
 | `deepseek.credential` | 新添加 API Key 的系统加密数据，不是 JSON 或明文配置。 |
 | `kimi.credential` | 独立的 Kimi API Key 系统加密数据，保存规则与 DeepSeek 相同。 |
 | `workspace.json` / `workspace/` | 显式连接的工作区路径 / 默认学习数据根。连接已有 CLI 根时不迁移用户数据。 |
@@ -141,6 +150,12 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 | `style` | `concise`、`adaptive`、`detailed`；桌面是全局偏好，不按 CLI 主题分组。 |
 | `theme` | `system`、`light`、`dark`。 |
 | `deepseekModel` | 设置界面提供 `deepseek-v4-flash`、`deepseek-v4-pro`、实验性 `deepseek-v4-flash-vision-exp`（图片需此模型）；底层 schema 接受 1–128 字符、以字母/数字开头、其余为字母/数字/点/下划线/连字符的模型标识。格式有效不代表远端支持该模型。 |
+| `reasoning` | 可省略；`auto`、`quick`、`balanced`、`deep`。省略时使用 balanced，auto 由共享策略选择实际档位。 |
+| `contextBudget` | 可省略；`windowTokens` 与 `reserveOutputTokens`，必须满足上表范围，预留小于窗口。 |
+| `collaboration` | 可省略，默认单 Agent；包含模式、最多两名成员、成员资源及整题预算，见文末。 |
+| `semanticModel` | 可省略或为空；本机 Ollama 模型名，不自动下载。 |
+| `nativeClaudeExecutable` / `nativeCodexExecutable` | 可选官方程序路径；使用设置界面选择/填写，执行前仍验证能力。 |
+| `nativeCodexModel` | 可选固定模型 ID，1–128 字符，不接受 `auto`。 |
 
 已有偏好文件优先于首次默认值。因此本机上次选择了 DeepSeek 时，重启会继续使用 DeepSeek，这不意味着应用的默认 Provider 已改为 DeepSeek。缺失字段使用 schema 默认值；损坏或字段值无效的文件会报 `settings_invalid`，不会静默清除用户文件。
 
@@ -153,7 +168,6 @@ CLI 使用 macOS Keychain，通过隐藏输入配置：
 ```bash
 npm start -- 模型添加 api-key deepseek-api
 npm start -- 模型切换 tutor deepseek-api --确认
-模型切换 tutor kimi-api --确认
 ```
 
 逻辑引用为 `keychain:zhixing/deepseek-api`，Keychain account 为 `zhixing`，service 为该引用。CLI 当前没有 Windows/Linux 的 Keychain 替代实现。不要将 Key 放进命令参数、偏好 JSON、`.env`、仓库或日志。
@@ -166,7 +180,7 @@ npm start -- 模型切换 tutor deepseek-api --确认
 
 桌面 Key 要求去除首尾空白后长度为 8–4,096 字符且不含空白字符。已有加密文件解密失败时会报错，不会再偷偷使用旧 Keychain 项。设置页只显示“是否配置/来源”，不会回填 Key；“已配置”也不等于余额、Key 有效性或网络已验证。真实系统加密写入及模型连接的验证范围见[桌面验证记录](evidence/desktop-app.md)。
 
-DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`，目前没有用户可配置的 base URL 设置。它使用 SSE 文本/工具协议；quick 关闭 thinking，balanced/deep 分别选择 low/high 推理强度。CLI 和桌面共用适配器；桌面选定主题并授权学习上下文后，可调用只读进度、资料目录和检索工具。默认单次 DeepSeek 请求超时为 60 秒。
+内置 DeepSeek 适配器的默认请求地址由代码定义为 `https://api.deepseek.com/v1/chat/completions`；该内置连接不提供 base URL 设置，需要其他端点时另建自定义连接。它使用 SSE 文本/工具协议；quick 关闭 thinking，balanced/deep 分别选择 low/high 推理强度。CLI 和桌面共用适配器；选定主题并授权学习上下文后，可调用相应受控工具。默认单次 DeepSeek 请求超时为 60 秒。
 
 ## Pi Codex 接入
 
@@ -228,6 +242,11 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 | `ZHIXING_DESKTOP_LIVE_CHECK=1` | 在隔离桌面数据目录下允许检查/使用旧 macOS Keychain 项；它本身不解除 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。 |
 | `ZHIXING_DESKTOP_EXECUTABLE` | `desktop/scripts/smoke.mjs` 指定要验证的 Electron/打包应用可执行文件。 |
 | `ZHIXING_DESKTOP_DEV` | 仅影响 UI smoke：与指定可执行文件并用且值非空时，仍将源码桌面目录传为启动参数。 |
+| `ZHIXING_DESKTOP_NATIVE_CIPHER=1` | UI smoke 额外调用真实系统加密处理合成字符串；可能触发 OS 授权，不读取已有 API Key。普通 UI 夹具不等于此项通过。 |
+| `ZHIXING_PI_LATENCY_TRACE` | 延迟诊断 preload 的输出文件路径，仅诊断脚本使用。 |
+| `CI` | 非空时 Vitest 将 `maxWorkers` 设为 1；不是运行时模型配置。 |
+
+打包变量 `ZHIXING_LOCAL_SIGNING_IDENTITY`、`ZHIXING_ALLOW_ADHOC`、`ZHIXING_SIGN_MACOS` 见[签名指南](macos-local-signing.md)。正式签名/公证还使用 `CSC_LINK`、`CSC_KEY_PASSWORD`、`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`；仅在构建环境配置，不放入用户偏好或公开文档。`CSC_IDENTITY_AUTO_DISCOVERY` 由构建脚本固定关闭。CI 的 `ZHIXING_DESKTOP_INSTALLED_EXECUTABLE` 由 Windows 安装验收脚本产生，普通用户无需设置。
 
 桌面 UI smoke 会自行创建临时 Pi 偏好和数据目录，并禁用真实 Provider。`desktop/scripts/check-deepseek.mjs` 默认只检查已有 API 配置状态；只有显式传入 `--live` 才允许其发起短问题请求。桌面渲染代码构建时固定 `NODE_ENV` 为 `production`，它不控制 Provider 选择。检查命令及验证边界见[测试文档](TESTING.md)。
 
@@ -235,35 +254,35 @@ CLI 自然问答、教学和学习助手调用禁用 fallback；桌面也没有�
 
 桌面任务队列、目标摘要、证据文件、运行测试与分模型诊断的限制见 [0.3 指南](agent-upgrade.md)。
 
-## 0.4 新设置
+## 思考档位与语义检索
 
 `preferences.json` 新增可选 `reasoning`（auto/quick/balanced/deep）与 `semanticModel`（本机 Ollama 已安装模型名）。未设置 reasoning 时发送使用 balanced；语义模型留空时使用关键词/同义词。会话另存 `executionAllowed`，仅由本次/本会话选择授予；分支、备份恢复清除授权。Pi 的两个入口均使用公共 SDK 模型接口。备份范围、可选发布签名配置见 [0.4 指南](agent-0.4.md)。
 
-## 0.5 的可选能力与边界
+## 工具与实践环境
 
 `reasoning=auto` 根据当前请求和执行方式选择实际档位，消息同时保存自动选择和实际档位；明确指定 quick/balanced/deep 不会被改写。Pi 传输的 `auto` 与思考档位的 `auto` 是两个不同选项，默认传输仍为 SSE。
 
-上下文预算由 Runtime 固定控制，默认估算窗口 48,000 token、输出预留 16,384，另有 128,000 字符上限；没有自动提高配额或精确计费承诺。普通任务最多 6 轮，已连接项目最多 12 轮。
+上下文预算由共享 Runtime 控制，内置默认估算窗口 48,000 token、输出预留 16,384；API/Pi 模型视图另有 128,000 字符上限，官方 AgentExecutor 视图为 80,000。没有自动提高配额或精确计费承诺。普通任务最多 6 轮；连接项目并授权项目工具后，工具定义包含 `project_` 工具时最多 12 轮；团队另外受整题限制。
 
-MCP 在主题面板中显式配置本地可执行程序、工具白名单、风险与信任确认，默认关闭，不通过 `.env` 自动注入密钥。实际协议和配置例子见 [MCP 指南](mcp-tools.md)。项目通过原生目录选择器导入副本或创建，模型不能选择用户目录；Git 需要本机可用，测试沙箱当前仅支持 macOS。见 [项目指南](practice-projects.md)。
+MCP 在主题面板中显式配置本地可执行程序、工具白名单、风险与信任确认，默认关闭，不通过 `.env` 自动注入密钥。实际协议和配置例子见 [MCP 指南](mcp-tools.md)。项目通过原生目录选择器导入副本或创建，模型不能选择用户目录；Git 需要本机可用。代码执行支持 macOS 系统沙箱及 Windows AppContainer helper，执行前预检和实际隔离结果缺一不可；Linux 不开放无隔离执行。见 [项目指南](practice-projects.md)。
 
-当前会话 v8 读取 v1–v7 时不改写，首次保存前保留原版本备份；全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 6，旧应用拒绝新数据。其他本地数据边界见 [0.6 指南](agent-0.6.md)。
+当前读取 v1–v13 会话，读取本身不改写；普通会话保存为 v8，团队随成员/审查/任务图/原生预算/自动成员策略升级到 v9/v10/v11/v12/v13。首次升级保存前保留原版本备份，已保存的较高版本不降级。全量恢复清除 MCP 启用状态、项目选择和会话授权。SQLite 版本标记为 6，旧应用拒绝不兼容数据；不要手改版本号。
 
-## 0.6 会话权限、预算与版本
+## 会话权限、预算与版本
 
 学习资料、当前实践项目、外部 MCP 分别授权；项目权限绑定选中项目 ID，外部权限绑定配置修订。开启学习写入只覆盖学习产物和实验，不自动批准项目/MCP。操作卡可记住限定操作；撤回、换项目/配置、分支与备份恢复均限制旧授权，见 [会话权限](session-permissions.md)。
 
-设置 `contextBudget` 可保存 `{ "windowTokens": 24000, "reserveOutputTokens": 4096 }`；省略使用 48,000 / 16,384，上限仍为 48,000。实际输出上限传给 Pi SDK 与 DeepSeek；报告输入量只用于保守校准估算，不提高预算。图片输入当前明确不支持，见 [模型上下文](model-context.md)。
+设置 `contextBudget` 可保存 `{ "windowTokens": 24000, "reserveOutputTokens": 4096 }`；省略使用适配器默认值，内置模型通常为 48,000 / 16,384，自定义连接另受自身默认 4,096 输出上限约束。可配置输出上限传给支持它的 API/Pi；官方运行时只按实际用量核算，不能硬限内部推理。报告输入量只用于保守校准估算，不提高预算。PNG/JPEG 输入仅在已声明支持视觉的模型开放，官方原生执行器当前拒绝图片，见[图片输入](image-input.md)与[模型上下文](model-context.md)。
 
 MCP 五分钟目录缓存绑定配置和 schema，普通问答不启动外部进程；语义检索失效会提示关键词降级。Skill 面板显示版本/哈希及旧缓存状态，不静默把旧缓存当更新成功。构建 manifest 和试验条件见 [0.6 指南](agent-0.6.md)。
 
-## 0.8 访问与隔离
+## 本地访问与隔离
 
 MCP 配置可指定 `isolation: "restricted"` 和 `readPaths`（最多八条绝对路径），只在具备系统沙箱的 macOS 上启用；读取目录代表允许其全部子目录，写入只限临时工作目录，网络禁止。不支持的平台拒绝连接。省略 isolation 兼容为 `trusted`，服务以账户权限运行；工具 read 标签并不能阻止其副作用。隔离模式/路径改动同样使旧工具授权失效，见 [MCP 指南](mcp-tools.md)。
 
 同步服务启动后显示临时访问码；调用时携带 `Authorization: Bearer <临时访问码>` 请求头，不放 URL、不持久化。重启后旧访问码失效，网页请求被拒绝。提醒每日领取标记保存在主题笔记的 `reminder-delivery/`，属于完整备份内容；已领取但通知前崩溃可能漏发。
 
-0.9 的共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；当前已验证和外部条件见[收口验收](evidence/completion-0.9.md)。
+共享图片输入、模型能力及历史预算见[图片输入](image-input.md)；历史平台验收见[0.9 记录](evidence/completion-0.9.md)，当前验收和外部条件见[当前状态](current-status.md)。
 
 ## Kimi API
 
@@ -284,11 +303,11 @@ npm start -- 模型切换 tutor kimi-api --确认
 
 ## 自定义 API 连接（0.9.2）
 
-桌面打开 **设置 → 自定义 API 连接 → 添加 API 连接**，填写连接名称、API 根地址、模型 ID 和 Key，保存后选择该连接并点击“测试自定义连接”。服务商提供 OpenAI 兼容的 Chat Completions 接口与 Bearer API Key 认证时，无需修改代码即可接入。同一家服务的多个模型也可分别配置。内置 Pi / DeepSeek / Kimi 继续可用，已有密钥不用迁移。
+桌面打开 **设置 → 自定义 API 连接 → 添加 API 连接**，选择协议/模板，填写连接名称、API 根地址、模型 ID 和 Key，保存后选择该连接并点击“测试自定义连接”。支持 Chat Completions、Responses、Messages 三类协议及各自的认证头，同协议兼容厂商无需修改代码。同一家服务的多个模型也可分别配置。内置 Pi / DeepSeek / Kimi 继续可用，已有密钥不用迁移。
 
-- 根地址形如 `https://api.example.com/v1`，程序追加 `/chat/completions`。不要粘贴完整聊天端点、查询参数、用户名或密钥；要求 HTTPS，本机 `localhost` / `127.0.0.1` / `::1` 可用 HTTP。携带密钥的请求不跟随重定向。
+- 根地址形如 `https://api.example.com/v1`，程序按协议追加 `/chat/completions`、`/responses` 或 `/messages`。不要粘贴完整聊天端点、查询参数、用户名或密钥；要求 HTTPS，本机 `localhost` / `127.0.0.1` / `::1` 可用 HTTP。携带密钥的请求不跟随重定向。
 - 模型 ID 必须来自服务商文档或控制台。连接名可自由修改。界面不推测账户能用哪些模型，也不以保存成功代替真实连通。
-- 默认开启工具调用，关闭图片，不发送额外思考参数；窗口 48,000、最大输出 4,096 Token。请按服务文档设置；文本模型应关闭工具和图片。全局预算与连接上限取较小值，保留相同的上下文裁剪策略。
+- 默认开启工具调用，关闭图片，不发送额外思考参数；窗口 48,000、最大输出 4,096 Token。请按服务文档设置：不支持工具则关闭工具，不支持视觉则关闭图片。全局预算与连接上限取较小值，保留相同的上下文裁剪策略。
 - 高级选项可选择 `max_tokens` / `max_completion_tokens`，关闭不兼容的流式用量字段，并选择 OpenAI、DeepSeek、Kimi 思考参数。OpenAI 快速/均衡/深入映射 low/medium/high；DeepSeek 沿用快速关闭、均衡 low、深入 high；Kimi 为 low/high/max。
 - 新增连接已支持 Chat Completions、Responses 与 Messages 三种协议；Messages 使用其原生 API Key 请求头。不支持任意自定义鉴权协议。同协议服务商只需配置，新协议仍需适配器开发。协议依据为 [OpenAI Chat Completions 官方参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)。
 
@@ -309,6 +328,19 @@ npm start -- 模型连接列表
 ## 团队预算与自动思考档位（2026-09-11）
 
 “团队配置”可分别设置整题输出预算、成员思考档位及成员输出上限。默认整题仍为 16384；成员输出默认“自动分配”。声明推理与正文共享额度的 DeepSeek/Kimi 协议连接，会按可用额度选择不高于主 Agent 的自动档位：快速建议 4096、均衡建议 8192、深入建议 16384 token。分工、审查和最终回答先获得预留；两名自动成员在默认预算下采用快速档。
+
+完整公开配置由 `src/team-contracts.ts` 校验；界面只提供其中适合直接调整的选项，CLI 可用 `/team config <JSON>` 保存完整定义：
+
+| 字段 | 默认值 | 范围或含义 |
+| --- | --- | --- |
+| `mode` | `single` | `single` / `same-model-team` / `mixed-model-team` |
+| `members` | 两名必需核查成员 | 1–2 名；角色为 reasoning-checker/material-checker/practice-reviewer，可指定 provider、reasoning、timeoutMs、maxOutputTokens |
+| `shareContext` | `false` | 是否向成员分享已授权上下文；不新增主题/项目/MCP 授权 |
+| `maxConcurrency` | `2` | 1–2 |
+| `maxModelTurns` / `maxToolCalls` | `12` / `24` | 总调用 4–24 / 工具调用 1–48；原生任务也计入总调用门 |
+| `maxInputTokens` | `192000` | 8000–1000000，累计输入规划/核算上限 |
+| `maxOutputTokens` | `16384` | 2048–48000，整题共用，不是每名成员各有该额度 |
+| `memberTimeoutMs` / `timeoutMs` | `180000` / `240000` | 成员 5000–180000 ms / 整题 30000–300000 ms；适配器较短超时仍有效 |
 
 这些数值是知行的调度建议，不是厂商保证的最低值。DeepSeek 快速关闭额外思考；Kimi K3 快速使用 low，仍会推理。提高整题预算可能提高自动档位及实际费用；显式成员档位优先，手动输出值仍受整题剩余额度与适配器上限限制。任务卡显示实际采用的档位、单次上限及预算不足提示。主 Agent 档位不自动改变。
 

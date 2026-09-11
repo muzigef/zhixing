@@ -1,6 +1,7 @@
+<!-- generated-by: gsd-doc-writer -->
 # 项目级实践
 
-桌面「课程与资料 → 实践项目」可以创建独立项目，或由用户用系统对话框选择一个目录，复制其中允许的文本文件。项目按主题隔离，选择项目后，勾选「本会话使用当前实践项目」，Pi Codex / DeepSeek 才能发现项目工具。取消选择立即撤销后续工具访问。
+桌面「课程与资料 → 实践项目」可以创建独立项目，或由用户用系统对话框选择一个目录，复制其中允许的文本文件。项目按主题隔离，选择项目后，勾选「本会话使用当前实践项目」，支持工具续轮的 Pi / 内置与自定义 API 才能发现项目工具；官方 Codex / Claude 的仅上下文执行器目前不具备这些工具。取消选择立即撤销后续工具访问。
 
 ## 使用流程
 
@@ -13,15 +14,15 @@
 
 ## 文件、执行和 Git 边界
 
-- 每主题最多 20 个项目；每项目最多 40 个文本文件、总计 256 KB、单文件 24 KB、四层目录。导入扫描最多 2,000 项，过滤隐藏项、依赖目录、构建目录和敏感文件名；不复制源目录的 `.git`，不修改导入源。
+- 每主题最多 20 个项目；每项目最多 40 个文本文件、总计 256,000 字节、单文件 24,000 字节、四层目录。导入扫描最多 2,000 项，过滤隐藏项、依赖目录、构建目录和敏感文件名；不复制源目录的 `.git`，不修改导入源。
 - 拒绝越界路径、符号链接、硬链接、非 UTF-8 和含 NUL 的文件。受控路径校验不能替代针对其他本机进程同时替换路径的 OS 隔离。
-- 测试执行 `.test.mjs` 和 `test_*.py`（Python 标准库 unittest），使用内附 Node / 本机受验证 Python 与本地沙箱，合计最长 10 秒；不执行任意 Shell、npm 安装或网络请求。当前实际隔离实现仅支持 macOS；其他平台明确返回不可用，不将未运行的测试记为通过。
+- 测试执行 `.test.mjs` 和 `test_*.py`（Python 标准库 unittest），使用内附 Node / 本机受验证 Python 与本地沙箱，合计最长 10 秒；不执行任意 Shell、npm 安装或网络请求。当前 LocalSandbox 支持 macOS sandbox-exec 和 Windows AppContainer；运行器或受验证 Python 缺失时明确返回不可用，Linux 尚无实现。Windows 辅助程序/运行时准备还有独立时限，10 秒是测试执行预算，不承诺端到端耗时始终小于10秒。未运行的测试不能记为通过。
 - 每个项目有独立 `practice/<项目 ID>` 分支和受控裸 Git 仓库，文件与 Git 元数据分开保存；需要本机 Git 可用。禁用全局配置、钩子及外部对象库引用。检查点仅写本地仓库，没有自动推送、任意用户仓库编辑或合并功能。
 - 修改前保留最近二十份快照，单次最多十文件先整体校验，再通过日志与目录切换提交；失败/进程退出后按日志恢复，冲突时保留现场；测试和检查点绑定整个项目哈希。项目操作持有进程租约，恢复会核对实际结果；不能用模型声明把步骤标为完成。
 
 完整备份包含项目文件及受检 Git 历史。恢复到新工作区后保留内容与历史，但清空项目选择、执行租约及外部工具授权，需要用户重新连接。项目存放在工作区 `zhixing/projects/`，不随源码提交。
 
-精确差异、快照恢复和 Python 环境见 [项目修订](project-revisions.md)，本轮结果见 [0.6 验收记录](evidence/agent-architecture-next.md)。真实模型项目脚本只使用临时合成数据：
+精确差异、快照恢复和 Python 环境见 [项目修订](project-revisions.md)，源码见[`PracticeProjects`](../src/practice-projects.ts)、[平台预检](../src/platform-support.ts)、[Windows 运行器](../src/windows-sandbox.ts)。历史项目结果见[0.6 验收记录](evidence/agent-architecture-next.md)，Windows 后续验收见[0.9 记录](evidence/completion-0.9.md)，不代表当前包已经再次逐平台实测。真实模型项目脚本只使用临时合成数据：
 
 ```bash
 node --import tsx scripts/evaluate-practice-project.ts --live --provider=pi-codex --output=docs/evidence/project-live-pi-new.json

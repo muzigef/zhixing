@@ -13,7 +13,7 @@ npm ci --prefix desktop
 npm run smoke:mock
 ```
 
-根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.6.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。
+根包 `zhixing-learning-agent` 当前版本为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.11.0`；桌面安装包版本来自 [`desktop/package.json`](../desktop/package.json)。日常开发使用锁文件安装；有意新增或升级依赖时，在对应包执行 `npm install` 并提交对应 `package.json` 和锁文件。实际验收及远端 CI 状态见[当前状态](current-status.md)。
 
 CLI 使用 `better-sqlite3` 原生模块，真实 Keychain 集成和 `LocalSandbox` 的 `sandbox-exec` 封装依赖 macOS；本地扫描 PDF OCR 另外需要 `pdftoppm` 与 `tesseract`，普通 Markdown/文字 PDF 和模拟 OCR 测试不要求安装它们。桌面源码开发仍使用上述 Node 环境；安装后的桌面应用内附 Electron Node 和 Pi，不要求用户安装系统 Node/Pi 可执行文件，但 Pi 认证仍需单独配置。平台交付范围见[桌面说明](../desktop/README.md)。
 
@@ -69,6 +69,9 @@ npm run verify
 | `npm run desktop` | 桌面构建并启动 |
 | `npm run desktop:build` | 只构建桌面 |
 | `npm run desktop:pack` | 构建 macOS arm64 DMG/ZIP，等价于桌面的 `dist:mac` |
+| `npm run eval:agent` | Agent 质量行为、任务、证据和诊断四类确定性回归 |
+| `npm run eval:quality -- [参数]` | 固定质量题评估；默认 demo，显式 `--live` 才使用真实模型 |
+| `npm run eval:learning -- <导出文件...> --output=<文件>` | 汇总已导出的学习效果记录，不生成参与者或人工评分 |
 
 桌面独立脚本定义于 [`desktop/package.json`](../desktop/package.json)：
 
@@ -80,9 +83,13 @@ npm run verify
 | `npm --prefix desktop run pack` | 构建后输出当前平台应用目录，不生成安装器 |
 | `npm --prefix desktop run dist:mac` | macOS arm64 DMG/ZIP |
 | `npm --prefix desktop run dist:win` | Windows x64 NSIS；需在 Windows 构建机执行并验收 |
-| `npm --prefix desktop run test:ui` | 自动准备运行时、构建，再执行聊天、学习、交互、效果验证和项目五组真实 Electron 回归 |
+| `npm --prefix desktop run test:ui` | 自动准备运行时、构建，再执行聊天、学习、交互、效果、项目、API、团队七组真实 Electron 回归；模型为隔离夹具 |
+| `npm --prefix desktop run prepare:runtime` | 准备本机 Electron、SQLite ABI 和所需平台 helper |
+| `npm --prefix desktop run dist:host` | 构建当前系统及架构的安装器 |
+| `npm --prefix desktop run checksums` | 生成已构建安装器的 SHA-256 校验和 |
+| `npm --prefix desktop run signing:configure -- --list` | 仅列出可用代码签名身份；固定身份的步骤见签名指南 |
 
-构建代码见 [`desktop/scripts/build.mjs`](../desktop/scripts/build.mjs)。`build/` 是编译产物，`release/` 是打包产物，二者都位于 `desktop/` 下且不提交。当前 `electronDist` 使用本机 Electron 二进制，不能把 Mac 上打包的结果当作已经过 Windows 验证。签名、公证及 Windows/Intel Mac 平台验收尚未完成；版本检查提供公开发布说明，不自动安装更新。
+构建代码见 [`desktop/scripts/build.mjs`](../desktop/scripts/build.mjs)。`build/` 是编译产物，`release/` 是打包产物，二者都位于 `desktop/` 下且不提交。当前 `electronDist` 使用本机 Electron 二进制，不能把 Mac 上打包的结果当作已经过 Windows 验证。历史 Windows/Intel Mac 实包证据见[平台记录](evidence/completion-0.9.md)；当前版本需要分别复验。本地固定签名已实现并有跨构建验收，正式 Developer ID/公证另需发行配置，见[签名指南](macos-local-signing.md)。版本检查提供公开发布说明，不自动安装更新。
 
 ## 代码风格与模块边界
 
@@ -93,6 +100,7 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 - CLI 组合根是 `src/cli.ts`。新增命令同时核对 `action-registry.ts`、`interaction-protocol.ts`、`intent-parser.ts` 的识别与授权规则，以及实际命令处理器；目前旧处理器还没有完全统一到注册表分派。
 - 确定性学习状态留在 `LearningRuntime`；模型意图、回答文本和工具请求不能直接宣告学习完成或绕过用户原文证据校验。
 - 模型协议复用 `src/model.ts` 及 Provider adapter。桌面通过共享 Assistant Runtime 执行有界模型/受控工具循环；写入经过明确执行授权；不要从 renderer 直接访问文件、凭据或网络。
+- API 连接通过 `api-connection-config.ts` 和共享工厂扩展；同协议厂商优先配置。官方运行时通过 `native-runtime-catalog.ts`、`NativeRuntimeAdapter` 与受信任注册表接入，SDK/App Server 可独立实现外层 `AgentExecutor`。不在 CLI、renderer 或共享内核复制厂商分支，见[通用架构](provider-architecture.md)。
 - 桌面原生能力与 IPC 放在 `desktop/electron/`，可测试的会话/存储逻辑放在 `desktop/core/`，界面与 Markdown 展示放在 `desktop/renderer/`。详见[架构](architecture.md)。
 
 ## 工程约束
@@ -111,12 +119,10 @@ Prettier 是桌面开发依赖，当前没有独立格式配置或 `format` 脚�
 
 当前 [`verify` CI](../.github/workflows/verify.yml) 在 push/PR 安装两套依赖、运行完整 verify 与 Electron UI。`desktop-release.yml` 在手动触发或 v* tag 上构建 macOS/Windows、检查实际包 UI、上传安装器和校验和；tag 创建待发布草稿。远端执行结果需要 Actions 的真实记录，不能由本地通过替代。
 
-新增命令：`npm run eval:agent`；桌面 `prepare:runtime`、`dist:host`、`checksums`。用法和切片契约见 [升级指南](agent-upgrade.md)。
+## 扩展和交付检查
 
-0.4 的技能、问答/授权事件、执行数据、语义索引及迁移扩展见 [0.4 指南](agent-0.4.md)。运行完整回归与当前五组 UI；使用 `npm run eval:quality -- --live` 才执行临时合成数据的真实质量检查，不能将该命令混入普通 CI。
+根目录与桌面分别依赖固定版本 Ajv/ajv-formats，校验在工作线程执行；修改外部工具时要同时验证普通 Node 和实际 ASAR 应用中的模块解析。实践项目测试使用临时独立 Git 仓库，不可使用开发仓库代替夹具。Windows 使用 AppContainer helper；有平台预检还不够，必须保留实际隔离执行证据。
 
-0.5 的增量契约见 [冻结计划](agent-p1-p2-plan.md)。根目录与桌面分别依赖固定版本 Ajv/ajv-formats，校验在工作线程执行；修改外部工具时要同时验证普通 Node 和实际 ASAR 应用中的模块解析。实践项目测试使用临时独立 Git 仓库，不可使用开发仓库代替夹具。发布工作流在 macOS 构建前追加完整 `verify`，所有平台继续验证开发和实际包 UI；Windows 的隔离执行仍明确不可用。
+真实质量评测与评分导入见[评测指南](agent-quality-evaluation.md)，项目合成脚本见[项目指南](practice-projects.md)。不将可选联网检查放进默认 CI；保存失败报告和评分来源，不能用 mock 回答证明模型能力。团队评测必须固定模型、预算、题集与实际包哈希，见[团队说明](agent-teams.md)。
 
-真实质量评测与评分导入见 [评测指南](agent-quality-evaluation.md)，项目双 Provider 合成脚本见 [项目指南](practice-projects.md)。不将这两类可选联网检查放进默认 CI；保存失败报告和评分来源，不能用 mock 回答证明模型能力。
-
-0.6 验收按 [C01–C12](agent-architecture-next-plan.md) 执行：每切片完整 verify 和适用 UI。构建自动生成来源 manifest，真实评测使用合成工作区并保存同一来源字段；两套锁文件必须只用公共 npm registry，可运行 `node scripts/check-lockfiles.mjs`。会话 v5 / 数据库 5 的迁移兼容要用临时夹具验证，不能用真实工作区测试。
+构建自动生成来源 manifest，真实评测保存执行包身份；两套锁文件只使用公共 npm registry，可运行 `node scripts/check-lockfiles.mjs`。当前普通会话 v8、团队最高 v13、SQLite 标记 6，兼容与拒绝降级必须用临时夹具验证。读文件不应触发迁移写入；升级前备份与恢复权限清理见[配置](CONFIGURATION.md)。

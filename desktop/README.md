@@ -1,27 +1,21 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行桌面版
 
-0.7 将桌面和 CLI 的记忆、教学状态、历史与摘要策略收敛到同一执行链，详见 [统一记忆设计](../docs/agent-memory.md)与[本轮验证](../docs/evidence/unified-agent.md)。
+知行项目中的桌面包 `zhixing-desktop`，当前源码版本 `0.11.0`。用于连续学习对话、课程/资料/证据、实践项目及学习效果验证。和 CLI 共享 AgentService、记忆、教学、权限、工具与团队策略；聊天和界面偏好分别保存。完整项目介绍见[根 README](../README.md)，使用范围见[功能与验收](../docs/features-and-acceptance.md)。
 
-独立权限、项目快照/Python、任务核对、Skill 版本和完整产品效果验证的基础能力见 [0.6 指南](../docs/agent-0.6.md)。当前 0.9 长历史与教学状态见[统一记忆设计](../docs/agent-memory.md)，交付验证见[架构修复记录](../docs/evidence/architecture-remediation.md)。
+支持官方 Codex 订阅、Pi Codex、DeepSeek/Kimi API，以及三类协议的自定义服务。默认单 Agent，可选择同模型或异模型团队；主模型分工、只读成员独立核查、分歧审查、一次定向复核和综合回答均受共享预算限制，见[团队指南](../docs/agent-teams.md)。其他厂商通过[通用架构](../docs/provider-architecture.md)按需扩展。
 
-知行项目中的独立桌面对话包 `zhixing-desktop`，当前版本 `0.11.0`。提供连续学习对话、Pi Codex / DeepSeek / Kimi 切换和本地会话管理；新增课程/资料/证据、排队/纠正、持久目标与耗时统计，见 [0.4 使用指南](../docs/agent-0.4.md)。完整项目介绍见 [根 README](../README.md)。
-
-本轮新增能力与数据兼容说明见 [0.5 指南](../docs/agent-0.5.md)：上下文预算、按需工具、自动思考档位、回答质量诊断、学习观察、MCP 和独立实践项目；保留既有审批、分支、技能及完整备份。
-
-0.11 增加独立核查报告、分歧审查、一次定向复核及成员档位配置；32 个新题与解释复核完成，未证明团队更优。后续内部格式和图片边界补修后 723 项测试、实际目录包七组隔离 UI 通过；最新包原生加密仍等待系统授权，旧题回归与安装待完成。当前安装仍是 0.10.0。见[本轮记录](../docs/evidence/team-quality-optimization-20260910.md)。
-
-0.10 支持默认单 Agent、同模型团队和异模型团队。团队配置复用已有 Pi/API 连接，成员只读，可查看状态和停止，详见[三模式指南](../docs/agent-teams.md)。[96 个真实留出任务](../docs/evidence/team-quality-comparison-20260909.md)及逐条解释复核已完成：普通 Pi 完整且正确 16/16，同模型团队 12/16，混合团队 8/16，未证明团队质量更高；已验证本机授权和显式代理通路。0.10.0 已安装到本机，旧包保留备份，见[安装记录](../docs/evidence/agent-teams-installation.json)。
+2026-09-11 本地候选包已有 814 项测试、七组实际包 UI 和三家最小连接检查记录；其后的 `60570bc` 远端 CI 在团队 UI 超时失败。二者须分别记录。历史 0.10 安装回执不代表本机当前版本，候选包也不自动替换已安装应用；实际状态见[当前状态](../docs/current-status.md)。真实团队评测有改善，但尚未证明团队普遍优于单 Agent，详见[预算回归](../docs/evidence/team-resource-budget-20260911.md)。
 
 ## 安装和使用
 
 当前已有验收记录的是 **macOS Apple Silicon、macOS 13.0 及以上**的本地预览版。已有构建产物时：
 
-1. 打开本目录下的 `release/mac-arm64/知行.app`；本轮 0.11.0 已验证此目录包，未重新制作 DMG。
+1. 打开本目录下的 `release/mac-arm64/知行.app`；2026-09-11 验收的是该签名目录候选包，该次未重新制作 DMG。
 2. 将「知行」拖入 Applications，从启动台或 Finder 打开。
 3. 在设置中选择模型方式，再输入问题；没有真实模型配置时可选「离线演示」。
 
-`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装；已有 Windows NSIS 构建与 release 流水线，macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装及安装后五组 UI 均已通过。当前产物及已验证范围见 [0.9 验收记录](../docs/evidence/completion-0.9.md)，早期平台要求见 [桌面验收记录](../docs/evidence/desktop-app.md)。
+`release/` 被 Git 忽略，**新克隆的仓库不包含安装包**。需要从源码运行或生成安装包时，按后文操作。现有构建没有 Apple Developer ID 签名、公证；设置支持主动检查公开版本并打开发布说明，更新由用户安装。macOS ARM64/Intel x64 以及 Windows 原生隔离、NSIS 安装和当时五组 UI 的历史结果见[0.9 验收记录](../docs/evidence/completion-0.9.md)。当前完整 UI 已扩为七组，历史结果不能代替当前版本重验；早期平台要求见[桌面验收记录](../docs/evidence/desktop-app.md)。
 
 当前源码内附 Electron 和 Pi `0.85.0`，运行已打包应用不需要系统 Node.js、bash 或 Pi 可执行文件。Pi 的首次登录和偏好配置仍需另外准备，应用没有登录向导；使用 DeepSeek API 不需要 Pi 认证。项目检查点需要本机 Git；用户配置的 MCP 服务可能另有运行环境要求。更新源码不会修改既有安装包，安全更新需重新构建并安装，见 [依赖安全修复](../docs/evidence/dependency-security.md)。
 
@@ -29,11 +23,13 @@
 
 | 方式 | 配置与当前行为 |
 | --- | --- |
+| **官方 Codex** | 不经 Pi，调用已安装并登录的官方客户端；当前仅启用已验收的 0.153.4。固定程序/模型可配置，支持单 Agent/团队；当前只接收上下文，不执行工具或图片。 |
 | **Pi · Codex** | 读取 Pi 的 Codex 模型偏好，认证和刷新由 Pi 自己处理；知行不读取认证文件。 |
 | **DeepSeek API** | 默认 `deepseek-v4-flash`，界面还提供 `deepseek-v4-pro` 和实验性 `deepseek-v4-flash-vision-exp`。可复用原知行的 macOS Keychain 项，或在设置中添加桌面独立 Key。 |
 | **自定义 API** | 在设置中填写 API 根地址、模型 ID、Key 即可添加兼容服务；支持多个连接、能力参数、独立加密和连接测试。详见[配置](../docs/CONFIGURATION.md#自定义-api-连接092)。 |
 | **Kimi API** | `kimi-k3`，通过国内 `api.moonshot.cn` 连接，独立保存 API Key；可使用文字、图片及受控工具调用。 |
 | **离线演示** | 固定的本地演示内容，不调用真实模型。 |
+| **官方 Claude Code / Gemini CLI** | Claude 仅上下文单 Agent 适配已实现，真实订阅待验；Gemini 原生仍为扩展位置，不可当作已经打通。 |
 
 首次使用且没有偏好文件时默认选择 `pi-codex`；已有偏好优先，重启会恢复上次选择。因此本机保存为 DeepSeek 并不意味着产品默认值是 DeepSeek。找到 Pi 模型偏好或 API 配置只代表配置存在，认证、余额和网络在真实请求时检查。
 
@@ -53,7 +49,7 @@ pi
 
 ### Pi 需要本机代理时
 
-终端与 Finder 启动的应用不一定继承相同的代理环境。如果 Pi 已登录却连接超时，可先退出知行，再通过终端为本次启动指定 HTTP 代理。以下为本机已验证的端口，其他机器应替换为自己的地址：
+终端与 Finder 启动的应用不一定继承相同的代理环境。如果已登录却连接超时，先核对所用通道和代理是否正在监听，再退出知行为本次启动指定代理。以下 `15236` 是历史测试端口示例，不能假定当前仍可用；2026-09-11 曾连接被拒而直连通过，见[预算回归](../docs/evidence/team-resource-budget-20260911.md)。其他机器应替换为自己的地址：
 
 ```bash
 NODE_USE_ENV_PROXY=1 \
@@ -63,7 +59,7 @@ NO_PROXY=localhost,127.0.0.1,::1 \
 "$HOME/Applications/知行.app/Contents/MacOS/知行"
 ```
 
-安装在系统 Applications 时改用 `/Applications/知行.app/Contents/MacOS/知行`。这些变量只影响这次启动及其子进程，不是应用持久设置；本次真实 Pi 与三家模型对照已通过此环境发送请求，见[代理复验](../docs/evidence/pi-proxy-20260909.md)。
+安装在系统 Applications 时改用 `/Applications/知行.app/Contents/MacOS/知行`。这些变量只影响这次启动及其子进程，不是应用持久设置；2026-09-09 的 Pi 代理记录见[历史复验](../docs/evidence/pi-proxy-20260909.md)。原生适配器只透传代理白名单，不透传 `NODE_USE_ENV_PROXY`，具体传输行为由官方客户端决定。
 
 ### 添加 DeepSeek API
 
@@ -112,7 +108,7 @@ Zhixing/
 
 草稿和最近会话标识另存于应用 localStorage。源码启动和已安装应用默认使用同一桌面数据目录；不会自动迁移、合并或同步 CLI 的会话、资料和学习进度。
 
-每个会话最多 20,000 条消息，旧历史按 250 条分段保存，达到上限需要新建；完整会话合计最多 12,000,000 字节。单次输入最多 20,000 字符，回答最多 64,000 字符；发送给模型的历史最多 24 条、40,000 字符，再加本次输入、约束、摘要和授权的学习上下文，较早的本地历史不会因上下文裁剪被删除。默认 48,000 输入/输出估算 token 窗口、16,384 输出 token 预留，可在设置中调低；完整旧工具轮次可被裁剪而不修改历史原文；该估算不是模型精确计费值。普通任务最多 6 个模型回合，已连接项目为 12 个。生成总时限为 180 秒，DeepSeek 的 60 秒或 Pi 的 150 秒适配器超时可能先结束请求。
+每个会话最多 20,000 条消息，旧历史按 250 条分段保存，达到上限需要新建；完整会话合计最多 12,000,000 字节。桌面单次输入最多 20,000 字符，回答最多 64,000 字符；初选目标/历史共约 40,000 字符、最多 24 条，再加本次输入、约束、摘要和授权上下文，经统一模型预算进一步裁剪。较早本地历史不会因此删除。内置默认估算窗口 48,000 token、输出预留 16,384，可调低并受模型能力限制；自定义连接有独立上限，官方原生内部推理不能硬限。普通任务最多 6 回合、连接项目为 12 回合，总时限 180 秒；团队默认整题 12 次调用、16,384 输出 token、240 秒。适配器较短期限仍生效：DeepSeek 60 秒，Kimi/Pi/官方原生执行阶段 150 秒。详情见[配置](../docs/CONFIGURATION.md)。
 
 0.3 已提供主题、课程、资料导入/引用、进度和证据验收入口；CLI 的个性化课程生成、长期记忆管理等高级管理命令仍保留在 CLI。连接工作区共用学习数据，聊天仍分别保存。
 
@@ -192,7 +188,7 @@ node desktop/scripts/check-deepseek.mjs --live
 - `renderer/`：React 聊天界面与本地 Markdown / KaTeX 渲染。
 - `scripts/`：构建、UI 验证、图标生成及可选 DeepSeek 连通检查。
 
-复用仓库 `src/pi-client.ts`、`src/deepseek-client.ts`、`responseGuidelines` 的协议校验与对话规则。Pi SDK 只生成应用工具请求，执行由受控 ToolHarness 管理；主进程只向 renderer 提供受校验的命令与消息；凭据不会回传到 renderer。
+复用仓库 `src/agent-service.ts`、共享模型工厂、API/官方运行时适配器与 `responseGuidelines`。Pi/API 的应用工具请求由受控 ToolHarness 管理；官方原生执行器当前禁止工具。主进程只向 renderer 提供受校验的命令与消息，凭据不会回传到 renderer。
 
 继续阅读 [配置](../docs/CONFIGURATION.md)、[开发](../docs/DEVELOPMENT.md)、[测试](../docs/TESTING.md) 和 [架构](../docs/architecture.md)。
 
@@ -204,7 +200,7 @@ node desktop/scripts/check-deepseek.mjs --live
 
 ## 当前源码的 Agent 内核更新
 
-桌面现经共享 AgentService 处理任务、持久队列、原生工具审批/续接和完成检查，与 CLI 复用执行契约。会话保存为 v8，v1–v7 首次保存前保留对应原文件备份；读取本身不改写旧文件。旧版拒绝新格式，避免丢失审批和诊断字段。范围与证据见 [Agent 内核](../docs/agent-kernel.md)。
+桌面经共享 AgentService 处理任务、持久队列、应用工具审批/续接和完成检查，与 CLI 复用执行契约。普通会话保存为 v8，团队按使用能力保存为 v9–v13；首次升级保存前保留对应原文件备份，读取本身不改写。旧版拒绝不兼容格式，避免丢失审批、团队与诊断字段。SQLite 标记为 6。范围见[Agent 内核](../docs/agent-kernel.md)。
 
 0.6 会话列表使用元数据索引和每页四十条加载，标题搜索覆盖完整历史；长对话默认呈现末四十条，可加载更早消息。学习资料、当前项目、外部工具分别授权，设置与恢复规则见 [会话权限](../docs/session-permissions.md)。
 
@@ -220,4 +216,19 @@ macOS 本地构建现在绑定并校验固定证书的应用签名，以保持�
 
 ### 动态添加模型服务
 
-设置 → 自定义 API 连接 → 添加 API 连接。支持 OpenAI 兼容 Chat Completions / Bearer Key 接口，不再按厂家增加固定按钮。内置 Pi、DeepSeek 和 Kimi 不受影响。连接测试使用固定合成消息，不发送学习资料。更换端点/模型需添加新连接；移除配置保留对话和密文，旧任务不会悄悄切换服务。完整能力与协议边界见[配置说明](../docs/CONFIGURATION.md)。
+设置 → 自定义 API 连接 → 添加 API 连接。支持 Chat Completions、Responses、Messages 三类协议和对应认证头，十家模板仅帮助填写公开配置；兼容厂商无需新增固定按钮。内置 Pi、DeepSeek 和 Kimi 不受影响。连接测试使用固定合成消息，不发送学习资料。更换端点/模型需添加新连接；移除配置保留对话和密文，旧任务不会悄悄切换服务。完整能力与协议边界见[配置说明](../docs/CONFIGURATION.md)。
+
+### 准备官方 Codex 订阅
+
+在官方客户端完成登录后，打开“设置 → 官方 Agent 账号”，填写/选择 Codex 程序的绝对路径与订阅支持的固定模型，点击检查。当前模型默认值是 `gpt-6-astra`，程序为空时查找常用 Homebrew 路径或 PATH。检查只核验帮助/版本和隔离能力，真实请求还会验证订阅方式。知行不导入 OAuth token，不因订阅失败自动消费 API。程序需单独安装，不是内附 Pi 的一部分。
+
+### 使用现有桌面 Key 验证连接
+
+上文 `check-deepseek.mjs` 只适合旧 CLI Keychain 配置。要检查日常桌面加密配置，先正常退出应用，再显式选择已验证包：
+
+```bash
+ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" node desktop/scripts/check-installed-api.mjs --live --provider=deepseek-api
+ZHIXING_DESKTOP_EXECUTABLE="$PWD/desktop/release/mac-arm64/知行.app/Contents/MacOS/知行" node desktop/scripts/check-installed-api.mjs --live --provider=kimi-api
+```
+
+以上命令从仓库根目录运行。它使用该应用正常用户数据，经产品 IPC 测试现有配置，不创建会话或导出凭据；遵守禁外发开关，可能产生少量 API 用量及系统加密授权。只证明当次最小连接，不能据此判定教学质量。

@@ -1,17 +1,19 @@
 <!-- generated-by: gsd-doc-writer -->
 # 知行（ZhiXing）
 
-知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面对话应用，以及管理主题、资料、课程和学习进度的 CLI / REPL。
+知行是面向自主学习者的本地优先学习 Agent，提供可安装的桌面应用和 CLI / REPL。它通过连续对话、资料、动手实践与反馈，帮助学习者形成可以独立运用的知识与技能。
 
-**知行的目标是帮助学习者通过连续对话、动手实践和反馈，逐步形成能够独立运用的知识与技能。** 初期优先服务技术知识与实践技能学习，以独立解释、新情境应用和延迟复习表现检验教学效果。
+**架构参考成熟 Agent 的执行、工具、记忆与恢复能力，产品以学习效果为目标。** 桌面与 CLI 共用 AgentService 和学习应用服务，模型灵活教学，程序负责权限、真实证据、状态与持久化。
 
-桌面支持 Pi Codex、DeepSeek、Kimi，以及 **10 家服务商模板与动态 API 连接**：OpenAI、Anthropic、Google、DeepSeek、阿里 Qwen、Moonshot Kimi、智谱 GLM、MiniMax、字节豆包、腾讯混元。支持 Chat Completions、Responses、Messages 三种协议；填写模型 ID 与 Key 即可配置，同协议新服务无需修改代码。Key 由系统加密独立保存。详见[配置说明](docs/CONFIGURATION.md#十家服务商与原生协议2026-09-10)和[调研方案](docs/provider-integration-plan-20260910.md)。
+[开始使用](docs/GETTING-STARTED.md) · [桌面说明](desktop/README.md) · [Agent 设计导航](agent.md) · [完整文档](docs/README.md) · [面试资料](docs/interview/README.md)
 
-官方订阅执行使用独立的 `AgentExecutor`：**Codex 可通过官方客户端直接使用 ChatGPT 订阅，不依赖 Pi，并支持单 Agent、同模型团队和异模型团队**。已用本机 Codex 0.153.4、DeepSeek API、Kimi API 验证真实连接；2026-09-10 的 20 次固定题运行中，18 次完成且字段正确并有解释，同模型团队 4/4、异模型团队 3/4；当时异模型复杂题触发成员推理输出上限。后续预算优化与复测另见下段，小样本不证明教学优势。原生通道按共享会话提供的上下文回答，不执行本机工具；团队分别记录 API 请求与官方 Agent 任务，原生 token 用量在返回后核算。Claude Code 已实现单 Agent 适配，真实订阅待验收；Gemini 原生执行仍待实现。10 家模板不代表 10 家真实账号均已验证，具体结果与限制见[三家接入验收](docs/evidence/provider-three-20260910.md)。
+## 当前状态
 
-2026-09-11 已加入按模型能力和整题额度选择成员思考档位的策略，支持成员输出自动分配、手动覆盖及整题预算设置；旧任务保留原绑定，任务卡显示实际配置。默认整题目标仍为 16384 token；提高预算和提高思考强度都不保证准确率提升。相同四道题的 20 次真实对照全部完整交付且字段正确，同/异模型团队各 4/4；异模型复杂题仍耗时 228.6 秒，解释复核另记录两处单模型措辞问题，不能据此宣布全面质量提升。工程与真实对照记录见[预算优化验收](docs/evidence/team-resource-budget-20260911.md)，使用方法见[三模式指南](docs/agent-teams.md)。
+源码基线 `60570bc`：根包 `0.1.0`，桌面 `0.11.0`。支持单 Agent、同模型团队与异模型团队；默认单 Agent。支持官方 Codex 订阅直连、Pi 兼容通道、DeepSeek、Kimi，以及动态 API 连接。
 
-接入目标是[可扩展通用架构](docs/provider-architecture.md)：同协议新厂商通过配置添加，新协议或订阅运行时通过独立适配器扩展，共用会话、教学、记忆、权限和团队。当前以 Codex 订阅及 DeepSeek/Kimi API 验证；其他厂商按需扩展，不要求先开通十家账号。本轮架构拆分通过 814 项测试、七组实包 UI 和三家最小真实连接回归，见[验收记录](docs/evidence/provider-architecture-20260911.md)。
+API 支持 Chat Completions、Responses、Messages 三类协议，提供 OpenAI、Anthropic、Google、DeepSeek、Qwen、Kimi、GLM、MiniMax、豆包、混元十家模板。同协议新厂商可以通过配置接入；新协议或官方运行时通过适配器扩展。模板存在不代表对应账号已经实测，订阅也不自动提供 API 额度。详见[通用接入架构](docs/provider-architecture.md)。
+
+最近本地架构验收通过 814 项测试、七组实际包 UI，以及 Codex / DeepSeek / Kimi 的最小真实连接。**同一提交的远端 CI 仍有团队 UI 点击超时，尚未全通过。** 当前版本、候选包、历史安装与待办统一见[当前状态](docs/current-status.md)，避免将源码、安装包和运行中的应用混为一谈。
 
 ## 设计理念
 
@@ -38,291 +40,69 @@
 
 例如，制作 RAG 应用时，“应用能够运行，检索和引用经过测试”是交付目标；“学习者能解释检索失败的原因、独立修改方案，并处理新的资料场景”是学习目标。知行分别保留交付和学习表现的证据，使用后者评估教学效果。
 
-## 当前实现与边界
+## 已实现能力
 
-当前根包 `zhixing-learning-agent` 为 `0.1.0`，桌面包 `zhixing-desktop` 为 `0.11.0`。两者共用 Agent 执行链、记忆与长对话策略、教学状态、工具恢复和模型适配器；架构边界及验证见 [统一记忆设计](docs/agent-memory.md)。聊天与偏好分别保存；桌面可显式连接 CLI 工作区，共用课程、资料、证据和进度。
-
-当前[学习效果验证](docs/learning-outcomes.md)支持学前检查 → 完整产品能力/仅提示方式对照 → 学后检查 → 3 天延迟复习。完整产品组启用实际教学及获授权工具，检查作答独立保存在本地；结果按模型、协议和构建版本分组，尚无真实学习效果结论。
-
-目前的学习效果题库覆盖 Agent 执行边界和 RAG 证据判断，独立作答由用户自报。已支持基于真实课程作答的跨会话学习观察、纠正与撤回，以及验证结束后的署名解释复核。模型可参考获得授权的相关观察调整反馈；题卷校准、独立人工评价和真实学习效果仍待验证。
-
-| 入口 | 当前能力 | 默认模型设置 |
+| 领域 | 当前实现 | 说明 |
 | --- | --- | --- |
-| 桌面版 | 连续对话、流式回答、公式排版、会话搜索与恢复、草稿、停止/继续/重试、复制和 Markdown 导出 | 新数据目录默认 `pi-codex`；可切换 `deepseek-api`、`kimi-api` 或离线 `demo` |
-| CLI / REPL | 主题、资料库、课程与进度、个性化计划、教学练习、证据 Review、受控学习工具 | 无本地路由设置时，tutor / reviewer / lab 均为 `mock` |
+| 交互 | 流式 Markdown/公式、草稿、历史搜索、队列、纠正、停止、继续、分支与导出 | [桌面](desktop/README.md)、[CLI](docs/CLI-REFERENCE.md) |
+| 学习 | 主题、课程、进度、真实作答、知识检查、学习观察与复习 | [教学策略](docs/teaching-policy.md) |
+| 长对话 | 有界历史、连续摘要、目标与约束、授权记忆、原文分页回读 | [记忆设计](docs/agent-memory.md) |
+| 资料 | Markdown/PDF 导入、可选本地 OCR、FTS/混合检索与可定位引用 | [证据支持](docs/evidence-support.md) |
+| 工具 | 受校验应用工具、分范围授权、实际执行回执、受限 MCP | [权限](docs/session-permissions.md)、[MCP](docs/mcp-tools.md) |
+| 实践 | 独立项目副本、变更预览、实际 JS/Python 测试、修订与 Git 检查点 | [实践项目](docs/practice-projects.md) |
+| 团队 | 固定成员与模型、任务依赖、逐项审查、定向补做、用量与预算 | [三模式](docs/agent-teams.md)、[内核](docs/agent-team-kernel.md) |
+| 学习效果 | 学前/学后/72 小时检查、解释复核、帮助声明、分组与导出 | [研究协议](docs/teaching-study-protocol.md) |
+| 数据 | 本地持久化、主题隔离、完整备份与非破坏性恢复 | [架构](docs/architecture.md)、[安全](SECURITY.md) |
 
-桌面现已接入课程、进度、资料导入与引用、真实产物验收、任务排队与纠正、持久目标及耗时诊断。完整使用步骤见 [0.3 升级指南](docs/agent-upgrade.md)。
+官方原生执行器当前只提供有界文本任务，不开放原生工具或图片。Claude Code 已有单 Agent 适配、真实订阅未验收；Gemini 原生执行与其他运行时按需扩展。API 模型能否使用工具或图片取决于显式能力与验证结果。
 
-当前能力与数据兼容说明见 [0.6 指南](docs/agent-0.6.md)：可核对的任务恢复、独立权限、项目快照与 Python 实践、历史分页、Skill 版本、知识点变式题和完整产品效果试验。实施范围和验证见 [C01–C12 记录](docs/evidence/agent-architecture-next.md)；0.4/0.5 指南保留历史背景。
-
-当前源码已实现并通过[三项 Agent 内核优化](docs/agent-kernel.md)的阶段验收：CLI/桌面共享任务服务；原生工具检查点、审批和同任务恢复；失败后修复重测及未完成计划拦截。[最新复核证据](docs/evidence/p0-recovery-audit-20260907.md)记录新增边界修复，保留当轮自动化和真实模型证据；当前交付验收另见 [P1/P2 记录](docs/evidence/agent-p1-p2-20260907.md)。
-
-
-0.8 已补强连续摘要与相关记忆、独立会话教学检查点、20,000 条分段历史、真实模型预算/耗时诊断、受限 MCP、平台预检、可关闭的本地复习提醒与带访问码的 loopback 同步。工程验收与尚需真实学习者验证的边界见[修复记录](docs/evidence/architecture-remediation.md)。
-
-团队内核已加入结构化任务依赖、成员工作上下文、实际工具回执、逐项审查和定向补做。CLI 与桌面共用执行策略；设计、能力边界与验证见[团队内核设计](docs/agent-team-kernel.md)。流程完成不等于回答正确性认证。 新内核会话为 v11，原生预算与成员资源策略分别使用 v12/v13 并保留升级前副本；历史模型评测仍按下段原实验条件解读。
-
-早期0.11 增加结构化成员核查、分歧审查、一次定向复核和独立成员配置，并补齐取消与会话 v10 恢复保护。[32 个真实新题及解释复核](docs/evidence/team-quality-v3-comparison-20260910.md)已完成：单 Pi / 自检 / 同模型 / 异模型严格通过 7/8、8/8、6/8、1/8，未证明团队优势。运行后修复内部格式冲突、字段诊断及图片边界，723 项测试与最终实包七组隔离 UI 通过；该新包原生加密再次等待系统授权，旧题回归和安装尚未完成。当前安装仍为 0.10.0，见[本轮实现、回归与待验收项](docs/evidence/team-quality-optimization-20260910.md)。
-
-0.9 新增桌面/CLI 共享图片输入与 DeepSeek Vision，补齐长历史回读、回答修正、真实第三方 MCP Schema 兼容及独立盲评包。Windows AppContainer 与跨平台发行按实际流水线验收；本轮结果、真实模型样本和外部条件统一记录在 [0.9 验收记录](docs/evidence/completion-0.9.md)。图片限制与用法见 [图片输入](docs/image-input.md)，教学研究执行见 [研究说明](docs/teaching-study-protocol.md)。本轮开放回答的严格内容复核没有全通过，评分和适用边界见 [内容复核](docs/evidence/completion-quality-review.md)。2026-09-09 已恢复 Pi 验收：原配置真实请求、已安装 0.9 的 11 项检查和真实项目均通过；本轮源码补齐验收事件观察、跨行公式排版、当前问题核对和失败分类，当时尚未替换用户安装；本轮已安装 0.10.0，见[安装记录](docs/evidence/agent-teams-installation.json)。最新 [对齐验收记录](docs/evidence/acceptance-next.md)中 Pi 内容回归 20/24 全通过，仍有资料泛化与比较过强，不能宣称商业 Agent 质量已对齐。0.10 源码已实现单 Agent、同模型团队和异模型团队，共用执行与权限内核；团队暂为实验性；六组 96 个真实留出任务已完成：普通 Pi 完整且正确 16/16，同模型团队 12/16，混合团队 8/16，未证明团队质量更高；应用格式误判与连接失败如实保留，见[质量对照与边界](docs/evidence/team-quality-comparison-20260909.md)。使用、预算与恢复边界见[三模式指南](docs/agent-teams.md)，实验条件见[评测协议](docs/agent-team-evaluation-protocol-20260909.md)。
-
+团队质量是实验问题。预算优化后的四道固定题合计 20 次运行完成且字段正确，同/异模型各 4/4；这是前一候选包的小样本对照，不代表团队普遍更好或教学效果已证明。失败样本、耗时和解释局限见[预算评测](docs/evidence/team-resource-budget-20260911.md)。
 
 ## 快速开始
 
-### 使用桌面版
-
-已有本地构建产物时，打开 `desktop/release/Zhixing-0.9.0-mac-arm64.dmg`，将「知行」拖入 Applications 后启动。该安装包面向 macOS Apple Silicon；按 [2026-09-05 验证记录](docs/evidence/desktop-app.md)，实际应用要求 macOS 13.0 或更高版本。
-
-在设置中选择 **Pi · Codex** 或 **DeepSeek API** 后发送问题；尚未配置模型时，可先选择「离线演示」检查交互。切换方式会保留当前会话，Codex 回答失败时也可点击「切换到 DeepSeek 重试」。认证准备见下方 [Provider 配置](#provider-配置)。
-
-安装包已内附 Electron 和 Pi 运行环境，运行应用不需要系统 Node.js 或 Pi 可执行文件。Pi 登录与模型偏好仍需事先在 Pi 中配置。当前产物是无 Apple Developer ID 签名、公证的本地预览版；`desktop/release/` 被 Git 忽略，不随源码克隆分发。macOS 源码打包需先[固定本地开发签名](docs/macos-local-signing.md)，以解决临时签名包更新后反复询问钥匙串授权的问题；代码已接入，专用证书及跨构建实测状态见[修复记录](docs/evidence/keychain-signing-fix-20260910.md)。已有 macOS/Windows 构建与 draft release 流水线；macOS ARM64 与 Intel x64 已通过远端构建和实际包 UI；Windows 原生隔离、实际 NSIS 安装和安装后五组 UI 均已通过。设置可主动检查公开新版本，不会自动替换安装。
-
-桌面安装、快捷键和平台构建步骤见 [桌面版 README](desktop/README.md)。
-
-Kimi API 按 DeepSeek 相同方式配置：设置 → Kimi API → 输入 Key → 保存 → 测试连接。使用国内 Moonshot 接口和 Kimi K3，凭据独立加密；CLI 同样支持 `kimi-api`。详见 [API 配置](docs/CONFIGURATION.md#kimi-api) 与 [本轮验收](docs/evidence/kimi-api-20260909.md)。
-
 ### 从源码运行
 
-前置条件：Node.js `24.8.x` 与 npm。CLI 会检查 Node 版本；处理扫描 PDF 的 OCR 才需要额外安装 `tesseract` 和 `pdftoppm`。
+需要 Node.js `24.8.x` 与 npm。桌面附带模型 worker 运行环境，但源码开发需安装两套依赖；OCR、MCP、官方 CLI 和项目 Git 功能各有按需前提。
 
 ```bash
 git clone https://github.com/muzigef/zhixing.git
 cd zhixing
 npm ci
 npm ci --prefix desktop
-```
-
-启动桌面应用：
-
-```bash
 npm run desktop
 ```
 
-或使用 CLI / REPL：
+CLI / REPL：
 
 ```bash
 npm run start -- '主题列表'
 npm run repl
 ```
 
-没有配置真实 Provider 时，CLI 使用本地 mock；学习状态操作可本地运行，自然生成的回答需要配置真实 tutor。在 REPL 中可以使用：
+首次体验可选离线演示。桌面新数据目录默认 `pi-codex`；CLI 无本地路由时 tutor/reviewer/lab 为 `mock`。已有用户设置会覆盖默认值。自然对话需要配置真实模型；课程前置与本地状态操作仍遵循程序规则。
 
-```text
-/help
-学习 agent-development
-/style balanced
-解释 RAG 和微调的区别，用表格比较
-开始第 1 天
-来一道题
-/status
-```
+### 模型设置
 
-执行 `学习 <主题>` 后，下次进入 REPL 会恢复该主题及其当前对话。CLI 继续保存最近 6 轮、每轮最多 8,000 字符的兼容历史；完整任务会话另由共享 AgentSessionStore 保存。六轮投影不参与模型输入；两端统一选择最多 24 条有界历史、后台摘要与按需原文回读，并在授权后读取当前主题的画像、显式记忆和教学检查点。
+- **Codex 订阅**：配置官方 Codex 可执行程序，使用其现有官方登录，选择“官方 Codex”；不依赖 Pi。当前适配仅验收 Codex `0.153.4`，其他版本不能视为自动兼容。
+- **DeepSeek / Kimi**：在设置页保存各自 API Key 并测试连接。密钥独立系统加密，已有 Keychain 配置可通过受控接口兼容使用。
+- **其他 API**：选择模板或添加兼容连接，填写地址、协议、模型和能力；同一厂商可以保存多个模型。
+- **Pi**：保留 Pi 配置和登录通道，供已有用户选择；失败时不会静默消费其他 API。
 
-RAG 课程要求先完成 `agent-development/D01` 和 `D02`；上面的入门示例从无跨主题前置条件的 Agent 开发主题开始。
+具体步骤、预算和环境变量见[配置说明](docs/CONFIGURATION.md)。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 禁止真实模型请求；学习资料、当前项目、外部工具分别授权。
 
-## CLI 核心能力
+### 安装与平台
 
-- 主题化学习：选择或创建主题，保存当前主题，重启后恢复学习上下文。
-- 课程与进度：按 Day 推进，前置条件与 Review 证据决定是否可以进入下一阶段。
-- 个性化计划：学习画像、个性化计划、定制课程与 Skill 草案均可本地生成和启用。
-- 自然问答与教学：无需先建计划即可提问；支持追问、举例、教学代码、练习、参考答案和有原文依据的作答批改。
-- 连续对话：普通问答按主题自动保存，重启接着聊；支持新对话、恢复旧对话、继续和重试。
-- 回答体验：生成时可继续输入、即时查看状态、停止或调整要求；支持多行粘贴、按主题保存回答风格，以及保留代码和公式的 Markdown 显示。
-- 本地资料库：导入 Markdown/PDF，扫描 PDF 可选本地 OCR；中文/同义词关键词检索与重排，资料问答要求可定位引用。
-- 多 Provider：`mock`、`deepseek-api`、`codex-cli`、`pi-codex` 可按 tutor/reviewer/lab 角色路由；真实 Provider 支持文本流。
-- 受控 Agent runtime：统一输入分类、模型计划确认、运行账本、脱敏审计；DeepSeek 支持真实多轮工具调用，工具 schema/主题/风险/取消/超时以及总轮次、事件和上下文均受运行时限制。
+`desktop/release/` 是被 Git 忽略的本地构建目录，不随克隆分发。使用核对过版本和来源的安装包；不要依据旧文档文件名判断最新版。当前已构建的 0.11 候选 `.app` 不等于已安装应用，也不等于生成了同版本 DMG。
 
-## CLI 常用流程
+本机开发构建已采用固定签名；Developer ID/Apple 公证与正式分发仍需独立验收。0.9 有 Mac ARM/Intel 与 Windows 的历史平台证据，不能直接代替 0.11 的全部平台验证。详见[当前状态](docs/current-status.md)和[签名指南](docs/macos-local-signing.md)。
 
-### 创建或定制学习计划
-
-真实 tutor 已配置时，可以直接用自然语言描述学习目标，例如：
-
-```text
-创建 3DGS 的学习计划
-```
-
-知行会追问缺失信息并生成可执行草案。看到草案后说 `就按这个来`、`好，执行吧` 或 `直接运行`，即可执行受支持的动作；高风险操作仍要求 `直接运行 --确认`。
-
-也可以完全不使用模型：
-
-```bash
-npm run start -- '设置学习画像 掌握 RAG 原理与实践 --水平 初学 --每天 45 --周期 14' --topic rag
-npm run start -- '生成个性化计划' --topic rag
-npm run start -- '启用个性化计划 personal-plan-<version> --确认' --topic rag
-npm run start -- '生成技能草案 rag-retrieval' --topic rag
-npm run start -- '启用技能草案 rag-retrieval --确认' --topic rag
-```
-
-### 导入与查询资料
-
-先将资料放入 `inbox/<topicId>/`，再导入：
-
-```bash
-npm run start -- '导入资料 rag/notes.md'
-npm run start -- '查询资料 rag 如何提供可定位引用'
-npm run start -- '资料问答 检索如何提供引用 --允许外发' --topic rag
-```
-
-资料默认在本机处理。资料问答若没有足够证据或缺少引用，会返回 `insufficient_evidence`。
-
-### 使用受控学习助手
-
-已配置 Pi Codex 或 DeepSeek 后，可以授权模型查询进度或资料，并根据工具结果继续回答：
-
-```text
-模型切换 tutor deepseek-api --确认
-/permissions --允许外发
-根据我的进度建议下一步
-结合已导入资料解释 RAG 的引用机制 --允许外发
-```
-
-普通自由问答可直接使用工具，无需 `学习助手` 前缀；显式前缀仍兼容。Pi SDK 和 DeepSeek 共用应用工具链。当前主题进度、目录、资料正文及记忆统一受会话学习上下文授权控制，可用 `/permissions --允许外发` 或问题后的同名标志开启。工具错误反馈给模型；普通任务最多 6 轮，已连接项目最多 12 轮，均受 32 次工具请求和 180 秒限制。教学也使用共享的历史、摘要、预算与工具规则。`codex-cli` 保留文本兼容能力。
-
-### 学习中的自然交互
-
-真实 tutor 的单日流程是：讲解 → 答疑 → 练习 → 实验与证据 Review。
-
-- 可以先直接提问，不必建立画像或课程；教学中也可随时说 `举个例子`、`简短一点`、`用代码说明`。
-- 要练习时说 `开始练习`、`来一道题` 或 `出两道题`；默认一题，明确数量和题型时按要求生成。旧口令 `没有问题，开始练习` 仍兼容。
-- 练习中可说 `给答案`、`给出参考解析`、`换一道题`；索要提示或答案不会记作用户作答。
-- 只有实际输入且可验证的作答会进入批改；模型不能把自己的内容当成用户答案。
-- 先用 `提交证据 DNN <implementation|testOutput|failureCase|reflection> <实际内容>` 保存产物，再执行 `检查 DNN`。旧布尔参数不再作为证据；分数表示完整性，不是掌握程度。
-
-`/style concise`、`/style balanced`、`/style detailed` 分别设置当前主题的简洁、适中、详细风格，重启后保留；也支持 `回答风格 简洁` 等中文形式。本轮的“只要结论”“详细推导”“用表格”等要求优先于默认风格。
-
-`/status` 查看主题、教学阶段和风格；`/cancel-plan` 或 `取消草案` 取消待执行草案，继续问答；`/plan <需求>` 明确进入计划管理。计划草案和教学可以并存，知识问题不会因出现“模型”“课程”等词而退出教学。
-
-### 连续聊天与中途调整
-
-生成期间可以继续输入，普通消息按顺序处理。输入 `等等，用生活例子解释` 或 `/steer 新要求` 会停止当前文本生成，结合原问题和已生成内容继续回答；`停止` 或 Ctrl-C 只停止当前回答。`/status` 随时查看处理状态与排队数量，`/queue clear` 撤回尚未处理的消息。
-
-- `继续`、`接着说`：有对话上下文时接着回答；`重试` 或 `/retry` 重问上一条请求。
-- `/new`：开启新对话，原对话保留；`/resume` 列出当前主题最近 20 个对话，再用 `/resume <编号>` 恢复。
-- `/paste`：进入多行输入，粘贴代码或长问题后单独输入 `/send` 发送；`/cancel-input` 撤销。也可以用行末反斜杠换行。
-
-会话恢复不会回滚学习进度或教学检查点。正常停止会保存已生成的部分回答；进程被强制结束时，可能只保留请求和最后一次已保存的内容。
-
-终端支持标题、列表和强调，代码围栏、表格和 LaTeX 公式保留文本。`NO_COLOR=1` 或输出重定向时保留可复制的 Markdown，不加入终端颜色。当前终端不进行公式排版，回答要求在公式后附中文解释。短段落约每 80 毫秒刷新，无需等待换行；输入草稿时暂存新增显示，提交或取消后再显示，避免和输入挤在一行。`/exit` 退出。
-
-## Provider 配置
-
-### 桌面设置
-
-- **Pi · Codex**：读取 Pi 的模型偏好，由 Pi 自己处理认证和刷新；知行不读取认证文件。设置页「已读取 Pi 模型配置」仅代表偏好可用，登录有效性在发送时检查。
-- **DeepSeek API**：默认模型 `deepseek-v4-flash`，界面也提供 `deepseek-v4-pro` 和实验性图片模型 `deepseek-v4-flash-vision-exp`。优先使用桌面保存的配置；macOS 上没有桌面配置时，可复用原 CLI 写入的知行 Keychain 项。新 Key 通过主进程使用系统加密后保存，不能从界面读取回原值。找到配置不代表 API 已连通。
-- **离线演示**：本地固定演示内容，不调用真实模型。
-
-桌面 Provider、模型和回答风格保存在独立的 `preferences.json`，不会改变 CLI 的角色路由。桌面内新增的加密 Key 也不会同步写入 CLI Keychain。两端回答风格均保存为 `concise` / `adaptive` / `detailed`；CLI 还接受 `balanced` 作为 `adaptive` 的输入别名。桌面风格按应用保存，CLI 风格按学习主题保存。
-
-### CLI 角色路由
-
-无本地设置时默认使用 `mock`。在 REPL 中添加 DeepSeek Key 或切换 tutor：
-
-```text
-模型添加 api-key deepseek-api
-模型切换 tutor deepseek-api --确认
-模型切换 tutor codex-cli --确认
-模型切换 tutor pi-codex --确认
-模型状态
-```
-
-这些切换命令是可选操作；执行最后一条切换后，tutor 使用 `pi-codex`。reviewer 和 lab 的路由需分别设置。CLI DeepSeek Key 使用隐藏输入写入 macOS Keychain，当前没有其他平台的 CLI 凭据存储适配；默认 DeepSeek 模型可通过 `ZHIXING_DEEPSEEK_MODEL` 覆盖。`codex-cli` 需要系统中已安装并登录的官方 Codex CLI，与 Pi 的认证独立。
-
-### Pi 配置与启动方式
-
-Pi 默认 Provider 必须为 `openai-codex`，并已选择模型和完成登录；模型 ID 不写死在知行中。每次调用读取 `${PI_CODING_AGENT_DIR}/settings.json`（未设置时为 `~/.pi/agent/settings.json`），再合并调用工作目录内的 `.pi/settings.json`，同名项目设置优先。
-
-- CLI 的调用工作目录是代码仓库，使用根依赖中的 Pi `0.85.0` 公共模型 SDK；`npm ci` 会安装它，模型调用无需系统 `pi` 或 bash。登录与模型选择仍由 Pi 完成。
-- 桌面调用工作目录是系统应用数据目录下的 `runtime/`，通过无 shell 启动器运行内附 Pi `0.85.0`，不会自动读取源码仓库的 `.pi/settings.json`。
-
-CLI 和桌面共同使用 `PiApplicationClient → pi-model-worker → ModelRuntime.streamSimple`，应用工具统一经 ToolHarness 执行，Pi 原生文件与命令工具不开放。两端默认 SSE，保存逐轮请求及收尾耗时。Pi 错误会明确提示，用户可切换 DeepSeek，不会静默替换模型。
-
-`ZHIXING_ALLOW_LIVE_PROVIDER=0` 可禁止真实 Provider 请求。两端共用当前输入、目标、约束、有界历史与可选摘要；本会话明确授权后才加入当前主题学习上下文。CLI 可用 `/permissions --允许外发` 授权，用 `/permissions --撤回全部` 撤回；问题后的 `--允许外发` 也只开启本会话学习上下文，不自动开启项目或外部工具。凭据不进入提示词；审计原文和其他主题资料不加入上下文。详见 [配置说明](docs/CONFIGURATION.md)。
-
-## 安全与运行模型
-
-以下账本、主题授权和工具规则适用于 CLI 学习运行时：
-
-- 每轮输入都先经过统一控制层；模型输出只能提出建议，不能自行执行写操作或把推断写成用户事实。
-- 删除资料、恢复数据库、切换模型、启用计划/Skill 等高影响操作需要显式确认。
-- 经过 RunManager 的业务操作有 SQLite 运行/步骤账本与脱敏审计；帮助、即时状态等控制命令不逐一入账。中断运行会标记为 `process_interrupted`，不会自动重放可能写入的操作。
-- 工具调用统一经过 schema 校验、主题边界、风险授权、强制超时和输出上限。
-- Provider trace 记录 Provider、角色、耗时、状态、事件数、回合数和工具调用数；不记录 prompt、回答或工具参数。
-
-输入 `诊断` 可查看当前主题、Provider、教学检查点、资料、记忆、提醒与最近运行摘要。
-
-桌面聊天使用独立 JSON 存储，学习功能通过共享 LearningApplication 操作工作区 SQLite 与笔记；模型任务记录统一运行步骤。renderer 开启 sandbox、context isolation 和本地内容策略；文件导出、系统剪贴板、外部链接、模型请求与密钥保存均通过受校验的主进程命令。桌面 DeepSeek 可执行受授权的只读学习工具；任意文件或 Shell 工具不开放给模型。
-
-## 数据目录
-
-CLI 默认把仓库父目录作为数据根目录，也可用 `ZHIXING_ROOT` 指定；其下使用固定的 `zhixing/` 和 `learning-notes/` 子目录。按上述命令克隆为 `zhixing` 时，结构为：
-
-```text
-<仓库父目录>/
-  zhixing/
-    data/       # 主题 session、审计与资料数据（忽略提交）
-    db/         # SQLite 元数据、检索索引与记忆（忽略提交）
-    inbox/      # 待导入资料（忽略提交）
-    settings/   # 本机主题与模型路由设置（忽略提交）
-  learning-notes/
-    topics/     # 主题学习记录（位于源码仓库之外）
-```
-
-CLI 用户新建主题还会写入 `zhixing/topics/<topicId>/`，与已跟踪的内置主题资源区分。更改数据根目录前请参阅 [配置说明](docs/CONFIGURATION.md)。
-
-桌面保存在 Electron `appData` 下的 `Zhixing/`，macOS 默认位置为 `~/Library/Application Support/Zhixing/`：
-
-```text
-Zhixing/
-  conversations/       # 每会话一个 JSON 文件
-  preferences.json     # 桌面 Provider、模型、风格和主题
-  deepseek.credential  # 可选的系统加密 Key
-  runtime/             # 内附 Pi 的隔离调用工作目录
-  workspace.json       # 用户显式选择的工作区路径
-  workspace/           # 未连接 CLI 工作区时的默认学习数据
-```
-
-每会话最多 20,000 条消息，旧历史按 250 条分段保存，单条输入最多 20,000 字符、回答最多 64,000 字符，完整会话合计最多 12,000,000 字节；达到保存限制时需处理错误或开启新会话。历史选取最多 24 条，目标与历史片段使用约 40,000 字符预算；当前输入、约束、摘要和受授权学习上下文另计，不会因此删除本地较早消息。草稿与最近会话标识使用该应用的 localStorage 保存。桌面不会自动迁移 CLI 的会话或学习进度。
-
-## 验证
-
-安装根目录与桌面两套依赖后，从根目录执行：
+## 开发与验证
 
 ```bash
 npm run verify
-npm --prefix desktop run build
 npm --prefix desktop run test:ui
 ```
 
-`verify` 运行 lint、根目录和桌面类型检查、Vitest（包含 CLI 工作流）、集成测试、评估、mock smoke、敏感内容扫描与 diff 空白检查；它不包含 Electron UI 测试或安装包验证。`test:ui` 自动准备 Electron/SQLite 运行时并构建，在隔离数据与禁止真实请求的环境中运行聊天、学习、交互、学习效果、项目、动态 API 和团队七组 UI 回归。
+第一条覆盖 lint、两端类型检查、完整 Vitest、integration、eval、mock smoke 和敏感信息检查；第二条是独立桌面 UI 验证。交付实际应用还需要针对候选包运行检查。自动化、真实连接、答案质量、教学效果和发布验证分别记录，不能互相替代。
 
-历史 [P10 桌面验证记录](docs/evidence/desktop-app.md) 的质量门通过 58 个测试文件、281 个测试，开发窗口和实际打包应用 UI 测试通过；已有 Keychain 配置的 DeepSeek 短请求成功。该时点 Pi 未通过真实调用；2026-09-07 已完成[登录后验证](docs/evidence/pi-availability-20260907.md)，后续性能修复见上方记录。这些是各次执行证据，不代表每次阅读本文时重新运行过检查。
-
-当前验证见 [0.6 执行记录](docs/evidence/agent-architecture-next.md)；0.3–0.5 的记录保留用于追溯。
-
-## 文档
-
-| 主题 | 文档 |
-| --- | --- |
-| 桌面安装、使用和打包 | [桌面版 README](desktop/README.md)、[桌面验收记录](docs/evidence/desktop-app.md) |
-| 安装与首次使用 | [快速开始](docs/GETTING-STARTED.md) |
-| 命令说明 | [CLI 参考](docs/CLI-REFERENCE.md) |
-| Provider 与数据边界 | [配置](docs/CONFIGURATION.md) |
-| 架构与安全模型 | [架构设计](docs/architecture.md)、[数据与质量契约](docs/data-and-quality-spec.md)、[安全说明](SECURITY.md) |
-| 核心设计与商业 Agent 对比 | [28 个核心模块评审：Codex / Claude Code 对比、取舍与优化建议](docs/agent-architecture-comparison-20260908.md) |
-| 三模式使用与恢复 | [单 Agent、同模型团队与异模型团队](docs/agent-teams.md) |
-| 0.11 团队优化与验收 | [实现、真实回归与质量验收](docs/evidence/team-quality-optimization-20260910.md) · [新冻结协议](docs/agent-team-quality-evaluation-protocol-20260909.md) |
-| 0.10 团队质量对照 | [真实质量对照、解释复核与工程边界](docs/evidence/team-quality-comparison-20260909.md) · [冻结协议](docs/agent-team-evaluation-protocol-20260909.md) |
-| 三种 Agent 模式研究（首版范围以三模式指南为准） | [单 Agent、同模型团队与异模型团队：可行性、案例与实现方案](docs/agent-team-feasibility-20260909.md) |
-| 0.6 功能与兼容 | [更新指南](docs/agent-0.6.md)、[本轮证据](docs/evidence/agent-architecture-next.md) |
-| 开发与验证 | [开发指南](docs/DEVELOPMENT.md)、[测试指南](docs/TESTING.md)、[故障排查](docs/TROUBLESHOOTING.md) |
-
-运行时审查、修复证据和仍未对齐的能力见 [Agent 审查报告](docs/evidence/agent-runtime-audit.md)。
-
-参与开发请阅读 [贡献指南](CONTRIBUTING.md)。
-
-## 许可证
-
-根包和桌面包均标记为 `UNLICENSED`，保留所有权利；使用与分发条件见 [LICENSE](LICENSE)。
+开发约束见 [AGENTS.md](AGENTS.md)，贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。排查问题见[故障处理](docs/TROUBLESHOOTING.md)，历史结果见[证据索引](docs/evidence/README.md)。根包和桌面包均标记为 `UNLICENSED`；公开仓库可见性不等同于授予开源许可证。

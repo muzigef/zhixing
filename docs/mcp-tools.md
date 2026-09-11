@@ -1,3 +1,4 @@
+<!-- generated-by: gsd-doc-writer -->
 # 外部工具连接
 
 在桌面选择学习主题，打开「课程与资料 → 外部工具 · MCP」。填写 JSON 配置、确认信任后保存，再点「测试连接」。测试只发现和校验工具，不调用业务工具。启用后，勾选「本会话使用已配置的外部工具」的当前主题对话可以通过 `discover_tools(external)` 使用配置中列出的工具；停用对后续执行生效。
@@ -22,7 +23,7 @@
 
 配置按主题保存，最多四个服务、每服务二十个已授权工具。`read` / `write` 与重放许可由配置决定，不采用服务器自报的权限提示。外部工具不参与只读并行。写入经过具体操作审批；「本会话允许」仅复用该版本工具的相同参数。撤回或配置变化使旧授权失效；若操作可能执行但没有可靠结果，停止自动重放，需要先到服务侧核对。连接配置或输入 schema 改变会改变工具标识，旧审批不能用于新工具。备份恢复后所有外部连接均停用。
 
-实现支持 stdio 的 `2026-07-28` 发现与逐请求元数据，以及 `2025-11-25` 初始化兼容。新版可识别错误不会降级初始化；旧服务的未知方法错误或发现超时才进入旧流程。协议依据：[stdio](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio)、[发现](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)、[旧版生命周期](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)。
+`src/mcp-connection.ts` 当前实现 stdio 的 `2026-07-28` 发现与逐请求元数据，以及 `2025-11-25` 初始化兼容。这里指已实现的协议子集，不代表完整 MCP 能力或未来规范兼容。新版可识别错误不会降级初始化；旧服务的未知方法错误或发现超时才进入旧流程。协议依据：[stdio](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio)、[发现](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)、[旧版生命周期](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)。
 
 当前支持文本工具结果及结构化 JSON；不支持图片、资源、提示、采样、订阅或多轮 `input_required`。工具目录有分页、去重及数量限制。输入与已声明输出 schema 使用独立工作线程中的 Ajv 2020-12 验证，包含常用格式校验；未知格式、远程引用和不支持的 schema 明确拒绝，不忽略验证失败。编译、校验、连接与调用各有时限。[Ajv 版本说明](https://ajv.js.org/json-schema.html#draft-2020-12-breaking)
 
@@ -55,4 +56,6 @@
 
 可信声明之外，可设置 `"isolation": "restricted"`，并用 `"readPaths": ["/absolute/path/to/notes-server.mjs", "/absolute/path/to/approved-notes"]` 授权读取脚本和资料；至多八条路径。系统运行库与所选可执行文件自动允许读取。目录授权包含子目录，应只授予专用目录。写入仅限进程临时工作目录，网络禁止；因此上例持久 save_note 需要 trusted 模式，不能把 restricted 当成无影响开关。
 
-当前只有 macOS sandbox-exec 可执行此模式；其他平台或缺失沙箱时明确失败，不回退。隔离模式与读取范围纳入工具配置版本，修改后原授权失效。连接测试只发现工具；真实副作用边界由仓库沙箱子进程测试验证，真实第三方服务仍需各自测试。
+当前 MCP 的 restricted 模式只有 macOS sandbox-exec 实现；其他平台或缺失沙箱时明确失败，不回退。实践项目另有 Windows AppContainer 运行器，不能把它的能力等同于 Windows MCP restricted 已实现。隔离模式与读取范围纳入工具配置版本，修改后原授权失效。连接测试只发现工具；真实副作用边界由仓库沙箱子进程测试验证，真实第三方服务仍需各自测试。
+
+实现与验证见[`McpConnection`](../src/mcp-connection.ts)、[配置契约](../src/mcp-settings.ts)、[按需目录](../src/lazy-mcp.ts)与[隔离测试](../tests/mcp-isolation.test.ts)。连接 discovery 成功、业务调用成功和业务结果正确分别验证；成员只读配置仍是权限约束，不保证 trusted 服务不会违反声明。
