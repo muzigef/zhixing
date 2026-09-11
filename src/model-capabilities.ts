@@ -2,10 +2,10 @@ import { z } from "zod/v4";
 import type { ModelClient, ContinuableModelClient } from "./model.js";
 import type { ContextBudget } from "./context-window.js";
 
-export interface ModelCapabilities { inputModalities: readonly ("text" | "image")[]; toolCalling: boolean; continuation: boolean; contextWindowTokens: number; maxOutputTokens: number; outputLimit: "configurable" | "adapter_default" | "unknown"; source: "adapter_policy"; }
+export interface ModelCapabilities { inputModalities: readonly ("text" | "image")[]; toolCalling: boolean; continuation: boolean; contextWindowTokens: number; maxOutputTokens: number; outputLimit: "configurable" | "adapter_default" | "unknown"; reasoningBudget?: "shared-output"; source: "adapter_policy"; }
 export const contextBudgetSchema = z.object({ windowTokens: z.number().int().min(512).max(48_000), reserveOutputTokens: z.number().int().min(128).max(16_384) }).strict().refine(value => value.reserveOutputTokens < value.windowTokens);
 export function adapterCapabilities(tools: boolean, outputLimit: ModelCapabilities["outputLimit"] = "unknown"): ModelCapabilities { return { inputModalities: ["text"], toolCalling: tools, continuation: tools, contextWindowTokens: 48_000, maxOutputTokens: 16_384, outputLimit, source: "adapter_policy" }; }
-export function capabilitiesFor(client: ModelClient): ModelCapabilities { return client.capabilities ?? adapterCapabilities(typeof (client as Partial<ContinuableModelClient>).continue === "function"); }
+export function capabilitiesFor(client: import("./agent-executor.js").AgentBackend): ModelCapabilities { return client.capabilities ?? adapterCapabilities(typeof (client as Partial<ContinuableModelClient>).continue === "function"); }
 export function effectiveModelBudget(client: ModelClient, requested?: ContextBudget): ContextBudget {
   const capabilities = capabilitiesFor(client);
   const parsed = contextBudgetSchema.safeParse(requested ?? client.contextBudget ?? { windowTokens: capabilities.contextWindowTokens, reserveOutputTokens: capabilities.maxOutputTokens });

@@ -17,10 +17,9 @@ try {
     const original = net.fetch.bind(net); globalThis.teamFixtureCalls = [];
     net.fetch = async (url, options) => {
       if (/^https:\/\/api\.(?:deepseek\.com|moonshot\.cn)\/v1\/chat\/completions$/.test(String(url))) {
-        const body = JSON.parse(options.body); const plan = body.messages.some(item => String(item.content).includes("TEAM_PLAN"));
-        const member = body.messages.some(item => String(item.content).includes("TEAM_MEMBER"));
-        const review = body.messages.some(item => item.role === "system" && String(item.content).includes("TEAM_REVIEW"));
-        const followup = body.messages.some(item => item.role === "system" && String(item.content).includes("TEAM_FOLLOWUP"));
+        const body = JSON.parse(options.body);
+        const phase = marker => body.messages.some(item => item.role === "system" && String(item.content).startsWith(`${marker}：`));
+        const plan = phase("TEAM_PLAN"), member = phase("TEAM_MEMBER"), review = phase("TEAM_REVIEW"), followup = phase("TEAM_FOLLOWUP");
         globalThis.teamFixtureCalls.push({ model: body.model, member, plan, followup });
         if (member && String(url).includes("moonshot") && globalThis.teamFixtureFail) { globalThis.teamFixtureFail = false; return new Response("", { status: 500 }); }
         const conflict = Boolean(globalThis.teamFixtureConflict);
@@ -42,7 +41,11 @@ try {
       await page.getByLabel("成员 1 模型连接", { exact: true }).selectOption("deepseek-api");
       await page.getByLabel("成员 2 模型连接", { exact: true }).selectOption("kimi-api");
       await page.getByLabel("成员 2 思考程度", { exact: true }).selectOption("quick");
+      await page.getByLabel("成员 1 输出上限", { exact: true }).selectOption("auto");
+      await page.getByLabel("团队整题输出预算", { exact: true }).selectOption("24576");
       await page.getByLabel("团队成员时限", { exact: true }).selectOption("180000");
+      await page.getByLabel("团队整题输出预算", { exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(os.tmpdir(), "zhixing-team-budget-settings.png") });
       await page.getByRole("button", { name: "保存团队配置", exact: true }).click();
       await page.getByRole("button", { name: "保存团队配置", exact: true }).waitFor({ state: "hidden" });
       await app.evaluate(() => { globalThis.teamFixtureConflict = true; });
@@ -54,7 +57,9 @@ try {
     assert.ok((await card.innerText()).includes("2 / 2 成员已完成")); assert.ok((await card.innerText()).includes("deepseek-v4-flash"));
     assert.ok((await card.innerText()).includes("已返回审查意见"));
     assert.ok((await card.innerText()).includes("任务与依赖")); assert.ok((await card.innerText()).includes("待核查"));
-    if (mode === "mixed-model-team") { assert.ok((await card.innerText()).includes("kimi-k3")); await card.getByText("查看定向复核 · 已返回结果", { exact: true }).click(); assert.ok((await card.innerText()).includes("重新计算，说明两个候选结果的差异。")); }
+    if (mode === "mixed-model-team") { assert.ok((await card.innerText()).includes("kimi-k3")); assert.ok((await card.innerText()).includes("8192 token（推理与正文合计）")); assert.ok((await card.innerText()).includes("手动指定档位"));
+      const settings = await page.evaluate(async () => (await window.zhixing.invoke({ type: "boot" })).data.settings);
+      assert.equal(settings.collaboration.maxOutputTokens, 24576); assert.equal(settings.collaboration.members[0].maxOutputTokens, undefined); await card.getByText("查看定向复核 · 已返回结果", { exact: true }).click(); assert.ok((await card.innerText()).includes("重新计算，说明两个候选结果的差异。")); }
   }
   await app.evaluate(() => { globalThis.teamFixtureFail = true; });
   await page.getByRole("textbox", { name: "发送给知行" }).fill("再核查一次 2+2。"); await page.getByRole("button", { name: "发送消息", exact: true }).click();

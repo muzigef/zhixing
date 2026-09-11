@@ -1,8 +1,11 @@
+import { nativeRuntimeCatalog } from "./native-runtime-catalog.js";
 import { teamTaskStatusLabels, teamVerificationLabels } from "./team-contracts.js";
 import { TeamSettings } from "./team-settings.js";
 import { teamModeConfiguration, collaborationLabels, teamStatusLabels, memberStatusLabels, type CollaborationMode } from "./team-contracts.js";
 import { publicError } from "./agent-errors.js";
 import { ApiConnections, connectionIdentity } from "./api-connections.js";
+import { providerCatalog, providerTemplate } from "./provider-catalog.js";
+import { NativeAgentExecutor } from "./native-agent.js";
 import { formatTeamReport, teamFailureLabels } from "./team-quality.js";
 import { apiConnectionInputSchema, type ApiConnection } from "./api-connection-config.js";
 import { readImageFile } from "./image-file.js";
@@ -29,7 +32,6 @@ import { MacOSKeychainSecretStore } from "./macos-keychain.js";
 import { ProviderSetup } from "./provider-setup.js";
 import { createAgentModel } from "./agent-model-factory.js";
 import { resolvePiSdk } from "./pi-sdk.js";
-import { CodexCliClient } from "./codex-client.js";
 import { PiApplicationClient } from "./pi-application-client.js";
 import { previewBackup, restoreBackup } from "./backup-service.js";
 import { readHiddenSecret } from "./hidden-secret-input.js";
@@ -79,15 +81,15 @@ const mockProvider = new MockModelClient();
 const keychain = new MacOSKeychainSecretStore();
 providerRegistry.register({ id: "mock", client: mockProvider, health: async () => "healthy" });
 
-// `codex exec` is the supported non-interactive CLI surface. The experimental
-// app-server can start successfully but stall before producing an assistant turn.
-providerRegistry.register({ id: "codex-cli", client: new CodexCliClient(undefined, process.env, 150_000), health: async () => process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0" ? "unavailable" : "unknown" });
+// Preserve saved route IDs without bypassing the independent native execution boundary.
+providerRegistry.registerAgent("codex-cli", new NativeAgentExecutor("codex"));
 const piProvider = new PiApplicationClient({ projectDir: path.resolve(import.meta.dirname, ".."), executable: process.execPath,
   executableArgs: ["--import", "tsx"], worker: path.join(import.meta.dirname, "pi-model-worker.ts"), sdk: await resolvePiSdk(path.resolve(import.meta.dirname, "..")) });
 providerRegistry.register({ id: "deepseek-api", client: createAgentModel("deepseek-api", { pi: piProvider, secrets: keychain }), health: async () => await keychain.get("keychain:zhixing/deepseek-api") ? "healthy" : "unavailable" });
 providerRegistry.register({ id: "kimi-api", client: createAgentModel("kimi-api", { pi: piProvider, secrets: keychain }), health: async () => await keychain.get("keychain:zhixing/kimi-api") ? "healthy" : "unavailable" });
 providerRegistry.register({ id: "pi-codex", client: createAgentModel("pi-codex", { pi: piProvider, secrets: keychain }), health: async () => { if (process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") return "unavailable"; await piProvider.selection(); return "unknown"; } });
 const apiConnections = new ApiConnections(path.join(root, "zhixing", "settings", "api-connections.local.json"));
+for (const entry of nativeRuntimeCatalog) providerRegistry.registerAgent(entry.provider, new NativeAgentExecutor(entry.vendor));
 function registerConnection(connection: ApiConnection): void {
   if (providerRegistry.client(connection.id)) return;
   providerRegistry.register({ id: connection.id, client: createAgentModel(connection.id, { pi: piProvider, secrets: keychain, connection }), health: async () => process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0" ? "unavailable" : "unknown" });
@@ -128,7 +130,7 @@ let cliAgent = createCliAgent();
 chat = await cliAgent.recover(chat);
 teachingSession = await loadCurrentTeaching(activeTopic);
 function createCliAgent(): CliAgentTransport {
-  return new CliAgentTransport(root, learning, provider => { const client = providerRegistry.client(provider); if (!client) throw new Error("provider_not_found"); return client; },
+  return new CliAgentTransport(root, learning, provider => { const client = providerRegistry.backend(provider); if (!client) throw new Error("provider_not_found"); return client; },
     text => { if (replMode) { if (liveText) liveText.write(text); else writeLive(text); } });
 }
 let replying = false;
@@ -316,7 +318,7 @@ async function execute(line: string): Promise<string> {
 - 排队：/queue 查看，/queue clear 撤回，/queue resume 继续持久队列
 - 任务：/task 查看计划与累计用量；/task revise <新目标> 保留旧计划并继续；/task verify 核对未知外部操作
 - 应用任务：/agent <任务> --允许外发；/answer <卡片 ID> allow|deny|回答内容
-- 协作模式：/mode single、/mode same、/mode mixed；/team 查看成员；/team config <公开配置 JSON> 调整\n- 自定义模型：模型连接列表；模型连接添加 <公开配置 JSON>（只含 name、baseUrl、model 和兼容选项，Key 用隐藏输入单独保存）
+- 协作模式：/mode single、/mode same、/mode mixed；/team 查看成员；/team config <公开配置 JSON> 调整\n- 自定义模型：模型服务商；模型连接模板 <服务商 id>；模型连接列表；模型连接添加 <公开配置 JSON>（name、baseUrl、model、protocol 和兼容选项，Key 用隐藏输入单独保存）\n- 官方订阅客户端：官方Agent状态；可用通道通过“模型切换 tutor native-claude --确认”选择
 - 调整计划：直接描述需求；确认草案后执行
 - 取消草案：/cancel-plan
 - 退出：退出 或 /exit
@@ -339,6 +341,9 @@ async function execute(line: string): Promise<string> {
   }
   if (command === "/plan") return "直接描述学习目标或调整要求，例如“帮我制定 14 天的 RAG 学习计划”。";
   if (command.startsWith("/plan ")) command = `帮我调整学习计划：${command.slice(6)}`;
+  if (command === "官方Agent状态") return (await Promise.all(nativeRuntimeCatalog.map(async entry => { const status = await new NativeAgentExecutor(entry.vendor).status(new AbortController().signal); return `${entry.vendor}：${status.reason}`; }))).join("\n");
+  if (command === "模型服务商") return providerCatalog.map(provider => `${provider.id} · ${provider.name}\n${provider.accountNote}\n${provider.documentation}`).join("\n\n") + "\n\n用“模型连接模板 <服务商 id>”查看公开配置；填写模型 ID 后使用“模型连接添加 <JSON>”。";
+  if (command.startsWith("模型连接模板 ")) return JSON.stringify(providerTemplate(command.slice("模型连接模板 ".length).trim()), null, 2);
   if (command === "模型连接列表") {
     const state = await apiConnections.load();
     return state.connections.map(connection => `${connection.id} · ${connection.name} · ${connection.model} · ${connection.baseUrl}`).join("\n") || "还没有自定义 API 连接。用“模型连接添加 <公开配置 JSON>”添加，不要在 JSON 中填写 Key。";

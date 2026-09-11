@@ -1,6 +1,42 @@
 <!-- generated-by: gsd-doc-writer -->
 # 配置
 
+## 十家服务商与原生协议（2026-09-10）
+
+当前采用[通用接入架构](provider-architecture.md)。目录提供模板，同协议的其他厂商可直接选择自定义；官方订阅通过独立受信任适配器扩展，不能仅凭模板存在认定可用。
+
+设置 → 添加 API 连接 → 选择服务商模板，填写控制台给出的模型 ID，再填写 API Key。预设包括 OpenAI、Claude、Gemini、DeepSeek、Qwen、Kimi、GLM、MiniMax、豆包、混元；也可选择“自定义服务商”。模型 ID 留空等待用户选择，不自动跟随服务商的“最新”别名。
+
+| 协议 | 根地址例子 | 应用追加的路径 | 用量与续接 |
+| --- | --- | --- | --- |
+| Chat Completions | `https://api.deepseek.com` | `/chat/completions` | 保留兼容参数、原始思考内容及 Gemini 工具签名 |
+| Responses | `https://api.openai.com/v1` | `/responses` | `store:false`，回传加密 reasoning 与 `call_id`；应用维护完整上下文 |
+| Messages | `https://api.anthropic.com/v1` | `/messages` | 原生 system/content blocks、签名与 tool_result；缓存输入纳入总输入计量 |
+
+MiniMax 的 Messages 根地址为 `https://api.minimax.io/anthropic/v1`；中国站按官方控制台修改。Qwen 地址与地域/工作空间有关，模板不填猜测的地址。腾讯新连接使用 TokenHub。Root URL 不包含 `/messages`、`/responses` 或 `/chat/completions` 末段，也不能包含密钥、查询参数及用户密码。
+
+订阅登录、普通 API Key、套餐 Key 不是同一凭证。阿里、智谱等 Coding 套餐不默认适用于知行的教学及批量团队；MiniMax Token Plan Key 与普通 API Key 分开建连接。Kimi Code 与 Moonshot 平台也分别管理。详见[十家官方调研](provider-integration-plan-20260910.md)。
+
+CLI 共用同一个目录与协议工厂：
+
+```bash
+npm start -- 模型服务商
+npm start -- 模型连接模板 anthropic
+npm start -- 官方Agent状态
+```
+
+模板返回公开 JSON，填写地址/模型后交给 `模型连接添加 <JSON>`；Key 仍通过 `模型添加 api-key <连接 ID>` 的隐藏输入保存。既有 Chat Completions 连接 ID、密钥引用及对话不会重建。新增协议配置需要当前版本，旧版本不支持解析这些连接。
+
+设置 → 官方 Agent 账号 → 检查官方 Agent：仅运行版本和帮助命令，不发送模型请求；检查能力成功不代表已经登录。
+
+- **Codex / ChatGPT 订阅**：先在官方客户端运行 `codex login`。知行已验收本机 Codex **0.153.4**；其他版本先验证权限与空工具请求后再启用，不修改官方二进制。设置中的“Codex 程序与模型”可指定绝对路径与订阅实际支持的模型，默认模型为本次真实验证的 `gpt-6-astra`。程序留空时从常用 Homebrew 位置或 PATH 查找。CLI 使用 `模型切换 tutor native-codex --确认`；环境变量为 `ZHIXING_CODEX_EXECUTABLE`、`ZHIXING_CODEX_MODEL`。固定模型进入同模型团队；异模型团队默认成员为 DeepSeek、Kimi。
+- **Claude Code**：已核对 2.1.267 的 `--restricted`、`--safe-mode` 等开关，设置中可指定程序；先运行 `claude auth login`。知行仅解析 `auth status --json` 的登录方式，不导入 token。当前模型由官方客户端选择，未固定，因此仅开放单 Agent。CLI 使用 `模型切换 tutor native-claude --确认`，程序变量为 `ZHIXING_CLAUDE_EXECUTABLE`。
+- **Gemini CLI**：原生执行尚未完成；可配置 Google 官方兼容 API。不能将模板描述为订阅通道已经打通。
+
+原生通道和 API 共用 AgentService 的教学、历史、授权上下文及回答检查。Codex 使用一次性目录、官方 permission profile、忽略用户扩展配置、空工具请求和非持久会话；不会执行本机或知行工具。API 成员仍可按授权调用只读 ToolHarness。官方订阅失败不会自动消费 API，进程退出也不证明远端请求未计费。
+
+原生团队按任务数、时限和可见回答长度实施硬限制；CLI 内部推理 token 无法硬限，按实际返回用量核算，超过预算后停止新调用。未知用量保留预留。API 请求数与原生任务数分别显示并共享总调用上限。仅含原生预算的团队使用 v12；含自动成员资源策略的团队使用 v13。两者均保存升级前备份，旧应用不能覆盖新字段。
+
 知行有 CLI 学习工作区和桌面对话两套偏好配置。CLI 默认使用 `mock`；桌面首次启动默认选择 `pi-codex`。两者可复用 Pi 的全局模型偏好及 macOS 上已有的知行 DeepSeek / Kimi Keychain 项，模型选择和聊天独立；学习资料可通过显式连接同一工作区共用。
 
 ## 运行时与环境变量
@@ -101,7 +137,7 @@ ZHIXING_ALLOW_LIVE_PROVIDER=0 npm run desktop
 
 | 字段 | 可选值与限制 |
 | --- | --- |
-| `provider` | `pi-codex`、`deepseek-api`、`kimi-api`、`demo`，以及自定义 `api-<32 位哈希>`；桌面没有 `codex-cli` 选项。 |
+| `provider` | `pi-codex`、`deepseek-api`、`kimi-api`、`demo`，以及自定义 `api-<32 位哈希>`。另有 `native-claude`、`native-codex`、`native-gemini` 状态契约；Codex 仅上下文单 Agent 和团队已实现并通过本机真实订阅验证，Claude 单 Agent 已实现但真实订阅未验收，Gemini 原生执行尚未实现。桌面没有 `codex-cli` 选项。 |
 | `style` | `concise`、`adaptive`、`detailed`；桌面是全局偏好，不按 CLI 主题分组。 |
 | `theme` | `system`、`light`、`dark`。 |
 | `deepseekModel` | 设置界面提供 `deepseek-v4-flash`、`deepseek-v4-pro`、实验性 `deepseek-v4-flash-vision-exp`（图片需此模型）；底层 schema 接受 1–128 字符、以字母/数字开头、其余为字母/数字/点/下划线/连字符的模型标识。格式有效不代表远端支持该模型。 |
@@ -159,7 +195,7 @@ CLI 与桌面均安装 Pi `0.85.0`，使用同一公共模型 SDK worker。CLI �
 
 Pi 的认证和刷新由 Pi 处理，知行不读取认证文件。若提示登录失效，可在有系统 Pi 的开发环境运行 `./scripts/pi-safe.sh`，在 Pi 中执行 `/login` 并选择 OpenAI Codex，完成后重试。桌面没有内置登录向导。“已读取 Pi 模型配置”仅代表上述字段有效，不代表登录已经成功。
 
-CLI 另有 `codex-cli`，复用已安装、已登录的官方 Codex CLI，调用 `codex exec` 的只读临时会话，并传入 `--ignore-user-config`，不通过 Pi 选择模型或复用 Pi 会话。CLI 实际为该适配器配置 150 秒超时；桌面未暴露此 Provider。
+CLI 保留 `codex-cli` 作为旧路由名称，但现已映射到独立的官方 Codex Agent 执行边界。它与 `native-codex` 一样使用官方订阅执行器，不能通过旧 ModelClient 绕过隔离检查；原路由和历史记录保留。新配置建议选择 `native-codex`。桌面没有 `codex-cli` 选项。
 
 ## 联网限制、本地演示与外发范围
 
@@ -254,7 +290,7 @@ npm start -- 模型切换 tutor kimi-api --确认
 - 模型 ID 必须来自服务商文档或控制台。连接名可自由修改。界面不推测账户能用哪些模型，也不以保存成功代替真实连通。
 - 默认开启工具调用，关闭图片，不发送额外思考参数；窗口 48,000、最大输出 4,096 Token。请按服务文档设置；文本模型应关闭工具和图片。全局预算与连接上限取较小值，保留相同的上下文裁剪策略。
 - 高级选项可选择 `max_tokens` / `max_completion_tokens`，关闭不兼容的流式用量字段，并选择 OpenAI、DeepSeek、Kimi 思考参数。OpenAI 快速/均衡/深入映射 low/medium/high；DeepSeek 沿用快速关闭、均衡 low、深入 high；Kimi 为 low/high/max。
-- 目前只支持该兼容协议及 Bearer 认证，不支持只提供 Responses、Anthropic 原生 Messages 或自定义鉴权头的接口。新增相同协议的厂商只需配置；新协议本身仍需适配器开发。协议依据为 [OpenAI Chat Completions 官方参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)。
+- 新增连接已支持 Chat Completions、Responses 与 Messages 三种协议；Messages 使用其原生 API Key 请求头。不支持任意自定义鉴权协议。同协议服务商只需配置，新协议仍需适配器开发。协议依据为 [OpenAI Chat Completions 官方参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)。
 
 最多保存 20 个连接。主进程将公开定义写入桌面数据目录 `api-connections.json`，每个 Key 使用系统加密单独保存在 `api-<32 位哈希>.credential`；Key 不回填到输入框。连接身份由协议、地址、模型及兼容能力共同决定，不受名称改变影响。更换地址、模型或能力时应添加新连接并配置 Key，避免旧任务被重新指向不同端点。管理已有连接时 Key 留空表示保留，填写表示替换。
 
@@ -268,3 +304,12 @@ npm start -- 模型连接列表
 ```
 
 第一条返回实际连接 ID。随后执行 `模型添加 api-key <连接 ID>`，在隐藏输入中填写 Key，再执行 `模型切换 tutor <连接 ID> --确认`。JSON 只接受公开字段，不能放 API Key。CLI 的聊天、教学模式和桌面均通过共享长对话及工具策略处理请求。
+
+
+## 团队预算与自动思考档位（2026-09-11）
+
+“团队配置”可分别设置整题输出预算、成员思考档位及成员输出上限。默认整题仍为 16384；成员输出默认“自动分配”。声明推理与正文共享额度的 DeepSeek/Kimi 协议连接，会按可用额度选择不高于主 Agent 的自动档位：快速建议 4096、均衡建议 8192、深入建议 16384 token。分工、审查和最终回答先获得预留；两名自动成员在默认预算下采用快速档。
+
+这些数值是知行的调度建议，不是厂商保证的最低值。DeepSeek 快速关闭额外思考；Kimi K3 快速使用 low，仍会推理。提高整题预算可能提高自动档位及实际费用；显式成员档位优先，手动输出值仍受整题剩余额度与适配器上限限制。任务卡显示实际采用的档位、单次上限及预算不足提示。主 Agent 档位不自动改变。
+
+只有新建任务使用新自动策略；恢复任务保留原绑定和预算。成员策略进入 v13 会话，旧程序不能降级覆盖。未知模型能力与官方 Codex 通道保持原有档位策略。依据、复现和真实数据见[预算优化验收](evidence/team-resource-budget-20260911.md)。

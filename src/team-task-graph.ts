@@ -25,6 +25,16 @@ export function parseTaskPlan(value: unknown, members: number) {
 export function createTaskGraph(tasks: ReturnType<typeof parseTaskPlan>): TeamTask[] {
   return tasks.map(({ id, ...task }) => ({ ...task, key: id, id: randomUUID(), status: "queued", attempts: 0 }));
 }
+/** Internal wire contracts are not user deliverables. Reject obvious stage leakage before
+ * dispatch, but allow a user who is actually asking to design those protocols. This is a
+ * narrow guard, not a claim that arbitrary plan semantics have been automatically verified. */
+export function validatePlanScope(tasks: ReturnType<typeof parseTaskPlan>, question: string): void {
+  const normalized = question.replace(/\s/g, "").toLowerCase();
+  const internal = /TEAM_(?:PLAN|MEMBER|REVIEW|FOLLOWUP)|任务(?:安排|分工|计划|规划)\s*(?:的\s*)?JSON|(?:成员|审查|复核)报告\s*(?:的\s*)?(?:JSON|格式|契约)|主\s*(?:Agent|模型)\s*(?:的\s*)?最终(?:回答|输出|JSON|正文)/gi;
+  for (const task of tasks) for (const value of [task.goal, ...task.acceptance]) {
+    for (const match of value.matchAll(internal)) if (!normalized.includes(match[0].replace(/\s/g, "").toLowerCase())) throw new Error("team_plan_invalid");
+  }
+}
 /** Each wave persists dispatch intent first; dependencies and worker ownership are runtime checks. */
 export async function runTaskGraph(tasks: TeamTask[], concurrency: number, execute: (task: TeamTask) => Promise<void>, save: () => Promise<void>, signal: AbortSignal): Promise<void> {
   while (tasks.some(task => task.status === "queued")) {

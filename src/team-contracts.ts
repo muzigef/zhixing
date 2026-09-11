@@ -9,7 +9,7 @@ export type CollaborationMode = z.infer<typeof collaborationModeSchema>;
 export const memberRoleSchema = z.enum(["reasoning-checker", "material-checker", "practice-reviewer"]);
 export const teamConfigurationSchema = z.object({
   mode: collaborationModeSchema.default("single"),
-  members: z.array(z.object({ role: memberRoleSchema, provider: providerSchema.optional(), required: z.boolean().default(true), reasoning: z.enum(["quick", "balanced", "deep"]).optional(), timeoutMs: z.number().int().min(5000).max(180_000).optional(), maxOutputTokens: z.number().int().min(1024).max(8192).optional() }).strict()).min(1).max(2).default([{ role: "reasoning-checker", required: true }, { role: "material-checker", required: true }]),
+  members: z.array(z.object({ role: memberRoleSchema, provider: providerSchema.optional(), required: z.boolean().default(true), reasoning: z.enum(["quick", "balanced", "deep"]).optional(), timeoutMs: z.number().int().min(5000).max(180_000).optional(), maxOutputTokens: z.number().int().min(1024).max(16384).optional() }).strict()).min(1).max(2).default([{ role: "reasoning-checker", required: true }, { role: "material-checker", required: true }]),
   shareContext: z.boolean().default(false),
   maxConcurrency: z.number().int().min(1).max(2).default(2),
   maxModelTurns: z.number().int().min(4).max(24).default(12),
@@ -37,6 +37,13 @@ export function validateTeamBindings(mode: CollaborationMode, lead: ModelBinding
   if (mode === "mixed-model-team" && new Set([lead, ...members].map(member => member.model.toLowerCase())).size < 2) throw new Error("team_models_not_distinct");
 }
 export const memberStatusSchema = z.enum(["queued", "running", "completed", "failed", "cancelled", "interrupted"]);
+export const teamMemberResourcePolicySchema = z.object({
+  version: z.literal(1), reasoning: z.enum(["quick", "balanced", "deep"]),
+  reasoningSource: z.enum(["explicit", "inherited", "budget-aware"]),
+  maxOutputTokens: z.number().int().min(128).max(16384),
+  recommendedMinTokens: z.number().int().min(128).max(16384), budgetLimited: z.boolean(),
+}).strict();
+export type TeamMemberResourcePolicy = z.infer<typeof teamMemberResourcePolicySchema>;
 export const teamMemberSnapshotSchema = z.object({
   id: z.string().uuid(), role: memberRoleSchema, binding: modelBindingSchema,
   required: z.boolean(), status: memberStatusSchema, task: z.string().max(2000),
@@ -44,6 +51,7 @@ export const teamMemberSnapshotSchema = z.object({
   result: z.string().max(8000).optional(), error: z.string().max(300).optional(),
   report: teamReportSchema.optional(), failureCode: teamFailureSchema.optional(),
   submittedReasoning: z.string().max(32).optional(), outputTokenLimit: z.number().nonnegative().optional(),
+  resourcePolicy: teamMemberResourcePolicySchema.optional(),
   inputTokens: z.number().nonnegative().default(0), outputTokens: z.number().nonnegative().default(0),
 });
 const reviewStatusSchema = z.enum(["pending", "running", "completed", "failed", "skipped", "interrupted"]);
@@ -60,6 +68,8 @@ export const teamSnapshotSchema = z.object({
   status: z.enum(["preparing", "planning", "running", "merging", "completed", "partial", "failed", "interrupted", "not-needed"]),
   lead: modelBindingSchema, members: z.array(teamMemberSnapshotSchema).max(4),
   modelTurns: z.number().int().nonnegative(), toolCalls: z.number().int().nonnegative(),
+  nativeTasks: z.number().int().nonnegative().optional(),
+  nativeTokenLimit: z.literal("observed").optional(),
   reservedOutputTokens: z.number().int().nonnegative(),
   estimatedInputTokens: z.number().int().nonnegative(),
   inputTokens: z.number().nonnegative(), outputTokens: z.number().nonnegative(),
@@ -81,6 +91,6 @@ export const teamTaskStatusLabels = { ...memberStatusLabels, blocked: "等待前
 export const teamVerificationLabels = { unresolved: "待核查", "model-reviewed": "已逐项模型审查", "evidence-linked": "已关联实际工具依据" };
 export const memberRoleLabels: Record<z.infer<typeof memberRoleSchema>, string> = { "reasoning-checker": "推理核查", "material-checker": "事实与证据核查", "practice-reviewer": "实践与教学核查" };
 export function teamModeConfiguration(mode: CollaborationMode, lead: z.infer<typeof providerSchema>, previous?: TeamConfiguration): TeamConfiguration {
-  const defaults = (["pi-codex", "deepseek-api", "kimi-api"] as const).filter(provider => provider !== lead);
+  const defaults = (lead === "native-codex" ? ["deepseek-api", "kimi-api"] as const : ["pi-codex", "deepseek-api", "kimi-api"] as const).filter(provider => provider !== lead);
   return teamConfigurationSchema.parse({ ...previous, mode, members: (previous?.members ?? teamConfigurationSchema.parse({}).members).map((member, index) => ({ ...member, provider: member.provider ?? defaults[index] })) });
 }

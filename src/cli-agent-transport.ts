@@ -5,7 +5,7 @@ import { AgentSessionStore } from "./agent-session-store.js";
 import type { ChatSession, SendRequest } from "./agent-session-contracts.js";
 import type { ConversationSession } from "./conversation-session.js";
 import type { LearningApplication } from "./learning-application.js";
-import type { ModelClient } from "./model.js";
+import type { AgentBackend } from "./agent-executor.js";
 
 /** CLI history is a compatible projection; the shared service owns execution. */
 export class CliAgentTransport {
@@ -13,7 +13,7 @@ export class CliAgentTransport {
   private pendingResume?: string;
   private pendingSteerId?: string;
   queued = 0;
-  constructor(root: string, application: LearningApplication, client: (provider: SendRequest["provider"]) => ModelClient,
+  constructor(root: string, application: LearningApplication, client: (provider: SendRequest["provider"]) => AgentBackend,
     display: (text: string) => void,
   ) {
     this.service = new AgentService(new AgentSessionStore(new PathPolicy(root).resolveWorkspacePath("zhixing", "agent")), client, application);

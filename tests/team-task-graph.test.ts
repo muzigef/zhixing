@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTaskGraph, parseTaskPlan, runTaskGraph } from "../src/team-task-graph.js";
+import { createTaskGraph, parseTaskPlan, runTaskGraph, validatePlanScope } from "../src/team-task-graph.js";
 import { buildTeamPacket, packetMessages } from "../src/team-task-packet.js";
 
 const plan = { tasks: [
@@ -7,6 +7,19 @@ const plan = { tasks: [
   { id: "check", member: 2, goal: "核对推导", dependsOn: ["derive"], acceptance: ["验证边界"] },
 ] };
 describe("team task contracts and scheduling", () => {
+  it("rejects internal protocol checks while allowing actual user requests about protocols and final JSON fields", () => {
+    const tasks = parseTaskPlan(plan, 2);
+    tasks[0]!.acceptance = ["确认本轮只输出任务安排JSON"];
+    expect(() => validatePlanScope(tasks, "计算17乘19，返回value和explanation")).toThrow("team_plan_invalid");
+    expect(() => validatePlanScope(tasks, "请设计任务安排JSON的结构和校验规则")).not.toThrow();
+    tasks[0]!.acceptance = ["最终JSON包含value和explanation，数值可核对"];
+    expect(() => validatePlanScope(tasks, "计算17乘19，返回value和explanation")).not.toThrow();
+    tasks[0]!.acceptance = ["核对TEAM_MEMBER格式与TEAM_REVIEW保持一致"];
+    expect(() => validatePlanScope(tasks, "计算17乘19")).toThrow("team_plan_invalid");
+    tasks[0]!.acceptance = ["核对主 Agent 最终输出是否包含value"];
+    expect(() => validatePlanScope(tasks, "计算17乘19，返回value")).toThrow("team_plan_invalid");
+    expect(() => validatePlanScope(tasks, "核对这份主 Agent 最终输出：{value:323}")).not.toThrow();
+  });
   it("rejects cycles, unknown dependencies, omitted members and authority fields", () => {
     expect(() => parseTaskPlan({ tasks: [{ ...plan.tasks[0], dependsOn: ["check"] }, plan.tasks[1]] }, 2)).toThrow();
     expect(() => parseTaskPlan({ tasks: [{ ...plan.tasks[0], dependsOn: ["missing"] }, plan.tasks[1]] }, 2)).toThrow();

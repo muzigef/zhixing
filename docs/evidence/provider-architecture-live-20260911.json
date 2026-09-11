@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "date": "2026-09-11",
+  "scope": "固定合成最小连接检查，非教学质量对照",
+  "appBundleHash": "7f9354f0e452c1b1c525d2f493890ad133f561ec4f0776bee6df7ebe41a2eceb",
+  "results": [
+    {
+      "provider": "native-codex",
+      "surface": "source-official-executor",
+      "result": {
+        "live": true,
+        "provider": "native-codex",
+        "model": "gpt-6-astra",
+        "passed": true,
+        "durationMs": 8337,
+        "firstOutputMs": 5814,
+        "outputDelivery": "completed-message",
+        "usage": {
+          "inputTokens": 9499,
+          "outputTokens": 5
+        }
+      }
+    },
+    {
+      "provider": "deepseek-api",
+      "surface": "signed-app-ipc",
+      "result": {
+        "provider": "deepseek-api",
+        "ok": true,
+        "data": {
+          "model": "deepseek-v4-flash",
+          "firstTokenMs": 772,
+          "durationMs": 857
+        }
+      }
+    },
+    {
+      "provider": "kimi-api",
+      "surface": "signed-app-ipc",
+      "result": {
+        "provider": "kimi-api",
+        "ok": true,
+        "data": {
+          "model": "kimi-k3",
+          "firstTokenMs": 16535,
+          "durationMs": 16539
+        }
+      }
+    }
+  ]
+}

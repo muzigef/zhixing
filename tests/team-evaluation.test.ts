@@ -6,11 +6,32 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fixtureTeamReport, fixtureTeamReview } from "./team-fixtures.js";
+import type { AgentExecutor } from "../src/agent-executor.js";
+import { adapterCapabilities } from "../src/model-capabilities.js";
 
 it("uses the standard even-sample median while retaining failed runs in the count", () => {
   const row = (durationMs: number, completed: boolean): EvaluationRow => ({ caseId: "D01", repeat: 1, arm: "single-pi", completed, durationMs, firstTokenMs: null, text: "", turns: [], requests: [], grade: { parsed: true, fields: { value: true }, score: 1, correct: true, explanationPresent: true } });
   const group = summarizeTeamEvaluation([row(10, true), row(30, false)])[0]!;
   expect(group).toMatchObject({ count: 2, completed: 1, fullySuccessful: 1, medianMs: 20, p95Ms: 30 });
+});
+it("evaluates native Codex instead of Pi without falsely labeling completed messages as first tokens", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "native-evaluation-test-"));
+  const providers: string[] = [];
+  const client: AgentExecutor = { kind: "agent-executor", identity: { provider: "native-codex", model: "gpt-test", connection: "native-codex" }, capabilities: adapterCapabilities(false, "unknown"), async prepare() {}, async execute(request, _signal, onText) {
+    const system = request.messages.filter(item => item.role === "system").map(item => item.content).join("\n");
+    const text = system.includes("TEAM_PLAN") ? '{"tasks":["计算","边界"]}' : system.includes("TEAM_MEMBER") ? fixtureTeamReport : system.includes("TEAM_REVIEW") ? fixtureTeamReview : '{"value":323,"explanation":"固定合成回答，仅用于验证评测通道和时间记录是否诚实。"}';
+    onText?.(text); return { text, status: "completed", verification: "unverified", runtimeTurns: 1, usage: { inputTokens: 10, outputTokens: 20 } };
+  } };
+  try {
+    const result = await evaluateTeams({ root, suite: "pilot", leadProvider: "native-codex", resolve: provider => { providers.push(provider); return { ...client, identity: { provider, model: provider, connection: provider } }; }, signal: new AbortController().signal });
+    expect(providers).toEqual(["native-codex", "deepseek-api", "kimi-api"]);
+    expect(result.rows).toHaveLength(12);
+    expect(result.rows.some(row => row.arm.includes("pi"))).toBe(false);
+    const single = result.rows.find(row => row.arm === "single-codex")!;
+    expect(single.firstTokenMs).toBeNull(); expect(single.firstOutputMs).toBeTypeOf("number");
+    expect(single.requests[0]).toMatchObject({ transport: "native-task", outputLimit: "observed" });
+    expect(result.comparisons.every(item => item.against === "single-codex")).toBe(true);
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 
 it("scores numerical, ordering and source constraints without treating zero as 1e-9 or source order as evidence quality", () => {
@@ -43,7 +64,7 @@ it("records review requests and matches the normal five-request team with a five
   try {
     const result = await evaluateTeams({ root, suite: "regression", resolve: provider => ({ ...client, identity: { provider, model: provider, connection: provider } }), signal: new AbortController().signal });
     expect(result.rows).toHaveLength(8);
-    expect(result.version).toBe(4); expect(result.teamProtocol).toBe(3);
+    expect(result.version).toBe(6); expect(result.teamProtocol).toBe(3);
     expect(result.memberReasoning).toEqual({ "pi-codex": "balanced", "deepseek-api": "balanced", "kimi-api": "balanced" });
     for (const member of result.rows.flatMap(row => row.turns.flatMap(turn => turn.team?.members ?? []))) expect(member.binding.reasoning).toBe(result.memberReasoning[member.binding.provider]);
     expect(result.rows.find(row => row.arm === "self-review-pi")?.turns).toHaveLength(5);
@@ -67,5 +88,19 @@ it("records safe report schema diagnostics for synthetic member requests without
     expect(members.length).toBeGreaterThan(0);
     expect(members.every(request => request.reportIssue?.includes("claims.0.value"))).toBe(true);
     expect(JSON.stringify(result)).not.toContain("PRIVATE_REJECTED_REPORT");
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
+
+it("reports actual auto-selected member effort instead of the lead's initial binding", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "team-evaluation-effort-"));
+  const client: ModelClient = { capabilities: { ...adapterCapabilities(true, "configurable"), reasoningBudget: "shared-output" }, async *stream(_prompt, _signal, options) {
+    const phase = options?.messages?.find(item => item.role === "system" && /^TEAM_/.test(item.content))?.content;
+    yield { type: "text_delta", text: phase?.startsWith("TEAM_PLAN") ? '{"tasks":["计算","检查"]}' : phase?.startsWith("TEAM_MEMBER") ? fixtureTeamReport : phase?.startsWith("TEAM_REVIEW") ? fixtureTeamReview : '{"value":323,"explanation":"固定合成回答，只验证评测元数据与真实请求档位一致。"}' };
+    yield { type: "usage", usage: { inputTokens: 10, outputTokens: 20 } }; yield { type: "done" };
+  } };
+  try {
+    const result = await evaluateTeams({ root, suite: "pilot", resolve: provider => ({ ...client, identity: { provider, model: provider, connection: provider } }), signal: new AbortController().signal });
+    expect(result.memberReasoning).toEqual({ "pi-codex": "quick", "deepseek-api": "quick", "kimi-api": "quick" });
+    expect(result.rows.flatMap(row => row.requests).filter(r => r.phase === "member").every(r => r.requestedReasoning === "quick")).toBe(true);
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });

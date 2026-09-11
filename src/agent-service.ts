@@ -1,4 +1,5 @@
 import { retryableTask } from "./team-task-graph.js";
+import { executeAgent, isAgentExecutor, type AgentBackend } from "./agent-executor.js";
 import { imageDataUrl } from "./image-input.js";
 import { capabilitiesFor } from "./model-capabilities.js";
 import { prepareDialogue } from "./agent-dialogue.js";
@@ -9,7 +10,6 @@ import { restrictedStudy } from "./outcome-contracts.js";
 import { accessSelection, bindPermissions, retainGrants, writePermission, type AccessSelection } from "./agent-permissions.js";
 import { McpSettings } from "./mcp-settings.js";
 import { randomUUID } from "node:crypto";
-import type { ModelClient } from "./model.js";
 import { planConversationSummary } from "./conversation-summary.js";
 import { excerpt } from "./conversation-context.js";
 import type { LearningApplication } from "./learning-application.js";
@@ -62,7 +62,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
   private interactionController?: AbortController;
   constructor(
     readonly store: Store,
-    private readonly client: (provider: SendRequest["provider"]) => ModelClient,
+    private readonly client: (provider: SendRequest["provider"]) => AgentBackend,
     readonly learning?: LearningApplication,
   ) {}
   /** Blocking adapter over the exact same send path. Observers cannot supply model inputs. */
@@ -561,20 +561,20 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     const session = await this.load(id);
     return `# ${session.title}\n\n${session.messages.map((message) => `## ${message.role === "user" ? "你" : "知行"}\n\n${message.text}${message.images?.map(image => `\n\n![${image.name.replace(/[[\]]/g, "")}](${imageDataUrl(image)})`).join("") ?? ""}${message.error ? `\n\n> ${message.error}` : ""}${message.status === "interrupted" ? "\n\n> 已停止生成" : ""}`).join("\n\n")}\n`;
   }
-  private async compact(session: ChatSession, client: ModelClient, provider: SendRequest["provider"], signal: AbortSignal): Promise<void> {
+  private async compact(session: ChatSession, client: AgentBackend, provider: SendRequest["provider"], signal: AbortSignal): Promise<void> {
     const plan = planConversationSummary(session);
     if (!plan) return;
     session.context ??= { goal: "", notes: "" };
     session.context.lastAttemptId = session.messages.at(-3)!.id;
     session.context.summaryAttemptFailed = true;
     try {
-      const result = await collectInvocation(providerRuntime(provider, client), {
+      const result = isAgentExecutor(client) ? await executeAgent(client, { prompt: plan.prompt, maxOutputChars: 4000 }, AbortSignal.any([signal, AbortSignal.timeout(20_000)])) : await collectInvocation(providerRuntime(provider, client), {
         role: "tutor", providerId: provider,
         prompt: plan.prompt,
         containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true,
         limits: { maxTurns: 1, maxOutputChars: 4000, timeoutMs: 20_000 },
       }, signal);
-      if (!result.partial && result.text.trim()) {
+      if (!("partial" in result && result.partial) && result.text.trim()) {
         session.context!.summary = result.text;
         session.context!.summaryThroughId = plan.throughId;
         session.context!.summarySourceHash = plan.sourceHash;
@@ -582,7 +582,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       }
     } catch (error) { if (signal.aborted) throw error; /* Bounded original excerpts remain available if optional compaction fails. */ }
   }
-  private async generate(session: ChatSession, request: SendRequest, controller: AbortController, client: ModelClient, observer?: AgentObserver, releaseSession?: () => void): Promise<void> {
+  private async generate(session: ChatSession, request: SendRequest, controller: AbortController, client: AgentBackend, observer?: AgentObserver, releaseSession?: () => void): Promise<void> {
     const message = session.messages.at(-1)!;
     const started = Date.now();
     let savedAt = started;
@@ -607,13 +607,14 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       if (collaboration.mode !== "single") {
         if (session.study) throw new Error("team_study_unavailable");
         const previous = request.resumeTaskId ? session.messages.slice(0, -2).findLast(item => item.taskId === message.taskId && item.steerId === message.steerId)?.team : undefined;
-        this.activeTeam = await TeamCoordinator.create({ config: collaboration, provider: request.provider, resolve: this.client, reasoning: message.reasoning ?? "balanced", question: request.text, images: request.images, retryTaskId: request.retryTeamTaskId,
+        this.activeTeam = await TeamCoordinator.create({ config: collaboration, provider: request.provider, resolve: provider => this.client(provider), reasoning: message.reasoning ?? "balanced", question: request.text, images: request.images, retryTaskId: request.retryTeamTaskId,
           scope: { sessionId: session.id, topicId: session.topicId, permissions: session.permissions, contextAllowed: session.contextAllowed }, previous,
           save: async team => { message.team = team; await this.store.save(session); this.patch(session, { team }); },
         }, signal);
       }
       const taskClient = this.activeTeam?.client ?? client;
       const dialogue = restrictedStudy(session.study) ? { messages: [] } : await prepareDialogue(this.learning, session, request, async prompt => {
+        if (isAgentExecutor(taskClient)) return (await executeAgent(taskClient, { prompt, maxOutputChars: 2000 }, signal)).text;
         const result = await collectInvocation(providerRuntime(request.provider, taskClient), { role: "tutor", providerId: request.provider, prompt,
           containsUserMaterials: true, confirmed: true, allowFallback: false, requireDone: true, limits: { maxTurns: 1, maxOutputChars: 2000 }, onAudit: observer?.onAudit }, signal);
         if (result.partial) throw new Error("provider_incomplete");
@@ -686,9 +687,10 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       message.status = result.waiting ? "waiting" : result.blocked ? "blocked" : "completed";
       if (result.waiting || result.blocked) session.queuePaused = true;
     } catch (error) {
-      message.status = controller.signal.aborted ? "interrupted" : "failed";
+      const cancellationUnknown = error instanceof Error && error.message === "native_cancel_unconfirmed";
+      message.status = cancellationUnknown ? "blocked" : controller.signal.aborted ? "interrupted" : "failed";
       try { await this.activeTeam?.settleFailure(signal); } catch { mayDrain = false; }
-      if (message.status === "failed") {
+      if (message.status === "failed" || cancellationUnknown) {
         message.error = timeout.aborted ? "等待回答超时，请重试。" : publicError(error);
         session.queuePaused = true;
       }

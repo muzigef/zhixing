@@ -1,4 +1,6 @@
+import { nativeRuntimeCatalog } from "../../src/native-runtime-catalog.js";
 import { ApiConnections } from "../../src/api-connections.js";
+import { nativeBackend } from "../../src/native-agent.js";
 import { evaluateTeams, type EvaluationProgress } from "../../src/team-evaluation.js";
 import os from "node:os";
 import { isCustomProvider, type ApiConnection, type CustomProvider } from "../../src/api-connection-config.js";
@@ -83,6 +85,12 @@ function apiModel(provider: "deepseek-api" | "kimi-api" | CustomProvider) {
   return createAgentModel(provider, { pi, secrets: secretsFor(provider), connection: connectionProfiles.find(item => item.id === provider), fetcher: (url, options) => net.fetch(url, options), deepseekModel, contextBudget });
 }
 let deepseekModel = "deepseek-v4-flash";
+let nativeClaudeExecutable: string | undefined;
+let nativeCodexExecutable: string | undefined;
+let nativeCodexModel: string | undefined;
+function nativeSettingsEnvironment(): NodeJS.ProcessEnv {
+  return { ...process.env, ...(nativeClaudeExecutable ? { ZHIXING_CLAUDE_EXECUTABLE: nativeClaudeExecutable } : {}), ...(nativeCodexExecutable ? { ZHIXING_CODEX_EXECUTABLE: nativeCodexExecutable } : {}), ...(nativeCodexModel ? { ZHIXING_CODEX_MODEL: nativeCodexModel } : {}) };
+}
 let semanticModel = "";
 let contextBudget: ContextBudget | undefined;
 let quitting = false;
@@ -109,6 +117,8 @@ function connectService(store: DesktopStore): void {
   if (Notification.isSupported()) reminderScheduler.start();
   learning.configureSemantic(semanticModel);
   service = new DesktopService(store, provider => {
+    const native = nativeBackend(provider, nativeSettingsEnvironment(), contextBudget);
+    if (native) return native;
     if (provider === "demo") return withModelBudget(new DesktopDemoClient(), contextBudget);
     if (provider === "pi-codex") return createAgentModel(provider, { pi, secrets, contextBudget });
     if (provider === "deepseek-api" || provider === "kimi-api" || isCustomProvider(provider)) return apiModel(provider);
@@ -230,6 +240,9 @@ else {
       deepseekModel = (await store.settings()).deepseekModel;
       semanticModel = (await store.settings()).semanticModel ?? "";
       contextBudget = (await store.settings()).contextBudget;
+      nativeClaudeExecutable = (await store.settings()).nativeClaudeExecutable;
+      nativeCodexExecutable = (await store.settings()).nativeCodexExecutable;
+      nativeCodexModel = (await store.settings()).nativeCodexModel;
       learning = await LearningApplication.open(await store.workspace() ?? path.join(root, "workspace"), resources);
       connectService(store);
       protocol.handle("zhixing", (request) => {
@@ -257,6 +270,9 @@ else {
           if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "configure-kimi", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
+            case "native-agent-status":
+              data = await Promise.all(nativeRuntimeCatalog.map(entry => nativeBackend(entry.provider, nativeSettingsEnvironment())!.status(new AbortController().signal)));
+              break;
             case "reminder-status":
             case "reminder-save": {
               learning.registry.get(command.topicId); const reminders = new ReminderStore(learning.paths);
@@ -542,6 +558,9 @@ else {
               deepseekModel = command.settings.deepseekModel;
               semanticModel = command.settings.semanticModel ?? "";
               contextBudget = command.settings.contextBudget;
+              nativeClaudeExecutable = command.settings.nativeClaudeExecutable;
+              nativeCodexExecutable = command.settings.nativeCodexExecutable;
+              nativeCodexModel = command.settings.nativeCodexModel;
               learning.configureSemantic(semanticModel);
               data = await boot();
               break;
@@ -590,7 +609,7 @@ else {
               try {
                 const evaluationRoot = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-evaluation-"));
                 const provenance = await learning.provenance();
-                evaluationIdle = evaluateTeams({ root: evaluationRoot, suite: command.suite, resolve: provider => provider === "pi-codex" ? createAgentModel(provider, { pi, secrets, contextBudget }) : provider === "deepseek-api" || provider === "kimi-api" ? apiModel(provider) : (() => { throw new Error("provider_not_found"); })(), signal: evaluationController.signal, onProgress: value => { evaluationProgress = value; } });
+                evaluationIdle = evaluateTeams({ root: evaluationRoot, suite: command.suite, leadProvider: command.leadProvider, resolve: provider => provider === "native-codex" ? nativeBackend(provider, nativeSettingsEnvironment(), contextBudget)! : provider === "pi-codex" ? createAgentModel(provider, { pi, secrets, contextBudget }) : provider === "deepseek-api" || provider === "kimi-api" ? apiModel(provider) : (() => { throw new Error("provider_not_found"); })(), signal: evaluationController.signal, onProgress: value => { evaluationProgress = value; } });
                 data = { ...await evaluationIdle as object, provenance };
               } finally { checkingApi = false; evaluationController = undefined; }
               break;

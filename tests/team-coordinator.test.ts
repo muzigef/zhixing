@@ -4,6 +4,8 @@ import { teamConfigurationSchema, type TeamSnapshot } from "../src/team-contract
 import type { ModelClient, ModelMessage } from "../src/model.js";
 import { randomUUID } from "node:crypto";
 import { fixtureTeamReport, fixtureTeamReview } from "./team-fixtures.js";
+import type { AgentBackend, AgentExecutor } from "../src/agent-executor.js";
+import { adapterCapabilities } from "../src/model-capabilities.js";
 
 function fixture(fail = false) {
   const seen: { purpose: string; messages: readonly ModelMessage[] }[] = []; const saved: TeamSnapshot[] = [];
@@ -17,6 +19,38 @@ function fixture(fail = false) {
   return { seen, saved, resolve, options, save: async (state: TeamSnapshot) => { saved.push(structuredClone(state)); } };
 }
 describe("bounded team execution", () => {
+  it("does not dispatch a planner's internal output contract as a member acceptance criterion", async () => {
+    const f = fixture();
+    const client: ModelClient = { ...f.resolve("mock"), async *stream(prompt, signal, options) {
+      if (options?.messages?.some(item => item.role === "system" && item.content.includes("TEAM_PLAN"))) {
+        yield { type: "text_delta", text: JSON.stringify({ tasks: [{ id: "solve", member: 1, goal: "计算17乘19", dependsOn: [], acceptance: ["结果可核对"] }, { id: "check", member: 2, goal: "检查条件", dependsOn: [], acceptance: ["确认本轮只输出任务安排JSON"] }] }) }; yield { type: "done" }; return;
+      }
+      yield* f.resolve("mock").stream(prompt, signal, options);
+    } };
+    const team = await TeamCoordinator.create({ config: teamConfigurationSchema.parse({ mode: "same-model-team" }), provider: "mock", resolve: () => client, reasoning: "balanced", scope: "scope", question: "计算17乘19，返回value和explanation。", save: f.save }, new AbortController().signal);
+    await team.run(f.options, new AbortController().signal);
+    expect(team.snapshot.planning).toBe("fallback");
+    expect(team.snapshot.status).toBe("completed");
+    for (const call of f.seen.filter(call => call.purpose === "member")) expect(JSON.stringify(call.messages)).not.toContain("确认本轮只输出任务安排JSON");
+  });
+  it.each(["same-model-team", "mixed-model-team"] as const)("runs %s with a native lead through shared planning, members, review and answer without model-client masquerading", async mode => {
+    const f = fixture();
+    const native: AgentExecutor = { kind: "agent-executor", identity: { provider: "native-codex", model: "gpt-test", connection: "native-codex" }, capabilities: adapterCapabilities(false, "unknown"), async prepare() {}, async execute(request, signal, onText) {
+      let text = "";
+      for await (const event of f.resolve("mock").stream("", signal, { messages: request.messages })) if (event.type === "text_delta") text += event.text;
+      onText?.(text); return { text, status: "completed", verification: "unverified", runtimeTurns: 1, usage: { inputTokens: 100, outputTokens: 50 } };
+    } };
+    const resolve = (provider: string): AgentBackend => provider === "native-codex" ? native : f.resolve("demo");
+    const team = await TeamCoordinator.create({ config: teamConfigurationSchema.parse({ mode, members: [{ role: "reasoning-checker", provider: "demo" }, { role: "material-checker", provider: "demo" }] }), provider: "native-codex", resolve, reasoning: "balanced", scope: "scope", question: f.options.question, save: f.save }, new AbortController().signal);
+    const result = await team.run({ ...f.options, providerId: "native-codex", client: native }, new AbortController().signal);
+    expect(result.blocked).toBeUndefined(); expect(team.snapshot.status).toBe("completed");
+    expect(team.snapshot.nativeTasks).toBe(mode === "same-model-team" ? 5 : 3);
+    expect(team.snapshot.modelTurns).toBe(mode === "same-model-team" ? 0 : 2);
+    expect(team.snapshot.unknownUsageRequests).toBe(0);
+    expect(team.snapshot.members.every(member => member.status === "completed")).toBe(true);
+    for (const item of f.seen.filter(item => item.purpose === "member")) { expect(JSON.stringify(item.messages)).not.toContain("SECRET"); expect(JSON.stringify(item.messages)).not.toContain("MEMBER_RESULT"); }
+    expect(f.seen.at(-1)?.messages.some(item => item.role === "observation" && item.content.includes("MEMBER_RESULT"))).toBe(true);
+  });
   it("executes structured dependencies through the shared runtime with one consistent authorized packet", async () => {
     const f = fixture(); const signal = new AbortController().signal;
     const client: ModelClient = { ...f.resolve("mock"), async *stream(prompt, requestSignal, options) {

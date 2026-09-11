@@ -1,3 +1,4 @@
+import { nativeProviderSchema } from "../../src/native-runtime-catalog.js";
 import { apiConnectionInputSchema, type ApiConnection, customProviderSchema } from "../../src/api-connection-config.js";
 import { accessSelectionSchema } from "../../src/agent-permissions.js";
 import { projectEditSchema, projectPathSchema } from "../../src/practice-projects.js";
@@ -12,10 +13,13 @@ import { recoveryReportSchema } from "../../src/task-continuity.js";
 import { contextBudgetSchema } from "../../src/model-capabilities.js";
 import { teamConfigurationSchema } from "../../src/team-contracts.js";
 
-export const providerSchema = z.union([customProviderSchema, z.enum(["pi-codex", "deepseek-api", "kimi-api", "demo"])]);
+export const providerSchema = z.union([customProviderSchema, nativeProviderSchema, z.enum(["pi-codex", "deepseek-api", "kimi-api", "demo"])]);
 export const styleSchema = z.enum(["concise", "adaptive", "detailed"]);
 export const reasoningSchema = z.enum(["auto", "quick", "balanced", "deep"]);
 export const settingsSchema = z.object({
+  nativeClaudeExecutable: z.string().trim().min(1).max(2048).refine(value => !/[\r\n\0]/.test(value)).optional(),
+  nativeCodexExecutable: z.string().trim().min(1).max(2048).refine(value => !/[\r\n\0]/.test(value)).optional(),
+  nativeCodexModel: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/).refine(value => value !== "auto").optional(),
   collaboration: teamConfigurationSchema.optional(),
   contextBudget: contextBudgetSchema.optional(),
   provider: providerSchema.default("pi-codex"),
@@ -35,7 +39,8 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("team-evaluate"), suite: z.enum(["pilot", "holdout", "regression", "quality"]) }).strict(),
+  z.object({ type: z.literal("native-agent-status") }).strict(),
+  z.object({ type: z.literal("team-evaluate"), leadProvider: z.enum(["pi-codex", "native-codex"]).optional(), suite: z.enum(["pilot", "holdout", "regression", "quality"]) }).strict(),
   z.object({ type: z.literal("team-evaluation-status") }).strict(),
   z.object({ type: z.literal("team-stop-member"), sessionId: z.string().uuid(), memberId: z.string().uuid() }).strict(),
   z.object({ type: z.literal("reminder-status"), topicId: topicIdSchema }),

@@ -1,0 +1,2396 @@
+{
+  "version": 5,
+  "leadProvider": "native-codex",
+  "teamProtocol": 3,
+  "suite": "pilot",
+  "startedAt": "2026-09-10T15:44:57.767Z",
+  "finishedAt": "2026-09-10T15:50:27.743Z",
+  "planned": 12,
+  "datasetHash": "fc48209ef70342c6f55bf17b81d7b87a27c6f808c3061dc96d9cf4f1a4b2fb4c",
+  "bindings": [
+    {
+      "provider": "native-codex",
+      "model": "gpt-6-astra",
+      "connection": "native-codex",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "deepseek-api",
+      "model": "deepseek-v4-flash",
+      "connection": "https://api.deepseek.com/v1/chat/completions",
+      "reasoning": "balanced"
+    },
+    {
+      "provider": "kimi-api",
+      "model": "kimi-k3",
+      "connection": "https://api.moonshot.cn/v1/chat/completions",
+      "reasoning": "balanced"
+    }
+  ],
+  "unavailable": {},
+  "reasoning": "balanced",
+  "memberReasoning": {
+    "native-codex": "balanced",
+    "deepseek-api": "balanced",
+    "kimi-api": "balanced"
+  },
+  "rows": [
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": true,
+      "durationMs": 86623,
+      "firstTokenMs": null,
+      "firstOutputMs": 78692,
+      "text": "{\"value\":323,\"explanation\":\"把19看作20减1，先算20个17得到340，再减去一个17，得到323。注意：少的是一个17，所以应减去17，而不是减去1。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "same-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 180000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 240000
+          },
+          "team": {
+            "id": "2ace2e2c-6c45-4f1c-8063-e00a83f360f1",
+            "mode": "same-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "native-codex",
+              "model": "gpt-6-astra",
+              "connection": "native-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "8a459826-2683-4d76-9ba3-12db3e5ee302",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "native-codex",
+                  "model": "gpt-6-astra",
+                  "connection": "native-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "仅依据题设推导17×19的结果，说明可供初学者理解的计算步骤及容易出错之处。",
+                "attempts": 1,
+                "durationMs": 20794,
+                "result": "{\"summary\":\"乘积为323；拆分计算正确，减去的应是一个17而不是1。\",\"claims\":[{\"key\":\"value\",\"value\":\"323\",\"basis\":\"$$\\n17\\\\times19=17\\\\times(20-1)=340-17=323\\n$$\\n先算20个17得到340，再减去1个17，得到19个17，即323。\"},{\"key\":\"explanation\",\"value\":\"把19看作20减1，先计算17乘20，再减去17；不能只减去1。\",\"basis\":\"乘法对减法的分配律要求17同时乘括号中的20和1，因此减去的是17乘1，即17。若算成340减1，会错误地得到339。\"}],\"uncertainties\":[]}",
+                "report": {
+                  "summary": "乘积为323；拆分计算正确，减去的应是一个17而不是1。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "$$\n17\\times19=17\\times(20-1)=340-17=323\n$$\n先算20个17得到340，再减去1个17，得到19个17，即323。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "把19看作20减1，先计算17乘20，再减去17；不能只减去1。",
+                      "basis": "乘法对减法的分配律要求17同时乘括号中的20和1，因此减去的是17乘1，即17。若算成340减1，会错误地得到339。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "inputTokens": 10079,
+                "outputTokens": 171
+              },
+              {
+                "id": "299023cc-9479-4c15-9dea-aa497b1e35bc",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "native-codex",
+                  "model": "gpt-6-astra",
+                  "connection": "native-codex",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "只读核查原始题目要求，明确计算结果与中文解释的交付要点，不执行外部操作。",
+                "attempts": 1,
+                "durationMs": 21176,
+                "result": "{\"summary\":\"题目可直接算得整数323；原始交付须包含value及中文explanation，无需外部资料。\",\"claims\":[{\"key\":\"value\",\"value\":\"323\",\"basis\":\"17×19＝17×(20－1)＝340－17＝323。\"},{\"key\":\"原始回答字段\",\"value\":\"只输出一个JSON对象，包含value字段和explanation字符串。\",\"basis\":\"原文要求“返回 value”，并要求“只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串”。\"},{\"key\":\"数值精度\",\"value\":\"结果为整数，不适用非整数至少12位有效数字的要求。\",\"basis\":\"323是整数；原文精度条件明确限定为“非整数数值”。\"},{\"key\":\"explanation\",\"value\":\"应以中文解释关键计算步骤，并提醒展开乘法时应减去17而不是减去1。\",\"basis\":\"原文要求面向初学者解释关键步骤和容易出错的地方；将19写成20－1后，17须分别乘20和1，因此为340－17。\"},{\"key\":\"外部工具或外部资料\",\"value\":\"无需且不得使用。\",\"basis\":\"原文明确禁止外部工具和外部资料；题目提供的两个整数足以通过算术推导核对答案。\"}],\"uncertainties\":[]}",
+                "report": {
+                  "summary": "题目可直接算得整数323；原始交付须包含value及中文explanation，无需外部资料。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "17×19＝17×(20－1)＝340－17＝323。"
+                    },
+                    {
+                      "key": "原始回答字段",
+                      "value": "只输出一个JSON对象，包含value字段和explanation字符串。",
+                      "basis": "原文要求“返回 value”，并要求“只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串”。"
+                    },
+                    {
+                      "key": "数值精度",
+                      "value": "结果为整数，不适用非整数至少12位有效数字的要求。",
+                      "basis": "323是整数；原文精度条件明确限定为“非整数数值”。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "应以中文解释关键计算步骤，并提醒展开乘法时应减去17而不是减去1。",
+                      "basis": "原文要求面向初学者解释关键步骤和容易出错的地方；将19写成20－1后，17须分别乘20和1，因此为340－17。"
+                    },
+                    {
+                      "key": "外部工具或外部资料",
+                      "value": "无需且不得使用。",
+                      "basis": "原文明确禁止外部工具和外部资料；题目提供的两个整数足以通过算术推导核对答案。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "inputTokens": 10121,
+                "outputTokens": 298
+              }
+            ],
+            "modelTurns": 0,
+            "toolCalls": 0,
+            "nativeTasks": 5,
+            "nativeTokenLimit": "observed",
+            "reservedOutputTokens": 1251,
+            "estimatedInputTokens": 16152,
+            "inputTokens": 54557,
+            "outputTokens": 1251,
+            "unknownUsageRequests": 0,
+            "configHash": "50c0db6e1c356752d4e087825b4abeb5540e4f0108303a4896b5960a7a2b9a00",
+            "scopeHash": "0d05aaea9f6fc988f3aafd15a5026c59d8fefdb4ece081846e6ab7f9751d1412",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed",
+            "preparationMs": 41,
+            "connections": [
+              {
+                "provider": "native-codex",
+                "status": "ready",
+                "durationMs": 38
+              }
+            ],
+            "protocol": 3,
+            "review": {
+              "status": "completed",
+              "verdict": "ready",
+              "issues": [],
+              "guidance": "独立核算确认乘积为323。两份报告的解释一致且正确：先算20个17，再减去1个17，不能只减去1。最终交付应包含value及中文explanation字符串；结果为整数，不适用非整数有效数字要求。无需外部资料。",
+              "durationMs": 27627,
+              "checks": [
+                {
+                  "task": "derive",
+                  "criterion": 0,
+                  "status": "supported",
+                  "claimKeys": [
+                    "value"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "按分配律核算：$17×19=17×(20−1)=340−17=323$，即先求20个17，再减去一个17；报告数值与步骤正确。"
+                },
+                {
+                  "task": "derive",
+                  "criterion": 1,
+                  "status": "supported",
+                  "claimKeys": [
+                    "explanation"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "19比20少1，所求乘积应比20个17少一个17；报告明确指出减去17而不是1。"
+                },
+                {
+                  "task": "check_material",
+                  "criterion": 0,
+                  "status": "supported",
+                  "claimKeys": [
+                    "原始回答字段"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "提供的原始对话明确要求返回value，并只输出包含explanation字符串的JSON对象，解释使用中文。"
+                },
+                {
+                  "task": "check_material",
+                  "criterion": 1,
+                  "status": "supported",
+                  "claimKeys": [
+                    "数值精度",
+                    "value"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "独立核算结果323为整数；原始对话的至少12位有效数字条件仅针对非整数。"
+                },
+                {
+                  "task": "check_material",
+                  "criterion": 2,
+                  "status": "supported",
+                  "claimKeys": [
+                    "explanation",
+                    "外部工具或外部资料"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "原始对话要求中文说明关键步骤和易错点，并禁止外部工具或资料。报告所建议的拆分计算及减去一个17的提醒满足教学要求，题设足以直接核算。"
+                }
+              ]
+            },
+            "packet": {
+              "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+              "history": [],
+              "truncated": false,
+              "hash": "7c7d129eb23634365af14b1dbb8dc6819b2b69154706bf077d5284d390cacd06"
+            },
+            "tasks": [
+              {
+                "member": 1,
+                "goal": "仅依据题设推导17×19的结果，说明可供初学者理解的计算步骤及容易出错之处。",
+                "dependsOn": [],
+                "acceptance": [
+                  "给出乘积323，并用17×(20−1)=340−17=323说明计算过程。",
+                  "解释拆分19后应减去一个17，而不是减去1。"
+                ],
+                "id": "3a63a58b-96c8-4281-8b00-af504fd8147b",
+                "key": "derive",
+                "status": "completed",
+                "attempts": 1,
+                "executionId": "23f429cc-ed94-44bb-8f7e-3dd3e2fc26d6",
+                "report": {
+                  "summary": "乘积为323；拆分计算正确，减去的应是一个17而不是1。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "$$\n17\\times19=17\\times(20-1)=340-17=323\n$$\n先算20个17得到340，再减去1个17，得到19个17，即323。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "把19看作20减1，先计算17乘20，再减去17；不能只减去1。",
+                      "basis": "乘法对减法的分配律要求17同时乘括号中的20和1，因此减去的是17乘1，即17。若算成340减1，会错误地得到339。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "durationMs": 20794,
+                "runs": [
+                  {
+                    "executionId": "23f429cc-ed94-44bb-8f7e-3dd3e2fc26d6",
+                    "status": "completed"
+                  }
+                ]
+              },
+              {
+                "member": 2,
+                "goal": "只读核查原始题目要求，明确计算结果与中文解释的交付要点，不执行外部操作。",
+                "dependsOn": [],
+                "acceptance": [
+                  "指出原始题目要求value字段及中文explanation字符串。",
+                  "指出结果为整数，非整数至少12位有效数字的要求不适用。",
+                  "说明中文解释应包含关键计算步骤和易错点，且无需外部资料。"
+                ],
+                "id": "cb5307eb-efb8-4d76-9017-e3757116dd87",
+                "key": "check_material",
+                "status": "completed",
+                "attempts": 1,
+                "executionId": "04a6a747-8f69-44df-81af-82890d2c5d4c",
+                "report": {
+                  "summary": "题目可直接算得整数323；原始交付须包含value及中文explanation，无需外部资料。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "17×19＝17×(20－1)＝340－17＝323。"
+                    },
+                    {
+                      "key": "原始回答字段",
+                      "value": "只输出一个JSON对象，包含value字段和explanation字符串。",
+                      "basis": "原文要求“返回 value”，并要求“只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串”。"
+                    },
+                    {
+                      "key": "数值精度",
+                      "value": "结果为整数，不适用非整数至少12位有效数字的要求。",
+                      "basis": "323是整数；原文精度条件明确限定为“非整数数值”。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "应以中文解释关键计算步骤，并提醒展开乘法时应减去17而不是减去1。",
+                      "basis": "原文要求面向初学者解释关键步骤和容易出错的地方；将19写成20－1后，17须分别乘20和1，因此为340－17。"
+                    },
+                    {
+                      "key": "外部工具或外部资料",
+                      "value": "无需且不得使用。",
+                      "basis": "原文明确禁止外部工具和外部资料；题目提供的两个整数足以通过算术推导核对答案。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "durationMs": 21176,
+                "runs": [
+                  {
+                    "executionId": "04a6a747-8f69-44df-81af-82890d2c5d4c",
+                    "status": "completed"
+                  }
+                ]
+              }
+            ],
+            "verification": {
+              "status": "model-reviewed",
+              "total": 5,
+              "covered": 5,
+              "linked": 0,
+              "issues": []
+            }
+          },
+          "id": "ab9fd4ff-adaa-48f8-9ead-723c060487db",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"把19看作20减1，先算20个17得到340，再减去一个17，得到323。注意：少的是一个17，所以应减去17，而不是减去1。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "f63d4479-0c22-4da5-b0ea-4740befa9af6",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"把19看作20减1，先算20个17得到340，再减去一个17，得到323。注意：少的是一个17，所以应减去17，而不是减去1。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:44:57.771Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 12797,
+            "outputTokens": 54
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "e7eb7163-0d2b-4c8a-8acc-f3d0dc1fe9d3",
+          "durationMs": 86615,
+          "firstTokenMs": 78692,
+          "contextUsage": {
+            "estimatedInputTokens": 7356,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 6881,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:46:24.384Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:46:24.384Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 18163,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "planning",
+          "durationMs": 19524,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 12801,
+          "usage": {
+            "inputTokens": 9861,
+            "outputTokens": 199
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "member",
+          "durationMs": 21113,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 16036,
+          "usage": {
+            "inputTokens": 10121,
+            "outputTokens": 298
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "member",
+          "durationMs": 20728,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 14114,
+          "usage": {
+            "inputTokens": 10079,
+            "outputTokens": 171
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "review",
+          "durationMs": 27575,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 24788,
+          "usage": {
+            "inputTokens": 11699,
+            "outputTokens": 529
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 17996,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 10082,
+          "usage": {
+            "inputTokens": 12797,
+            "outputTokens": 54
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": true,
+      "durationMs": 106527,
+      "firstTokenMs": null,
+      "firstOutputMs": 104134,
+      "text": "{\"value\":323,\"explanation\":\"把19看成20减1，先算17乘20得到340，再减去多算的一个17，得到323。注意应减去17，而不是只减1。\"}",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "mixed-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "provider": "deepseek-api",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "provider": "kimi-api",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 180000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 240000
+          },
+          "team": {
+            "id": "ee110e75-b73b-41b1-b4ae-5b6ee48a8dc2",
+            "mode": "mixed-model-team",
+            "status": "completed",
+            "lead": {
+              "provider": "native-codex",
+              "model": "gpt-6-astra",
+              "connection": "native-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "bd015252-232b-408b-9868-83473450035b",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "deepseek-api",
+                  "model": "deepseek-v4-flash",
+                  "connection": "https://api.deepseek.com/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "仅依据题设，独立计算17×19，给出结果及适合初学者的中文计算说明，不使用工具或外部资料。",
+                "attempts": 1,
+                "durationMs": 12072,
+                "result": "{\n  \"summary\": \"独立核算确认：17×19=323；用17×(20−1)=340−17说明计算过程正确，需减去的是1个17而非1。未发现遗漏条件、符号或单位问题。\",\n  \"claims\": [\n    {\n      \"key\": \"17×19\",\n      \"value\": \"323\",\n      \"basis\": \"17×19=17×(20−1)=17×20−17=340−17=323；也可用17×10+17×9=170+153=323交叉验证。\"\n    },\n    {\n      \"key\": \"计算过程\",\n      \"value\": \"17×(20−1)=340−17=323\",\n      \"basis\": \"19=20−1，应用乘法分配律；17×20=340。\"\n    },\n    {\n      \"key\": \"需要减去的量\",\n      \"value\": \"需要减去一个17，即17\",\n      \"basis\": \"20−19=1，所以把19当作20计算时多算了1个17；若只减1会得到339，错误。\"\n    },\n    {\n      \"key\": \"适合初学者的中文说明\",\n      \"value\": \"把19看成20−1；先算17×20=340；因为多算了一个17，所以再减17；得到323。\",\n      \"basis\": \"该说明覆盖关键步骤，并明确易错点：不能只减1。\"\n    },\n    {\n      \"key\": \"原始对话中的value要求\",\n      \"value\": \"应为整数323\",\n      \"basis\": \"题设要求计算17×19并返回value；结果323为整数，无需12位有效数字。\"\n    }\n  ],\n  \"uncertainties\": []\n}",
+                "report": {
+                  "summary": "独立核算确认：17×19=323；用17×(20−1)=340−17说明计算过程正确，需减去的是1个17而非1。未发现遗漏条件、符号或单位问题。",
+                  "claims": [
+                    {
+                      "key": "17×19",
+                      "value": "323",
+                      "basis": "17×19=17×(20−1)=17×20−17=340−17=323；也可用17×10+17×9=170+153=323交叉验证。"
+                    },
+                    {
+                      "key": "计算过程",
+                      "value": "17×(20−1)=340−17=323",
+                      "basis": "19=20−1，应用乘法分配律；17×20=340。"
+                    },
+                    {
+                      "key": "需要减去的量",
+                      "value": "需要减去一个17，即17",
+                      "basis": "20−19=1，所以把19当作20计算时多算了1个17；若只减1会得到339，错误。"
+                    },
+                    {
+                      "key": "适合初学者的中文说明",
+                      "value": "把19看成20−1；先算17×20=340；因为多算了一个17，所以再减17；得到323。",
+                      "basis": "该说明覆盖关键步骤，并明确易错点：不能只减1。"
+                    },
+                    {
+                      "key": "原始对话中的value要求",
+                      "value": "应为整数323",
+                      "basis": "题设要求计算17×19并返回value；结果323为整数，无需12位有效数字。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "submittedReasoning": "low",
+                "outputTokenLimit": 4096,
+                "inputTokens": 561,
+                "outputTokens": 2140
+              },
+              {
+                "id": "aecfed18-b0d3-4f05-be99-f8c5320752de",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "kimi-api",
+                  "model": "kimi-k3",
+                  "connection": "https://api.moonshot.cn/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "仅依据提供的原始对话，核查所需交付字段、数值精度规则与解释要求，提供核查结论，不直接交付最终答案。",
+                "attempts": 1,
+                "durationMs": 54082,
+                "result": "{\"summary\":\"原始任务只要求输出单个JSON对象：value=323（整数）和中文explanation；12位有效数字规则不适用于整数；解释须含关键步骤与易错点且不得用外部工具/资料；不应臆造额外字段。\",\"claims\":[{\"key\":\"value\",\"value\":\"323\",\"basis\":\"17×19=17×(20−1)=340−17=323；或(18−1)(18+1)=18^2−1=324−1=323，整数可核对。\"},{\"key\":\"输出结构\",\"value\":\"只输出一个JSON对象，含value字段和explanation字符串；无证据要求其他字段\",\"basis\":\"原文：'只输出一个 JSON 对象'、'返回 value'、'以及 explanation 字符串'；所谓'下面要求的字段'后未列其他字段。\"},{\"key\":\"explanation\",\"value\":\"中文字符串，说明关键计算步骤和容易出错的地方，供初学者理解，且不得省略\",\"basis\":\"原文明确：'explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。'\"},{\"key\":\"数值精度规则\",\"value\":\"非整数至少12位有效数字、可科学计数法；本题结果323为整数，该规则不适用，无需补零或科学计数\",\"basis\":\"原文条件限定'非整数数值'；17×19=323是整数，边界不在规则触发范围。\"},{\"key\":\"外部工具或资料\",\"value\":\"禁止使用；本题可凭算术完成，解释不应声称调用工具或引用资料\",\"basis\":\"原文：'不要使用外部工具或外部资料'；乘法可直接计算验证。\"},{\"key\":\"与验收点一致性\",\"value\":\"三项验收点均与原文一致：JSON字段、整数不适用精度规则、中文解释含步骤/易错且不用外部资料\",\"basis\":\"逐项对应原文短句；未发现要求value为字符串或添加多余字段的依据。\"}],\"uncertainties\":[]}",
+                "report": {
+                  "summary": "原始任务只要求输出单个JSON对象：value=323（整数）和中文explanation；12位有效数字规则不适用于整数；解释须含关键步骤与易错点且不得用外部工具/资料；不应臆造额外字段。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "17×19=17×(20−1)=340−17=323；或(18−1)(18+1)=18^2−1=324−1=323，整数可核对。"
+                    },
+                    {
+                      "key": "输出结构",
+                      "value": "只输出一个JSON对象，含value字段和explanation字符串；无证据要求其他字段",
+                      "basis": "原文：'只输出一个 JSON 对象'、'返回 value'、'以及 explanation 字符串'；所谓'下面要求的字段'后未列其他字段。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "中文字符串，说明关键计算步骤和容易出错的地方，供初学者理解，且不得省略",
+                      "basis": "原文明确：'explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。'"
+                    },
+                    {
+                      "key": "数值精度规则",
+                      "value": "非整数至少12位有效数字、可科学计数法；本题结果323为整数，该规则不适用，无需补零或科学计数",
+                      "basis": "原文条件限定'非整数数值'；17×19=323是整数，边界不在规则触发范围。"
+                    },
+                    {
+                      "key": "外部工具或资料",
+                      "value": "禁止使用；本题可凭算术完成，解释不应声称调用工具或引用资料",
+                      "basis": "原文：'不要使用外部工具或外部资料'；乘法可直接计算验证。"
+                    },
+                    {
+                      "key": "与验收点一致性",
+                      "value": "三项验收点均与原文一致：JSON字段、整数不适用精度规则、中文解释含步骤/易错且不用外部资料",
+                      "basis": "逐项对应原文短句；未发现要求value为字符串或添加多余字段的依据。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "submittedReasoning": "high",
+                "outputTokenLimit": 4096,
+                "inputTokens": 678,
+                "outputTokens": 1572
+              }
+            ],
+            "modelTurns": 2,
+            "toolCalls": 0,
+            "nativeTasks": 3,
+            "nativeTokenLimit": "observed",
+            "reservedOutputTokens": 4494,
+            "estimatedInputTokens": 18709,
+            "inputTokens": 36817,
+            "outputTokens": 4494,
+            "unknownUsageRequests": 0,
+            "configHash": "a4f6f1bf4b31079762df615c51415724a14923217f7846911f62785b32bd5fc6",
+            "scopeHash": "d00f910c59e62ab64776b5f85979a98432187e05aac68b0cb568deb89fcdcb17",
+            "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed",
+            "preparationMs": 46,
+            "connections": [
+              {
+                "provider": "native-codex",
+                "status": "ready",
+                "durationMs": 42
+              },
+              {
+                "provider": "deepseek-api",
+                "status": "ready",
+                "durationMs": 16
+              },
+              {
+                "provider": "kimi-api",
+                "status": "ready",
+                "durationMs": 2
+              }
+            ],
+            "protocol": 3,
+            "review": {
+              "status": "completed",
+              "verdict": "ready",
+              "issues": [],
+              "guidance": "两份报告均与题设相符。建议最终答案使用单个 JSON 对象，value 为整数 323，explanation 用中文说明先乘以20得到340，再减去多算的一个17得到323，强调不能只减1。整数不触发非整数至少12位有效数字的要求，无需外部工具或资料。",
+              "durationMs": 25286,
+              "checks": [
+                {
+                  "task": "derive",
+                  "criterion": 0,
+                  "status": "supported",
+                  "claimKeys": [
+                    "17×19"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "独立核算：$170+153=323$，即17乘以10与17乘以9的结果相加，确认乘积正确。"
+                },
+                {
+                  "task": "derive",
+                  "criterion": 1,
+                  "status": "supported",
+                  "claimKeys": [
+                    "计算过程",
+                    "需要减去的量"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "19比20少1，先计算20个17得到340，再减去一个17得到323；分配律应用正确，易错点解释明确。"
+                },
+                {
+                  "task": "material_check",
+                  "criterion": 0,
+                  "status": "supported",
+                  "claimKeys": [
+                    "输出结构",
+                    "explanation"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "原始对话明确要求只输出一个JSON对象，返回value并包含中文explanation字符串。"
+                },
+                {
+                  "task": "material_check",
+                  "criterion": 1,
+                  "status": "supported",
+                  "claimKeys": [
+                    "value",
+                    "数值精度规则"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "乘积323是整数；原文至少12位有效数字的要求仅针对非整数，因此不适用。"
+                },
+                {
+                  "task": "material_check",
+                  "criterion": 2,
+                  "status": "supported",
+                  "claimKeys": [
+                    "explanation",
+                    "外部工具或资料"
+                  ],
+                  "evidenceIds": [],
+                  "reason": "原文明确要求中文解释关键步骤和易错点，并禁止外部工具或资料；报告准确识别了这些约束。"
+                }
+              ]
+            },
+            "packet": {
+              "question": "计算 17×19。返回 value。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+              "history": [],
+              "truncated": false,
+              "hash": "7c7d129eb23634365af14b1dbb8dc6819b2b69154706bf077d5284d390cacd06"
+            },
+            "tasks": [
+              {
+                "member": 1,
+                "goal": "仅依据题设，独立计算17×19，给出结果及适合初学者的中文计算说明，不使用工具或外部资料。",
+                "dependsOn": [],
+                "acceptance": [
+                  "明确得出17×19=323。",
+                  "用17×(20−1)=340−17说明计算过程，并指出需要减去一个17。"
+                ],
+                "id": "64f0d576-6d8b-4ae6-9174-99c6583d5c4e",
+                "key": "derive",
+                "status": "completed",
+                "attempts": 1,
+                "executionId": "4a9e684e-71af-42fc-bde6-2d72ec96a372",
+                "report": {
+                  "summary": "独立核算确认：17×19=323；用17×(20−1)=340−17说明计算过程正确，需减去的是1个17而非1。未发现遗漏条件、符号或单位问题。",
+                  "claims": [
+                    {
+                      "key": "17×19",
+                      "value": "323",
+                      "basis": "17×19=17×(20−1)=17×20−17=340−17=323；也可用17×10+17×9=170+153=323交叉验证。"
+                    },
+                    {
+                      "key": "计算过程",
+                      "value": "17×(20−1)=340−17=323",
+                      "basis": "19=20−1，应用乘法分配律；17×20=340。"
+                    },
+                    {
+                      "key": "需要减去的量",
+                      "value": "需要减去一个17，即17",
+                      "basis": "20−19=1，所以把19当作20计算时多算了1个17；若只减1会得到339，错误。"
+                    },
+                    {
+                      "key": "适合初学者的中文说明",
+                      "value": "把19看成20−1；先算17×20=340；因为多算了一个17，所以再减17；得到323。",
+                      "basis": "该说明覆盖关键步骤，并明确易错点：不能只减1。"
+                    },
+                    {
+                      "key": "原始对话中的value要求",
+                      "value": "应为整数323",
+                      "basis": "题设要求计算17×19并返回value；结果323为整数，无需12位有效数字。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "durationMs": 12072,
+                "runs": [
+                  {
+                    "executionId": "4a9e684e-71af-42fc-bde6-2d72ec96a372",
+                    "status": "completed"
+                  }
+                ]
+              },
+              {
+                "member": 2,
+                "goal": "仅依据提供的原始对话，核查所需交付字段、数值精度规则与解释要求，提供核查结论，不直接交付最终答案。",
+                "dependsOn": [],
+                "acceptance": [
+                  "指出原始任务要求一个JSON对象，包含value字段和中文explanation字符串。",
+                  "指出结果为整数，非整数至少12位有效数字的要求不适用。",
+                  "指出解释应包含关键计算步骤及容易出错之处，且不得使用外部工具或资料。"
+                ],
+                "id": "9ec03018-8660-4f9f-b209-e545b500a3f5",
+                "key": "material_check",
+                "status": "completed",
+                "attempts": 1,
+                "executionId": "e5904fc2-9c7a-4614-9b16-7a2ddfc81f1e",
+                "report": {
+                  "summary": "原始任务只要求输出单个JSON对象：value=323（整数）和中文explanation；12位有效数字规则不适用于整数；解释须含关键步骤与易错点且不得用外部工具/资料；不应臆造额外字段。",
+                  "claims": [
+                    {
+                      "key": "value",
+                      "value": "323",
+                      "basis": "17×19=17×(20−1)=340−17=323；或(18−1)(18+1)=18^2−1=324−1=323，整数可核对。"
+                    },
+                    {
+                      "key": "输出结构",
+                      "value": "只输出一个JSON对象，含value字段和explanation字符串；无证据要求其他字段",
+                      "basis": "原文：'只输出一个 JSON 对象'、'返回 value'、'以及 explanation 字符串'；所谓'下面要求的字段'后未列其他字段。"
+                    },
+                    {
+                      "key": "explanation",
+                      "value": "中文字符串，说明关键计算步骤和容易出错的地方，供初学者理解，且不得省略",
+                      "basis": "原文明确：'explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。'"
+                    },
+                    {
+                      "key": "数值精度规则",
+                      "value": "非整数至少12位有效数字、可科学计数法；本题结果323为整数，该规则不适用，无需补零或科学计数",
+                      "basis": "原文条件限定'非整数数值'；17×19=323是整数，边界不在规则触发范围。"
+                    },
+                    {
+                      "key": "外部工具或资料",
+                      "value": "禁止使用；本题可凭算术完成，解释不应声称调用工具或引用资料",
+                      "basis": "原文：'不要使用外部工具或外部资料'；乘法可直接计算验证。"
+                    },
+                    {
+                      "key": "与验收点一致性",
+                      "value": "三项验收点均与原文一致：JSON字段、整数不适用精度规则、中文解释含步骤/易错且不用外部资料",
+                      "basis": "逐项对应原文短句；未发现要求value为字符串或添加多余字段的依据。"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "durationMs": 54082,
+                "runs": [
+                  {
+                    "executionId": "e5904fc2-9c7a-4614-9b16-7a2ddfc81f1e",
+                    "status": "completed"
+                  }
+                ]
+              }
+            ],
+            "verification": {
+              "status": "model-reviewed",
+              "total": 5,
+              "covered": 5,
+              "linked": 0,
+              "issues": []
+            }
+          },
+          "id": "400b6cd5-d44c-4798-b817-ad40e16f4549",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"把19看成20减1，先算17乘20得到340，再减去多算的一个17，得到323。注意应减去17，而不是只减1。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "968dddf2-67a4-4beb-8ae6-252498984773",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"把19看成20减1，先算17乘20得到340，再减去多算的一个17，得到323。注意应减去17，而不是只减1。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:46:24.394Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 13484,
+            "outputTokens": 51
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "3f538fe2-3a2a-43bb-9152-b6c3a8b3977a",
+          "durationMs": 106522,
+          "firstTokenMs": 104134,
+          "contextUsage": {
+            "estimatedInputTokens": 8772,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 8091,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:10.914Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:48:10.914Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 9614,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "planning",
+          "durationMs": 17418,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 14278,
+          "usage": {
+            "inputTokens": 9872,
+            "outputTokens": 214
+          }
+        },
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "member",
+          "durationMs": 12061,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "usage": {
+            "inputTokens": 561,
+            "outputTokens": 2140,
+            "cacheReadTokens": 0,
+            "reasoningTokens": 1768,
+            "model": "deepseek-v4-flash"
+          },
+          "timing": {
+            "transport": "sse",
+            "startupMs": 27,
+            "selectionMs": 0,
+            "totalMs": 12061,
+            "requestMs": 12034,
+            "firstEventMs": 1293,
+            "firstTextMs": 11029,
+            "processTailMs": 0,
+            "submittedReasoning": "low",
+            "outputTokenLimit": 4096
+          }
+        },
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "member",
+          "durationMs": 54069,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "usage": {
+            "inputTokens": 678,
+            "outputTokens": 1572,
+            "reasoningTokens": 1151,
+            "model": "kimi-k3"
+          },
+          "timing": {
+            "transport": "sse",
+            "startupMs": 1,
+            "selectionMs": 0,
+            "totalMs": 54069,
+            "requestMs": 54068,
+            "firstEventMs": 2778,
+            "firstTextMs": 43578,
+            "processTailMs": 0,
+            "submittedReasoning": "high",
+            "outputTokenLimit": 4096
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "review",
+          "durationMs": 25236,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 21927,
+          "usage": {
+            "inputTokens": 12222,
+            "outputTokens": 517
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 9551,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 7170,
+          "usage": {
+            "inputTokens": 13484,
+            "outputTokens": 51
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": true,
+      "durationMs": 2504,
+      "firstTokenMs": 1688,
+      "firstOutputMs": 1688,
+      "text": "```json\n{\n  \"value\": 323,\n  \"explanation\": \"计算 17×19 可以用凑整法：把 19 看成 20−1，于是 17×19 = 17×20 − 17×1。先算 17×20 = 340（即 17×2 = 34，再补一个 0），再用 340 − 17 = 323。另一种拆分法：17×19 = (10+7)×19 = 10×19 + 7×19 = 190 + 133 = 323。容易出错的地方：一是乘 20 后忘记减去多算的那一份 17，误写成 340；二是竖式计算中 7×9 = 63 需要进位 6，漏掉进位会得到错误结果。可用估算核对：17×19 略小于 17×20 = 340，结果 323 合理。\"\n}\n```",
+      "turns": [
+        {
+          "id": "fd230020-1df9-4dd8-a9e2-82e8b378ba9e",
+          "role": "assistant",
+          "text": "```json\n{\n  \"value\": 323,\n  \"explanation\": \"计算 17×19 可以用凑整法：把 19 看成 20−1，于是 17×19 = 17×20 − 17×1。先算 17×20 = 340（即 17×2 = 34，再补一个 0），再用 340 − 17 = 323。另一种拆分法：17×19 = (10+7)×19 = 10×19 + 7×19 = 190 + 133 = 323。容易出错的地方：一是乘 20 后忘记减去多算的那一份 17，误写成 340；二是竖式计算中 7×9 = 63 需要进位 6，漏掉进位会得到错误结果。可用估算核对：17×19 略小于 17×20 = 340，结果 323 合理。\"\n}\n```",
+          "status": "completed",
+          "items": [
+            {
+              "id": "a1e7cddf-8ddf-4700-9e1d-2ac2b989c152",
+              "kind": "final",
+              "text": "```json\n{\n  \"value\": 323,\n  \"explanation\": \"计算 17×19 可以用凑整法：把 19 看成 20−1，于是 17×19 = 17×20 − 17×1。先算 17×20 = 340（即 17×2 = 34，再补一个 0），再用 340 − 17 = 323。另一种拆分法：17×19 = (10+7)×19 = 10×19 + 7×19 = 190 + 133 = 323。容易出错的地方：一是乘 20 后忘记减去多算的那一份 17，误写成 340；二是竖式计算中 7×9 = 63 需要进位 6，漏掉进位会得到错误结果。可用估算核对：17×19 略小于 17×20 = 340，结果 323 合理。\"\n}\n```"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:10.922Z",
+          "provider": "deepseek-api",
+          "style": "adaptive",
+          "model": "deepseek-v4-flash",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1410,
+            "outputTokens": 250,
+            "cacheReadTokens": 1276,
+            "reasoningTokens": 50
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "89089711-d426-4857-90d5-275f03717f82",
+          "durationMs": 2498,
+          "firstTokenMs": 1688,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1410
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 22,
+              "requestMs": 2474,
+              "firstEventMs": 972,
+              "firstTextMs": 1665,
+              "submittedReasoning": "low",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 2496,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:13.421Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:13.421Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 2497,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "answer",
+          "durationMs": 2496,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "usage": {
+            "inputTokens": 1410,
+            "outputTokens": 250,
+            "cacheReadTokens": 1276,
+            "reasoningTokens": 50,
+            "model": "deepseek-v4-flash"
+          },
+          "timing": {
+            "transport": "sse",
+            "startupMs": 22,
+            "selectionMs": 0,
+            "totalMs": 2496,
+            "requestMs": 2474,
+            "firstEventMs": 972,
+            "firstTextMs": 1665,
+            "processTailMs": 0,
+            "submittedReasoning": "low",
+            "outputTokenLimit": 4096
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": true,
+      "durationMs": 10898,
+      "firstTokenMs": 7072,
+      "firstOutputMs": 7072,
+      "text": "{\"value\":323,\"explanation\":\"把 19 看成 20−1：17×19 = 17×(20−1) = 17×20 − 17×1 = 340 − 17 = 323。关键步骤是先凑整再减回多算的部分；容易出错的地方是分配律符号，(20−1) 展开后第二项必须是减 17，而不是加 17，另外 17×20 末尾的 0 不要丢。\"}",
+      "turns": [
+        {
+          "id": "428528ee-5f79-4456-951e-1f1a15f2bc48",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"把 19 看成 20−1：17×19 = 17×(20−1) = 17×20 − 17×1 = 340 − 17 = 323。关键步骤是先凑整再减回多算的部分；容易出错的地方是分配律符号，(20−1) 展开后第二项必须是减 17，而不是加 17，另外 17×20 末尾的 0 不要丢。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "0b2e95a5-061a-4eba-bacb-12e940908b44",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"把 19 看成 20−1：17×19 = 17×(20−1) = 17×20 − 17×1 = 340 − 17 = 323。关键步骤是先凑整再减回多算的部分；容易出错的地方是分配律符号，(20−1) 展开后第二项必须是减 17，而不是加 17，另外 17×20 末尾的 0 不要丢。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:13.429Z",
+          "provider": "kimi-api",
+          "style": "adaptive",
+          "model": "kimi-k3",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 1261,
+            "outputTokens": 228,
+            "reasoningTokens": 109
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "b382d399-b65d-4883-8c7c-9fbfbb021e70",
+          "durationMs": 10884,
+          "firstTokenMs": 7072,
+          "contextUsage": {
+            "estimatedInputTokens": 3510,
+            "reservedOutputTokens": 4096,
+            "windowTokens": 48000,
+            "chars": 2367,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1,
+            "reportedInputTokens": 1261
+          },
+          "modelTimings": [
+            {
+              "transport": "sse",
+              "startupMs": 1,
+              "requestMs": 10881,
+              "firstEventMs": 3386,
+              "firstTextMs": 7070,
+              "submittedReasoning": "high",
+              "outputTokenLimit": 4096,
+              "selectionMs": 0,
+              "totalMs": 10882,
+              "processTailMs": 0
+            }
+          ],
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:24.314Z"
+            },
+            {
+              "label": "模型请求已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:24.314Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 1,
+            "modelMs": 10882,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 1,
+            "toolCalls": 0
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "answer",
+          "durationMs": 10882,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "usage": {
+            "inputTokens": 1261,
+            "outputTokens": 228,
+            "reasoningTokens": 109,
+            "model": "kimi-k3"
+          },
+          "timing": {
+            "transport": "sse",
+            "startupMs": 1,
+            "selectionMs": 0,
+            "totalMs": 10882,
+            "requestMs": 10881,
+            "firstEventMs": 3386,
+            "firstTextMs": 7070,
+            "processTailMs": 0,
+            "submittedReasoning": "high",
+            "outputTokenLimit": 4096
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "single-codex",
+      "completed": true,
+      "durationMs": 12126,
+      "firstTokenMs": null,
+      "firstOutputMs": 8609,
+      "text": "{\"value\":323,\"explanation\":\"把19拆成20−1：17×19=17×20−17=340−17=323。注意减去的是一个17，而不是1。\"}",
+      "turns": [
+        {
+          "id": "9f3aca25-d7d6-4cff-a368-87bc1ada37b5",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"把19拆成20−1：17×19=17×20−17=340−17=323。注意减去的是一个17，而不是1。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "79d0f05e-e744-42cf-a064-9fac95264266",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"把19拆成20−1：17×19=17×20−17=340−17=323。注意减去的是一个17，而不是1。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:24.334Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 10689,
+            "outputTokens": 47
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "0fc4f321-2b26-4e7b-be48-e0a15020e23d",
+          "durationMs": 12114,
+          "firstTokenMs": 8609,
+          "contextUsage": {
+            "estimatedInputTokens": 3282,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 2005,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:36.450Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:48:36.450Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 12113,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 12049,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 8544,
+          "usage": {
+            "inputTokens": 10689,
+            "outputTokens": 47
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D01",
+      "repeat": 1,
+      "arm": "self-review-codex",
+      "completed": true,
+      "durationMs": 36937,
+      "firstTokenMs": null,
+      "firstOutputMs": 8824,
+      "text": "{\"value\":323,\"explanation\":\"重新检查：将17拆成10和7，分别乘以19，得到190和133，相加为323。上次答案的计算正确，没有遗漏条件；将19拆成20−1时，应从340中减去17，而不是减去1。结果是整数，不适用非整数至少保留12位有效数字的要求。\"}",
+      "turns": [
+        {
+          "id": "3c5d9d7d-67b2-450c-8481-6afc6c4f04ec",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"把19写成20−1：17×19=17×20−17=340−17=323。注意减去的是一个17，不是1。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "0a46e058-dea8-4627-ab2d-a9bbc4de3e8c",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"把19写成20−1：17×19=17×20−17=340−17=323。注意减去的是一个17，不是1。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:36.459Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 10690,
+            "outputTokens": 47
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "beb3af4a-1e59-4b82-87b1-7a2439dacad1",
+          "durationMs": 11800,
+          "firstTokenMs": 8824,
+          "contextUsage": {
+            "estimatedInputTokens": 3282,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 2005,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:48.260Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:48:48.260Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 11800,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        },
+        {
+          "id": "4316ed50-19e3-45f0-9215-cd4195e6eab5",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"独立复核：17×19=19×10+19×7=190+133=323，与上次答案一致。上次用19=20−1计算，17×20−17=340−17=323，也正确；注意应减去一个17，而不是1。未发现计算错误、遗漏条件或解释不清之处；结果为整数，无需补小数位。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "c056cfc7-baf8-4401-9833-5091f082ead7",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"独立复核：17×19=19×10+19×7=190+133=323，与上次答案一致。上次用19=20−1计算，17×20−17=340−17=323，也正确；注意应减去一个17，而不是1。未发现计算错误、遗漏条件或解释不清之处；结果为整数，无需补小数位。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:48.266Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 10770,
+            "outputTokens": 99
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "3a866843-42f9-4936-9445-23c3e3c836cf",
+          "durationMs": 11604,
+          "firstTokenMs": 8814,
+          "contextUsage": {
+            "estimatedInputTokens": 3423,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 2212,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:48:59.872Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:48:59.872Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 11604,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        },
+        {
+          "id": "ae3cd02d-1fdd-4bae-99b9-fe62043977fe",
+          "role": "assistant",
+          "text": "{\"value\":323,\"explanation\":\"重新检查：将17拆成10和7，分别乘以19，得到190和133，相加为323。上次答案的计算正确，没有遗漏条件；将19拆成20−1时，应从340中减去17，而不是减去1。结果是整数，不适用非整数至少保留12位有效数字的要求。\"}",
+          "status": "completed",
+          "items": [
+            {
+              "id": "d4ee1c32-8e07-419f-8e30-7d8661334cda",
+              "kind": "final",
+              "text": "{\"value\":323,\"explanation\":\"重新检查：将17拆成10和7，分别乘以19，得到190和133，相加为323。上次答案的计算正确，没有遗漏条件；将19拆成20−1时，应从340中减去17，而不是减去1。结果是整数，不适用非整数至少保留12位有效数字的要求。\"}"
+            }
+          ],
+          "createdAt": "2026-09-10T15:48:59.881Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "evidenceSupport": {
+            "method": "deterministic_checks",
+            "version": 1,
+            "claims": [],
+            "issues": [],
+            "notice": "仅检查引用定位、数值、原文引号及过强措辞；通过不代表语义蕴含、数学推导或代码正确，推断仍需复核。"
+          },
+          "usage": {
+            "inputTokens": 10924,
+            "outputTokens": 87
+          },
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "2ded4a17-05f6-471f-b430-2492356be917",
+          "durationMs": 13507,
+          "firstTokenMs": 10474,
+          "contextUsage": {
+            "estimatedInputTokens": 3753,
+            "reservedOutputTokens": 16384,
+            "windowTokens": 48000,
+            "chars": 2506,
+            "omittedMessages": 0,
+            "omittedTurns": 0,
+            "estimateMultiplier": 1
+          },
+          "activities": [
+            {
+              "label": "回答已完成",
+              "status": "completed",
+              "at": "2026-09-10T15:49:13.391Z"
+            },
+            {
+              "label": "官方 Agent 返回回答；未执行知行工具",
+              "status": "completed",
+              "at": "2026-09-10T15:49:13.391Z"
+            }
+          ],
+          "timings": {
+            "contextMs": 0,
+            "modelMs": 13507,
+            "toolMs": 0,
+            "compactionMs": 0,
+            "turns": 0,
+            "toolCalls": 0,
+            "nativeExecution": {
+              "provider": "native-codex",
+              "runtimeTurns": 1,
+              "verification": "unverified"
+            }
+          }
+        }
+      ],
+      "requests": [
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 11652,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 8676,
+          "usage": {
+            "inputTokens": 10690,
+            "outputTokens": 47
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 11555,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 8765,
+          "usage": {
+            "inputTokens": 10770,
+            "outputTokens": 99
+          }
+        },
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "answer",
+          "durationMs": 13442,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 10409,
+          "usage": {
+            "inputTokens": 10924,
+            "outputTokens": 87
+          }
+        }
+      ],
+      "grade": {
+        "parsed": true,
+        "fields": {
+          "value": true
+        },
+        "score": 1,
+        "correct": true,
+        "explanationPresent": true
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "mixed-team",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 74341,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [
+        {
+          "collaboration": {
+            "mode": "mixed-model-team",
+            "members": [
+              {
+                "role": "reasoning-checker",
+                "provider": "deepseek-api",
+                "required": true
+              },
+              {
+                "role": "material-checker",
+                "provider": "kimi-api",
+                "required": true
+              }
+            ],
+            "shareContext": false,
+            "maxConcurrency": 2,
+            "maxModelTurns": 12,
+            "maxToolCalls": 24,
+            "maxInputTokens": 192000,
+            "memberTimeoutMs": 180000,
+            "maxOutputTokens": 16384,
+            "timeoutMs": 240000
+          },
+          "team": {
+            "id": "6b0f0728-1594-4eaa-a33a-d0fa47a3e486",
+            "mode": "mixed-model-team",
+            "status": "interrupted",
+            "lead": {
+              "provider": "native-codex",
+              "model": "gpt-6-astra",
+              "connection": "native-codex",
+              "reasoning": "balanced"
+            },
+            "members": [
+              {
+                "id": "62e02f32-520f-4a61-bf66-45ec8496e317",
+                "role": "reasoning-checker",
+                "binding": {
+                  "provider": "deepseek-api",
+                  "model": "deepseek-v4-flash",
+                  "connection": "https://api.deepseek.com/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "completed",
+                "task": "仅依据题设推导实数方程 sqrt(x)=x-2 的解，解释平方可能产生增根的原因及排除方法。",
+                "attempts": 1,
+                "durationMs": 9592,
+                "result": "{\"summary\":\"主 Agent 分工中的数学结论正确：原方程在实数范围内定义域与右侧非负条件给出 x≥2，平方得 x²-5x+4=0，候选 1、4，排除 1 后唯一解为 4；平方会丢失符号信息，需代回或利用 x≥2 排除增根。\",\"claims\":[{\"key\":\"定义域条件 x≥0\",\"value\":\"实数范围内 sqrt(x) 要求 x≥0\",\"basis\":\"平方根的实数定义域\"},{\"key\":\"右侧非负条件\",\"value\":\"原方程左边 sqrt(x)≥0，因此右边 x-2≥0，即 x≥2；结合 x≥0 得 x≥2\",\"basis\":\"非负量等于某数时，该数也必须非负\"},{\"key\":\"平方后方程\",\"value\":\"x=(x-2)^2，展开移项得 x²-5x+4=0\",\"basis\":\"x=x²-4x+4，移项为 x²-5x+4=0\"},{\"key\":\"候选值\",\"value\":\"1 和 4\",\"basis\":\"x²-5x+4=(x-1)(x-4)=0\"},{\"key\":\"排除候选值 1\",\"value\":\"x=1 是增根，应排除\",\"basis\":\"x=1 不满足 x≥2；代回原方程：sqrt(1)=1，而 1-2=-1，不成立\"},{\"key\":\"唯一实数解\",\"value\":\"x=4\",\"basis\":\"x=4 满足 x≥2；代回原方程：sqrt(4)=2，4-2=2，成立\"},{\"key\":\"增根原因\",\"value\":\"平方不是可逆等价变形：a=b 能推出 a²=b²，但 a²=b² 只推出 a=b 或 a=-b；原方程中 sqrt(x)≥0 的符号信息在平方后可能丢失\",\"basis\":\"逻辑等价性分析；本例 x=1 对应 sqrt(1)=-(1-2)\"},{\"key\":\"原始任务要求的 solutions 数组\",\"value\":\"应为 [4]\",\"basis\":\"唯一有效实数解为 x=4；题目要求返回 solutions 数组\"},{\"key\":\"原始任务要求的 explanation 内容\",\"value\":\"应说明平方可能产生增根，并通过 x≥2 或代回原方程排除 x=1\",\"basis\":\"原始对话要求说明平方后如何排除增根；非整数有效数字要求对本题整数解不额外适用\"}],\"uncertainties\":[]}",
+                "report": {
+                  "summary": "主 Agent 分工中的数学结论正确：原方程在实数范围内定义域与右侧非负条件给出 x≥2，平方得 x²-5x+4=0，候选 1、4，排除 1 后唯一解为 4；平方会丢失符号信息，需代回或利用 x≥2 排除增根。",
+                  "claims": [
+                    {
+                      "key": "定义域条件 x≥0",
+                      "value": "实数范围内 sqrt(x) 要求 x≥0",
+                      "basis": "平方根的实数定义域"
+                    },
+                    {
+                      "key": "右侧非负条件",
+                      "value": "原方程左边 sqrt(x)≥0，因此右边 x-2≥0，即 x≥2；结合 x≥0 得 x≥2",
+                      "basis": "非负量等于某数时，该数也必须非负"
+                    },
+                    {
+                      "key": "平方后方程",
+                      "value": "x=(x-2)^2，展开移项得 x²-5x+4=0",
+                      "basis": "x=x²-4x+4，移项为 x²-5x+4=0"
+                    },
+                    {
+                      "key": "候选值",
+                      "value": "1 和 4",
+                      "basis": "x²-5x+4=(x-1)(x-4)=0"
+                    },
+                    {
+                      "key": "排除候选值 1",
+                      "value": "x=1 是增根，应排除",
+                      "basis": "x=1 不满足 x≥2；代回原方程：sqrt(1)=1，而 1-2=-1，不成立"
+                    },
+                    {
+                      "key": "唯一实数解",
+                      "value": "x=4",
+                      "basis": "x=4 满足 x≥2；代回原方程：sqrt(4)=2，4-2=2，成立"
+                    },
+                    {
+                      "key": "增根原因",
+                      "value": "平方不是可逆等价变形：a=b 能推出 a²=b²，但 a²=b² 只推出 a=b 或 a=-b；原方程中 sqrt(x)≥0 的符号信息在平方后可能丢失",
+                      "basis": "逻辑等价性分析；本例 x=1 对应 sqrt(1)=-(1-2)"
+                    },
+                    {
+                      "key": "原始任务要求的 solutions 数组",
+                      "value": "应为 [4]",
+                      "basis": "唯一有效实数解为 x=4；题目要求返回 solutions 数组"
+                    },
+                    {
+                      "key": "原始任务要求的 explanation 内容",
+                      "value": "应说明平方可能产生增根，并通过 x≥2 或代回原方程排除 x=1",
+                      "basis": "原始对话要求说明平方后如何排除增根；非整数有效数字要求对本题整数解不额外适用"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "submittedReasoning": "low",
+                "outputTokenLimit": 4096,
+                "inputTokens": 621,
+                "outputTokens": 1949
+              },
+              {
+                "id": "a2dbe1c4-0588-45ad-908b-4e42e6f021b1",
+                "role": "material-checker",
+                "binding": {
+                  "provider": "kimi-api",
+                  "model": "kimi-k3",
+                  "connection": "https://api.moonshot.cn/v1/chat/completions",
+                  "reasoning": "balanced"
+                },
+                "required": true,
+                "status": "cancelled",
+                "task": "仅依据所给原始对话，独立核查数学结论与交付需求，整理适合初学者的中文解释要点，不直接生成主 Agent 最终答案。",
+                "attempts": 1,
+                "durationMs": 53080,
+                "error": "核查已停止。",
+                "failureCode": "cancelled",
+                "inputTokens": 0,
+                "outputTokens": 0
+              }
+            ],
+            "modelTurns": 2,
+            "toolCalls": 0,
+            "nativeTasks": 1,
+            "nativeTokenLimit": "observed",
+            "reservedOutputTokens": 6333,
+            "estimatedInputTokens": 4536,
+            "inputTokens": 10508,
+            "outputTokens": 2237,
+            "unknownUsageRequests": 1,
+            "configHash": "a4f6f1bf4b31079762df615c51415724a14923217f7846911f62785b32bd5fc6",
+            "scopeHash": "7b86f1261d93cda91ce187b6f8ca266804db32455a2d05a8c66b5ff1ae57fcbb",
+            "question": "实数范围内解方程 sqrt(x)=x-2，返回 solutions 数组，并说明平方后如何排除增根。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+            "planning": "completed",
+            "preparationMs": 55,
+            "connections": [
+              {
+                "provider": "native-codex",
+                "status": "ready",
+                "durationMs": 53
+              },
+              {
+                "provider": "deepseek-api",
+                "status": "ready",
+                "durationMs": 17
+              },
+              {
+                "provider": "kimi-api",
+                "status": "ready",
+                "durationMs": 1
+              }
+            ],
+            "protocol": 3,
+            "review": {
+              "status": "interrupted",
+              "failureCode": "cancelled",
+              "durationMs": 3
+            },
+            "packet": {
+              "question": "实数范围内解方程 sqrt(x)=x-2，返回 solutions 数组，并说明平方后如何排除增根。\n只输出一个 JSON 对象，包含下面要求的字段以及 explanation 字符串。非整数数值至少保留12位有效数字，可用科学计数法。explanation 用中文解释关键步骤和容易出错的地方，供初学者理解；不要省略题目要求的解释。不要使用外部工具或外部资料。",
+              "history": [],
+              "truncated": false,
+              "hash": "0221cbd9591c844e0205067e910ff7fb71f478baf822aa0adddb4b1d34e20d4a"
+            },
+            "tasks": [
+              {
+                "member": 1,
+                "goal": "仅依据题设推导实数方程 sqrt(x)=x-2 的解，解释平方可能产生增根的原因及排除方法。",
+                "dependsOn": [],
+                "acceptance": [
+                  "明确根号要求 x≥0，且原方程右侧必须非负，因此 x≥2。",
+                  "推导平方后的方程 x²-5x+4=0，得到候选值 1 和 4。",
+                  "通过符号条件或代回原方程排除 1，确认唯一实数解为 4，并解释平方丢失符号信息。"
+                ],
+                "id": "3ebc987c-ad12-4c73-82a6-ffaeaee5d84c",
+                "key": "derive",
+                "status": "completed",
+                "attempts": 1,
+                "executionId": "422d6e4f-4ac1-4a78-bb83-282db7dafd74",
+                "report": {
+                  "summary": "主 Agent 分工中的数学结论正确：原方程在实数范围内定义域与右侧非负条件给出 x≥2，平方得 x²-5x+4=0，候选 1、4，排除 1 后唯一解为 4；平方会丢失符号信息，需代回或利用 x≥2 排除增根。",
+                  "claims": [
+                    {
+                      "key": "定义域条件 x≥0",
+                      "value": "实数范围内 sqrt(x) 要求 x≥0",
+                      "basis": "平方根的实数定义域"
+                    },
+                    {
+                      "key": "右侧非负条件",
+                      "value": "原方程左边 sqrt(x)≥0，因此右边 x-2≥0，即 x≥2；结合 x≥0 得 x≥2",
+                      "basis": "非负量等于某数时，该数也必须非负"
+                    },
+                    {
+                      "key": "平方后方程",
+                      "value": "x=(x-2)^2，展开移项得 x²-5x+4=0",
+                      "basis": "x=x²-4x+4，移项为 x²-5x+4=0"
+                    },
+                    {
+                      "key": "候选值",
+                      "value": "1 和 4",
+                      "basis": "x²-5x+4=(x-1)(x-4)=0"
+                    },
+                    {
+                      "key": "排除候选值 1",
+                      "value": "x=1 是增根，应排除",
+                      "basis": "x=1 不满足 x≥2；代回原方程：sqrt(1)=1，而 1-2=-1，不成立"
+                    },
+                    {
+                      "key": "唯一实数解",
+                      "value": "x=4",
+                      "basis": "x=4 满足 x≥2；代回原方程：sqrt(4)=2，4-2=2，成立"
+                    },
+                    {
+                      "key": "增根原因",
+                      "value": "平方不是可逆等价变形：a=b 能推出 a²=b²，但 a²=b² 只推出 a=b 或 a=-b；原方程中 sqrt(x)≥0 的符号信息在平方后可能丢失",
+                      "basis": "逻辑等价性分析；本例 x=1 对应 sqrt(1)=-(1-2)"
+                    },
+                    {
+                      "key": "原始任务要求的 solutions 数组",
+                      "value": "应为 [4]",
+                      "basis": "唯一有效实数解为 x=4；题目要求返回 solutions 数组"
+                    },
+                    {
+                      "key": "原始任务要求的 explanation 内容",
+                      "value": "应说明平方可能产生增根，并通过 x≥2 或代回原方程排除 x=1",
+                      "basis": "原始对话要求说明平方后如何排除增根；非整数有效数字要求对本题整数解不额外适用"
+                    }
+                  ],
+                  "uncertainties": []
+                },
+                "durationMs": 9592,
+                "runs": [
+                  {
+                    "executionId": "422d6e4f-4ac1-4a78-bb83-282db7dafd74",
+                    "status": "completed"
+                  }
+                ]
+              },
+              {
+                "member": 2,
+                "goal": "仅依据所给原始对话，独立核查数学结论与交付需求，整理适合初学者的中文解释要点，不直接生成主 Agent 最终答案。",
+                "dependsOn": [],
+                "acceptance": [
+                  "确认原始任务要求 solutions 数组与中文 explanation 字符串，且只输出一个 JSON 对象。",
+                  "独立核验 x=1 时左右两侧分别为 1 和 -1，x=4 时均为 2。",
+                  "说明解为整数，无须补足12位有效数字；解释要点覆盖平方操作、候选解与增根的区别。"
+                ],
+                "id": "48c3d1d9-50fe-4d02-a0d0-264e4f7d43e4",
+                "key": "material_check",
+                "status": "cancelled",
+                "attempts": 1,
+                "executionId": "e05785f2-92f3-4219-9f88-f530e5628256",
+                "failureCode": "cancelled",
+                "durationMs": 53080,
+                "runs": [
+                  {
+                    "executionId": "e05785f2-92f3-4219-9f88-f530e5628256",
+                    "status": "cancelled",
+                    "failureCode": "cancelled"
+                  }
+                ]
+              }
+            ]
+          },
+          "id": "a2b1a79d-bcfb-4986-ae38-46d320b2b841",
+          "role": "assistant",
+          "text": "",
+          "status": "interrupted",
+          "createdAt": "2026-09-10T15:49:13.397Z",
+          "provider": "native-codex",
+          "style": "adaptive",
+          "reasoning": "balanced",
+          "quality": [],
+          "access": {
+            "materials": false,
+            "project": false,
+            "external": false
+          },
+          "profile": "application",
+          "taskId": "b15cafda-e246-40bf-abf8-00a541cd9394",
+          "durationMs": 74335
+        }
+      ],
+      "requests": [
+        {
+          "provider": "native-codex",
+          "model": "gpt-6-astra",
+          "phase": "planning",
+          "durationMs": 21129,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "transport": "native-task",
+          "outputLimit": "observed",
+          "firstOutputMs": 13984,
+          "usage": {
+            "inputTokens": 9887,
+            "outputTokens": 288
+          }
+        },
+        {
+          "provider": "deepseek-api",
+          "model": "deepseek-v4-flash",
+          "phase": "member",
+          "durationMs": 9587,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": true,
+          "usage": {
+            "inputTokens": 621,
+            "outputTokens": 1949,
+            "cacheReadTokens": 128,
+            "reasoningTokens": 1406,
+            "model": "deepseek-v4-flash"
+          },
+          "timing": {
+            "transport": "sse",
+            "startupMs": 22,
+            "selectionMs": 0,
+            "totalMs": 9587,
+            "requestMs": 9565,
+            "firstEventMs": 887,
+            "firstTextMs": 7500,
+            "processTailMs": 0,
+            "submittedReasoning": "low",
+            "outputTokenLimit": 4096
+          }
+        },
+        {
+          "provider": "kimi-api",
+          "model": "kimi-k3",
+          "phase": "member",
+          "durationMs": 53074,
+          "maxOutputTokens": 4096,
+          "requestedReasoning": "balanced",
+          "completed": false,
+          "failureCode": "cancelled"
+        }
+      ],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-deepseek",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-kimi",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "single-codex",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 0,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "self-review-codex",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 1,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    },
+    {
+      "caseId": "D02",
+      "repeat": 1,
+      "arm": "same-team",
+      "completed": false,
+      "error": "已取消本次操作。",
+      "durationMs": 0,
+      "firstTokenMs": null,
+      "firstOutputMs": null,
+      "text": "",
+      "turns": [],
+      "requests": [],
+      "grade": {
+        "parsed": false,
+        "fields": {
+          "solutions": false
+        },
+        "score": 0,
+        "correct": false,
+        "explanationPresent": false
+      }
+    }
+  ],
+  "summary": [
+    {
+      "arm": "same-team",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 43311.5,
+      "p95Ms": 86623,
+      "modelRequests": 0,
+      "nativeTasks": 5,
+      "inputTokens": 54557,
+      "outputTokens": 1251,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "mixed-team",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 90434,
+      "p95Ms": 106527,
+      "modelRequests": 4,
+      "nativeTasks": 4,
+      "inputTokens": 47325,
+      "outputTokens": 6731,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 1
+    },
+    {
+      "arm": "single-deepseek",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 1252.5,
+      "p95Ms": 2504,
+      "modelRequests": 1,
+      "nativeTasks": 0,
+      "inputTokens": 1410,
+      "outputTokens": 250,
+      "cacheReadTokens": 1276,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "single-kimi",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 5449.5,
+      "p95Ms": 10898,
+      "modelRequests": 1,
+      "nativeTasks": 0,
+      "inputTokens": 1261,
+      "outputTokens": 228,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "single-codex",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 6063,
+      "p95Ms": 12126,
+      "modelRequests": 0,
+      "nativeTasks": 1,
+      "inputTokens": 10689,
+      "outputTokens": 47,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    },
+    {
+      "arm": "self-review-codex",
+      "count": 2,
+      "completed": 1,
+      "correct": 1,
+      "fullySuccessful": 1,
+      "meanFieldScore": 0.5,
+      "medianMs": 18469,
+      "p95Ms": 36937,
+      "modelRequests": 0,
+      "nativeTasks": 3,
+      "inputTokens": 32384,
+      "outputTokens": 233,
+      "cacheReadTokens": null,
+      "unknownUsageRequests": 0
+    }
+  ],
+  "comparisons": [
+    {
+      "arm": "same-team",
+      "against": "single-codex",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "mixed-team",
+      "against": "single-codex",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-deepseek",
+      "against": "single-codex",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "single-kimi",
+      "against": "single-codex",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    },
+    {
+      "arm": "self-review-codex",
+      "against": "single-codex",
+      "wins": 0,
+      "ties": 2,
+      "losses": 0,
+      "metric": "field_score_with_incomplete_zero"
+    }
+  ],
+  "limits": {
+    "maxModelRequestsPerArm": 12,
+    "rootDeadlineMs": 240000,
+    "memberDeadlineMs": 180000,
+    "maxOutputPerRequest": 4096,
+    "teamMaxOutputTokens": 16384,
+    "totalOutputTokensPerArm": null,
+    "selfReviewRounds": 3
+  },
+  "limitations": [
+    "固定合成工程样本，不是独立人类盲评或真实教学效果试验",
+    "各组实际调用与计算量不同；预算上限不等于严格等算力",
+    "解释存在性不等于解释正确或教学有效",
+    "成本只报告用量，未知用量和订阅账单不能记为零",
+    "官方 Agent 的 token 预算是返回后核算，硬限制仅覆盖任务数、时限和可见回答长度",
+    "官方 CLI 当前按完整消息交付，firstOutputMs 不能称为流式首 token 时间"
+  ],
+  "interrupted": true,
+  "interruption": "Application/page closed during D02 mixed-team; later rows were cancelled before dispatch. Excluded from the final completed-run comparison.",
+  "connectionPreflight": [
+    {
+      "provider": "deepseek-api",
+      "durationMs": 3151,
+      "ok": true
+    },
+    {
+      "provider": "kimi-api",
+      "durationMs": 39528,
+      "ok": true
+    }
+  ],
+  "appBundleHash": "d9c657326329020d8d8017c0e9498ff7e8518e072391544ddc258b08e52813e7",
+  "evaluatorSourceHash": "9db908b2540c528b8d461e5dac8526c9fea1f6e1bbd6952c13f92b004e5964c5"
+}

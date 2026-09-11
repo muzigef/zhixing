@@ -1,6 +1,7 @@
 import { TeamCard, TeamSettingsPanel } from "./team-panel.js";
 import { collaborationLabels, teamModeConfiguration, type CollaborationMode } from "../../src/team-contracts.js";
 import { ApiConnectionsPanel } from "./api-connections-panel.js";
+import { NativeAgentsPanel } from "./native-agents-panel.js";
 import { isCustomProvider, providerLabel } from "../../src/api-connection-config.js";
 import { imageFromBytes, imageDataUrl, type ImageInput } from "../../src/image-input.js";
 import { MAX_INPUT_CHARACTERS } from "../../src/input-limits.js";
@@ -866,6 +867,7 @@ function App() {
                       ? `DeepSeek · ${settings.deepseekModel.replace("deepseek-", "")}`
                       : settings.provider === "kimi-api" ? "Kimi · K3"
                       : isCustomProvider(settings.provider) ? providerLabel(settings.provider, boot?.apiConnections?.connections)
+                      : settings.provider.startsWith("native-") ? providerLabel(settings.provider)
                       : (boot?.model.model ?? "Pi · Codex")}
                 </span>
                 <ChevronDown size={13} />
@@ -935,6 +937,7 @@ function App() {
                   ? "通过 DeepSeek API 直接连接"
                   : settings.provider === "kimi-api" ? "通过 Kimi API 直接连接"
                   : isCustomProvider(settings.provider) ? `通过 ${providerLabel(settings.provider, boot?.apiConnections?.connections)} API 连接`
+                  : settings.provider.startsWith("native-") ? "通过官方 Agent 账号处理提供的上下文，不自动切换付费 API"
                   : "使用你在 Pi 中配置的 Codex 模型"}
             </span>
             <span>{isCurrentRunning ? "Enter 排队" : "Enter 发送"} · Shift + Enter 换行</span>
@@ -1066,6 +1069,7 @@ const Message = memo(
         {!!message.items?.length && <InteractionCards items={message.items} disabled={!canSend} onAnswer={onAnswer} onCopy={onCopy} />}
         {message.status === "waiting" && <p role="status">等待你的回复，任务和已完成结果已保存。</p>}
         {message.timings?.taskCompleted === false && <p>执行计划仍有未完成步骤。</p>}
+        {message.timings?.nativeExecution && <p>官方 Agent 返回 · 回答尚未经工具验证 · {message.timings.nativeExecution.runtimeTurns === undefined ? "运行时轮数未知" : `运行时 ${message.timings.nativeExecution.runtimeTurns} 轮`}。知行工具调用为 0；订阅用量以官方客户端为准。</p>}
         {!!message.quality?.length && <details className="task-activities"><summary>回答检查提示</summary><p>以下是格式和来源提示，内容正确性仍需核对。</p>{message.quality.map(item => <p key={item.code}>{item.detail}</p>)}</details>}
         {!!message.evidenceSupport?.claims.length && <details className="task-activities"><summary>证据支持检查 · {message.evidenceSupport.issues.length ? `${message.evidenceSupport.issues.length} 项待核对` : "规则未发现问题"}</summary><p>{message.evidenceSupport.notice}</p>{message.evidenceSupport.issues.map((issue, index) => <p key={index}>{issue.detail} 对应内容：{message.evidenceSupport!.claims[issue.claimIndex]?.text}</p>)}{message.evidenceSupport.claims.map((claim, index) => <div key={index}><p>{claim.text}</p>{claim.sources.map((source, index) => <button className="compare-trigger" key={index} onClick={() => onSource(source.citation)}>{source.citation.documentName} · 本次检索片段 {source.excerptStart + 1}–{source.excerptEnd} 字符</button>)}</div>)}</details>}
         {message.reasoningMode === "auto" && <p className="message-meta">本轮自动选择：{message.reasoning === "deep" ? "深入思考" : message.reasoning === "quick" ? "快速" : "均衡"}</p>}
@@ -1466,6 +1470,7 @@ function SettingsDialog({
       </div>
       <div className="setting-section">
         <ApiConnectionsPanel profiles={profiles} settings={settings} busy={busy || savingKey || checkingApi} onSave={onSave} onUpdated={onUpdated} onBusy={setCustomBusy} />
+        <NativeAgentsPanel settings={settings} busy={busy || savingKey || checkingApi || customBusy} onSave={onSave} />
       </div>
       <div className="setting-section">
         <h3>偏好</h3>

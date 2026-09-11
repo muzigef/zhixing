@@ -1,4 +1,5 @@
 import { ChatCompletionsClient } from "./chat-completions-client.js";
+import { ProtocolModelClient } from "./protocol-model-client.js";
 import { isCustomProvider, type ApiConnection, type CustomProvider } from "./api-connection-config.js";
 import { checkedConnection } from "./api-connections.js";
 import { DeepSeekClient, type FetchLike } from "./deepseek-client.js";
@@ -21,7 +22,9 @@ export function createAgentModel(provider: "pi-codex" | "deepseek-api" | "kimi-a
   else if (provider === "kimi-api") client = new KimiClient(options.secrets, options.fetcher, environment);
   else if (isCustomProvider(provider) && options.connection?.id === provider) {
     const connection = checkedConnection(options.connection);
-    client = new ChatCompletionsClient(options.secrets, options.fetcher ?? fetch, environment, connection.model, `${connection.baseUrl}/chat/completions`, 150_000, "compatible", connection);
+    client = connection.protocol === "openai-chat-completions"
+      ? new ChatCompletionsClient(options.secrets, options.fetcher ?? fetch, environment, connection.model, `${connection.baseUrl}/chat/completions`, 150_000, "compatible", connection)
+      : new ProtocolModelClient(connection, options.secrets, options.fetcher ?? fetch, environment);
     const requested = options.contextBudget ?? environmentContextBudget(environment);
     const windowTokens = Math.min(requested?.windowTokens ?? connection.contextWindow, connection.contextWindow);
     return withModelBudget(client, { windowTokens, reserveOutputTokens: Math.min(requested?.reserveOutputTokens ?? connection.maxOutputTokens, connection.maxOutputTokens, Math.floor(windowTokens / 2)) });

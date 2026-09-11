@@ -1,3 +1,4 @@
+import { nativeRuntimeCatalog } from "./native-runtime-catalog.js";
 import { z } from "zod/v4";
 
 export const customProviderSchema = z.string().regex(/^api-[a-f0-9]{32}$/).transform(value => value as `api-${string}`);
@@ -14,7 +15,7 @@ const baseUrlSchema = z.string().trim().max(2048).transform(value => value.repla
 /** Public configuration only. No arbitrary headers, payload overrides or secrets. */
 const definitionSchema = z.object({
   name: z.string().trim().min(1).max(60).refine(value => [...value].every(char => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127)),
-  protocol: z.literal("openai-chat-completions").default("openai-chat-completions"),
+  protocol: z.enum(["openai-chat-completions", "openai-responses", "anthropic-messages"]).default("openai-chat-completions"),
   baseUrl: baseUrlSchema,
   model: z.string().trim().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,127}$/),
   tools: z.boolean().default(true),
@@ -34,6 +35,7 @@ export const apiConnectionsSchema = z.object({ version: z.literal(1), revision: 
 export type ApiConnectionsState = z.infer<typeof apiConnectionsSchema>;
 export function isCustomProvider(provider: string): provider is CustomProvider { return customProviderSchema.safeParse(provider).success; }
 export function providerLabel(provider: string, connections: readonly ApiConnection[] = []): string {
+  if (provider.startsWith("native-")) return nativeRuntimeCatalog.find(entry => entry.provider === provider)?.label ?? "官方 Agent";
   const builtin: Record<string, string> = { "pi-codex": "Pi · Codex", "deepseek-api": "DeepSeek API", "kimi-api": "Kimi API", demo: "离线演示", mock: "本地 Mock", "codex-cli": "Codex CLI" };
   return builtin[provider] ?? connections.find(item => item.id === provider)?.name ?? "自定义 API";
 }

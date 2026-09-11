@@ -9,9 +9,10 @@ import { adapterCapabilities, outputTokenLimit } from "./model-capabilities.js";
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 const MAX_SSE_FRAME_BYTES = 64 * 1024;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
-type WireTool = { id: string; type: "function"; function: { name: string; arguments: string } };
-type WireMessage = { role: "system" | "user" | "assistant" | "tool"; content: string | { type: "text"; text: string }[] | ({ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } })[] | null; reasoning_content?: string; tool_calls?: WireTool[]; tool_call_id?: string };
-type Delta = { content?: string | null; reasoning_content?: string | null; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string } }> };
+type Signature = { google: { thought_signature: string } };
+type WireTool = { id: string; type: "function"; function: { name: string; arguments: string }; extra_content?: Signature };
+type WireMessage = { role: "system" | "user" | "assistant" | "tool"; content: string | { type: "text"; text: string }[] | ({ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } })[] | null; reasoning_content?: string; tool_calls?: WireTool[]; tool_call_id?: string; extra_content?: Signature };
+type Delta = { content?: string | null; reasoning_content?: string | null; extra_content?: unknown; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }> };
 type Payload = { error?: unknown; usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_cache_hit_tokens?: number; prompt_tokens_details?: { cached_tokens?: number }; completion_tokens_details?: { reasoning_tokens?: number } }; choices?: Array<{ delta?: Delta; message?: Delta; finish_reason?: string | null }> };
 
 /** Stateless, bounded text/tool adapter. Every request carries its own conversation. */
@@ -24,7 +25,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
     signal.throwIfAborted();
   }
   get identity() { return { provider: this.connection?.id ?? (this.provider === "kimi" ? "kimi-api" as const : "deepseek-api" as const), model: this.model, connection: this.endpoint }; }
-  get capabilities() { if (this.connection) return { ...adapterCapabilities(this.connection.tools, "configurable"), inputModalities: this.connection.images ? ["text", "image"] as const : ["text"] as const, contextWindowTokens: this.connection.contextWindow, maxOutputTokens: this.connection.maxOutputTokens }; return { ...adapterCapabilities(true, "configurable"), inputModalities: (this.provider === "kimi" || this.model === "deepseek-v4-flash-vision-exp") ? ["text", "image"] as const : ["text"] as const }; }
+  get capabilities() { const reasoning = this.connection?.reasoning ?? this.provider; const policy = ["deepseek", "kimi"].includes(reasoning) ? { reasoningBudget: "shared-output" as const } : {}; if (this.connection) return { ...adapterCapabilities(this.connection.tools, "configurable"), ...policy, inputModalities: this.connection.images ? ["text", "image"] as const : ["text"] as const, contextWindowTokens: this.connection.contextWindow, maxOutputTokens: this.connection.maxOutputTokens }; return { ...adapterCapabilities(true, "configurable"), ...policy, inputModalities: (this.provider === "kimi" || this.model === "deepseek-v4-flash-vision-exp") ? ["text", "image"] as const : ["text"] as const }; }
   constructor(
     private readonly secrets: SecretStore,
     private readonly fetcher: FetchLike,
@@ -87,7 +88,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       let completed = false;
       let finishReason: string | undefined;
       let hasText = false;
-      let answer = ""; let textSize = 0; let reasoning = "";
+      let answer = ""; let textSize = 0; let reasoning = ""; let signature: Signature | undefined;
       const model = this.model;
       const calls = new Map<number, WireTool>();
       const consume = function* (payload: Payload): Generator<ModelEvent> {
@@ -103,6 +104,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
         const delta = choice.delta ?? choice.message;
         if (choice.finish_reason) finishReason = choice.finish_reason;
         if (!delta) return;
+        signature = mergeSignature(signature, delta.extra_content);
         if (delta.content != null && typeof delta.content !== "string") throw new Error("provider_protocol_error");
         if (delta.content) { firstTextMs ??= Date.now() - requestedAt; hasText = true; answer += delta.content; textSize += delta.content.length; if (textSize > 64_000) throw new Error("provider_output_limit"); yield { type: "text_delta", text: delta.content }; }
         if (delta.reasoning_content != null && typeof delta.reasoning_content !== "string") throw new Error("provider_protocol_error");
@@ -115,6 +117,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
           if (part.id) call.id += part.id;
           if (part.function?.name) call.function.name += part.function.name;
           if (part.function?.arguments) call.function.arguments += part.function.arguments;
+          call.extra_content = mergeSignature(call.extra_content, part.extra_content);
           if (call.id.length > 200 || call.function.name.length > 64 || Buffer.byteLength(call.function.arguments) > MAX_SSE_FRAME_BYTES) throw new Error("provider_output_limit");
           calls.set(index!, call);
         }
@@ -166,7 +169,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
         events.push({ type: "tool_call", callId: call.id, tool: call.function.name, input });
       }
       yield* events;
-      if (this.connection) yield { type: "provider_state", result: { model: this.model, connectionId: this.connection.id, compatibleAssistant: { role: "assistant", content: answer || null, ...(reasoningStateRequired ? { reasoning_content: reasoning } : {}), ...(calls.size ? { tool_calls: [...calls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call) } : {}) } } };
+      if (this.connection) yield { type: "provider_state", result: { model: this.model, connectionId: this.connection.id, compatibleAssistant: { role: "assistant", content: answer || null, ...(signature ? { extra_content: signature } : {}), ...(reasoningStateRequired || reasoning ? { reasoning_content: reasoning } : {}), ...(calls.size ? { tool_calls: [...calls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call) } : {}) } } };
       else if (this.provider === "kimi") yield { type: "provider_state", result: { model: this.model, kimiAssistant: { role: "assistant", content: answer || null, reasoning_content: reasoning, ...(calls.size ? { tool_calls: [...calls.entries()].sort(([a], [b]) => a - b).map(([, call]) => call) } : {}) } } };
       else if (reasoning) yield { type: "provider_state", result: { deepseekReasoning: reasoning } };
       if (usage) { usageReported = true; yield { type: "usage", usage }; }
@@ -191,6 +194,14 @@ export class ChatCompletionsClient implements ContinuableModelClient {
 
 function parsePayload(data: string): Payload {
   try { return JSON.parse(data) as Payload; } catch { throw new Error("provider_protocol_error: invalid JSON"); }
+}
+
+function mergeSignature(previous: Signature | undefined, extra: unknown): Signature | undefined {
+  if (extra === undefined || extra === null) return previous;
+  const signature = (extra as { google?: { thought_signature?: unknown } }).google?.thought_signature;
+  if (signature === undefined) return previous;
+  if (typeof signature !== "string" || signature.length > 64_000 || previous && previous.google.thought_signature !== signature) throw new Error("provider_protocol_error");
+  return { google: { thought_signature: signature } };
 }
 
 function wireHistory(prompt: string, options: ModelRequestOptions | undefined, reasoningEnabled: boolean, provider: "deepseek" | "kimi" | "compatible", model: string, connectionId?: string): WireMessage[] {

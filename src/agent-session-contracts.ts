@@ -47,12 +47,12 @@ export const messageSchema = z.object({
   citations: z.array(citationSchema).max(24).optional(),
   retrievedCitations: z.array(citationSchema).max(24).optional(),
   activities: z.array(z.object({ label: z.string().max(120), status: z.enum(["running", "completed", "failed"]), at: z.string().datetime() })).max(100).optional(),
-  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), toolMs: z.number().nonnegative().optional(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative(), taskCompleted: z.boolean().optional() }).optional(),
+  timings: z.object({ contextMs: z.number().nonnegative(), modelMs: z.number().nonnegative(), toolMs: z.number().nonnegative().optional(), compactionMs: z.number().nonnegative().optional(), turns: z.number().nonnegative(), toolCalls: z.number().nonnegative(), taskCompleted: z.boolean().optional(), nativeExecution: z.object({ provider: z.string().max(80), runtimeTurns: z.number().int().nonnegative().optional(), verification: z.literal("unverified") }).optional() }).optional(),
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({
   collaboration: teamConfigurationSchema.optional(),
-  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(10), z.literal(11)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(10), z.literal(11), z.literal(12), z.literal(13)]),
   id: z.string().uuid(),
   title: z.string().min(1).max(80),
   customTitle: z.boolean().default(false),

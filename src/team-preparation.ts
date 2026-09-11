@@ -1,10 +1,10 @@
 import { abortable } from "./abortable.js";
-import type { ModelClient } from "./model.js";
+import type { AgentBackend } from "./agent-executor.js";
 import type { TeamSnapshot } from "./team-contracts.js";
 import { teamFailure, teamFailureLabels } from "./team-quality.js";
 
 /** Preparation is a connection boundary, not a model turn or an all-member success gate. */
-export async function prepareTeamConnections(state: TeamSnapshot, lead: ModelClient, members: ModelClient[], save: () => Promise<void>, signal: AbortSignal): Promise<void> {
+export async function prepareTeamConnections(state: TeamSnapshot, lead: AgentBackend, members: AgentBackend[], save: () => Promise<void>, signal: AbortSignal): Promise<void> {
   const started = Date.now();
   const clients = new Map([[state.lead.provider, lead], ...members.flatMap((client, index) => state.members[index]?.status === "queued" ? [[state.members[index]!.binding.provider, client] as const] : [])]);
   state.connections = [...clients.keys()].map(provider => ({ provider, status: "preparing" }));

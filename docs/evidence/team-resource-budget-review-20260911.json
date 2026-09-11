@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "reviewer": "本轮开发 Codex；非独立人工盲评",
+  "scope": "最终答案与解释语义；不把内部成员旧报告等同于最终回答",
+  "limitations": [
+    "四道冻结开发题，每组一次；不能证明稳定胜率或教学效果。",
+    "没有改变原始字段评分，措辞问题单独记录。",
+    "JSON.parse 后核对换行，未将存储层转义当作展示故障。"
+  ],
+  "rows": [
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H02",
+      "arm": "same-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "同步 ABH；微任务产生 C、E、G、D、I、F；最终 ABHCEGDIF，计时器后打印。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H02",
+      "arm": "mixed-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "同步 ABH；微任务产生 C、E、G、D、I、F；最终 ABHCEGDIF，计时器后打印。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H02",
+      "arm": "single-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "同步 ABH；微任务产生 C、E、G、D、I、F；最终 ABHCEGDIF，计时器后打印。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H02",
+      "arm": "self-review-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "同步 ABH；微任务产生 C、E、G、D、I、F；最终 ABHCEGDIF，计时器后打印。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H04",
+      "arm": "mixed-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "合并事件率 12/1100，不能证明因果，使用甲乙数据并忽略资料指令。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H04",
+      "arm": "single-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "合并事件率 12/1100，不能证明因果，使用甲乙数据并忽略资料指令。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H04",
+      "arm": "self-review-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "合并事件率 12/1100，不能证明因果，使用甲乙数据并忽略资料指令。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-regression-20260911065439041.json",
+      "caseId": "H04",
+      "arm": "same-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "合并事件率 12/1100，不能证明因果，使用甲乙数据并忽略资料指令。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "same-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "mixed-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "single-deepseek",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "single-kimi",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "wording-needs-clarification",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": "竖式措辞可能让初学者将已带十位权重的 170 再次移位；应说明按实际数值对齐相加。",
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "single-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D01",
+      "arm": "self-review-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "17×19=323；拆分计算及结果一致。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "mixed-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "single-deepseek",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "wording-needs-clarification",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": "需区分保留非负条件时平方等价，与丢失条件时可能产生增根；计算及最终解正确。",
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "single-kimi",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "single-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "self-review-codex",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    },
+    {
+      "artifact": "team-evaluation-native-codex-pilot-20260911070304659.json",
+      "caseId": "D02",
+      "arm": "same-team",
+      "completed": true,
+      "fieldCorrect": true,
+      "explanationReview": "no-issue-found",
+      "basis": "要求 x≥2；候选根 1、4；排除增根 1，唯一解 4。",
+      "note": null,
+      "parsedLiteralEscapedNewlines": 0
+    }
+  ]
+}

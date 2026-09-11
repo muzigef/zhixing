@@ -80,7 +80,7 @@ it("rejects duplicate claims, unbounded output and extra protocol text instead o
 it("repairs a malformed completed member report once using its own isolated continuation", async () => {
   const f = fixture(); let repairs = 0; let first = true; const original = f.options.client;
   const client: ModelClient = { ...original, async *stream(prompt, signal, options) {
-    if (first && options?.messages?.some(x => x.content.includes("TEAM_MEMBER"))) { first = false; yield { type: "text_delta", text: '{"summary":"missing required fields"}' }; yield { type: "usage", usage: { inputTokens: 2, outputTokens: 2 } }; yield { type: "done" }; }
+    if (first && options?.messages?.some(x => x.role === "system" && x.content.startsWith("TEAM_MEMBER："))) { first = false; yield { type: "text_delta", text: '{"summary":"missing required fields"}' }; yield { type: "usage", usage: { inputTokens: 2, outputTokens: 2 } }; yield { type: "done" }; }
     else yield* original.stream(prompt, signal, options);
   }, ...{ async *continue(_prompt: string, _results: unknown, _signal: AbortSignal, options?: { history?: unknown }) {
     repairs++; expect(JSON.stringify(options?.history)).toContain("missing required fields"); expect(JSON.stringify(options?.history)).not.toContain("PRIVATE_HISTORY");

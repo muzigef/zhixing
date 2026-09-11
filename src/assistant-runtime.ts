@@ -3,7 +3,7 @@ import type { Citation, SearchResult } from "./contracts.js";
 import { modelPhaseLabels, type ModelTiming } from "./model-telemetry.js";
 import { citationSchema } from "./learning-contracts.js";
 import type { LearningApplication } from "./learning-application.js";
-import { isContinuableModelClient, type ModelClient, type ModelMessage, type ModelUsage, type ReasoningProfile } from "./model.js";
+import { isContinuableModelClient, type ModelMessage, type ModelUsage, type ReasoningProfile } from "./model.js";
 import { collectInvocation } from "./model-invocation.js";
 import type { ModelAuditRecord } from "./model-audit.js";
 import { ProviderRegistry } from "./provider-registry.js";
@@ -25,9 +25,12 @@ import { inspectEvidenceSupport, evidenceRepairReason, type EvidenceSupport } fr
 import { attachExecutionHistory, attachConversationHistory } from "./execution-history.js";
 import type { ChatMessage } from "./agent-session-contracts.js";
 import { executionEvidence, type ExecutionEvidence } from "./execution-evidence.js";
+import { executeAgent, isAgentExecutor, type AgentBackend } from "./agent-executor.js";
 
 export interface TaskActivity { label: string; status: "running" | "completed" | "failed"; at: string; }
-export function providerRuntime(providerId: string, client: ModelClient): ProviderRuntime {
+export interface AssistantTaskResult { contextMs: number; modelMs: number; toolMs: number; turns: number; toolCalls: number; waiting?: boolean; blocked?: boolean; stopReason?: string; taskCompleted?: boolean; nativeExecution?: { provider: string; runtimeTurns?: number; verification: "unverified" }; }
+export function providerRuntime(providerId: string, client: AgentBackend): ProviderRuntime {
+  if (isAgentExecutor(client)) throw new Error("native_agent_task_required");
   const registry = new ProviderRegistry();
   registry.register({ id: providerId, client, health: async () => "unknown" });
   registry.route("tutor", providerId);
@@ -36,7 +39,7 @@ export function providerRuntime(providerId: string, client: ModelClient): Provid
 
 /** Shared model/tool loop with concrete activity events and topic-scoped evidence. */
 export async function runAssistantTask(options: {
-  runId: string; providerId: string; client: ModelClient; prompt: string; question: string;
+  runId: string; providerId: string; client: AgentBackend; prompt: string; question: string;
   messages?: readonly ModelMessage[];
   structured?: boolean;
   responseCheck?: (text: string) => string | undefined;
@@ -61,7 +64,7 @@ export async function runAssistantTask(options: {
   onActivity: (activity: TaskActivity, key: string) => void;
   onCitation: (citation: Citation) => void;
   onCandidate?: (citation: Citation) => void;
-}, signal: AbortSignal) {
+}, signal: AbortSignal): Promise<AssistantTaskResult> {
   const started = Date.now();
   const ledger = options.application ? new WorkflowLedger(options.application.database) : undefined;
   ledger?.begin(options.runId, options.topicId ?? "general-chat", "assistant_task", options.question);
@@ -132,6 +135,38 @@ export async function runAssistantTask(options: {
     }
     contextMs = Date.now() - started;
     activity("answer", "组织回答", "running");
+    const responseCheck = options.responseCheck ?? (!options.structured && (isAgentExecutor(options.client) || isContinuableModelClient(options.client)) ? (text: string) => {
+      const support = inspectEvidenceSupport(text, [...sourceEvidence.values()]); options.onEvidenceSupport?.(support);
+      return (sourceEvidence.size ? evidenceRepairReason(support) : undefined) ?? responseRepairReason(text, options.question);
+    } : undefined);
+    if (isAgentExecutor(options.client)) {
+      if (options.resumeInput && execution?.read()?.pending) throw new Error("native_resume_unsupported");
+      activity("model", "由官方 Agent 处理已提供的上下文", "running");
+      let nativeMessages = messages ?? [{ role: "user" as const, content: prompt }];
+      let runtimeTurns: number | undefined = 0;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await executeAgent(options.client, { prompt, messages: nativeMessages, reasoning: options.reasoning, maxOutputChars: options.limits?.maxOutputChars }, signal, options.onText);
+        runtimeTurns = runtimeTurns === undefined || result.runtimeTurns === undefined ? undefined : runtimeTurns + result.runtimeTurns;
+        options.onContext?.(result.contextUsage);
+        if (result.usage) options.onUsage?.(result.usage);
+        const issue = responseCheck?.(result.text);
+        if (issue && attempt === 0) {
+          options.onTurn?.("回答检查发现问题，正在修正。", "progress");
+          nativeMessages = [...nativeMessages, { role: "assistant", content: result.text }, { role: "user", content: `应用回答检查：${issue.slice(0, 500)}\n请直接重写完整回答，遵守原请求的格式，只保留可核验的陈述；不要解释检查流程。` }];
+          continue;
+        }
+        const finalText = issue ? "本轮回答仍未通过检查，已停止自动重试。请查看回答检查提示，补充依据或调整要求后重试。" : result.text;
+        if (!issue) {
+          options.onEvidenceSupport?.(inspectEvidenceSupport(finalText, [...sourceEvidence.values()]));
+          for (const citation of candidates.values()) if (finalText.includes(citationMarker(citation))) options.onCitation(citation);
+        }
+        options.onTurn?.(finalText, "final");
+        activity("model", "官方 Agent 返回回答；未执行知行工具", "completed"); activity("answer", issue ? "回答未通过检查" : "回答已完成", issue ? "failed" : "completed");
+        ledger?.finish(options.runId, issue ? "failed" : "completed", issue ? "response_contract_failed" : undefined);
+        return { contextMs, modelMs: Date.now() - started - contextMs, toolMs: 0, turns: 0, toolCalls: 0, waiting: false, ...(issue ? { blocked: true, stopReason: "response_contract_failed" } : {}), nativeExecution: { provider: options.providerId, runtimeTurns, verification: result.verification } };
+      }
+      throw new Error("provider_incomplete");
+    }
     const result = await collectInvocation(providerRuntime(options.providerId, options.client), {
       execution, resumeInput: options.resumeInput, steerId: options.steerId, materialContext: options.contextAllowed, contextAccess: options.permissions,
       freshObservations: messages?.filter(message => message.role === "observation"),
@@ -140,10 +175,7 @@ export async function runAssistantTask(options: {
       role: "tutor", providerId: options.providerId, prompt, messages,
       reasoning: options.reasoning, onUsage: options.onUsage,
       responsePurpose: options.structured ? "internal" : "answer",
-      responseCheck: options.responseCheck ?? (!options.structured && isContinuableModelClient(options.client) ? text => {
-        const support = inspectEvidenceSupport(text, [...sourceEvidence.values()]); options.onEvidenceSupport?.(support);
-        return (sourceEvidence.size ? evidenceRepairReason(support) : undefined) ?? responseRepairReason(text, options.question);
-      } : undefined),
+      responseCheck,
       onTiming: options.onTiming,
       onContext: options.onContext,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
@@ -226,9 +258,11 @@ export async function runAssistantTask(options: {
     const task = tasks?.snapshot(taskId, options.topicId!);
     return { contextMs, modelMs: Date.now() - started - contextMs, toolMs, turns: trace?.turns ?? 0, toolCalls: trace?.toolCalls ?? 0, waiting: result.waiting, ...(result.blocked ? { blocked: true, stopReason: result.stopReason } : {}), ...(task?.plan.length ? { taskCompleted: task.completed } : {}) };
   } catch (error) {
-    activity("model", signal.aborted ? "模型请求已停止" : "模型请求未完成", "failed");
-    activity("answer", signal.aborted ? "任务已停止" : "本轮未完成", "failed");
-    ledger?.finish(options.runId, signal.aborted ? "cancelled" : "failed", signal.aborted ? "cancelled" : "assistant_failed");
+    const cancellationUnknown = error instanceof Error && error.message === "native_cancel_unconfirmed";
+    const cancelled = signal.aborted && !cancellationUnknown;
+    activity("model", cancellationUnknown ? "已请求停止，尚未确认官方进程退出" : cancelled ? "模型请求已停止" : "模型请求未完成", "failed");
+    activity("answer", cancelled ? "任务已停止" : "本轮未完成", "failed");
+    ledger?.finish(options.runId, cancelled ? "cancelled" : "failed", cancellationUnknown ? "native_cancel_unconfirmed" : cancelled ? "cancelled" : "assistant_failed");
     throw error;
   } finally { await external?.close(); }
 }

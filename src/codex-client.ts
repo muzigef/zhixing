@@ -6,7 +6,7 @@ import { assertLiveProviderAllowed } from "./provider-policy.js";
 export interface CodexCommandResult { readonly code: number; readonly stdout: string; readonly stderr: string; }
 export type CodexCommandRunner = (args: readonly string[], signal: AbortSignal) => Promise<CodexCommandResult>;
 
-/** Calls an already authenticated official Codex CLI without reading any credential material. */
+/** @deprecated Historical adapter kept for compatibility tests. Product routes use NativeAgentExecutor. */
 export class CodexCliClient implements ModelClient {
   constructor(private readonly runner: CodexCommandRunner = runOfficialCodex, private readonly environment: NodeJS.ProcessEnv = process.env, private readonly timeoutMs = 60_000) {}
 

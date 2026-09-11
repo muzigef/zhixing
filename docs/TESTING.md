@@ -1,4 +1,8 @@
 <!-- generated-by: gsd-doc-writer -->
+
+2026-09-10 多服务商增量验证：`tests/provider-protocols.test.ts` 验证三种协议配置、Messages/Responses 角色及工具续接、加密思考状态、Gemini 签名、取消、错误脱敏、重复工具与断流；`tests/provider-tool-contract.test.ts` 将新增协议送入实际 ToolHarness，验证错误参数修正和不完整流拒绝执行。`tests/native-agent.test.ts` 验证独立执行契约、原生进程取消、订阅/API 区分、CLI 共享历史及拒绝未固定模型的原生团队。
+
+`smoke-api.mjs` 已增加十家模板选择、两种原生 API 协议的保存/探针/对话，以及通过合成可执行文件验证官方 Agent 程序位置、能力检查、单 Agent 切换和回答展示。HTTP、加密、原生账号均为隔离夹具，不是十家真实服务验收。新增 Codex 程序、模型保存与订阅回答亦使用合成进程覆盖。真实三家状态见[本轮证据](evidence/provider-three-20260910.md)。
 # 测试与验证
 
 ## 学习效果验证专项
@@ -280,3 +284,31 @@ node desktop/scripts/evaluate-team.mjs --live --suite=holdout
 默认使用 `~/Applications/知行.app`，也可用 `ZHIXING_DESKTOP_EXECUTABLE` 指定已验收的 `.app`。脚本退出时关闭其启动的应用。报告自动以唯一文件名写到 `docs/evidence/`，保留原答、成员、失败和用量；中间检查点位于本次评测创建的系统临时目录，不修改日常会话。具体条件和不能据此宣称的结论见[评测协议](agent-team-evaluation-protocol-20260909.md)。
 
 0.11 增加 `--suite=regression`（H02/H04，四组，8 根任务）与 `--suite=quality`（Q01–Q08，四组，32 根任务）。新题与评分条件在首次留出前冻结；解释另外逐条复核。五轮单 Agent 自检对照、成员原生思考档位、统一总预算和样本限制见[0.11 协议](agent-team-quality-evaluation-protocol-20260909.md)。新脚本记录实际 `app.asar` 哈希，并拒绝评测期间更换构建；不能将开发目录源码哈希冒充实际执行二进制身份。
+
+
+## 官方 Codex 与三家真实对照（2026-09-10）
+
+`tests/native-codex.test.ts` 覆盖固定模型、ChatGPT/API 登录区别、工具拒绝、完整结束、输出长度及配置隔离。团队测试覆盖原生类型保留、总调用预算、未知用量、超出核算目标后停止、同/异模型全流程、共享会话和 v12 防降级写入。官方运行时升级前需要复验实际请求和权限配置，再更新可用版本。
+
+```bash
+# 只用合成文件和本地 HTTP 夹具，不发送真实模型请求
+node scripts/check-codex-isolation.mjs
+npx tsx scripts/check-native-codex.ts
+# 用户明确授权后验证自己的官方订阅；只发送固定合成问题
+npx tsx scripts/check-native-codex.ts --live
+# 使用真实签名候选包的产品 IPC 和已配置凭证；不会读取/导出密钥
+node desktop/scripts/evaluate-team.mjs --live --lead=native-codex --suite=pilot
+node desktop/scripts/evaluate-team.mjs --live --lead=native-codex --suite=regression
+```
+
+用 `ZHIXING_CODEX_EXECUTABLE` 指定官方客户端，`ZHIXING_DESKTOP_EXECUTABLE` 指定候选包。代理通过当前进程的 HTTP_PROXY / HTTPS_PROXY 传入；不修改全局配置。所有真实验证遵守 `ZHIXING_ALLOW_LIVE_PROVIDER=0`。
+
+评测报告自 v5 起区分 `single-codex` / `self-review-codex` 与旧 Pi 对照；分别计数模型请求、原生任务，保存实际包哈希、固定题集哈希及每组失败。CLI 首次完整消息记为 firstOutputMs，firstTokenMs 留空；真实累计 token 与核算目标分别解释，不声称严格等计算量。
+
+可加 `--preflight` 在同一候选应用进程中先执行两家 API 的连接检查，并将耗时单独写入 `connectionPreflight`。题目计时不包含这段准备；有无预检查的完成率不能直接当作纯模型或算法改进。
+
+
+2026-09-11 预算策略测试：`npx vitest run tests/team-resource-policy.test.ts tests/team-evaluation.test.ts` 覆盖自动/手动档位、整题容量分配、三级建议目标、两家实际 HTTP 参数、失败用量、旧策略恢复、v13 备份与防降级。`smoke-team.mjs` 新增自动输出选项、整题预算保存和任务卡实际策略显示。评测器 v6 从实际成员绑定统计档位，保留与旧主模型默认档位的区别；同一服务商有多个实际档位时记录数组，不用一个值覆盖其他成员。真实 H02/H04 与 D01/D02 固定对照见[本轮记录](evidence/team-resource-budget-20260911.md)。
+
+
+2026-09-11 通用架构回归：`tests/native-extensibility.test.ts` 验证两端共用目录、合成适配器进入共享会话、上下文保留、临时目录清理、环境过滤、输出边界和未实现运行时拒绝；`tests/provider-protocols.test.ts` 对目录外合成厂商分别验证三种协议的连续会话。合成扩展不等于新增厂商真实上线；对应[契约](provider-architecture.md)与[执行证据](evidence/provider-architecture-20260911.md)。

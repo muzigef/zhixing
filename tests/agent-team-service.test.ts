@@ -10,6 +10,28 @@ import { fixtureTeamReport, fixtureTeamReview } from "./team-fixtures.js";
 import { randomUUID } from "node:crypto";
 import { imageFromBytes } from "../src/image-input.js";
 import { capabilitiesFor } from "../src/model-capabilities.js";
+import type { AgentExecutor } from "../src/agent-executor.js";
+
+it("persists native team budgets in v12 with an original backup and refuses downgrade writes", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "native-team-store-"));
+  const client: AgentExecutor = { kind: "agent-executor", identity: { provider: "native-codex", model: "gpt-test", connection: "native-codex" }, capabilities: capabilitiesFor({ async *stream() {} }), async prepare() {}, async execute(request, _signal, onText) {
+    const system = request.messages.filter(item => item.role === "system").map(item => item.content).join("\n");
+    const text = system.includes("TEAM_PLAN") ? '{"tasks":["计算","边界"]}' : system.includes("TEAM_MEMBER") ? fixtureTeamReport : system.includes("TEAM_REVIEW") ? fixtureTeamReview : "计算结果是 4。";
+    onText?.(text); return { text, status: "completed", verification: "unverified", runtimeTurns: 1, usage: { inputTokens: 10, outputTokens: 20 } };
+  } };
+  const store = new AgentSessionStore(root), service = new AgentService(store, () => client);
+  try {
+    const session = await service.create();
+    const reply = await service.invoke({ sessionId: session.id, provider: "native-codex", style: "adaptive", text: "2+2?", collaboration: teamConfigurationSchema.parse({ mode: "same-model-team" }) });
+    await service.pauseMaintenance();
+    expect(reply.team?.status).toBe("completed");
+    const loaded = await new AgentSessionStore(root).load(session.id);
+    expect(loaded.version).toBe(12); expect(loaded.messages.at(-1)?.team?.nativeTasks).toBe(5);
+    expect(JSON.parse(await fs.readFile(path.join(root, "conversations", `${session.id}.json.v8.bak`), "utf8")).version).toBe(8);
+    await expect(store.save({ ...loaded, version: 11, messages: [], collaboration: undefined })).rejects.toThrow("storage_version_unsupported");
+    expect((await store.load(session.id)).messages.at(-1)?.team?.nativeTasks).toBe(5);
+  } finally { service.stop(); await service.idle(); await service.pauseMaintenance(); await fs.rm(root, { recursive: true, force: true }); }
+});
 
 it("keeps single default and persists an actual team through the shared headless transport", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-service-")); let calls = 0;

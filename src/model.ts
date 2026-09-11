@@ -27,7 +27,7 @@ export interface ToolResultMessage {
 export interface ContinuableModelClient extends ModelClient {
   continue(prompt: string, toolResults: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions): AsyncIterable<ModelEvent>;
 }
-export function isContinuableModelClient(client: ModelClient): client is ContinuableModelClient {
+export function isContinuableModelClient(client: import("./agent-executor.js").AgentBackend): client is ContinuableModelClient {
   return client.capabilities?.toolCalling !== false && client.capabilities?.continuation !== false && typeof (client as Partial<ContinuableModelClient>).continue === "function";
 }
 
