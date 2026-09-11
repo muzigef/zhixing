@@ -53,7 +53,7 @@ J01–J05、J08–J09 的对应原文可读取；J06–J07、J10–J11 的企业
 | 多 Agent | 分工、核查、纠错与综合如何防止错误传播？ | [协调器](../../src/team-coordinator.ts)、[任务图](../../src/team-task-graph.ts) | 必须掌握 |
 | 预算与性能 | token 耗尽是否余额不足？首字为何不等于总延迟？ | [资源策略](../../src/team-resource-policy.ts)、[真实记录](../evidence/team-resource-budget-20260911.md) | 必须掌握 |
 | 质量评估 | 814 测试、20 次运行和学习收益分别证明什么？ | [当前状态](../current-status.md)、[评测器](../../src/team-evaluation.ts) | 必须掌握 |
-| 工程交付 | 本机测试过为什么 CI 会失败？如何定位输入状态竞态？ | [CI](../../.github/workflows/verify.yml)、[最新失败](../current-status.md) | 必须掌握 |
+| 工程交付 | 本机测试过为什么 CI 会失败？如何定位输入状态竞态？ | [CI](../../.github/workflows/verify.yml)、[竞态复现与修复](../evidence/ci-44-team-ui-20260911.md) | 必须掌握 |
 | 云端演进 | 本地单体变多租户服务，哪些约束必须重新设计？ | [系统设计练习](system-design.md) | 中高级重点 |
 | 模型训练基础 | 何时选 RAG、提示、微调，如何避免训练/测试污染？ | [题库](question-bank.md)；训练实现不在本项目中 | 按目标岗位补充 |
 

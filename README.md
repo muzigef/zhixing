@@ -13,7 +13,7 @@
 
 API 支持 Chat Completions、Responses、Messages 三类协议，提供 OpenAI、Anthropic、Google、DeepSeek、Qwen、Kimi、GLM、MiniMax、豆包、混元十家模板。同协议新厂商可以通过配置接入；新协议或官方运行时通过适配器扩展。模板存在不代表对应账号已经实测，订阅也不自动提供 API 额度。详见[通用接入架构](docs/provider-architecture.md)。
 
-最近本地架构验收通过 814 项测试、七组实际包 UI，以及 Codex / DeepSeek / Kimi 的最小真实连接。**同一提交的远端 CI 仍有团队 UI 点击超时，尚未全通过。** 当前版本、候选包、历史安装与待办统一见[当前状态](docs/current-status.md)，避免将源码、安装包和运行中的应用混为一谈。
+最近本地架构验收通过 814 项测试、七组实际包 UI，以及 Codex / DeepSeek / Kimi 的最小真实连接。远端 #44 出现过团队 UI 点击超时，已定位为测试过早向未关闭弹窗后的输入框填字，修复和回归见[CI 记录](docs/evidence/ci-44-team-ui-20260911.md)。当前版本、候选包、历史安装与待办统一见[当前状态](docs/current-status.md)，避免将源码、安装包和运行中的应用混为一谈。
 
 ## 设计理念
 

@@ -1,0 +1,78 @@
+{
+  "date": "2026-09-11",
+  "baseline": "d14ee2f29fb05b01957ed8eada3b6a3a0f69f37e",
+  "scope": "UI smoke test and documentation; product implementation, dependencies and accounts unchanged",
+  "rootCause": "The save button changes its accessible name before its modal closes. The old wait returned early, and fill could not focus the background textarea while the modal remained open.",
+  "fixedWait": "dialog named 团队配置 must become hidden before entering the next draft",
+  "timeoutMs": 8000,
+  "regression": "Promise gate on isolated settings read; busy button and open modal asserted before release; draft value asserted after actual close; error path releases gate",
+  "fullVerify": {
+    "exitCode": 0,
+    "testFiles": 153,
+    "tests": 814,
+    "integrationRerun": 9,
+    "evalRerun": 6,
+    "note": "Reruns are included in full test count"
+  },
+  "desktopUi": {
+    "exitCode": 0,
+    "groups": 7,
+    "targetedTeamExitCode": 0,
+    "requests": 25,
+    "targetedRetryRequests": 3,
+    "peerReplay": false,
+    "runtime": "development build from current source; not an installed or signed package acceptance"
+  },
+  "remoteHistory": [
+    {
+      "run": 44,
+      "id": 34576546164,
+      "conclusion": "failure",
+      "commit": "60570bc3ecb53565a0fcdde1bced5315d69500fb"
+    },
+    {
+      "run": 45,
+      "id": 34587030033,
+      "conclusion": "success",
+      "commit": "d14ee2f29fb05b01957ed8eada3b6a3a0f69f37e",
+      "note": "Before this fix; success does not prove the intermittent race absent"
+    }
+  ],
+  "recordStage": "Local acceptance before fix commit/push; subsequent CI result belongs to the corresponding GitHub Actions run",
+  "liveProviders": false,
+  "nativeCredentialsRead": false,
+  "installedAppChanged": false,
+  "scriptSha256": "c8b8ca141ff3bf373e02d3ab1cbd1cdd1c69dd315fb3abd9b9245c1fd6e033d7",
+  "logs": [
+    {
+      "scenario": "original-ui",
+      "path": "desktop/.local/ci-44-team-before.log",
+      "exitCode": 1,
+      "sha256": "ca9ba32f3027c3ce73f6a6e00b885daa1d37757dc6403ef54d787df761175938"
+    },
+    {
+      "scenario": "gated-before-fix",
+      "path": "desktop/.local/ci-44-team-gated-before.log",
+      "exitCode": 1,
+      "sha256": "492993eb2a16776d70614ece1c8717a1972260d21db8dafa6187d765e2574bc3"
+    },
+    {
+      "scenario": "gated-after-fix",
+      "path": "desktop/.local/ci-44-team-gated-after.log",
+      "exitCode": 0,
+      "sha256": "48525e241426f46864c3a9da2e8fb41533829704c21a32a60029ecee0d4433e7"
+    },
+    {
+      "scenario": "full-verify",
+      "path": "desktop/.local/ci-44-verify.log",
+      "exitCode": 0,
+      "sha256": "2046eadf64f8c7253e7a3a2662f3e47063b71be4af7fd745077d46b26cfe24d4"
+    },
+    {
+      "scenario": "seven-ui-groups",
+      "path": "desktop/.local/ci-44-ui.log",
+      "exitCode": 0,
+      "sha256": "f88334912c210571f257558eb6caceda30e16074da37eb3f75aed21d6d3c62b8"
+    }
+  ]
+}

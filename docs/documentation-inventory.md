@@ -77,6 +77,7 @@
 | [docs/evidence/b04-b06.md](evidence/b04-b06.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/evidence/b07.md](evidence/b07.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/evidence/b08.md](evidence/b08.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
+| [docs/evidence/ci-44-team-ui-20260911.md](evidence/ci-44-team-ui-20260911.md) | CI #44 修复证据：原失败、确定性复现、实际等待条件和本轮回归 |
 | [docs/evidence/completion-0.9.md](evidence/completion-0.9.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/evidence/completion-quality-review.md](evidence/completion-quality-review.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/evidence/deepseek-smoke.md](evidence/deepseek-smoke.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |

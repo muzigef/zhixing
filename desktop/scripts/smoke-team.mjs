@@ -3,6 +3,7 @@ import { strict as assert } from "node:assert";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { waitForIpc } from "./wait-for-ipc.mjs";
 const root = path.resolve(import.meta.dirname, ".."); const data = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-ui-"));
 let app; const errors = [];
 try {
@@ -14,6 +15,14 @@ try {
     safeStorage.isAsyncEncryptionAvailable = async () => true;
     safeStorage.encryptStringAsync = async value => Buffer.from([...value].reverse().join(""));
     safeStorage.decryptStringAsync = async value => ({ result: [...value.toString()].reverse().join("") });
+    const files = process.getBuiltinModule("node:fs/promises"); const open = files.open.bind(files);
+    files.open = async (file, ...args) => {
+      if (String(file).endsWith("preferences.json") && globalThis.teamFixtureSettingsGate) {
+        globalThis.teamFixtureSettingsBlocked = true;
+        await globalThis.teamFixtureSettingsGate;
+      }
+      return open(file, ...args);
+    };
     const original = net.fetch.bind(net); globalThis.teamFixtureCalls = [];
     net.fetch = async (url, options) => {
       if (/^https:\/\/api\.(?:deepseek\.com|moonshot\.cn)\/v1\/chat\/completions$/.test(String(url))) {
@@ -46,11 +55,26 @@ try {
       await page.getByLabel("团队成员时限", { exact: true }).selectOption("180000");
       await page.getByLabel("团队整题输出预算", { exact: true }).scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(os.tmpdir(), "zhixing-team-budget-settings.png") });
+      const dialog = page.getByRole("dialog", { name: "团队配置", exact: true });
+      await app.evaluate(() => {
+        globalThis.teamFixtureSettingsBlocked = false;
+        globalThis.teamFixtureSettingsGate = new Promise(resolve => { globalThis.teamFixtureReleaseSettings = resolve; });
+      });
       await page.getByRole("button", { name: "保存团队配置", exact: true }).click();
-      await page.getByRole("button", { name: "保存团队配置", exact: true }).waitFor({ state: "hidden" });
+      await waitForIpc(app, () => globalThis.teamFixtureSettingsBlocked, undefined, 8000);
+      assert.equal(await dialog.getByRole("button", { name: "保存中…", exact: true }).isDisabled(), true);
+      assert.equal(await dialog.isVisible(), true, "Saving must keep the modal open until settings finish persisting");
+      // The submit button is renamed while saving; its old name disappearing
+      // does not mean the modal has closed or the composer can accept input.
+      assert.equal(await dialog.getByRole("button", { name: "保存团队配置", exact: true }).count(), 0);
+      await app.evaluate(() => { globalThis.teamFixtureReleaseSettings(); globalThis.teamFixtureSettingsGate = undefined; });
+      await dialog.waitFor({ state: "hidden" });
       await app.evaluate(() => { globalThis.teamFixtureConflict = true; });
     }
-    await page.getByRole("textbox", { name: "发送给知行" }).fill("计算 2+2，简短回答。"); await page.getByRole("button", { name: "发送消息", exact: true }).click();
+    const composer = page.getByRole("textbox", { name: "发送给知行" });
+    await composer.fill("计算 2+2，简短回答。");
+    assert.equal(await composer.inputValue(), "计算 2+2，简短回答。", `${mode}: the composer must receive the draft before sending`);
+    await page.getByRole("button", { name: "发送消息", exact: true }).click();
     await page.locator(".assistant-message").last().getByText("综合核查后，结果为 4。", { exact: true }).waitFor();
     await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
     const card = page.locator(".team-card").last(); await card.locator("summary").first().click();
@@ -89,9 +113,10 @@ try {
     await window.zhixing.invoke({ type: "stop" }); await sending; return created.data.id;
   });
   await page.waitForFunction(async id => { const loaded = await window.zhixing.invoke({ type: "load", sessionId: id }); return loaded.ok && loaded.data.messages.at(-1)?.status === "interrupted"; }, stoppedSession, { timeout: 10_000 });
-  console.log("Team UI passed: default single, same/mixed selection, provider configuration, real application scheduling with isolated mocked HTTP, persisted member state, actual model labels, partial failure, criterion coverage, targeted retry (3 requests, no peer replay) and explicit fresh-team rerun.");
+  console.log("Team UI passed: default single, same/mixed selection, provider configuration, blocked settings save and actual modal closure before draft entry, real application scheduling with isolated mocked HTTP, persisted member state, actual model labels, partial failure, criterion coverage, targeted retry (3 requests, no peer replay) and explicit fresh-team rerun.");
 } catch (error) {
   if (app) {
+    await app.evaluate(() => { globalThis.teamFixtureReleaseSettings?.(); globalThis.teamFixtureSettingsGate = undefined; });
     const page = await app.firstWindow();
     console.error("Team UI failure state:", await page.evaluate(async () => ({
       draft: document.querySelector("textarea")?.value,

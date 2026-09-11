@@ -9,6 +9,8 @@
 
 **提交 `60570bc` 的远端 verify 工作流失败**：两套生产依赖审计和 `npm run verify` 成功，桌面前六组 UI 成功，第七组 `smoke-team.mjs:53` 等待“发送消息”按钮可点击超时。本地七组通过不能替代该次远端失败；定位和修复状态见[当前状态](current-status.md)。
 
+后续定位为等待“保存团队配置”按钮旧名称消失，早于模态框关闭。团队脚本已改为等待 dialog 隐藏，并加入受控设置保存闸门及填字断言；超时仍为 8 秒。修复后本轮本地全量 `verify`（814 项）与七组桌面 UI 均通过；修复前 #45 通过不等于竞态消失，独立回归证据见[CI #44 修复](evidence/ci-44-team-ui-20260911.md)。
+
 ## 多服务商与通用扩展回归
 
 `tests/provider-protocols.test.ts` 验证三种协议配置、Messages/Responses 角色及工具续接、加密思考状态、Gemini 签名、取消、错误脱敏、重复工具与断流；`tests/provider-tool-contract.test.ts` 将新增协议送入实际 ToolHarness，验证错误参数修正和不完整流拒绝执行。`tests/native-agent.test.ts` 验证独立执行契约、原生进程取消、订阅/API 区分、CLI 共享历史及拒绝未固定模型的原生团队。

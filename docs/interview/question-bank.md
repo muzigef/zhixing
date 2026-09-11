@@ -576,7 +576,7 @@
 - **分析路径**：把输入、执行轨迹、最终结果和评分分别保存；离线测试可覆盖大量故障，真实评测验证实际模型行为。Agent 评测需要关注环境与执行轨迹，而非只看最后文本。[官方工程讨论](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
 - **Trade-off**：全部真实调用昂贵且随机；全部 Mock 又无法代表模型质量。分层能兼顾复现和外部真实性。
 - **项目依据**：[测试指南](../TESTING.md)、[通用架构验收](../evidence/provider-architecture-20260911.md)、[质量评测](../../src/quality-evaluation.ts)。
-- **追问 / 易错点**：814 项是已记录工程门禁结果，20 次是更早构建的真实实验；不能合并成“834 道真实模型题通过”。本轮还发现 [60570bc 的 GitHub CI](https://github.com/muzigef/zhixing/actions/runs/34576546164) 在团队 UI 发送按钮 disabled 超时处失败；此前本地七组 UI 通过不代表这次 CI 通过，根因尚待复现。
+- **追问 / 易错点**：814 项是已记录工程门禁结果，20 次是更早构建的真实实验；不能合并成“834 道真实模型题通过”。[60570bc 的 GitHub CI](https://github.com/muzigef/zhixing/actions/runs/34576546164) 曾在团队 UI 发送按钮 disabled 处超时；后续已复现为按钮改名早于弹窗关闭的测试竞态。应展示受控延迟及等待真实 dialog 状态的[回归证据](../evidence/ci-44-team-ui-20260911.md)，不能用另一次偶然通过证明问题消失。
 
 <a id="q50"></a>
 
@@ -674,7 +674,7 @@
 
 ### Q59：当前最重要的生产差距是什么？你会如何排序？
 
-- **口述答案**：先解决当前已发现的 CI 团队 UI 失败与 CLI 输入限额差异，再扩大真实质量评测与独立学习者验证，按发布需求补正式发行与平台验收。新厂商、Gemini、SDK/App Server 按需扩展。云化另需多租户身份、队列、配额和隔离，不能把本地程序直接包装成 SaaS。
+- **口述答案**：先统一 CLI 输入限额差异，并保持已修正的 CI 团队测试竞态回归，再扩大真实质量评测与独立学习者验证，按发布需求补正式发行与平台验收。新厂商、Gemini、SDK/App Server 按需扩展。云化另需多租户身份、队列、配额和隔离，不能把本地程序直接包装成 SaaS。
 - **分析路径**：按用户风险、证据缺口、依赖条件和可交付范围排序；先验证价值，再投入不必要的基础设施。
 - **Trade-off**：过早做云化和所有厂商增加维护成本；只保持本地模式限制协作与运维能力。选择应服从用户和规模，而非技术清单。
 - **项目依据**：[当前接入边界](../provider-architecture.md)、[通用验收](../evidence/provider-architecture-20260911.md)、[桌面部署说明](../../desktop/README.md)、[效果协议](../teaching-study-protocol.md)。
