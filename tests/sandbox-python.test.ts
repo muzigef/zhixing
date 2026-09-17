@@ -4,13 +4,14 @@ import path from "node:path";
 import net from "node:net";
 import { expect, it, vi } from "vitest";
 import { runPythonTests } from "../src/python-runner.js";
+import * as runtimeCopy from "../src/sandbox-runtime-copy.js";
 
 it("runs actual Python unittest through the same file/network/process boundary", async () => {
   const start = Date.now();
   const trace = (stage: string) => console.info(`Python boundary phase: ${stage}, elapsed=${Date.now() - start}ms`);
-  const copy = fs.cp.bind(fs);
-  const copyProbe = vi.spyOn(fs, "cp").mockImplementation(async (...args) => {
-    trace("runtime_copy_started"); await copy(...args); trace("runtime_copy_finished");
+  const copy = runtimeCopy.copySandboxRuntimeDirectory;
+  const copyProbe = vi.spyOn(runtimeCopy, "copySandboxRuntimeDirectory").mockImplementation(async (...args) => {
+    trace("runtime_copy_started"); const size = await copy(...args); trace("runtime_copy_finished"); return size;
   });
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-python-boundary-")));
   const secret = path.join(root, "synthetic.txt"), escaped = path.join(root, "escaped.txt");

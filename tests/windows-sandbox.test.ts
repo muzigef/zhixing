@@ -11,22 +11,22 @@ import { runPythonTests } from "../src/python-runner.js";
 if (process.platform === "win32") {
   it("stops Python runtime preparation promptly when cancelled and removes its private copy", async () => {
     const controller = new AbortController();
-    const copy = fs.cp.bind(fs), makeTemp = fs.mkdtemp.bind(fs);
+    const copy = fs.copyFile.bind(fs), makeTemp = fs.mkdtemp.bind(fs);
     let visited = 0, owned = "";
     const directoryProbe = vi.spyOn(fs, "mkdtemp").mockImplementation(async (...args) => {
       const directory = await makeTemp(...args);
       if (String(args[0]).includes("zhixing-appcontainer-")) owned = String(directory);
       return directory;
     });
-    const copyProbe = vi.spyOn(fs, "cp").mockImplementation(async (source, target, options) => {
-      await copy(source, target, { ...options, filter: async (from, to) => {
-        if (++visited === 3) controller.abort();
-        return options?.filter ? options.filter(from, to) : true;
-      } });
+    const copyProbe = vi.spyOn(fs, "copyFile").mockImplementation(async (...args) => {
+      const stdlib = /[\\/]Lib[\\/]/i.test(String(args[0]));
+      if (stdlib) visited++;
+      await copy(...args);
+      if (stdlib) controller.abort();
     });
     try {
       await expect(runPythonTests({}, [], controller.signal, 10_000)).rejects.toMatchObject({ name: "AbortError" });
-      expect(visited).toBe(3); expect(owned).not.toBe("");
+      expect(visited).toBeGreaterThan(0); expect(visited).toBeLessThanOrEqual(8); expect(owned).not.toBe("");
       await expect(fs.stat(owned)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { controller.abort(); copyProbe.mockRestore(); directoryProbe.mockRestore(); }
   }, 30_000);
