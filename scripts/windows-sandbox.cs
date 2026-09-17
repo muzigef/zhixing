@@ -69,12 +69,17 @@ class Sandbox {
   }
   static bool WorkspaceExceeded(string directory, ref long bytes, ref int files, long maximum, int maxFiles, int depth) {
     if(depth>32) return true;
-    foreach(var item in new DirectoryInfo(directory).EnumerateFileSystemInfos()) {
-      if(++files>maxFiles) return true;
-      if((item.Attributes&FileAttributes.ReparsePoint)!=0) continue;
-      if((item.Attributes&FileAttributes.Directory)!=0) { if(WorkspaceExceeded(item.FullName,ref bytes,ref files,maximum,maxFiles,depth+1)) return true; }
-      else { bytes+=((FileInfo)item).Length; if(bytes>maximum) return true; }
-    }
+    try {
+      foreach(var item in new DirectoryInfo(directory).EnumerateFileSystemInfos()) {
+        if(++files>maxFiles) return true;
+        try {
+          if((item.Attributes&FileAttributes.ReparsePoint)!=0) continue;
+          if((item.Attributes&FileAttributes.Directory)!=0) { if(WorkspaceExceeded(item.FullName,ref bytes,ref files,maximum,maxFiles,depth+1)) return true; }
+          else { bytes+=((FileInfo)item).Length; if(bytes>maximum) return true; }
+        } catch(FileNotFoundException) { /* Removed since enumeration; sample again next tick. */ }
+        catch(DirectoryNotFoundException) { /* An enumerated entry disappeared before recursion/stat. */ }
+      }
+    } catch(DirectoryNotFoundException) { if(depth==0) throw; /* A child directory was removed during this sample. */ }
     return false;
   }
   static long Limit(Dictionary<string,object> policy,string key,long min,long max) {

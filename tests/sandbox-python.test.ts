@@ -2,10 +2,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import net from "node:net";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { runPythonTests } from "../src/python-runner.js";
 
 it("runs actual Python unittest through the same file/network/process boundary", async () => {
+  const start = Date.now();
+  const trace = (stage: string) => console.info(`Python boundary phase: ${stage}, elapsed=${Date.now() - start}ms`);
+  const copy = fs.cp.bind(fs);
+  const copyProbe = vi.spyOn(fs, "cp").mockImplementation(async (...args) => {
+    trace("runtime_copy_started"); await copy(...args); trace("runtime_copy_finished");
+  });
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-python-boundary-")));
   const secret = path.join(root, "synthetic.txt"), escaped = path.join(root, "escaped.txt");
   await fs.writeFile(secret, "synthetic Python fixture");
@@ -29,11 +35,13 @@ class Boundary(unittest.TestCase):
    self.assertEqual(output.read(), 'owned')
 `;
   try {
-    const result = await runPythonTests({ "test_boundary.py": script }, ["test_boundary.py"], AbortSignal.timeout(20_000), 10_000);
+    const result = await runPythonTests({ "test_boundary.py": script }, ["test_boundary.py"], AbortSignal.timeout(20_000), 10_000, trace);
+    trace("result");
     expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
     expect(result.stderr).toContain("Ran 1 test");
     await expect(fs.stat(escaped)).rejects.toMatchObject({ code: "ENOENT" });
   } finally {
+    copyProbe.mockRestore();
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await fs.rm(root, { recursive: true, force: true });
   }

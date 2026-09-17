@@ -5,7 +5,7 @@ const { execFile } = hostProcess("python-discovery");
 import { promisify } from "node:util";
 import { LocalSandbox, type SandboxResult } from "./local-sandbox.js";
 const exec = promisify(execFile);
-export async function runPythonTests(files: Record<string, string>, tests: string[], signal: AbortSignal, timeoutMs: number): Promise<SandboxResult> {
+export async function runPythonTests(files: Record<string, string>, tests: string[], signal: AbortSignal, timeoutMs: number, observe?: (stage: "locate" | "inspect" | "sandbox") => void): Promise<SandboxResult> {
   const deadline = Date.now() + timeoutMs;
   const remaining = () => Math.max(0, deadline - Date.now());
   const timedOut: SandboxResult = { status: "timed_out", stdout: "", stderr: "Python 运行环境探测已耗尽任务时间预算。", exitCode: null };
@@ -25,6 +25,7 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"];
   if (process.platform === "win32") {
     try {
+      observe?.("locate");
       const { stdout } = await exec(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32/where.exe"), ["python.exe"], { signal, timeout: Math.max(1, remaining()), maxBuffer: 8000, windowsHide: true });
       candidates = stdout.trim().split(/\r?\n/).filter(file => path.isAbsolute(file) && !file.toLowerCase().includes("windowsapps")).slice(0, 4);
     } catch (error) { signal.throwIfAborted(); return failure("locate", error) === "probe_timeout" || !remaining() ? timedOut : missing(); }
@@ -33,6 +34,7 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
     signal.throwIfAborted();
     if (!remaining()) return timedOut;
     try {
+      observe?.("inspect");
       const { stdout } = await exec(candidate, ["-I", "-S", "-c", "import json,sys; print(json.dumps({'executable':sys.executable,'prefix':sys.base_prefix}))"], { signal, timeout: Math.max(1, remaining()), maxBuffer: 4000, windowsHide: true, env: process.platform === "win32" ? { SystemRoot: process.env.SystemRoot } : { PATH: "/usr/bin:/bin" } });
       const value = JSON.parse(stdout) as { executable: string; prefix: string };
       const executable = await fs.realpath(value.executable); const prefix = await fs.realpath(value.prefix);
@@ -57,5 +59,6 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   if (!remaining()) return timedOut;
   if (!runtime) return missing();
   const script = `import importlib.util, os, sys, unittest\nsys.path.insert(0, os.getcwd())\nsuite = unittest.TestSuite()\nfor index, file in enumerate(${JSON.stringify(tests)}):\n spec = importlib.util.spec_from_file_location('zhixing_test_' + str(index), file)\n module = importlib.util.module_from_spec(spec)\n spec.loader.exec_module(module)\n suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(module))\nif suite.countTestCases() == 0:\n print('No unittest cases found', file=sys.stderr)\n sys.exit(1)\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\nsys.exit(0 if result.wasSuccessful() else 1)\n`;
+  observe?.("sandbox");
   return new LocalSandbox().run(runtime.executable, ["-I", "-S", "-B", "zhixing_runner.py"], { files: { ...files, "zhixing_runner.py": script }, allowedCommands: [runtime.executable], runtimeReadPath: runtime.prefix, timeoutMs: Math.max(1, remaining()), signal });
 }
