@@ -28,7 +28,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes bubblewrap
       - name: Install Windows Electron test runtime
         if: runner.os == 'Windows'
-        run: npm ci --prefix desktop --no-audit --no-fund
+        run: |
+          npm ci --prefix desktop --no-audit --no-fund
+          node desktop/node_modules/electron/install.js
       - name: Run actual OS boundary probes (no simulated success)
         run: npm run test:sandbox -- --reporter=default --reporter=json --outputFile=sandbox-results.json
       - uses: actions/upload-artifact@v4

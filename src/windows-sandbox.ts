@@ -33,8 +33,9 @@ async function runWindowsSandbox(command: string, args: readonly string[], optio
     // Electron otherwise reopens NUL, despite already inheriting valid stdio.
     const launchArgs = [...(options.electronNode ? ["--no-stdio-init"] : []), ...(nodeRuntime ? ["--preserve-symlinks", "--preserve-symlinks-main"] : []), ...args];
     if (!(await fs.stat(resolved)).isFile()) return unavailable;
-    await fs.copyFile(resolved, path.join(runtime, path.basename(resolved)));
     let size = (await fs.stat(resolved)).size;
+    if (size > 400_000_000) throw new Error("sandbox_runtime_limit");
+    await fs.copyFile(resolved, path.join(runtime, path.basename(resolved)));
     // Node/Electron runtime dependencies only, not adjacent project sources.
     for (const entry of await fs.readdir(path.dirname(resolved), { withFileTypes: true })) {
       if (!entry.isFile() || !/\.(?:dll|pak|bin|dat)$/i.test(entry.name)) continue;

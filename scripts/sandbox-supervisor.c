@@ -28,6 +28,7 @@
 #endif
 static volatile sig_atomic_t cancelled = 0;
 static void cancel(int s) { (void)s; cancelled = 1; }
+static void setup_failure(int fd) { ssize_t written; do { written=write(fd,"E",1); } while(written<0 && errno==EINTR); _exit(125); }
 static uint64_t now_ms(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return (uint64_t)t.tv_sec * 1000 + t.tv_nsec / 1000000; }
 static int set_limit(int kind, rlim_t value) { struct rlimit r = { value, value }; return setrlimit(kind, &r); }
 static int workspace(int fd, uint64_t *bytes, uint64_t *files, uint64_t max_bytes, uint64_t max_files, int depth) {
@@ -120,14 +121,14 @@ int main(int argc, char **argv) {
   if(!child) {
     close(error_pipe[0]); close(work); close(3);
     struct rlimit cpu_limit={cpu,cpu+1};
-    if(set_limit(RLIMIT_CORE,0) || setrlimit(RLIMIT_CPU,&cpu_limit) || set_limit(RLIMIT_FSIZE,disk) || set_limit(RLIMIT_NOFILE,128)) { (void)write(error_pipe[1],"E",1); _exit(125); }
+    if(set_limit(RLIMIT_CORE,0) || setrlimit(RLIMIT_CPU,&cpu_limit) || set_limit(RLIMIT_FSIZE,disk) || set_limit(RLIMIT_NOFILE,128)) setup_failure(error_pipe[1]);
 #ifndef __APPLE__
-    if(prctl(PR_SET_PDEATHSIG,SIGKILL) || restrict_processes()) { (void)write(error_pipe[1],"E",1); _exit(125); }
+    if(prctl(PR_SET_PDEATHSIG,SIGKILL) || restrict_processes()) setup_failure(error_pipe[1]);
 #endif
-    execv(argv[7],&argv[7]); (void)write(error_pipe[1],"E",1); _exit(125);
+    execv(argv[7],&argv[7]); setup_failure(error_pipe[1]);
   }
   close(error_pipe[1]); signal(SIGTERM,cancel); signal(SIGINT,cancel); signal(SIGHUP,cancel);
-  char setup_error=0; (void)read(error_pipe[0],&setup_error,1); close(error_pipe[0]);
+  char setup_error=0; ssize_t setup_read; do { setup_read=read(error_pipe[0],&setup_error,1); } while(setup_read<0 && errno==EINTR); if(setup_read<0) setup_error='E'; close(error_pipe[0]);
   uint64_t start=now_ms(); int status=0,reaped=0; struct rusage usage; memset(&usage,0,sizeof(usage)); const char *state="completed", *limit=NULL;
   for(;;) {
     pid_t ended=wait4(child,&status,WNOHANG,&usage); if(ended==child) { reaped=1; break; }
