@@ -162,3 +162,5 @@
 | [topics/tool-calling/PLAN.md](../topics/tool-calling/PLAN.md) | 教学/运行指令或测试夹具：用途与表述核对 |
 
 2026-09-17 新增：[统一执行沙箱](execution-sandbox.md)、[原生验收](evidence/sandbox-20260917.md)及[机器回执](evidence/sandbox-20260917.json)；同步安全、架构、测试和实践/MCP 指南，历史实验保持原结果。
+
+2026-09-17 补充：[Windows CI 专项修复验收](evidence/windows-sandbox-ci-20260917.md)及[机器回执](evidence/windows-sandbox-ci-20260917.json)，记录目录句柄扫描、Python 私有归档与统一期限，以及本地和四平台实际回归；同步执行边界、测试指南、当前状态和任务台账。

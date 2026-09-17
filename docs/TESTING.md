@@ -1,7 +1,11 @@
 <!-- generated-by: gsd-doc-writer -->
 # 测试与验证
 
-## 当前验证状态
+## 2026-09-17 Windows 沙箱修复验证
+
+最新实现基线 `795c7fe`：本地完整门禁 161 个文件 / 846 项测试及七组桌面 UI 通过；Mac ARM/Intel、Linux、Windows 原生边界矩阵全部通过。Windows 40 项包含目录删除竞态、Python ZIP 准备及取消、实际隔离和资源超限。证据与失败历史见 [Windows CI 修复](evidence/windows-sandbox-ci-20260917.md)。
+
+## 2026-09-11 验收基线
 
 文档核对日期：2026-09-11，桌面源码 `0.11.0`。最近本地代码验收记录为 **153 个测试文件 / 814 项测试、签名候选包七组 UI、Codex/DeepSeek/Kimi 最小真实连接检查通过**，见[通用架构验收](evidence/provider-architecture-20260911.md)。这些结果不是本次文档编辑中新跑的测试，也不是所有模型或教学质量通过。
 

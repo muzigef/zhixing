@@ -1,6 +1,6 @@
 # 当前实现与验收状态
 
-核对日期：2026-09-17。当前 main 已合并统一执行沙箱及验收记录，基线为 [`19027b1`](https://github.com/muzigef/zhixing/commit/19027b1abf19931e1dd2347b1ab6fc56868c8081)；此前通用模型接入架构基线为 [`60570bc`](https://github.com/muzigef/zhixing/commit/60570bc3ecb53565a0fcdde1bced5315d69500fb)，CI 等待修复为 [`485b358`](https://github.com/muzigef/zhixing/commit/485b358e9dd08633d9893e95e2ff81adc17b6672)。本文汇总当前状态；历史计划、截图和验收记录描述的是各自执行时点，不自动覆盖为新版本结论。
+核对日期：2026-09-17。当前代码包含统一执行沙箱及 Windows CI 专项修复，代码基线为 [`795c7fe`](https://github.com/muzigef/zhixing/commit/795c7fe6268b3e03cc1dd789e26dda14db6e84f7)；此前统一沙箱基线为 [`19027b1`](https://github.com/muzigef/zhixing/commit/19027b1abf19931e1dd2347b1ab6fc56868c8081)，通用模型接入架构基线为 [`60570bc`](https://github.com/muzigef/zhixing/commit/60570bc3ecb53565a0fcdde1bced5315d69500fb)。本文汇总当前状态；历史计划、截图和验收记录描述的是各自执行时点，不自动覆盖为新版本结论。
 
 ## 代码与版本
 
@@ -19,6 +19,8 @@
 LocalSandbox 已统一不可变资源策略、输入校验、后端能力检查和失败关闭，覆盖证据、实践 Node/Python 和 restricted MCP；所有原生进程入口已通过宿主网关/平台后端登记并接受 AST 检查。新增 Linux 后端，关闭旧 Codex 真实启动旁路。源码与信任边界见[执行沙箱](execution-sandbox.md)，本地 157 文件 / 830 测试及七组 UI 通过，最终代码的 Mac ARM/Intel、Windows、Linux 原生边界矩阵与远端 verify 全部通过，见[本轮证据](evidence/sandbox-20260917.md)；不改变以上历史版本、发布或安装事实。Windows restricted MCP 仍明确拒绝，RSS/目录监控不宣称硬配额。
 
 ## 最近工程验证
+
+2026-09-17 Windows CI 专项修复基线为 `795c7fe`：本地完整门禁 161 个文件 / 846 项测试和七组 UI 通过，四平台原生边界测试全部通过（Windows 40/40）。新增目录竞态、Python 准备/取消/归档及错误回执回归；失败历史继续保留，见[修复验收](evidence/windows-sandbox-ci-20260917.md)。这不代表重新安装了 App 或重跑了真实模型评测。
 
 2026-09-17 将唯一未合并的本地分支 `verification/unified-sandbox-20260917` 快进合并至 main，无冲突，原有未提交文档逐文件校验一致并保留。合并后完整 `CI=1 npm run verify` 通过：157 个文件 / 830 项测试，以及 lint、两端类型检查、integration、eval、mock smoke、敏感扫描和 diff 检查。本次合并没有重跑桌面 UI、跨平台 CI 或真实模型；沙箱改造对应的四平台和 UI 验收仍见[当次记录](evidence/sandbox-20260917.md)。
 

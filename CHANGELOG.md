@@ -4,6 +4,7 @@
 
 ## 统一执行沙箱：2026-09-17
 
+- 修复 Windows CI 暴露的目录采样竞态、原生错误码丢失及 Python 准备阶段超时；改用句柄扫描、统一截止时间和私有标准库 ZIP。846 项本地测试、七组 UI 与四平台原生矩阵通过，见[修复验收](docs/evidence/windows-sandbox-ci-20260917.md)。
 - 统一 LocalSandbox / SandboxPolicy / SandboxBackend，实践代码、证据测试与受限 MCP 共享入口；增加 Linux bubblewrap 后端及 POSIX 资源 supervisor。
 - 统一输入边界、失败关闭和超限回执；Windows Job Object 资源限制增加共享策略及原因回执；严格区分监控与硬上限。
 - 宿主进程按用途登记，增加 AST 入口审计；关闭弃用 Codex 分支的真实执行，保留当前原生适配器。

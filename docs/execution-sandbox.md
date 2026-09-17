@@ -23,6 +23,8 @@ CLI / Electron / 主 Agent / 团队成员
 
 实践调用可以把墙钟设置为剩余预算，最多 10 秒；Node/Python 两阶段仍共用实践任务的截止时间。受限 MCP 的连接级预算为 300 秒墙钟、30 秒 CPU、2 MB 输出，工具请求另有原来的超时。预算达到上限会关闭连接；后续发现可建立新连接。初始化的受限进程发现等待包含系统首次启动开销，不再套用 trusted 进程的 600 ms 探测窗口。
 
+Python 的解释器探测、私有运行库准备及代码执行使用同一截止时间，取消时等待清理完成；已完成的工作不会因为清理跨过期限而追溯变成超时。Windows 标准库以私有 ZIP 提供，`._pth` 只包含该归档和 `DLLs`，排除第三方包、缓存和 reparse 链接。目录配额按稳定句柄枚举，区分待删除对象与真正的访问拒绝。实现及故障复验见 [Windows CI 修复](evidence/windows-sandbox-ci-20260917.md)。
+
 | 保证 | macOS | Linux | Windows |
 | --- | --- | --- | --- |
 | 文件/网络 | Seatbelt 默认拒绝；必要系统运行库和显式读授权；只写临时目录；拒绝网络 | bubblewrap 的只读系统运行库/显式读挂载、私有工作目录、独立网络/PID/IPC/用户命名空间 | 无额外 capabilities 的 AppContainer；只复制运行时和输入；不修改原安装目录 ACL |
@@ -52,6 +54,7 @@ macOS 允许全局文件元数据读取，不代表允许文件内容读取。Li
 | Git 实践存储 | hostProcess，固定命令/参数、工作目录和禁用 hooks/fsmonitor 的现有策略 |
 | 构建来源 Git | hostProcess；禁用 fsmonitor/hooks，隔离全局 Git 配置和环境 |
 | Python 探测 | hostProcess；固定 `-I -S` 探测脚本、候选路径和极小环境；用户 Python 测试只在沙箱中执行 |
+| Python 标准库归档 | 登记的 `python-runtime` hostProcess；固定 `-I -S -B` 程序仅归档所选解释器的标准库，排除第三方包/缓存/链接并限制大小、条目数、时间及输出；学习者代码不在宿主执行 |
 | 钥匙串迁移/访问 | 固定 security 适配器经 hostProcess；凭据不进入模型、审计或沙箱环境；本次不触发真实凭据读取 |
 | OCR | hostProcess，固定 pdftoppm/tesseract、超时/输出上限、最小环境；这是受信任的本机解析器，不提供其漏洞利用后的 OS 隔离保证 |
 | JSON Schema Worker | 固定 Worker 源码，AJV 接收数据；线程堆/栈和 deadline 限制；不是任意用户脚本或 OS 沙箱 |

@@ -2,6 +2,8 @@
 
 ## 2026-09-17：统一执行策略与平台隔离
 
+main 推送后的 Windows CI 故障已专项修复：目录句柄扫描、Python 共用截止时间/取消/清理、私有标准库 ZIP 和脱敏回执。`795c7fe` 通过本地 846 项测试、七组 UI，以及四平台原生矩阵；Windows 40/40。失败历史与范围见[修复验收](docs/evidence/windows-sandbox-ci-20260917.md)。
+
 实现统一策略、平台后端、失败关闭、全部进程入口审计及真实边界探针。验收包含越界读写、符号链接、TCP/Unix socket、子进程、CPU/内存/目录/输出超限、超时与取消；本地完整门禁 830 项及四平台原生矩阵、远端 verify 全部通过；平台结果、失败历史与能力限制见[验收记录](docs/evidence/sandbox-20260917.md)。2026-09-17 已将独立验证分支的五个提交按原顺序快进合并至 main（`19027b1`），合并后完整 verify 通过 157 个文件 / 830 项测试；未替换已安装 App。
 
 当前实现与待验收项以 [当前状态](docs/current-status.md) 为准。2026-09-11 文档与面试资料已在 `d14ee2f` 提交推送，其远端 verify #45 通过；文档核验记录见 [文档验收](docs/evidence/documentation-refresh-20260911.md)。此前 #44 的团队 UI 失败已在 `485b358` 修正：等待实际弹窗关闭，加入受控保存闸门和输入断言；修复后的本地 814 项测试、七组 UI 及远端 [verify #46](https://github.com/muzigef/zhixing/actions/runs/34588292814) 均通过，见 [CI 修复记录](docs/evidence/ci-44-team-ui-20260911.md)。

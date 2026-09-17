@@ -1,0 +1,103 @@
+{
+  "date": "2026-09-17",
+  "codeCommit": "795c7fe6268b3e03cc1dd789e26dda14db6e84f7",
+  "baseline": "24cc3a545d72b23527ab277300d1075d76277d56",
+  "qualityCI": {
+    "id": 35208329594,
+    "url": "https://github.com/muzigef/zhixing/actions/runs/35208329594",
+    "conclusion": "success",
+    "checks": ["cli production audit", "desktop production audit", "verify", "seven desktop UI groups"]
+  },
+  "nativeCI": {
+    "id": 35208329601,
+    "url": "https://github.com/muzigef/zhixing/actions/runs/35208329601",
+    "conclusion": "success",
+    "platforms": [
+      {
+        "runner": "macos-15",
+        "passed": 36,
+        "failed": 0,
+        "pending": 0,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35208329601/job/105159489067",
+        "reportSha256": "811b7aaf74b6fdb891f76ed13fcb9b9266c9453b56a2bfaf35ffd0ea3d4ce30b"
+      },
+      {
+        "runner": "macos-15-intel",
+        "passed": 36,
+        "failed": 0,
+        "pending": 0,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35208329601/job/105159489246",
+        "reportSha256": "2e7eeb72750297dca471153a077526245b24aa7a404cc22b02bbd9d840076da1"
+      },
+      {
+        "runner": "ubuntu-22.04",
+        "passed": 37,
+        "failed": 0,
+        "pending": 0,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35208329601/job/105159489470",
+        "reportSha256": "42729cf454973ab6aa130a0e28e0a43d3515ee5bd62c0da53f3b2bb5f7083254"
+      },
+      {
+        "runner": "windows-2022",
+        "passed": 40,
+        "failed": 0,
+        "pending": 0,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35208329601/job/105159489245",
+        "reportSha256": "e54ce97b148be69b3db030982b28a5a23935aa6973e32e0ce9ecbf74de8dbe71"
+      }
+    ]
+  },
+  "local": {
+    "verify": {
+      "testFiles": 161,
+      "passedTests": 846,
+      "sha256": "4f8eff0d364d8fc06f07532ac7d706d5daa4a67a1890a9b14a698010a787ac81"
+    },
+    "desktopUI": {
+      "groups": 7,
+      "sha256": "975e0535a4f7d260d5b82aef699f92b541989090573ac14b7b73afd32edcbd03"
+    }
+  },
+  "windowsPythonProbe": {
+    "locateMs": 13,
+    "inspectMs": 102,
+    "sandboxMs": 145,
+    "archiveStartMs": 160,
+    "archiveEndMs": 816,
+    "dllCopyEndMs": 1008,
+    "resultMs": 2251,
+    "taskBudgetMs": 10000,
+    "interpretation": "one fresh hosted runner observation, not a latency SLA"
+  },
+  "regressions": {
+    "initial": 35203552402,
+    "directoryNotFoundAndPythonWait": 35205191766,
+    "deadlineEnforcedButCopySlow": 35206187821,
+    "deletePendingAndCleanupRace": 35206732382,
+    "handleScanPassedButPythonCopyStillSlow": 35207317136
+  },
+  "sourceFiles": {
+    "package.json": "2deb9efff1e4caf17f494847a5c6c7ce8fa7d765948690b922dcb9704afee4cd",
+    "scripts/windows-sandbox.cs": "b9bcc1d4ac99741e6a22b880490ed9680149e6039780581d760efb4e58824785",
+    "src/process-gateway.ts": "bba911f94bd2e8e4284ed429e448ad407352b40f939eb2a670bd0cda68838504",
+    "src/python-runner.ts": "25edb840afb0e05b1ec3983f05f25b2ecb2bab5554d836a818cf5a65c4087e16",
+    "src/python-runtime-archive.ts": "17fe422cafbe72d4523430fde67af71030049dcdab9fe9ca63deecbdf7c79805",
+    "src/sandbox-runtime-copy.ts": "59bf4bf1923b9498d8ee66cb13744fe08163ae76ad82e3a81e1a13d17773f98a",
+    "src/windows-sandbox.ts": "aa04140ece8261201d2eed16a93ff4f022a0146085b72bab0207c0954deaabf6",
+    "tests/execution-entrypoints.test.ts": "3d927dc302a286bc36a481d2a848512d0da9f50d5882041bf8bac11d8c019bea",
+    "tests/python-discovery.test.ts": "bdcbbcdf74f4ee0026e96899b52558ae597b4d555b0d79baf94f1c1bad962b14",
+    "tests/python-runtime-archive.test.ts": "87614d14bf2c66d1eb1f6d4bd338a8d78bf145252f5f7398ec687d6e95a2dfe0",
+    "tests/sandbox-python.test.ts": "f4aa7a2817b296d4f977bc2a5deac3d52fbca9102af829030fd21d4d1913e81c",
+    "tests/sandbox-runtime-copy.test.ts": "d4e76724b66b65f41d94ccf7c444489965368b38b956b67593889ef6b29af8d7",
+    "tests/windows-sandbox-receipt.test.ts": "44c77132168807a39a64de3725c535b61379a192dc3cee8f528cfeb6d64c4500",
+    "tests/windows-sandbox.test.ts": "459b339e06f7055281d7ae4b17d46c618ae922593cbabc5b16f61a272b8f1d83"
+  },
+  "scope": {
+    "liveProviderCalls": false,
+    "installedAppChanged": false,
+    "permissionLimitsRelaxed": false,
+    "nodePythonTestTimeoutRaised": false,
+    "originalErrorCodesLost": true,
+    "pythonArchivePreparation": "fixed trusted host program through registered python-runtime gateway; learner code executes only inside LocalSandbox"
+  }
+}
