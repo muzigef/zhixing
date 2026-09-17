@@ -1,6 +1,6 @@
 # 面试调研来源与使用边界
 
-统一访问/检索日期：2026-09-11。岗位来源是招聘要求的依据；技术来源支持原理与设计，不证明知行已经实现对应产品的所有能力。未标注发布日期的网页不凭抓取日期补写发布日期。
+原始访问/检索日期：2026-09-11；项目答案维护日期：2026-09-14，按实现基线 `485b358` 补齐直接解答与源码索引。岗位来源是招聘要求的依据；技术来源支持原理与设计，不证明知行已经实现对应产品的所有能力。未标注发布日期的网页不凭抓取日期补写发布日期；本次答案补充不代表重新检索所有招聘页面。
 
 ## 招聘来源
 
@@ -28,7 +28,7 @@
 | SQLite：[Atomic Commit In SQLite](https://sqlite.org/atomiccommit.html) | 未标注 | Q43：数据库事务原子性及其对外部副作用的适用边界 |
 | Electron：[Security](https://www.electronjs.org/docs/latest/tutorial/security) | 未标注；`latest` 文档 | Q46：渲染进程隔离、IPC 与主进程权限边界 |
 
-另通过 GitHub CLI 读取本项目 [Actions 运行 34576546164](https://github.com/muzigef/zhixing/actions/runs/34576546164) 的实时状态与失败日志，用于 Q49 的工程验收案例；这是仓库运行证据，不属于外部技术原理或招聘样本。
+原调研通过 GitHub CLI 读取本项目 [verify #44](https://github.com/muzigef/zhixing/actions/runs/34576546164) 的状态与失败日志，用于工程验收案例。后续已定位并修复等待竞态，修复提交 `485b358` 的 [verify #46](https://github.com/muzigef/zhixing/actions/runs/34588292814) 成功；失败和修复应一起讲，详见[回归记录](../evidence/ci-44-team-ui-20260911.md)。这是仓库运行证据，不属于外部技术原理或招聘样本。
 
 ## 项目事实来源
 
@@ -39,6 +39,6 @@
 | 模型接入 | [架构契约](../provider-architecture.md)、[三家验收](../evidence/provider-architecture-20260911.md) | 模板/接口可扩展不等于十家都实测 |
 | 团队 | [内核](../agent-team-kernel.md)、[资源预算原始记录](../evidence/team-resource-budget-20260911.md) | 固定四题20次运行不是20道独立题 |
 | 学习效果 | [协议](../teaching-study-protocol.md)、[结果模型](../learning-outcomes.md) | 没有真实参与者收益结论 |
-| CI | [运行34576546164](https://github.com/muzigef/zhixing/actions/runs/34576546164) | verify成功、团队UI失败；不能简化为全部通过 |
+| CI | [原失败 #44](https://github.com/muzigef/zhixing/actions/runs/34576546164)、[修复后 #46](https://github.com/muzigef/zhixing/actions/runs/34588292814)、[修复记录](../evidence/ci-44-team-ui-20260911.md) | #44 的 verify 成功、团队 UI 失败；485b358 修复后 #46 通过，两个运行事实分别保留 |
 
 技术题中的外部论文和官方规范，在对应题目附近直接链接。它们提供可迁移原理，项目映射仍必须由仓库源码与测试支持。建议复习时记录读过的源码、自己完成的实验与仍不确定之处，避免将资料作者的设计或建议写成个人已交付成果。

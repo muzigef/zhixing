@@ -1,6 +1,6 @@
 # 项目文档逐文件清单
 
-基线原有138份受版本控制Markdown；下表也包括本轮新增文件。范围核查不等于重新执行历史实验。
+2026-09-11 文档核查的基线原有 138 份受版本控制 Markdown；下表也包括当轮新增文件，后续维护同步当前路径。2026-09-14 将原根目录设计说明移至 `docs/agent-design.md`。范围核查不等于重新执行历史实验。
 
 - 现行文档：核对源码、契约、命令及实际证据，修正过时描述。
 - 历史计划/验收：保留原始结果，检查适用范围和导航；不宣称重新验证历史外部服务。
@@ -11,13 +11,12 @@
 
 | 文件 | 文档角色与核查方式 |
 | --- | --- |
-| [AGENTS.md](../AGENTS.md) | 现行入口/状态/核查记录：代码与记录对应 |
+| [AGENTS.md](../AGENTS.md) | 仓库开发指令：工程、隐私、执行边界与验证要求 |
 | [CHANGELOG.md](../CHANGELOG.md) | 现行入口/状态/核查记录：代码与记录对应 |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | 现行指南/模块：源码、契约与证据核对 |
 | [README.md](../README.md) | 现行入口/状态/核查记录：代码与记录对应 |
 | [SECURITY.md](../SECURITY.md) | 现行指南/模块：源码、契约与证据核对 |
 | [TASKS.md](../TASKS.md) | 现行入口/状态/核查记录：代码与记录对应 |
-| [agent.md](../agent.md) | 现行入口/状态/核查记录：代码与记录对应 |
 | [desktop/README.md](../desktop/README.md) | 现行指南/模块：源码、契约与证据核对 |
 | [desktop/runtime-AGENTS.md](../desktop/runtime-AGENTS.md) | 教学/运行指令或测试夹具：用途与表述核对 |
 | [docs/CLI-REFERENCE.md](CLI-REFERENCE.md) | 现行指南/模块：源码、契约与证据核对 |
@@ -34,6 +33,7 @@
 | [docs/agent-architecture-comparison-20260908.md](agent-architecture-comparison-20260908.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/agent-architecture-next-plan.md](agent-architecture-next-plan.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
 | [docs/agent-code-walkthrough.md](agent-code-walkthrough.md) | 现行指南/模块：源码、契约与证据核对 |
+| [docs/agent-design.md](agent-design.md) | Agent 设计说明：分层、核心模块、取舍与实现边界，不作为自动加载的指令 |
 | [docs/agent-kernel.md](agent-kernel.md) | 现行指南/模块：源码、契约与证据核对 |
 | [docs/agent-memory.md](agent-memory.md) | 现行指南/模块：源码、契约与证据核对 |
 | [docs/agent-next-plan.md](agent-next-plan.md) | 历史快照：适用范围、链接与证据语义；保留原结果 |
@@ -160,3 +160,5 @@
 | [topics/interview-project/PLAN.md](../topics/interview-project/PLAN.md) | 教学/运行指令或测试夹具：用途与表述核对 |
 | [topics/rag/PLAN.md](../topics/rag/PLAN.md) | 教学/运行指令或测试夹具：用途与表述核对 |
 | [topics/tool-calling/PLAN.md](../topics/tool-calling/PLAN.md) | 教学/运行指令或测试夹具：用途与表述核对 |
+
+2026-09-17 新增：[统一执行沙箱](execution-sandbox.md)、[原生验收](evidence/sandbox-20260917.md)及[机器回执](evidence/sandbox-20260917.json)；同步安全、架构、测试和实践/MCP 指南，历史实验保持原结果。

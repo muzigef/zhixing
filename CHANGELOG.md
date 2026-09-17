@@ -2,6 +2,18 @@
 
 遵循 Keep a Changelog 的记录风格；本仓库尚未对外发布稳定版本。
 
+## 统一执行沙箱：2026-09-17
+
+- 统一 LocalSandbox / SandboxPolicy / SandboxBackend，实践代码、证据测试与受限 MCP 共享入口；增加 Linux bubblewrap 后端及 POSIX 资源 supervisor。
+- 统一输入边界、失败关闭和超限回执；Windows Job Object 资源限制增加共享策略及原因回执；严格区分监控与硬上限。
+- 宿主进程按用途登记，增加 AST 入口审计；关闭弃用 Codex 分支的真实执行，保留当前原生适配器。
+- 新增 Mac ARM/Intel、Windows、Linux 原生边界矩阵和 Python 验证；结果及限制见[验收记录](docs/evidence/sandbox-20260917.md)。
+
+## 开发文档整理：2026-09-14
+
+- 将根目录 `agent.md` 更名并移至 [docs/agent-design.md](docs/agent-design.md)，明确其架构说明用途；[AGENTS.md](AGENTS.md) 保留为仓库开发指令。
+- 按 `485b358` 核对两份文档的共享内核、模型接入、团队、记忆与验证边界，更新所有现行入口和相对链接；历史验收保留原始文件名、结果和哈希并附更名说明。
+
 ## CI 回归修复：2026-09-11
 
 - 修复团队 UI 测试将“保存”按钮改名误认为弹窗关闭的等待竞态；改为等待实际 dialog 隐藏并检查输入值。
@@ -19,7 +31,7 @@
 
 ## 未发布文档维护：2026-09-11
 
-- 新增 `agent.md`、现行状态与文档导航，校正使用指南、核心模块和历史计划的适用范围。
+- 新增 `agent.md`（现为 [Agent 设计说明](docs/agent-design.md)）、现行状态与文档导航，校正使用指南、核心模块和历史计划的适用范围。
 - 新增公开招聘要求调研、项目面试题库和系统设计练习；结果不代表任何公司的实际面试原题。
 - 保留早期版本的原始结果，文档验证见[记录](docs/evidence/documentation-refresh-20260911.md)。
 

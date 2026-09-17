@@ -1,0 +1,121 @@
+{
+  "date": "2026-09-14",
+  "status": "passed",
+  "implementationBaseline": "485b358e9dd08633d9893e95e2ff81adc17b6672",
+  "rename": {
+    "from": "agent.md",
+    "to": "docs/agent-design.md",
+    "oldPathRetained": false
+  },
+  "documents": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "bd3dc44b30677a353b8f2cb1ea05efb4d8e62359febc5dcf08a80189155e0dac"
+    },
+    {
+      "path": "docs/agent-design.md",
+      "sha256": "c54deb7701cbf7858bf9eba42ddd46a83d96dccce46cd150a3694d4ebc515c29"
+    }
+  ],
+  "review": {
+    "method": "Manual comparison of document claims with source contracts, defaults, build scripts, and dated verification records; not an independent reviewer or new live-provider evaluation.",
+    "sources": [
+      "package.json",
+      "desktop/package.json",
+      "desktop/core/contracts.ts",
+      "desktop/scripts/build.mjs",
+      "scripts/pi-safe.sh",
+      ".pi/extensions/zhixing-guard.ts",
+      "src/build-provenance.ts",
+      "src/cli.ts",
+      "src/input-limits.ts",
+      "src/agent-service.ts",
+      "src/agent-session-store.ts",
+      "src/conversation-summary.ts",
+      "src/context-window.ts",
+      "src/agent-executor.ts",
+      "src/pi-model-worker.ts",
+      "src/assistant-runtime.ts",
+      "src/agent-model-factory.ts",
+      "src/api-connection-config.ts",
+      "src/protocol-model-client.ts",
+      "src/provider-catalog.ts",
+      "src/native-runtime-catalog.ts",
+      "src/native-runtime-adapters.ts",
+      "src/team-contracts.ts",
+      "src/team-coordinator.ts",
+      "src/team-resource-policy.ts",
+      "src/tool-harness.ts"
+    ],
+    "findingsResolved": [
+      "Use distinct names for repository instructions and architecture reference.",
+      "Replace historical phase headings and stale evidence entry points with current rules and dated sources.",
+      "Distinguish Pi development guard, SDK model worker, and official native executor.",
+      "Update protocol templates and Codex/Claude/Gemini implementation and verification boundaries.",
+      "Clarify shared service versus the unresolved CLI 8000/desktop 20000 input-length difference.",
+      "Document two-member read-only teams, conditional session versions 8–13, and bounded context.",
+      "Update current CI status to the successful run for baseline 485b358; preserve failed run 44."
+    ],
+    "knownProductGapUnchanged": "CLI execute() rejects input over 8000 characters while shared/desktop limit is 20000."
+  },
+  "checks": {
+    "rootDependencyInstall": {
+      "command": "npm ci --registry=https://registry.npmjs.org",
+      "exitCode": 0,
+      "log": "desktop/.local/agent-docs-root-install-20260914.log",
+      "logSha256": "c05082234eb364f0c87f16cbcdfccd936f7a5bd3b31f700c86ba9133acdcb297"
+    },
+    "desktopDependencyInstall": {
+      "command": "npm ci --prefix desktop --registry=https://registry.npmjs.org",
+      "exitCode": 0,
+      "log": "desktop/.local/agent-docs-desktop-install-20260914.log",
+      "logSha256": "7d268cd3cd00c1ad30154b8b3c8921c9b280c1c07520adae0f87516ead78d9e0"
+    },
+    "verify": {
+      "command": "CI=1 npm run verify",
+      "exitCode": 0,
+      "log": "desktop/.local/agent-docs-verify-20260914.log",
+      "testFiles": 153,
+      "tests": 814,
+      "integrationTests": 9,
+      "evalTests": 6,
+      "countsNote": "Integration and eval are included in the 814 unique tests, then rerun by verify.",
+      "desktopUiIncluded": false,
+      "logSha256": "4b1e16150aec76c7ee8813d44235f36c2b896292c49bf41509db3f5fe2d1dd45"
+    },
+    "markdownLocalLinksAndAnchors": {
+      "command": "node desktop/.local/check-agent-doc-links-20260914.mjs",
+      "exitCode": 0,
+      "files": 149,
+      "links": 1810,
+      "failures": []
+    },
+    "scopeAndHistory": {
+      "status": "passed",
+      "onlyDocumentationChanged": true,
+      "oldRootDesignFileAbsent": true,
+      "lockfilesAndOriginalAuditJsonUnchanged": true
+    }
+  },
+  "historicalEvidence": {
+    "preservedJson": "docs/evidence/documentation-review-20260911.json",
+    "note": "Original paths and hashes describe the 2026-09-11 audit; the corresponding Markdown record now explains the rename."
+  },
+  "remoteBaselineReceipt": {
+    "run": 46,
+    "url": "https://github.com/muzigef/zhixing/actions/runs/34588292814",
+    "head": "485b358e9dd08633d9893e95e2ff81adc17b6672",
+    "conclusion": "success",
+    "queriedOn": "2026-09-14",
+    "rerunForThisDocsChange": false
+  },
+  "scope": {
+    "applicationCodeChanged": false,
+    "lockfilesChanged": false,
+    "desktopUiRerun": false,
+    "liveModelsRerun": false,
+    "appBuiltOrInstalled": false,
+    "historicalRawEvaluationJsonChanged": false,
+    "buildProvenanceNote": "Root AGENTS.md is an input to the build source hash; this documentation change does not constitute a newly built or installed app."
+  }
+}

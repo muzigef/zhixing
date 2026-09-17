@@ -9,7 +9,7 @@ AI 被授权在 `zhixing/` 内自主完成：创建和修改源代码、测试�
 
 没有用户相应授权时，AI 不得自主执行 Git commit/push、变更凭据、发送用户资料、删除或覆盖用户数据、调整系统权限、全局安装或破坏性命令。已有会话授权持续有效，不重复请求相同授权。任何情况下均不得读取或导出浏览器 Cookie、账号 token 或 CLI 认证文件；产品的受控 Provider/安全存储接口负责凭据使用。
 
-P10 已授权独立 Electron/React 桌面及 Pi Codex / DeepSeek 切换，边界见 [桌面计划](desktop-app-plan.md)。0.7 起两个入口通过共享 AgentService 统一上下文、记忆和长对话策略；两端通过共享 LearningApplication 接入学习工作区；聊天存储位置仍独立，资料外发须本会话授权。当前还包含三模式团队、动态 API 三协议与独立官方运行时适配器，详见 [Agent 导航](../agent.md)。
+P10 已授权独立 Electron/React 桌面及 Pi Codex / DeepSeek 切换，边界见 [桌面计划](desktop-app-plan.md)。0.7 起两个入口通过共享 AgentService 统一上下文、记忆和长对话策略；两端通过共享 LearningApplication 接入学习工作区；聊天存储位置仍独立，资料外发须本会话授权。当前还包含三模式团队、动态 API 三协议与独立官方运行时适配器，详见 [Agent 设计说明](agent-design.md)。
 
 ## 2. 不可违反的开发约束
 

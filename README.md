@@ -5,7 +5,7 @@
 
 **架构参考成熟 Agent 的执行、工具、记忆与恢复能力，产品以学习效果为目标。** 桌面与 CLI 共用 AgentService 和学习应用服务，模型灵活教学，程序负责权限、真实证据、状态与持久化。
 
-[开始使用](docs/GETTING-STARTED.md) · [桌面说明](desktop/README.md) · [Agent 设计导航](agent.md) · [完整文档](docs/README.md) · [面试资料](docs/interview/README.md)
+[开始使用](docs/GETTING-STARTED.md) · [桌面说明](desktop/README.md) · [Agent 设计说明](docs/agent-design.md) · [完整文档](docs/README.md) · [面试资料](docs/interview/README.md)
 
 ## 当前状态
 

@@ -1,0 +1,1033 @@
+{
+  "date": "2026-09-14",
+  "status": "passed",
+  "implementationBaseline": "485b358e9dd08633d9893e95e2ff81adc17b6672",
+  "purpose": "Supplement every project-based interview question and followup with a directly readable answer, retaining implementation and test indexes.",
+  "documents": [
+    {
+      "path": "docs/interview/README.md",
+      "sha256": "290352504299876eafc4a2c47839637026b4ba46762c3700db07c78e4fbdfc9f"
+    },
+    {
+      "path": "docs/interview/job-market.md",
+      "sha256": "ee54b5c49ef18473d96f05ce1f47168b20b9f2af2d79e0b3f30049415a942a7d"
+    },
+    {
+      "path": "docs/interview/question-bank.md",
+      "sha256": "d16f2dacf947f2a960929436b9ced23e5553b540fb75cec563b1dd89de172b7f"
+    },
+    {
+      "path": "docs/interview/sources.md",
+      "sha256": "ca243797331aa61b8aeff77fc02549f1932a08af53b6c2def4e7803993443fbf"
+    },
+    {
+      "path": "docs/interview/system-design.md",
+      "sha256": "7b77363e743830dcd776dee7f2837fd31469053875d6618129f02a70a8e284a3"
+    }
+  ],
+  "content": {
+    "mainQuestions": 60,
+    "projectAnswers": 60,
+    "questionBankFollowupsWithAnswers": 60,
+    "systemDesignCases": 6,
+    "systemDesignOralAnswers": 6,
+    "systemDesignProjectAnswers": 6,
+    "systemDesignFollowupsWithAnswers": 18,
+    "jobAbilityAnswers": 12,
+    "quickReviewTopics": 6,
+    "budgetStoryStages": 6,
+    "selfAssessmentAnswers": 8
+  },
+  "checks": {
+    "coverage": {
+      "questions": 60,
+      "projectAnswers": 60,
+      "followupQuestions": 60,
+      "followupAnswers": 60,
+      "systemCases": 6,
+      "questionDetails": [
+        {
+          "id": "Q01",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q02",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q03",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q04",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q05",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q06",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q07",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q08",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q09",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q10",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q11",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q12",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q13",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q14",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q15",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q16",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q17",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q18",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q19",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q20",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q21",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q22",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q23",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q24",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q25",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q26",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q27",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q28",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q29",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q30",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q31",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q32",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q33",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q34",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q35",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q36",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q37",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q38",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q39",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q40",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q41",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q42",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q43",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q44",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q45",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q46",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q47",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q48",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q49",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q50",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q51",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q52",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q53",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q54",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q55",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q56",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q57",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q58",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q59",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        },
+        {
+          "id": "Q60",
+          "fields": {
+            "口述答案": 1,
+            "知行具体怎么做": 1,
+            "分析路径": 1,
+            "Trade-off": 1,
+            "追问": 1,
+            "追问答案": 1,
+            "源码与测试索引": 1
+          }
+        }
+      ],
+      "failures": [],
+      "scope": "Structure/coverage only; semantic correctness is reviewed separately against source and dated evidence."
+    },
+    "localLinks": {
+      "files": 149,
+      "links": 2015,
+      "failures": []
+    },
+    "verify": {
+      "command": "CI=1 npm run verify",
+      "exitCode": 0,
+      "log": "desktop/.local/interview-answers-verify-20260914.log",
+      "testFiles": 153,
+      "tests": 814,
+      "integrationTests": 9,
+      "evalTests": 6,
+      "countNote": "Integration and eval are included among the 814 unique tests, then run separately by verify.",
+      "logSha256": "e278abd4d6380bf16628e4d21e9c0f5ef1ecc249e7e37cdfdfedaeb77cda882b",
+      "timingNote": "Full verify ran after answer expansion; the subsequent two documentation-only corrections were rechecked by the independent reviewers and final static checks, without rerunning unchanged application tests."
+    },
+    "independentReview": {
+      "status": "passed",
+      "documents": [
+        {
+          "doc_path": "docs/interview/question-bank.md",
+          "claims_checked": 138,
+          "claims_passed": 138,
+          "claims_failed": 0,
+          "failures": [],
+          "reportPath": "desktop/.local/interview-doc-review-20260914/verify-interview-question-bank-20260914.json",
+          "documentSha256": "d16f2dacf947f2a960929436b9ced23e5553b540fb75cec563b1dd89de172b7f"
+        },
+        {
+          "doc_path": "docs/interview/system-design.md",
+          "claims_checked": 62,
+          "claims_passed": 62,
+          "claims_failed": 0,
+          "failures": [],
+          "reportPath": "desktop/.local/interview-doc-review-20260914/verify-interview-system-design-20260914.json",
+          "documentSha256": "7b77363e743830dcd776dee7f2837fd31469053875d6618129f02a70a8e284a3"
+        },
+        {
+          "doc_path": "docs/interview/README.md",
+          "claims_checked": 39,
+          "claims_passed": 39,
+          "claims_failed": 0,
+          "failures": [],
+          "reportPath": "desktop/.local/interview-doc-review-20260914/verify-interview-readme-20260914.json",
+          "documentSha256": "290352504299876eafc4a2c47839637026b4ba46762c3700db07c78e4fbdfc9f"
+        },
+        {
+          "doc_path": "docs/interview/job-market.md",
+          "claims_checked": 61,
+          "claims_passed": 61,
+          "claims_failed": 0,
+          "failures": [],
+          "reportPath": "desktop/.local/interview-doc-review-20260914/verify-interview-job-market-20260914.json",
+          "documentSha256": "ee54b5c49ef18473d96f05ce1f47168b20b9f2af2d79e0b3f30049415a942a7d"
+        },
+        {
+          "doc_path": "docs/interview/sources.md",
+          "claims_checked": 46,
+          "claims_passed": 46,
+          "claims_failed": 0,
+          "failures": [],
+          "reportPath": "desktop/.local/interview-doc-review-20260914/verify-interview-sources-20260914.json",
+          "documentSha256": "ca243797331aa61b8aeff77fc02549f1932a08af53b6c2def4e7803993443fbf"
+        }
+      ],
+      "checksTotal": 346,
+      "checkTypes": "Mixed semantic/source assertions, symbol existence, local link checks and answer completeness. This count is not a runtime test count or a claim of formal proof.",
+      "initialFailures": [
+        {
+          "doc_path": "docs/interview/question-bank.md",
+          "claims_checked": 138,
+          "claims_passed": 137,
+          "claims_failed": 1,
+          "failures": [
+            {
+              "line": 770,
+              "claim": "Q57：LearningOutcomeStore 每次检查只展示当前题，未完成时不暴露后续题和答案。",
+              "expected": "与阶段级题卷展示保持一致。建议改为：LearningOutcomeStore 开始试验时打乱三套题卷顺序；每个检查阶段展示当前阶段的三题试卷和选项，不返回正确答案及未来阶段题卷，完成延迟测后才提供复习解析。",
+              "actual": "src/learning-outcomes.ts:47 使用 map 返回当前阶段整套题卷的 title 和 choices，没有单题游标；desktop/renderer/outcome-panel.tsx:62 使用 trial.questions.map 同时渲染全部题目。tests/learning-outcomes.test.ts:14 明确断言前测 questions 长度为 3。src/learning-outcomes.ts:48 仅在 complete 阶段返回延迟卷 feedback。因此当前实现隐藏的是未来阶段的题卷与正确答案，不是当前试卷中的后续单题。"
+            }
+          ]
+        },
+        {
+          "doc_path": "docs/interview/system-design.md",
+          "claims_checked": 62,
+          "claims_passed": 61,
+          "claims_failed": 1,
+          "failures": [
+            {
+              "line": 334,
+              "claim": "[恢复竞争测试](../../tests/agent-recovery-boundaries.test.ts)",
+              "expected": "链接到包含同时执行认领竞争断言的测试。",
+              "actual": "tests/agent-recovery-boundaries.test.ts 没有 lease 竞争或 execution_in_use 断言。请改为 [认领竞争测试](../../tests/agent-checkpoint.test.ts)：该文件第 64–71 行直接验证同时认领被 execution_in_use 拒绝、外部会话/主题被拒绝及释放后可再次认领。正文机制本身有 src/agent-execution-store.ts:106–117、165–167 支持。"
+            }
+          ]
+        }
+      ],
+      "fixIterations": 1,
+      "unresolved": [],
+      "regressionCheck": "All prior passing navigation files are byte-identical; targeted question/case rechecks and all-document coverage/link checks passed."
+    },
+    "systemDesignCoverage": {
+      "cases": [
+        {
+          "case": 1,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        },
+        {
+          "case": 2,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        },
+        {
+          "case": 3,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        },
+        {
+          "case": 4,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        },
+        {
+          "case": 5,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        },
+        {
+          "case": 6,
+          "oralAnswer": true,
+          "projectAnswer": true,
+          "followupAnswers": 3,
+          "indexed": true
+        }
+      ],
+      "failures": []
+    },
+    "scopeAndPreservation": {
+      "status": "passed",
+      "onlyDocumentationChanged": true,
+      "priorAgentInstructionAndDesignHashesUnchanged": true,
+      "oldRootAgentMdAbsent": true,
+      "historicalTrackedJsonAndLockfilesUnchanged": true,
+      "temporaryReviewFilesArchivedUnderIgnoredLocalLogs": true
+    },
+    "finalStaticScan": {
+      "status": "passed",
+      "sensitivePatternsFound": 0,
+      "modifiedDocumentationFilesScanned": 18,
+      "trailingWhitespaceOrMissingFinalNewline": 0
+    }
+  },
+  "writerReview": {
+    "notes": [
+      "desktop/.local/interview-q01-q30-review-20260914.json",
+      "desktop/.local/interview-q31-q60-review-20260914.json",
+      "desktop/.local/interview-design-review-20260914.json"
+    ],
+    "sourceInspectionCompleted": true,
+    "corrections": [
+      {
+        "qid": "Q16",
+        "old": "用户修正不能被更旧的相反记录覆盖。",
+        "replacement": "同等相关的记录按较新优先呈现，但并未实现通用事实冲突消解。",
+        "reason": "searchMemories 按词项匹配数排序，再按 confirmed_at 与 rowid 降序；两个冲突项可以一起返回。",
+        "sources": [
+          "src/database.ts",
+          "src/learning-context.ts",
+          "tests/memory-recall-quality.test.ts"
+        ]
+      },
+      {
+        "qid": "Q17",
+        "old": "本轮发现 CLI 超过 8,000 字符提前拒绝",
+        "replacement": "当前 CLI 超过 8,000 字符仍提前拒绝",
+        "reason": "延续已知且仍未修复的入口差异，避免暗示本次首次发现或已经修复。",
+        "sources": [
+          "src/cli.ts",
+          "src/input-limits.ts"
+        ]
+      },
+      {
+        "qid": "Q19",
+        "old": "扫描 PDF 通过 OCR 流程处理，低置信度不能伪装成可靠原文。",
+        "replacement": "整份无可提取文字的 PDF 尝试 OCR，低置信度不能伪装成可靠原文。",
+        "reason": "OCR 触发条件为所有页没有非空提取文本；混合 PDF 不是逐页 OCR。",
+        "sources": [
+          "src/library.ts",
+          "src/library.ts",
+          "src/ocr.ts"
+        ]
+      },
+      {
+        "qid": "Q24",
+        "old": "代码或测试改变后旧验证不能自动继续有效。",
+        "replacement": "实践作业的实现或测试脚本改变后，旧运行验证不能自动继续有效。",
+        "reason": "EvidenceStore 的实现哈希与 testScript 哈希约束实践作业验证；不能扩展为所有仓库代码及所有派生产物统一自动失效。",
+        "sources": [
+          "src/evidence-store.ts",
+          "tests/evidence-application.test.ts"
+        ]
+      },
+      {
+        "question": 45,
+        "change": "将原分析路径的“压缩包生成”改为“备份目录生成”。",
+        "evidence": "desktop/core/workspace-backup.ts:createWorkspaceBackup"
+      },
+      {
+        "questions": [
+          49,
+          59
+        ],
+        "change": "明确 #44 测试等待竞态、修复485b358与远端verify #46通过；#45偶然通过仍保留历史含义。",
+        "evidence": [
+          "desktop/scripts/smoke-team.mjs",
+          "docs/evidence/ci-44-team-ui-20260911.md",
+          "docs/current-status.md"
+        ]
+      },
+      {
+        "question": 59,
+        "change": "保留CLI 8,000与共享/桌面20,000未解决的入口差异；未暗示已修复。",
+        "evidence": [
+          "src/cli.ts:201",
+          "src/input-limits.ts:2",
+          "src/agent-session-contracts.ts:88"
+        ]
+      }
+    ],
+    "note": "Writer source checks are separate from independent review and runtime tests."
+  },
+  "preservation": {
+    "questionTitlesAndAnchors": true,
+    "sixCasesAndPresentationAnchors": true,
+    "historicalEvaluationJsonUnchanged": true,
+    "previousTurnDesignDocumentRenamePreserved": true,
+    "recruitmentResearchDate": "2026-09-11"
+  },
+  "scope": {
+    "applicationCodeChanged": false,
+    "lockfilesChanged": false,
+    "liveModelsRerun": false,
+    "uiRerun": false,
+    "appBuiltOrInstalled": false,
+    "newRecruitmentSearch": false,
+    "committedOrPushed": false,
+    "dependencyInstallation": "Reused both dependency sets installed in the preceding documentation task; no dependency changes."
+  }
+}

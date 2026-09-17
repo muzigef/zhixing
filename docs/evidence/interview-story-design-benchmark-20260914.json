@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "date": "2026-09-14",
+  "status": "documentation_completed_and_verified",
+  "task": "补充故事一通用模块设计、故事二团队模块与评测归因、故事四内容质量 benchmark 方案",
+  "implementationBaseline": "485b358e9dd08633d9893e95e2ff81adc17b6672",
+  "document": {
+    "path": "docs/interview/job-market.md",
+    "sha256": "4dd7eee96af410089dce6f04ce9114ff352d2560905060d3a9b7892bc93075f0",
+    "beforeTaskSha256": "76a68d686c6c891f370fac5b9b917c4aa7710b45fba6a8c56ed9abf6d531c047",
+    "previousEvidence": "docs/evidence/interview-project-stories-20260914.json",
+    "previousEvidencePreservedAsHistorical": true
+  },
+  "coverage": {
+    "outside_story_chapter_unchanged": true,
+    "story_three_unchanged": true,
+    "stories": 4,
+    "followup_questions": 12,
+    "followup_answers": 12,
+    "mermaid_diagrams": 2,
+    "benchmark_design_steps": 7,
+    "proposed_benchmark_explicitly_not_implemented": true,
+    "older_table_groups_checked": 4,
+    "newer_table_group_suite_pairs_checked": 8
+  },
+  "sourceReview": {
+    "method": "开发 Agent 对实际源码、相关设计及历史 JSON 进行交叉核对，另以脚本复算两个表格；不是独立人类盲评。",
+    "groups": [
+      {
+        "topic": "通用接入",
+        "checked": "配置/工厂/注册表/两类执行契约/能力与绑定的职责；兼容连接最多 20；新协议和新官方 adapter 仍需开发；SDK/App Server 为未来执行器实现方向。",
+        "paths": [
+          "src/api-connection-config.ts",
+          "src/agent-model-factory.ts",
+          "src/provider-registry.ts",
+          "src/model-capabilities.ts",
+          "src/native-runtime-contract.ts",
+          "src/native-runtime-adapters.ts",
+          "src/native-runtime-catalog.ts",
+          "src/agent-model-binding.ts"
+        ],
+        "sourceSha256": {
+          "src/api-connection-config.ts": "afdfb2b9e9d0642d4f2484197122d916b9bc2f73e07a90685c5a9bde7ec6cedb",
+          "src/agent-model-factory.ts": "d029286cd33540e350c265616840a1a5d8cc52f6d8a65cd1b546e83edf366a1f",
+          "src/provider-registry.ts": "bd90e16d83876e00f152b09a072ff6b919c0d8ea51826282992ecb280997b483",
+          "src/model-capabilities.ts": "5668aec9985a0651432880d129dfa173564ddabebaf05cd5ba8ae7dbb2e5a38b",
+          "src/native-runtime-contract.ts": "0fc7a76da8853b870f2d9a67f0334b8a877ed23f44027a783d8a1b174acfa6ce",
+          "src/native-runtime-adapters.ts": "e8399bd433486370369d5231b65439ea7ebd19d0b6e84dd1e1dda7f7a84294d9",
+          "src/native-runtime-catalog.ts": "09c5fb1aa54de2e1668ba967ae7341f41aba031f9abbb1e9c6dcfe59774d81e5",
+          "src/agent-model-binding.ts": "eaa3859523afd6f8e8a4aee5a616296fb3a7d5938033a98dedcb50d95b3df57b"
+        }
+      },
+      {
+        "topic": "同模型与异模型设计",
+        "checked": "共用协调器；同模型固定完整身份；异模型至少两个 model ID；有界 DAG、任务包、报告、逐项审查、一次定向复核与预算；Pi 同模型串行；回执关联不能证明语义正确。",
+        "paths": [
+          "src/team-contracts.ts",
+          "src/team-coordinator.ts",
+          "src/team-task-graph.ts",
+          "src/team-task-packet.ts",
+          "src/team-quality.ts",
+          "src/team-verification.ts",
+          "src/team-budget.ts",
+          "src/team-resource-policy.ts"
+        ],
+        "sourceSha256": {
+          "src/team-contracts.ts": "e82103cc1e1a2e0f598a25e6a6052682279c657d00533f01e006360b5b36d592",
+          "src/team-coordinator.ts": "0cfa0b7cf78b55221cabbab57ff2fc348534d51053fb3e36fda3fd3cbbd8199e",
+          "src/team-task-graph.ts": "077814f201e8a41fb76d893dd0f4b60aa5b875c81d1e57d8945c1d02feb23c90",
+          "src/team-task-packet.ts": "7604785fe1e60f5305eeceab75bfd6d93bf493ea65b0c3e45a5ba760d7219d04",
+          "src/team-quality.ts": "ad0ec34c752fe72fa3340738b8f5b710509aa2eca0b57be54ee6ae8fb1edda5d",
+          "src/team-verification.ts": "f999318c476f321b88452164f48717947e185f2ee084da4861b6605d6903ba11",
+          "src/team-budget.ts": "2244269c0c8a96bc5a44b0876e4715e13ed365df8ae6084e613024da88b49603",
+          "src/team-resource-policy.ts": "0ac29d0666036678eb7f49566e9db6e800b3fcc9bbe07165de241e768551c14f"
+        }
+      },
+      {
+        "topic": "评测归因",
+        "checked": "两批模型、题集和评分口径分开；区分已确认协议/额度问题、可观察链路/解释问题、题面歧义及未证明的错误相关性；没有声称 1/8 到 4/4 是同条件收益。",
+        "paths": [
+          "docs/evidence/team-quality-v3-comparison-20260910.md",
+          "docs/evidence/team-quality-summary-20260910.json",
+          "docs/evidence/team-resource-budget-20260911.md",
+          "docs/evidence/team-evaluation-native-codex-pilot-20260911070304659.json",
+          "docs/evidence/team-evaluation-native-codex-regression-20260911065439041.json"
+        ],
+        "sourceSha256": {
+          "docs/evidence/team-quality-v3-comparison-20260910.md": "ab7d57be8231fecb248c478045e3a27bc3bfb9c55c7e159165a4135a3499488b",
+          "docs/evidence/team-quality-summary-20260910.json": "5f41bbf232c184ad593a47b3c237b19c6f550f1603a08abe2733fbadc12884cc",
+          "docs/evidence/team-resource-budget-20260911.md": "b968c8016c565d468c4c752726cc6632c99615b15ed26c830c4075146f20e3b6",
+          "docs/evidence/team-evaluation-native-codex-pilot-20260911070304659.json": "947920289621269310f37554783c1925a2e2818630f04302e19503b80d678655",
+          "docs/evidence/team-evaluation-native-codex-regression-20260911065439041.json": "43ecd76987f97150114b2afff57938d3dc7e3dbd5e5210c1dd52ada1547c7e21"
+        }
+      },
+      {
+        "topic": "benchmark 现状与后续设计",
+        "checked": "已有质量题、解释标准与人工复核；团队字段评分不自动检验解释语义；旧质量运行器与团队运行器尚未通用统一；80 题、评分校准、配对统计和 B1–B5 明确为待实现建议。",
+        "paths": [
+          "src/team-evaluation.ts",
+          "src/team-evaluation-cases.ts",
+          "src/team-quality-cases.ts",
+          "src/quality-evaluation.ts",
+          "docs/agent-quality-evaluation.md",
+          "src/learning-outcomes.ts"
+        ],
+        "sourceSha256": {
+          "src/team-evaluation.ts": "112fbbb2a374cda37ca12338408e74f7cab4f043be0772c4d9f55268053f7162",
+          "src/team-evaluation-cases.ts": "9db908b2540c528b8d461e5dac8526c9fea1f6e1bbd6952c13f92b004e5964c5",
+          "src/team-quality-cases.ts": "3ab2966ce1d1c4b6694cc7058131bf9a54b3e2a5ae9e8e45a20b90a89517f6dd",
+          "src/quality-evaluation.ts": "5ee2c0d30c1e443134b604c89a04e17bbeddef0a1ef8508ab73de4dce2d46a7d",
+          "docs/agent-quality-evaluation.md": "c12607354c4360c3a67f9b7c41204217db58a552a36ed454770548239216c328",
+          "src/learning-outcomes.ts": "e6ee34b451d67a97d116ae26c607b6e59e6ac5d1b35590a620c4f0a0ae4b3657"
+        }
+      }
+    ],
+    "unresolvedDocumentationFindings": []
+  },
+  "externalMethodReferences": [
+    {
+      "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+      "accessed": "2026-09-14",
+      "usage": "结果与轨迹、混合评分、能力与回归评测的区别"
+    },
+    {
+      "url": "https://docs.langchain.com/langsmith/evaluation-concepts",
+      "accessed": "2026-09-14",
+      "usage": "数据集版本与划分、成对比较"
+    },
+    {
+      "url": "https://docs.langchain.com/langsmith/llm-as-judge",
+      "accessed": "2026-09-14",
+      "usage": "模型评分标准、人工校准"
+    }
+  ],
+  "verification": {
+    "command": "CI=1 npm run verify",
+    "exitCode": 0,
+    "testFiles": 153,
+    "tests": 814,
+    "integrationTests": 9,
+    "evalTests": 6,
+    "countNote": "integration 和 eval 是全量测试的子集并由 verify 单独重跑，数量不累加。",
+    "lint": "passed",
+    "rootAndDesktopTypecheck": "passed",
+    "mockSmoke": "passed",
+    "sensitiveScan": "passed",
+    "diffWhitespace": "passed",
+    "log": "desktop/.local/story-design-benchmark-verify-20260914.log",
+    "logSha256": "64c6b12bb8f920c155b6b2167d57575ddbe94db61077df5cd67e10d198a94642",
+    "localMarkdownLinks": {
+      "files": 149,
+      "links": 2084,
+      "failures": []
+    },
+    "finalStaticScan": "passed",
+    "finalChangesAfterRuntimeChecks": "仅补充文档边界表述；最终已重新核对链接、章节范围、表格数据及静态格式，无产品行为变更。"
+  },
+  "scope": {
+    "changedThisTask": [
+      "docs/interview/job-market.md",
+      "docs/evidence/interview-story-design-benchmark-20260914.json"
+    ],
+    "onlyRequestedStoriesAndChapterIntroChanged": true,
+    "storyThreeAndOtherJobMarketSectionsPreserved": true,
+    "priorUncommittedChangesPreserved": true,
+    "applicationCodeChanged": false,
+    "lockfilesChanged": false,
+    "dependencies": "复用此前已安装的根目录与 desktop 依赖",
+    "newLiveModelEvaluation": false,
+    "newHumanReview": false,
+    "benchmarkImplemented": false,
+    "uiRerun": false,
+    "appInstalled": false,
+    "committedOrPushed": false
+  },
+  "remainingForFutureBenchmark": [
+    "B1 任务与评分契约和首批样例",
+    "B3 评分器、人评校准与复核",
+    "B2 可配置运行器与场景隔离",
+    "B4 真实配对对照和资源/失败报告",
+    "B5 持续回归与发布前门禁"
+  ],
+  "limitations": [
+    "当前模型历史结果不可推断通用团队优势。",
+    "两批模型、题集和评分标准不同，不合并增益。",
+    "首版题量及评分阈值是项目建议，不是已验证统计充分性。",
+    "普通内容质量评测不代替真实学习收益研究。"
+  ]
+}

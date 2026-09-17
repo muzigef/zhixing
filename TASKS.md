@@ -1,6 +1,23 @@
 # 知行开发任务与历史台账
 
-当前实现与待验收项以 [当前状态](docs/current-status.md) 为准。2026-09-11 文档与面试资料已在 `d14ee2f` 提交推送，其远端 verify #45 通过；文档核验记录见 [文档验收](docs/evidence/documentation-refresh-20260911.md)。此前 #44 的团队 UI 失败已在本机复现并修正：等待实际弹窗关闭，加入受控保存闸门和输入断言；本轮 814 项测试、七组 UI 全部通过，见 [CI 修复记录](docs/evidence/ci-44-team-ui-20260911.md)。
+## 2026-09-17：统一执行策略与平台隔离
+
+实现统一策略、平台后端、失败关闭、全部进程入口审计及真实边界探针。验收包含越界读写、符号链接、TCP/Unix socket、子进程、CPU/内存/目录/输出超限、超时与取消；本地完整门禁 830 项及四平台原生矩阵、远端 verify 全部通过；平台结果、失败历史与能力限制见[验收记录](docs/evidence/sandbox-20260917.md)。2026-09-17 已将独立验证分支的五个提交按原顺序快进合并至 main（`19027b1`），合并后完整 verify 通过 157 个文件 / 830 项测试；未替换已安装 App。
+
+当前实现与待验收项以 [当前状态](docs/current-status.md) 为准。2026-09-11 文档与面试资料已在 `d14ee2f` 提交推送，其远端 verify #45 通过；文档核验记录见 [文档验收](docs/evidence/documentation-refresh-20260911.md)。此前 #44 的团队 UI 失败已在 `485b358` 修正：等待实际弹窗关闭，加入受控保存闸门和输入断言；修复后的本地 814 项测试、七组 UI 及远端 [verify #46](https://github.com/muzigef/zhixing/actions/runs/34588292814) 均通过，见 [CI 修复记录](docs/evidence/ci-44-team-ui-20260911.md)。
+
+## 面试答案与源码索引：2026-09-14
+
+- [x] [题库](docs/interview/question-bank.md) 60 题逐项补齐“知行具体怎么做”和追问答案，保留原题号、分析、取舍及源码测试索引。
+- [x] [系统设计](docs/interview/system-design.md) 六案例补齐口述、实现说明和 18 组追问解答；预算故事与八项自测给出直接答案。
+- [x] [准备入口](docs/interview/README.md) 增加六主题快速复习；[岗位匹配](docs/interview/job-market.md) 的 12 项能力问题补齐简答，招聘样本保留原检索日期。
+- [x] 五份文档独立复核通过，修正题卷展示粒度和恢复竞争测试索引两处问题并复验；完整 verify（814 项测试）、题目覆盖与全部本地链接/锚点检查通过，详见[核查记录](docs/evidence/interview-answers-20260914.json)。
+
+## 文档命名与同步：2026-09-14
+
+- [x] 将根目录设计文档更名为 [docs/agent-design.md](docs/agent-design.md)，更新索引及相对链接；历史核查保留旧路径并注明更名。
+- [x] 按 `485b358` 核对 [AGENTS.md](AGENTS.md) 和设计文档，区分开发指令、架构资料与桌面运行时指令，更新接入、团队、记忆和验收边界。
+- [x] 完整 `CI=1 npm run verify` 通过：153 个测试文件、814 项测试；149 份 Markdown 的本地链接与锚点检查通过。详见[本次核查记录](docs/evidence/agent-docs-20260914.json)。
 
 ## 历史任务记录
 

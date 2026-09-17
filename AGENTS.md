@@ -1,19 +1,19 @@
-# 知行项目约束
+# 知行仓库开发指令
 
-本文件是仓库开发指令，也由从项目目录启动的 Pi 加载。它提供行为规则；Pi 工具的路径、命令和网络限制由 `.pi/extensions/zhixing-guard.ts` 强制执行。桌面打包运行时加载 `desktop/runtime-AGENTS.md` 的副本，不将本文件作为聊天任务指令。
+核对日期：2026-09-14；实现基线：`485b358`。本文件面向在此仓库修改代码的开发 Agent，规定工程、隐私和验证要求；项目架构见 [Agent 设计说明](docs/agent-design.md)，使用导航见 [文档索引](docs/README.md)，完成情况见 [当前状态](docs/current-status.md)。
 
-项目概览见 [agent.md](agent.md)，文档入口见 [docs/README.md](docs/README.md)，当前实现与验收状态见 [docs/current-status.md](docs/current-status.md)。`agent.md` 是设计导航，本文是开发约束；不要假定小写单数文件会被所有 Agent 工具自动加载。
+本文件提供指令，不是权限隔离机制。通过 `scripts/pi-safe.sh` 启动 Pi 开发工具时会加载 `.pi/extensions/zhixing-guard.ts`，拦截受限路径和命令；应用侧的工具校验、权限与隔离由共享 Runtime 实现。桌面构建把 `desktop/runtime-AGENTS.md` 复制到 `build/runtime/AGENTS.md`，不把根目录开发规则当作产品聊天指令。设计文档是普通参考资料，不作为自动加载的行为规则。
 
 ## 目标与顺序
 
 1. 以当前用户任务和 `TASKS.md` 为准，按 `docs/ai-execution-protocol.md` 完成可验收切片；P0 固定顺序是历史记录，不重新执行已完成任务。
-2. 每个切片先写失败/边界测试，再做最小实现。
+2. 行为变更先写能复现失败或边界的测试，再做最小实现；纯文档变更核对源码、命令、链接和证据，不增加镜像实现的测试。
 3. 验证前安装根目录与 `desktop/` 两套依赖。行为变更至少运行 lint、类型检查和相关测试；完整 `npm run verify` 包含根目录/桌面类型检查、全部 Vitest、integration、eval 和 mock smoke。
 4. 只能依据真实命令输出报告完成；更新 `docs/evidence/` 记录已验证、未验证和风险。
 
 ## 数据与隐私
 
-- CLI 初始角色路由为本地 mock；桌面默认 Pi Codex，失败时显示错误，可手动切换 DeepSeek 或离线 demo。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 是禁止真实请求的总开关；CLI 与桌面均通过共享 AgentService 发送有界会话上下文，仅在本会话明确授权后加入画像、记忆、教学状态及当前主题资料。
+- CLI 初始角色路由为本地 mock；桌面默认 `pi-codex`，已有用户配置可能不同。官方 Codex、DeepSeek、Kimi、其他已配置 API 与离线 demo 可显式选择，失败不静默切换付费通道。`ZHIXING_ALLOW_LIVE_PROVIDER=0` 禁止知行应用的真实模型请求；CLI 与桌面均通过共享 AgentService 发送有界会话上下文，仅在本会话明确授权后加入画像、记忆、教学状态及当前主题资料。
 - 只允许通过受控 Runtime 从 `inbox/<topicId>/` 显式导入资料；模型工具不得直接读取或改写 `inbox/`、`data/`、`db/`、`learning-notes/`。
 - 不得读取、写入、输出或提交 API Key、token、Cookie、认证文件、`.env`、`auth.json`、`.ssh` 或 `.codex` 内容。
 - 知行应用的真实 Provider 在已配置时默认可用；设置 `ZHIXING_ALLOW_LIVE_PROVIDER=0` 后 adapter 必须拒绝调用。该开关不影响 Pi/Codex 开发会话。
@@ -23,40 +23,49 @@
 
 - 只修改当前 `zhixing/` 项目内的实现、测试、主题计划、Skill、文档和非敏感夹具。
 - 未经用户相应授权，不执行 git commit/push、破坏性 Git 操作、范围外下载或系统权限变更。已有授权持续有效；用户明确要求提交、推送或安装时按授权执行。官方 Codex 集成使用受控无 shell 进程调用，不通过 bash 启动。
-- 使用 `./scripts/pi-safe.sh` 启动 Pi 原生 Codex Provider；不要将 `codex exec` 当作受 Pi 工具限制的子 Agent。
+- 使用 Pi 开发工具时通过 `./scripts/pi-safe.sh` 加载守卫；不要把知行的 Pi 模型 worker、官方 Codex 执行器与 Pi 开发工具混为一谈，也不要将直接运行的 `codex exec` 当作受 Pi 守卫限制的子 Agent。
 - 不得使用 `it.skip`、`it.only` 或忽略失败退出码；每个切片完成前运行 `npm run verify`。
 - 不因修复困难引入范围外框架或依赖。当前已实现受限本地语义检索/OCR、MCP、实践项目和三模式团队；新增能力依当前用户授权，不把历史阶段的范围限制误读为这些功能未实现。
 
-## P10 已授权的桌面范围
+## 桌面与运行时边界
 
-- 用户已授权可安装桌面应用及 Pi Codex / DeepSeek API 切换。`desktop/` 可以使用 Electron、React、必要的渲染和打包依赖。
-- 桌面内附 Pi 可使用等价的无 shell 启动器，必须保留同一工具守卫、空工具列表、协议检查和联网总开关。
+- `desktop/` 使用 Electron、React 及必要的渲染和打包依赖。renderer 只通过受校验的 preload/IPC 访问主进程能力，不获得任意文件或凭据访问。
+- Pi 模型 worker 使用 SDK 生成结果并可接收知行的工具 schema，实际工具执行由应用 ToolHarness 负责；两个入口均不得向模型开放 Pi 原生文件或 shell 执行能力。协议检查和联网总开关必须保留。
 - 桌面用户数据存入独立系统应用目录；新 API 配置仅经受控主进程使用系统加密存储，不得输出或提交明文密钥。
 - 桌面行为变更运行根目录 `npm run verify`、`desktop/` 的 `npm run test:ui`，交付安装包前验证实际打包应用。纯文档更新核对源码、命令、链接和历史证据，不将既有 UI/真实模型验收说成本次重跑。
 
 ## 约束冲突或阻塞
 
-遇到凭证、外发资料、删除数据、提高配额、需要全局安装、三次修复仍失败，或设计冲突时，立即停止并报告：阻塞点、影响、已尝试内容、推荐方案和所需确认。
+出现超出当前授权的凭据操作、资料外发、删除数据、配额/系统权限变更、全局安装或设计冲突时，报告影响范围、已尝试内容和所需决定；已有授权范围内的工作继续执行，不重复要求确认。相同故障三次最小修复仍失败时，先报告诊断依据与下一方案。任何授权都不意味着可以把真实凭据输出到日志或提交到仓库。
 
-## P12 已授权的桌面增强
+## 当前交互与数据能力
 
-- 桌面 Pi 使用仅模型能力的公共 SDK worker，工具 schema 作为数据交给模型；工具执行统一经过应用 ToolHarness。两个入口均不得开放 Pi 原生工具。
 - 当前范围包含交互卡/分支、持久任务、后台整理、可选 loopback 语义检索、独立课程检查、技能预览、完整备份及会话迁移。数据导出与恢复由产品内用户操作触发。
-- 本轮记录和已知外部验收见 `docs/evidence/agent-next.md`，不得将 mock 或 SDK 导入检查当作真实 Provider 成功。
+- 恢复必须重新核对权限、模型绑定和执行结果；取消不等于撤销已经发生的外部副作用，不重放结果未知的写操作。
+- 现行验收见 [当前状态](docs/current-status.md) 与 [证据索引](docs/evidence/README.md)；旧阶段记录保留其日期含义。不得将 mock 或 SDK 导入检查当作真实 Provider 成功。
 
-## 0.7 已授权的策略统一
+## 共享内核约束
 
 - 用户要求桌面与 CLI 的记忆和长对话策略完全相同；两端必须调用共享 AgentService，禁止前端构造最终 prompt、挑选模型历史或注入自定义 runtime。
 - 两端 Pi 共用 src/pi-model-worker.ts，SDK 只生成模型结果；业务模式通过共享请求契约表示。
-- 统一设计与验收见 docs/agent-memory.md 和 docs/evidence/unified-agent.md。
+- 当前 CLI `execute()` 仍提前拒绝超过 8,000 字符的输入，共享契约/桌面上限为 20,000；该入口差异尚未修正。不得据共享策略推断所有入口行为完全一致。
+- 统一设计见 [记忆策略](docs/agent-memory.md)；[0.7 验收](docs/evidence/unified-agent.md)是首次统一的历史记录，不代替当前回归。
 
 ## 当前通用模型接入约束
 
 - API 连接经共享 ModelClient / 工厂接入；官方订阅任务经 AgentExecutor 接入。新增兼容厂商优先配置，新的协议或运行时才增加适配器。
-- 原生目录和注册表由 CLI / 桌面共享。当前官方 Codex 执行仅开放有界文本能力；Gemini 占位不可用，Claude 真实账号未验收，不因目录中存在名称就报告可用。
+- 当前支持 Chat Completions、Responses、Messages 三种 API 协议，十家模板是配置便利项，不是厂商白名单或十家真实验收证明。
+- 原生目录和注册表由 CLI / 桌面共享。官方 Codex 已验证订阅文本执行及团队接入；Claude Code 已有单 Agent 适配，但真实账号未验收；Gemini 原生执行尚未实现。不得把 API 支持、原生目录项、单 Agent 和团队能力混同。
 - 团队与单 Agent 共用权限、上下文、任务恢复；历史任务保留具体模型身份和资源策略，不静默切换模型或付费通道。
 - 模板、mock、真实连接、回答质量、教学效果、构建、安装与远端 CI 分别验收。历史测试数量和失败记录不得改写成新运行结果。
 
 ## 数学展示
 
 讲解数学、机器学习、图形学或梯度时使用 Markdown + LaTeX：行内用 `$...$`，重要公式/分式/矩阵/多步推导用独立 `$$` 块，定界符各占一行。不要把正常展示公式放入代码块或输出裸 LaTeX。重要公式后解释读法、变量、计算方向与代码对应，面向初学者说明必要概念。不能渲染时保留定界符并附中文或纯文本解释。
+
+## 统一执行边界（2026-09-17）
+
+- 练习代码、证据验证和 restricted MCP 必须经 LocalSandbox 的统一策略、输入快照和能力检查，不能直接调用平台后端或失败后普通 spawn。
+- 固定宿主进程仅通过 process-gateway 中登记的用途启动；新增进程/Worker 入口必须更新入口审计和边界测试。trusted MCP、OCR、认证等宿主适配器不等于 OS 沙箱。
+- 变更隔离时运行 `npm run test:sandbox` 及完整 verify；平台能力声明必须有对应 OS 的实际进程探针。Windows MCP 交互式隔离未实现时继续明确拒绝。
+- 不把 RSS/目录轮询写成瞬时硬上限；硬内存要求不满足时必须拒绝。资源超限使用 resource_limited，不得截断输出后仍报告执行成功。详见 [执行沙箱](docs/execution-sandbox.md)。

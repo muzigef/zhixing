@@ -1,6 +1,6 @@
 # 当前实现与验收状态
 
-核对日期：2026-09-11。源码基线为 [`60570bc`](https://github.com/muzigef/zhixing/commit/60570bc3ecb53565a0fcdde1bced5315d69500fb)。本文汇总当前状态；历史计划、截图和验收记录描述的是各自执行时点，不自动覆盖为新版本结论。
+核对日期：2026-09-17。当前 main 已合并统一执行沙箱及验收记录，基线为 [`19027b1`](https://github.com/muzigef/zhixing/commit/19027b1abf19931e1dd2347b1ab6fc56868c8081)；此前通用模型接入架构基线为 [`60570bc`](https://github.com/muzigef/zhixing/commit/60570bc3ecb53565a0fcdde1bced5315d69500fb)，CI 等待修复为 [`485b358`](https://github.com/muzigef/zhixing/commit/485b358e9dd08633d9893e95e2ff81adc17b6672)。本文汇总当前状态；历史计划、截图和验收记录描述的是各自执行时点，不自动覆盖为新版本结论。
 
 ## 代码与版本
 
@@ -12,15 +12,23 @@
 | 会话 | 普通新会话 v8；按使用字段升级至 v9–v13，含成员资源策略的会话写 v13；旧版兼容和升级前副本不等于可安全降级 | [会话契约](../src/agent-session-contracts.ts)、[存储](../src/agent-session-store.ts) |
 | 模型接入 | 三种 API 协议、10 家配置模板、通用原生执行器与厂商适配器 | [接入架构](provider-architecture.md) |
 | 模式 | 单 Agent、同模型团队、异模型团队；默认单 Agent | [模式指南](agent-teams.md) |
-| 发布与安装 | 上述代码已提交并推送；本轮文档任务不安装或发布 App | [提交](https://github.com/muzigef/zhixing/commit/60570bc3ecb53565a0fcdde1bced5315d69500fb) |
+| 发布与安装 | 沙箱实现已合并 main；源码合并不等于打包、安装或发布 App | [沙箱验收](evidence/sandbox-20260917.md) |
+
+## 统一执行沙箱（2026-09-17 已合并 main）
+
+LocalSandbox 已统一不可变资源策略、输入校验、后端能力检查和失败关闭，覆盖证据、实践 Node/Python 和 restricted MCP；所有原生进程入口已通过宿主网关/平台后端登记并接受 AST 检查。新增 Linux 后端，关闭旧 Codex 真实启动旁路。源码与信任边界见[执行沙箱](execution-sandbox.md)，本地 157 文件 / 830 测试及七组 UI 通过，最终代码的 Mac ARM/Intel、Windows、Linux 原生边界矩阵与远端 verify 全部通过，见[本轮证据](evidence/sandbox-20260917.md)；不改变以上历史版本、发布或安装事实。Windows restricted MCP 仍明确拒绝，RSS/目录监控不宣称硬配额。
 
 ## 最近工程验证
 
+2026-09-17 将唯一未合并的本地分支 `verification/unified-sandbox-20260917` 快进合并至 main，无冲突，原有未提交文档逐文件校验一致并保留。合并后完整 `CI=1 npm run verify` 通过：157 个文件 / 830 项测试，以及 lint、两端类型检查、integration、eval、mock smoke、敏感扫描和 diff 检查。本次合并没有重跑桌面 UI、跨平台 CI 或真实模型；沙箱改造对应的四平台和 UI 验收仍见[当次记录](evidence/sandbox-20260917.md)。
+
 2026-09-11 通用接入重构的本地验证：153 个文件 / 814 项测试通过，包含 lint、两端类型检查、integration、eval、mock smoke、敏感信息和 diff 检查。实际 macOS arm64 签名候选包七组 UI 通过；官方 Codex 离线协议和四项隔离检查通过。实包 `app.asar` SHA-256 为 `7f9354f0e452c1b1c525d2f493890ad133f561ec4f0776bee6df7ebe41a2eceb`。这是当次候选包证据，不是本轮文档更新后的重新打包。详见[架构验收](evidence/provider-architecture-20260911.md)。
 
-**CI #44 的测试等待竞态已定位并修正。** [#44](https://github.com/muzigef/zhixing/actions/runs/34576546164) 两套生产依赖审计及 `verify` 成功，但团队 UI 等待发送按钮超时。本机复现确认：保存按钮改名为“保存中…”时，旧测试误认为弹窗已关闭，导致填字被模态框阻挡。现在等待 dialog 真正隐藏，再检查输入值，并通过受控保存闸门覆盖该时序。修复后本地 814 项测试及七组 UI 通过；修复前文档提交 `d14ee2f` 的 [#45](https://github.com/muzigef/zhixing/actions/runs/34587030033) 也通过，但不能据此代替修复后的远端验收。详细回执及远端查询入口见[CI 修复记录](evidence/ci-44-team-ui-20260911.md)。
+**CI #44 的测试等待竞态已修正，修复提交的远端验证通过。** [#44](https://github.com/muzigef/zhixing/actions/runs/34576546164) 两套生产依赖审计及 `verify` 成功，但团队 UI 等待发送按钮超时。本机复现确认：保存按钮改名为“保存中…”时，旧测试误认为弹窗已关闭，导致填字被模态框阻挡。现在等待 dialog 真正隐藏，再检查输入值，并通过受控保存闸门覆盖该时序。修复后本地 814 项测试及七组 UI 通过；`485b358` 的 [verify #46](https://github.com/muzigef/zhixing/actions/runs/34588292814) 也通过，包括双审计、verify 与七组 UI。修复前文档提交 `d14ee2f` 的 #45 成功及原 #44 失败仍保留为历史记录。根因与本地回执见[CI 修复记录](evidence/ci-44-team-ui-20260911.md)。
 
-本轮文档更新后重新执行 `CI=1 npm run verify`，退出码 0：153 个测试文件、814 项测试通过，另重跑 integration 9 项、eval 6 项及 mock smoke，两端类型检查、lint、敏感扫描和 diff 检查通过。后两组已包含于全量测试，不能相加成 829 个独立测试。本轮没有重跑桌面 UI 或真实模型；详细检查结果另记在[文档验收](evidence/documentation-refresh-20260911.md)，保留上一轮运行记录。
+2026-09-11 文档更新后重新执行 `CI=1 npm run verify`，退出码 0：153 个测试文件、814 项测试通过，另重跑 integration 9 项、eval 6 项及 mock smoke，两端类型检查、lint、敏感扫描和 diff 检查通过。后两组已包含于全量测试，不能相加成 829 个独立测试。该次文档核查没有重跑桌面 UI 或真实模型；详细检查结果见[文档验收](evidence/documentation-refresh-20260911.md)。
+
+2026-09-14 再次整理 [AGENTS.md](../AGENTS.md) 与更名后的 [Agent 设计说明](agent-design.md)，应用行为保持不变。本次重新执行完整 verify，通过同样的 153 个测试文件 / 814 项测试及全部门禁；149 份 Markdown 的本地链接与锚点检查通过。没有重跑桌面 UI、真实模型或安装；检查范围、源码依据与日志哈希见[本次核查记录](evidence/agent-docs-20260914.json)。
 
 ## 真实模型与质量
 

@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "date": "2026-09-14",
+  "task": "为 job-market.md 最值得讲的项目故事补充结合当前项目的直接答案与追问答案",
+  "implementationBaseline": "485b358e9dd08633d9893e95e2ff81adc17b6672",
+  "document": {
+    "path": "docs/interview/job-market.md",
+    "sha256": "76a68d686c6c891f370fac5b9b917c4aa7710b45fba6a8c56ed9abf6d531c047",
+    "section": "最值得讲的项目故事",
+    "sectionStartLine": 64,
+    "beforeTaskSha256": "ee54b5c49ef18473d96f05ce1f47168b20b9f2af2d79e0b3f30049415a942a7d"
+  },
+  "coverage": {
+    "outside_target_section_unchanged": true,
+    "story_count": 4,
+    "oral_answers": 4,
+    "followup_questions": 12,
+    "followup_answers": 12,
+    "implementation_sections": 4,
+    "source_indexes": 4,
+    "anchors": true
+  },
+  "verification": {
+    "sourceReview": {
+      "method": "本轮开发 Agent 对源码、相关测试和历史实验记录的人工式交叉核对；不是独立评审或形式证明。",
+      "checks": [
+        {
+          "story": "通用接入",
+          "finding": "ModelClient 与 AgentExecutor 执行所有权分离；completed 不等于答案验证。",
+          "sources": [
+            "src/agent-executor.ts",
+            "src/assistant-runtime.ts",
+            "tests/native-extensibility.test.ts"
+          ]
+        },
+        {
+          "story": "通用接入",
+          "finding": "三家连接证据是指定账号历史最小检查；模板和适配器不能代替真实账号验收。",
+          "sources": [
+            "src/native-runtime-adapters.ts",
+            "tests/provider-protocols.test.ts",
+            "docs/evidence/provider-architecture-live-20260911.json"
+          ]
+        },
+        {
+          "story": "团队质量",
+          "finding": "自动档位按共享输出能力与可分配额度决定；手动设置优先，未知用量保留预留，原生额度仅观察。",
+          "sources": [
+            "src/team-resource-policy.ts",
+            "src/team-budget.ts",
+            "tests/team-resource-policy.test.ts"
+          ]
+        },
+        {
+          "story": "团队质量",
+          "finding": "历史四题 18/20 → 20/20，异模型 3/4 → 4/4；H02 228.6 秒，不能归因全部变化或宣称普遍优势。",
+          "sources": [
+            "docs/evidence/team-resource-budget-20260911.md"
+          ]
+        },
+        {
+          "story": "记忆与恢复",
+          "finding": "来源哈希检验版本而非摘要语义；同等相关记忆较新优先不等于普遍冲突消解；两端仍有输入上限差异。",
+          "sources": [
+            "src/conversation-summary.ts",
+            "src/learning-context.ts",
+            "src/cli.ts",
+            "src/input-limits.ts",
+            "tests/summary-coverage.test.ts",
+            "docs/agent-memory.md"
+          ]
+        },
+        {
+          "story": "记忆与恢复",
+          "finding": "调用前保存派发意图；未知写入不可盲目重放；用户报告不伪造外部成功回执。",
+          "sources": [
+            "src/model-invocation.ts",
+            "src/task-continuity.ts",
+            "tests/agent-crash.test.ts",
+            "tests/task-continuity.test.ts"
+          ]
+        },
+        {
+          "story": "效果评价",
+          "finding": "当前阶段展示整张题卷；三天延迟门禁；题卷随机不等于参与者随机分组；汇总仅描述记录。",
+          "sources": [
+            "src/learning-outcomes.ts",
+            "src/outcome-report.ts",
+            "tests/learning-outcomes.test.ts",
+            "tests/outcome-report.test.ts"
+          ]
+        },
+        {
+          "story": "效果评价",
+          "finding": "评阅包省略模式、模型和阶段字段，原文仍可能透露条件；生成评阅包不代表独立人评已完成。",
+          "sources": [
+            "src/outcome-blind-review.ts",
+            "tests/outcome-blind-review.test.ts"
+          ]
+        },
+        {
+          "story": "效果评价",
+          "finding": "字段正确及存在解释不等于教学表述正确；D01 Kimi 和 D02 DeepSeek 历史措辞问题保留。",
+          "sources": [
+            "docs/evidence/team-resource-budget-20260911.md",
+            "docs/evidence/team-resource-budget-review-20260911.json"
+          ]
+        }
+      ],
+      "unresolvedDocumentationFindings": []
+    },
+    "qualityGate": {
+      "command": "CI=1 npm run verify",
+      "exitCode": 0,
+      "testFiles": 153,
+      "tests": 814,
+      "integrationTests": 9,
+      "evalTests": 6,
+      "countNote": "9 项 integration 和 6 项 eval 是全量 814 项中的子集，verify 另行重跑，不累加为新的独立测试。",
+      "log": "desktop/.local/job-stories-verify-20260914.log",
+      "logSha256": "4501adc0bac64a61547caa777867c3e83e4652ed2fc2b52722837e84b0b1ff18",
+      "lint": "passed",
+      "rootAndDesktopTypecheck": "passed",
+      "mockSmoke": "passed",
+      "sensitiveScan": "passed",
+      "diffWhitespace": "passed"
+    },
+    "localMarkdownLinks": {
+      "method": "Markdown AST 中解析本地文件及标题/显式锚点；未重新访问外部招聘网页。",
+      "files": 149,
+      "links": 2054,
+      "failures": []
+    },
+    "finalReviewCorrections": [
+      "将崩溃测试直接链接到包含 SIGKILL 的 agent-crash.test.ts，并另列恢复边界与外部结果核验测试。",
+      "明确匿名评阅包省略元数据不代表作答原文已自动匿名化。"
+    ],
+    "finalDocumentOnlyChanges": "全量测试后仅完善措辞与源码索引；重新执行最终链接、章节范围及静态检查，没有再次运行不受影响的应用测试。"
+  },
+  "scope": {
+    "modifiedPathsThisTask": [
+      "docs/interview/job-market.md",
+      "docs/evidence/interview-project-stories-20260914.json"
+    ],
+    "otherJobMarketSectionsUnchanged": true,
+    "priorUncommittedDocumentationPreserved": true,
+    "applicationCodeChanged": false,
+    "lockfilesChanged": false,
+    "liveModelsRerun": false,
+    "uiRerun": false,
+    "appBuiltOrInstalled": false,
+    "newJobMarketResearch": false,
+    "committedOrPushed": false,
+    "dependencyInstallation": "复用此前文档任务已经安装的根目录与 desktop 依赖。"
+  },
+  "limitations": [
+    "历史模型评测为四道题、多组运行，不能证明普遍团队质量优势。",
+    "真实学习收益未获因果验证。",
+    "当前 CLI 8000 与共享/桌面 20000 字符上限差异未在本次文档任务修复。"
+  ]
+}

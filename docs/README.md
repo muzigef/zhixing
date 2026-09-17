@@ -1,6 +1,6 @@
 # 项目文档导航
 
-第一次了解项目先读根目录 [README](../README.md) 和 [agent.md](../agent.md)。判断“现在做到了什么、验证过什么、还有什么问题”请读[当前状态](current-status.md)；它区分源码、候选包、历史安装、真实模型质量和远端 CI。
+第一次了解项目先读根目录 [README](../README.md) 和 [Agent 设计说明](agent-design.md)。判断“现在做到了什么、验证过什么、还有什么问题”请读[当前状态](current-status.md)；它区分源码、候选包、历史安装、真实模型质量和远端 CI。
 
 ## 使用与开发
 
@@ -24,7 +24,7 @@
 | 记忆与上下文 | [记忆模型](agent-memory.md)、[模型上下文](model-context.md) |
 | 团队 | [团队内核](agent-team-kernel.md)、[三模式配置](agent-teams.md) |
 | 外部能力 | [MCP](mcp-tools.md)、[Pi 约束](pi-constraints.md)、[图片](image-input.md) |
-| 实践与执行 | [实践项目](practice-projects.md)、[项目修订](project-revisions.md) |
+| 实践与执行 | [实践项目](practice-projects.md)、[项目修订](project-revisions.md)、[统一执行沙箱](execution-sandbox.md) |
 | 教学与证据 | [教学策略](teaching-policy.md)、[证据支持](evidence-support.md)、[学习结果](learning-outcomes.md) |
 | 质量与研究 | [Agent 质量评测](agent-quality-evaluation.md)、[教学研究](teaching-study-protocol.md) |
 | 功能与验收对应 | [功能矩阵](features-and-acceptance.md) |
@@ -41,4 +41,4 @@
 - 当前状态有唯一汇总入口，历史验收有不可替代的时间、模型、构建和评分条件。
 - 新验证追加独立记录；本地通过、远端 CI、真实账户、模型质量和用户效果不能互相替代。
 - 代码路径、命令、Markdown 链接及锚点应可执行或可定位；无法验证的外部网页明确访问限制。
-- 本项目 `AGENTS.md` 是协作规则，`agent.md` 是设计导航；内附教学 Skill 和 Topic Plan 是课程资源，不把文档索引自动当模型授权。
+- 本项目 [AGENTS.md](../AGENTS.md) 是仓库开发指令，[Agent 设计说明](agent-design.md) 是普通架构文档，[runtime-AGENTS.md](../desktop/runtime-AGENTS.md) 是独立的桌面运行时指令源；内附教学 Skill 和 Topic Plan 是课程资源，不把文档索引自动当模型授权。
