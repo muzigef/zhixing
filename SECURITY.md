@@ -43,7 +43,7 @@ CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均
 
 实现边界与限制见 [安全约束](docs/pi-constraints.md) 和 [架构](docs/architecture.md)。
 
-本地产物验证在 macOS 系统沙箱或 Windows AppContainer 中运行明确提交的代码，禁止网络、限制文件内容访问与时间/输出；无受支持沙箱时拒绝执行。Python 另需通过运行时检查，不能把“可用”预检当作代码已通过。用户测试报告标为未复跑，Review 分数只代表证据完整性。详见[实践项目](docs/practice-projects.md)。
+本地产物验证经统一策略在 macOS Seatbelt、Windows AppContainer 或 Linux bubblewrap 中运行明确提交的代码，禁止网络并限制文件、时间、CPU、内存、工作目录及输出；无受支持沙箱时拒绝执行。Python 另需通过运行时检查，不能把“可用”预检当作代码已通过。用户测试报告标为未复跑，Review 分数只代表证据完整性。详见[实践项目](docs/practice-projects.md)和[执行沙箱](docs/execution-sandbox.md)。RSS/目录配额的监控终止不等于瞬时硬上限；能力不满足时拒绝启动。
 
 ## 应用工具与恢复边界
 
@@ -57,7 +57,7 @@ CLI 的引用校验验证文档与页码/锚点匹配，不保证逐句事实均
 
 ## 本地访问
 
-MCP 的 `trusted` 模式保留账户权限信任边界；`restricted` 模式在 macOS 通过系统沙箱仅开放指定可执行程序、显式读取路径及临时工作目录写入，并禁止网络。目录读取授权包含子目录，应避免授权整个主目录。其他平台不能静默回退；工具 read 声明不替代 OS 隔离。
+MCP 的 `trusted` 模式保留账户权限信任边界；`restricted` 模式经统一 LocalSandbox 入口，在 macOS/Linux 限制系统资源、读取路径、临时目录写入和网络。Windows 当前不支持交互式受限 MCP，明确拒绝。目录读取授权包含子目录，应避免授权整个主目录。其他平台不能静默回退；工具 read 声明不替代 OS 隔离。
 
 loopback 同步要求每个进程随机生成的临时访问码并限制 Host/Origin/GET、主题和 SSE 数量，拒绝无授权读取。它不防御已获得账户权限并能窃取本机进程信息的攻击者，也不提供远程身份管理。通知不包含聊天或作答内容；访问码和密钥不进入备份。
 

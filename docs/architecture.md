@@ -260,3 +260,7 @@ CLI 和桌面均经共享 AgentService 调用同一模型循环，历史投影�
 `AgentBackend = ModelClient | AgentExecutor` 是接入分界：API 与 Pi 由知行运行每轮工具循环，官方 CLI 由自己的运行时完成一次仅上下文任务。主 Agent 与团队成员共用该联合契约、身份冻结、上下文投影、权限和预算；原生内部轮次不记成知行模型/工具调用。SDK / App Server 可后续实现 AgentExecutor，当前没有已交付的常驻 App Server。
 
 `memberResourcePolicy` 只对适配器声明的共享输出额度生效：快速、均衡、深入的本地目标依次为 4096、8192、16384 token；先预留规划、审查与最终回答容量，再计算成员份额。默认整题仍为 16384，用户可提高上限，系统不因失败自动加额。原生订阅的 token 是返回后观测，任务数、时限和可见输出长度才是可强制的限制。详细取舍及四题二十次历史真实对照见[预算验收](evidence/team-resource-budget-20260911.md)，不能推导团队普遍优于单 Agent。
+
+## 统一执行策略与平台后端（2026-09-17）
+
+证据测试、实践 Node/Python 和 restricted MCP 共用 `LocalSandbox → SandboxPolicy → SandboxBackend`；平台选择、输入快照、能力检查及无隔离时拒绝由宿主负责。固定宿主操作经 `hostProcess(用途)` 登记，并由架构测试限制原始 child_process/Worker 入口；这不把 OCR、认证或 trusted MCP 描述为 OS 隔离。资源策略、能力矩阵、全部入口及回执语义见[执行沙箱](execution-sandbox.md)，原生验证见[验收记录](evidence/sandbox-20260917.md)。

@@ -51,7 +51,9 @@ export class PosixSandboxBackend implements SandboxBackend {
       } else {
         executable = bwrap!;
         const mounts = new Set(["/usr", "/lib", "/lib64", "/bin"]);
-        args = ["--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--preserve-fds", "1", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"];
+        // bubblewrap passes inherited descriptors to its payload; there is no
+        // --preserve-fds option. The supervisor closes fd 3 in the untrusted child.
+        args = ["--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp"];
         for (const mount of mounts) if (existsSync(mount)) args.push("--ro-bind", mount, mount);
         for (const read of [{ path: helper }, { path: request.command }, ...reads]) {
           if (![...mounts].some(mount => read.path === mount || read.path.startsWith(mount + "/"))) args.push("--ro-bind", read.path, read.path);

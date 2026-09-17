@@ -61,6 +61,17 @@ it("fails before execution when a hard memory guarantee is required but unsuppor
   }
 }, 30_000);
 
+if (process.platform === "linux") {
+  it("prevents an untrusted child from stopping the supervisor or opening its control descriptor", async () => {
+    const result = await execute(`const fs=require('node:fs');let signal=false,control=false;
+try{process.kill(process.ppid,'SIGSTOP');signal=true;}catch{}finally{try{process.kill(process.ppid,'SIGCONT')}catch{}}
+try{const fd=fs.openSync('/proc/'+process.ppid+'/fd/3','w');control=true;fs.closeSync(fd);}catch{}
+console.log(JSON.stringify({signal,control}));`);
+    expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
+    expect(JSON.parse(result.stdout)).toEqual({ signal: false, control: false });
+  }, 30_000);
+}
+
 it("terminates an actual busy process on its wall deadline", async () => {
   const start = Date.now();
   const result = await execute("console.log('started');setInterval(()=>{},50)", { timeoutMs: 600 });

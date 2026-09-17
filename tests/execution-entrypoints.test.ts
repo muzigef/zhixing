@@ -22,6 +22,7 @@ it("allows raw process creation only in reviewed sandbox backends and the host g
       const check = (node: ts.Node) => {
         if (ts.isStringLiteral(node) && /^(?:node:)?child_process$/.test(node.text) && !allowed.has(file)) violations.push(file);
         if (ts.isStringLiteral(node) && /^(?:node:)?worker_threads$/.test(node.text) && file !== "src/json-schema-worker.ts") violations.push(file);
+        if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && /\/(?:posix|windows)-sandbox\.js$/.test(node.moduleSpecifier.text) && !["src/sandbox-backends.ts", "src/platform-support.ts"].includes(file)) violations.push(file);
         if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "hostProcess") {
           const purpose = node.arguments[0];
           if (!purpose || !ts.isStringLiteral(purpose) || hostAdapters[file] !== purpose.text) violations.push(file);

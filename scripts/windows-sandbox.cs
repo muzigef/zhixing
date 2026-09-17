@@ -169,7 +169,7 @@ class Sandbox {
   }
   static int Main() {
     Console.InputEncoding=new UTF8Encoding(false); Console.OutputEncoding=new UTF8Encoding(false);
-    var json=new JavaScriptSerializer(); json.MaxJsonLength=2000000;
+    var json=new JavaScriptSerializer(); json.MaxJsonLength=6000000; // bounded output is base64-encoded
     try { var line=Console.ReadLine(); if(line==null || line.Length>2000000) throw new Exception("sandbox_input_limit"); Console.WriteLine(json.Serialize(Run(json.Deserialize<Dictionary<string,object>>(line)))); return 0; }
     catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",error=error.Message.StartsWith("win32_")||error.Message.StartsWith("appcontainer_") ? error.Message : "sandbox_setup_failed",exitCode=(int?)null})); return 1; }
   }

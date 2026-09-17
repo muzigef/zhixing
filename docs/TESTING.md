@@ -326,3 +326,9 @@ node desktop/scripts/evaluate-team.mjs --live --lead=native-codex --suite=regres
 
 
 2026-09-11 通用架构回归：`tests/native-extensibility.test.ts` 验证两端共用目录、合成适配器进入共享会话、上下文保留、临时目录清理、环境过滤、输出边界和未实现运行时拒绝；`tests/provider-protocols.test.ts` 对目录外合成厂商分别验证三种协议的连续会话。合成扩展不等于新增厂商真实上线；对应[契约](provider-architecture.md)与[执行证据](evidence/provider-architecture-20260911.md)。
+
+## 2026-09-17：统一执行边界回归
+
+`npm run test:sandbox` 先构建当前平台 helper，再运行真实进程边界探针及入口架构检查。测试用合成文件/监听器验证宿主正向对照，再验证越界读写、符号链接、网络、子进程、CPU/内存/工作目录/输出超限、墙钟、取消及伪造结果。缺少系统能力视为验收失败，不把 unavailable 当隔离通过。
+
+GitHub `sandbox-boundaries` 在 Mac ARM/Intel、Windows、Linux 原生 runner 上分别执行并上传 JSON。Windows 额外安装 Electron 二进制并验证 Node-mode；Linux 需要 bubblewrap。版本、限制差异、失败历史和最终链接见[统一沙箱验收](evidence/sandbox-20260917.md)。临时 `.build/` 中的验证 worktree/产物不参与 Vitest 收集或源码敏感扫描，避免把同一套测试计算两次。
