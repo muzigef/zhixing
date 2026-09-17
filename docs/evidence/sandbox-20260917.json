@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "date": "2026-09-17",
+  "codeCommit": "7a26e1e4810b9e5c35d9dd67799650c316e2dd5d",
+  "branch": "verification/unified-sandbox-20260917",
+  "mainBranchUnchanged": true,
+  "taskSourceMatchesTestedCommit": true,
+  "local": {
+    "platform": "darwin-arm64",
+    "node": "v24.8.0",
+    "verify": {
+      "command": "CI=1 npm run verify",
+      "exitCode": 0,
+      "files": 157,
+      "tests": 830,
+      "integrationSubset": 9,
+      "evalSubset": 6,
+      "logSha256": "6974b934e7d908fdf61bf479f9baf1c65007c1e8a820826dc03434cf4594035f"
+    },
+    "sandbox": {
+      "command": "npm run test:sandbox",
+      "exitCode": 0,
+      "files": 7,
+      "tests": 20,
+      "reportSha256": "f625cdfef7f8fa7b705f0104e097b04360b08ce73dddd51099bdbc962d59d73c"
+    },
+    "desktopUi": {
+      "exitCode": 0,
+      "groups": 7,
+      "logSha256": "300faf9e10bc2f7ccb65b64056017e73ba9736505bf7297d16591ef706ef573c",
+      "scope": "development build; final code separately revalidated by remote verify including all UI groups"
+    }
+  },
+  "nativeCi": {
+    "id": 35201630445,
+    "url": "https://github.com/muzigef/zhixing/actions/runs/35201630445",
+    "conclusion": "success",
+    "platforms": [
+      {
+        "runner": "macos-15",
+        "tests": 20,
+        "passed": 20,
+        "files": 7,
+        "failed": 0,
+        "pending": 0,
+        "reportSha256": "57f0b5124899eb3e07b881c4bfb12c8ff19fdffd03d612c96b2462882b678806",
+        "jobId": 105137502402,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35201630445/job/105137502402",
+        "startedAt": "2026-09-17T08:48:00Z",
+        "completedAt": "2026-09-17T08:48:48Z",
+        "checks": [
+          "allows raw process creation only in reviewed sandbox backends and the host gateway",
+          "rejects shell escalation and command-purpose mismatch, including promisified calls",
+          "binds sandbox mode and read grants to tool identity and rejects sensitive read grants",
+          "blocks filesystem escape and network even for a server tool labelled read",
+          "distinguishes a missing sandbox from an unsupported platform without promising host validation",
+          "rejects invalid installed versions before checking a release and identifies a build newer than public releases",
+          "actually denies outside reads/writes, symlink escapes, network and subprocesses while allowing task files",
+          "does not misreport an ordinary program failure or forged stdout as a successful receipt",
+          "fails before execution when a hard memory guarantee is required but unsupported",
+          "denies a real Unix socket even when its containing directory has a read grant",
+          "terminates an actual busy process on its wall deadline",
+          "terminates excessive output instead of silently truncating a successful execution",
+          "enforces real memory and CPU budgets",
+          "enforces a workspace quota without touching outside files",
+          "cancels an already running child and cleans its private workspace",
+          "uses one immutable deny-by-default policy for code and restricted MCP",
+          "validates inputs before selecting any OS backend",
+          "fails closed when the requested guarantee is not provided by a backend",
+          "runs actual Python unittest through the same file/network/process boundary",
+          "does not treat a Windows helper as native support on other unsupported platforms"
+        ]
+      },
+      {
+        "runner": "macos-15-intel",
+        "tests": 20,
+        "passed": 20,
+        "files": 7,
+        "failed": 0,
+        "pending": 0,
+        "reportSha256": "46954574a4b5dfb39e77f6e121f74ef4838375209ca047b2c252f78e00121caa",
+        "jobId": 105137502949,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35201630445/job/105137502949",
+        "startedAt": "2026-09-17T08:47:57Z",
+        "completedAt": "2026-09-17T08:49:28Z",
+        "checks": [
+          "allows raw process creation only in reviewed sandbox backends and the host gateway",
+          "rejects shell escalation and command-purpose mismatch, including promisified calls",
+          "binds sandbox mode and read grants to tool identity and rejects sensitive read grants",
+          "blocks filesystem escape and network even for a server tool labelled read",
+          "distinguishes a missing sandbox from an unsupported platform without promising host validation",
+          "rejects invalid installed versions before checking a release and identifies a build newer than public releases",
+          "actually denies outside reads/writes, symlink escapes, network and subprocesses while allowing task files",
+          "does not misreport an ordinary program failure or forged stdout as a successful receipt",
+          "fails before execution when a hard memory guarantee is required but unsupported",
+          "denies a real Unix socket even when its containing directory has a read grant",
+          "terminates an actual busy process on its wall deadline",
+          "terminates excessive output instead of silently truncating a successful execution",
+          "enforces real memory and CPU budgets",
+          "enforces a workspace quota without touching outside files",
+          "cancels an already running child and cleans its private workspace",
+          "uses one immutable deny-by-default policy for code and restricted MCP",
+          "validates inputs before selecting any OS backend",
+          "fails closed when the requested guarantee is not provided by a backend",
+          "runs actual Python unittest through the same file/network/process boundary",
+          "does not treat a Windows helper as native support on other unsupported platforms"
+        ]
+      },
+      {
+        "runner": "ubuntu-22.04",
+        "tests": 21,
+        "passed": 21,
+        "files": 7,
+        "failed": 0,
+        "pending": 0,
+        "reportSha256": "022efbf12b2d15e1fbb2a40d60748f5c3719fc99d07ce3bb96112fc7ef24128b",
+        "jobId": 105137502653,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35201630445/job/105137502653",
+        "startedAt": "2026-09-17T08:47:56Z",
+        "completedAt": "2026-09-17T08:48:47Z",
+        "checks": [
+          "allows raw process creation only in reviewed sandbox backends and the host gateway",
+          "rejects shell escalation and command-purpose mismatch, including promisified calls",
+          "binds sandbox mode and read grants to tool identity and rejects sensitive read grants",
+          "blocks filesystem escape and network even for a server tool labelled read",
+          "distinguishes a missing sandbox from an unsupported platform without promising host validation",
+          "rejects invalid installed versions before checking a release and identifies a build newer than public releases",
+          "actually denies outside reads/writes, symlink escapes, network and subprocesses while allowing task files",
+          "does not misreport an ordinary program failure or forged stdout as a successful receipt",
+          "fails before execution when a hard memory guarantee is required but unsupported",
+          "prevents an untrusted child from stopping the supervisor or opening its control descriptor",
+          "denies a real Unix socket even when its containing directory has a read grant",
+          "terminates an actual busy process on its wall deadline",
+          "terminates excessive output instead of silently truncating a successful execution",
+          "enforces real memory and CPU budgets",
+          "enforces a workspace quota without touching outside files",
+          "cancels an already running child and cleans its private workspace",
+          "uses one immutable deny-by-default policy for code and restricted MCP",
+          "validates inputs before selecting any OS backend",
+          "fails closed when the requested guarantee is not provided by a backend",
+          "runs actual Python unittest through the same file/network/process boundary",
+          "does not treat a Windows helper as native support on other unsupported platforms"
+        ]
+      },
+      {
+        "runner": "windows-2022",
+        "tests": 22,
+        "passed": 22,
+        "files": 7,
+        "failed": 0,
+        "pending": 0,
+        "reportSha256": "80ab351c354bf3087f0a52cee66d8eefc50aee9976d88d45d1fc669f02652bb2",
+        "jobId": 105137502778,
+        "url": "https://github.com/muzigef/zhixing/actions/runs/35201630445/job/105137502778",
+        "startedAt": "2026-09-17T08:47:56Z",
+        "completedAt": "2026-09-17T08:49:59Z",
+        "checks": [
+          "allows raw process creation only in reviewed sandbox backends and the host gateway",
+          "rejects shell escalation and command-purpose mismatch, including promisified calls",
+          "binds sandbox mode and read grants to tool identity and rejects sensitive read grants",
+          "blocks filesystem escape and network even for a server tool labelled read",
+          "distinguishes a missing sandbox from an unsupported platform without promising host validation",
+          "rejects invalid installed versions before checking a release and identifies a build newer than public releases",
+          "actually denies outside reads/writes, symlink escapes, network and subprocesses while allowing task files",
+          "does not misreport an ordinary program failure or forged stdout as a successful receipt",
+          "fails before execution when a hard memory guarantee is required but unsupported",
+          "terminates an actual busy process on its wall deadline",
+          "terminates excessive output instead of silently truncating a successful execution",
+          "enforces real memory and CPU budgets",
+          "enforces a workspace quota without touching outside files",
+          "cancels an already running child and cleans its private workspace",
+          "uses one immutable deny-by-default policy for code and restricted MCP",
+          "validates inputs before selecting any OS backend",
+          "fails closed when the requested guarantee is not provided by a backend",
+          "runs actual Python unittest through the same file/network/process boundary",
+          "executes real Node in AppContainer, denies outside reads/writes, loopback and child processes",
+          "runs the actual 'Node' test runtime under the same AppContainer policy",
+          "runs the actual 'Electron Node-mode' test runtime under the same AppContainer policy",
+          "kills a timed out or cancelled container and bounds stdout"
+        ]
+      }
+    ]
+  },
+  "qualityCi": {
+    "id": 35201630451,
+    "url": "https://github.com/muzigef/zhixing/actions/runs/35201630451",
+    "conclusion": "success",
+    "checks": [
+      "production audits for root and desktop",
+      "lint",
+      "root and desktop typecheck",
+      "full tests",
+      "integration",
+      "eval",
+      "mock smoke",
+      "desktop seven UI groups"
+    ]
+  },
+  "history": [
+    {
+      "run": 35200407032,
+      "conclusion": "failure",
+      "causes": [
+        "GCC write/read return-value checking",
+        "Windows fixture stdio setup",
+        "missing downloaded Electron binary"
+      ]
+    },
+    {
+      "run": 35200934593,
+      "conclusion": "failure",
+      "causes": [
+        "unsupported bubblewrap preserve-fds argument"
+      ]
+    },
+    {
+      "run": 35201403321,
+      "conclusion": "failure",
+      "causes": [
+        "Linux private mount namespace allowed writes outside quota-monitored work directory; no host file overwrite demonstrated"
+      ]
+    },
+    {
+      "run": 35201630445,
+      "conclusion": "success",
+      "causes": []
+    }
+  ],
+  "limitations": [
+    "macOS/Linux memory is sampled RSS monitoring, not a hard kernel ceiling; hard-memory requirement is refused",
+    "Windows memory uses committed-memory job limits, a different metric from RSS",
+    "workspace quota is sampled, not an instantaneous filesystem quota",
+    "Windows restricted interactive MCP is unsupported and refused",
+    "trusted MCP and fixed host adapters including OCR/authentication are not OS-isolated",
+    "no real model or Keychain credentials accessed; no installed app replacement or release packaging performed"
+  ],
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/desktop-release.yml",
+      "sha256": "bb1b9d062155d2b822df89cf9085290022e8cd140863a46f9310b3b12a7d82ed"
+    },
+    {
+      "path": ".github/workflows/sandbox-boundaries.yml",
+      "sha256": "604386f0cb5fe42e98e2eb4367902f22cf7b278f7801581a8d1368abdc596774"
+    },
+    {
+      "path": "desktop/electron/secrets.ts",
+      "sha256": "627d2fb900a3f3744c05e940b246bd8565b5fc36abdd4a55d352715e9df33408"
+    },
+    {
+      "path": "desktop/scripts/build.mjs",
+      "sha256": "9c71bff0eef4526e34a596c4e8d399995396b7fef46900cfb63169c619812d08"
+    },
+    {
+      "path": "package.json",
+      "sha256": "f6d73ef4b77b106f02f82f05f93cfb1f877f16cf0dca75728a1095efbcbe5484"
+    },
+    {
+      "path": "scripts/build-posix-sandbox.mjs",
+      "sha256": "465ed70a1b3c035761f63b6750626365903e751d29381e30d6872a60e1acea70"
+    },
+    {
+      "path": "scripts/sandbox-supervisor.c",
+      "sha256": "d579827d099a3cdeec1f69b772d525dd7b7df4c07484bcc46aa2f8c692b9a31b"
+    },
+    {
+      "path": "scripts/verify.mjs",
+      "sha256": "5db21c52c45c742be52ab9f761ee8b97da0af37b8fcc28038ba1aaaec0a9e5a5"
+    },
+    {
+      "path": "scripts/windows-sandbox.cs",
+      "sha256": "a2812d08cb3eac4920a2aad51eb25d3b1dbf1dac6c27a4efd5da63db1db02e09"
+    },
+    {
+      "path": "src/build-provenance.ts",
+      "sha256": "755a66ee7b5cd52ccc6abef4103f619d4e01abce71085c5148748a8736647703"
+    },
+    {
+      "path": "src/codex-client.ts",
+      "sha256": "7fdbb6b6221bf3d4c80fbd6f752db4336b0d269867a9136d19e676d271e7f552"
+    },
+    {
+      "path": "src/evidence-store.ts",
+      "sha256": "48a4d99ca0a3791719fa758c5314f92ea73210bf00a0b31dad90971145957e27"
+    },
+    {
+      "path": "src/local-sandbox.ts",
+      "sha256": "c1cfe3f19c1c97f3ac79a61c38e8d9a6bc5d3e5e3a4152e89bfa9bc0e3a312e7"
+    },
+    {
+      "path": "src/macos-keychain.ts",
+      "sha256": "78ab5ebfd362acae9dc81de1b5f3b8db68337f9c06aa242e16394a09490d440c"
+    },
+    {
+      "path": "src/mcp-connection.ts",
+      "sha256": "13e31c3213e61b990a771cfb11d8ba411f916f258c7fb2f18958af4b34d76a70"
+    },
+    {
+      "path": "src/native-agent.ts",
+      "sha256": "9713186fb57337c3c055ae6a089d48ed102a85fbd1becf7890e4a08652c546da"
+    },
+    {
+      "path": "src/ocr.ts",
+      "sha256": "50215bf94face4e731295411ccc87a92950a835b43915a77c9bd7302c8f79423"
+    },
+    {
+      "path": "src/pi-client.ts",
+      "sha256": "cecd66c123ea252da7d76379ecdffc83a153dd28206146146418dcb3b4054ba7"
+    },
+    {
+      "path": "src/platform-support.ts",
+      "sha256": "419d329dbdbaed218dea77e474c0cb81bc480f324af77874c2c2812e3361873b"
+    },
+    {
+      "path": "src/posix-sandbox.ts",
+      "sha256": "a981b9a03e079cccf343f96bffdecf3aece1e995f91ba42d5b5e4f6aa54ef2c5"
+    },
+    {
+      "path": "src/practice-projects.ts",
+      "sha256": "897bcaa6bad1d71e576a35629ba01de5ae18a9f93cdb18f51455f21372770cd2"
+    },
+    {
+      "path": "src/process-gateway.ts",
+      "sha256": "f634b2f1db22cbb3bdb2ca985fb1bb6e53805654cc013f62f2e1d4c8e3f5959a"
+    },
+    {
+      "path": "src/python-runner.ts",
+      "sha256": "2187552f017fd31a7586a587896e8d6603d0d86521ae3d35f49120af099d0ebf"
+    },
+    {
+      "path": "src/sandbox-backends.ts",
+      "sha256": "9b239715f153b2b7ba8634bd6a308f37e12e919a98f2ab6176349d666add0eba"
+    },
+    {
+      "path": "src/sandbox-policy.ts",
+      "sha256": "db5740add6571ebdf153eb5537ad465a935693847e2922ab744b86b4de1aed2d"
+    },
+    {
+      "path": "src/sandbox-types.ts",
+      "sha256": "61ccbb0aa0ced4902da3739bbc8c4fd4304ba7becebc83cebe85cdd2a701834f"
+    },
+    {
+      "path": "src/windows-sandbox.ts",
+      "sha256": "2624775b1e47d5c61c1d5d424fbb8ef8496ea5814a1c1682a74d05cc9c798d1f"
+    },
+    {
+      "path": "tests/codex-client.test.ts",
+      "sha256": "963cf994bbf4a027b9237eb10c85ff05b86be9aca5ecca5107c3f575b665ea86"
+    },
+    {
+      "path": "tests/execution-entrypoints.test.ts",
+      "sha256": "2ac10cd35deb4ceaf70daa8fb8929efae15dd5dc57d245453c092833c6ffda46"
+    },
+    {
+      "path": "tests/mcp-isolation.test.ts",
+      "sha256": "77b1b6e8485064b681e2e9ea41ea116d3d1ec4e1acdf3db3b087dbe31ffa6a3d"
+    },
+    {
+      "path": "tests/platform-preflight.test.ts",
+      "sha256": "68f71f376dc07b88a64fda2d95c3ec4b03a26aa72d1b3f0a13827dc764a5ee6a"
+    },
+    {
+      "path": "tests/sandbox-boundaries.test.ts",
+      "sha256": "e467fe438180bc9b1933fc1e0c507d504683efb816104f60b1951fd7dd3a3acf"
+    },
+    {
+      "path": "tests/sandbox-policy.test.ts",
+      "sha256": "e9972b23222c5cc4bc710f79068c4b66af38f2674cf5721598fae9b5e90c1c95"
+    },
+    {
+      "path": "tests/sandbox-python.test.ts",
+      "sha256": "9a6d7164f37e4c2908f1bf0c01eb564fdfd4e655acac2ee5b332de89a8357cd7"
+    },
+    {
+      "path": "tests/windows-sandbox.test.ts",
+      "sha256": "2c01f77dbfc04e72db7a673a4abec77af164addc2948dd608bd4d67b6b6086a1"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "de109a33b7548824d522a9bcd4b778f0552a50a0b7c398c300e9b50a025d2779"
+    }
+  ]
+}
