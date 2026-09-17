@@ -9,6 +9,7 @@ import { z } from "zod/v4";
 import type { SandboxResult, SandboxOptions, SandboxBackend, SandboxRequest, SandboxSession } from "./sandbox-types.js";
 import { createSandboxPolicy, sandboxPolicyId } from "./sandbox-policy.js";
 import { copySandboxRuntimeDirectory } from "./sandbox-runtime-copy.js";
+import { createPythonRuntimeArchive } from "./python-runtime-archive.js";
 
 export function windowsSandboxHelper(): string | undefined {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -58,10 +59,9 @@ async function runWindowsSandbox(command: string, args: readonly string[], optio
     if (/^python(?:3(?:\.\d+)?)?\.exe$/i.test(path.basename(resolved))) {
       // Python is explicitly resolved by the trusted runner. Copy stdlib only;
       // user site-packages and scripts never enter the sandbox.
-      for (const name of ["Lib", "DLLs"]) {
-        const source = path.join(path.dirname(resolved), name);
-        size = await copySandboxRuntimeDirectory(source, path.join(runtime, name), size, 400_000_000, options.signal);
-      }
+      size += await createPythonRuntimeArchive(resolved, path.join(path.dirname(resolved), "Lib"), path.join(runtime, "stdlib.zip"), 400_000_000 - size, options.signal);
+      size = await copySandboxRuntimeDirectory(path.join(path.dirname(resolved), "DLLs"), path.join(runtime, "DLLs"), size, 400_000_000, options.signal);
+      await fs.writeFile(path.join(runtime, path.basename(resolved).replace(/\.exe$/i, "._pth")), "stdlib.zip\nDLLs\n", { flag: "wx" });
     }
     let total = 0;
     for (const [name, content] of Object.entries(options.files ?? {})) {

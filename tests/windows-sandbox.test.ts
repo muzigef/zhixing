@@ -7,26 +7,26 @@ import { spawnSync } from "node:child_process";
 import { LocalSandbox } from "../src/local-sandbox.js";
 import { executionSupport } from "../src/platform-support.js";
 import { runPythonTests } from "../src/python-runner.js";
+import * as runtimeArchive from "../src/python-runtime-archive.js";
 
 if (process.platform === "win32") {
   it("stops Python runtime preparation promptly when cancelled and removes its private copy", async () => {
     const controller = new AbortController();
-    const copy = fs.copyFile.bind(fs), makeTemp = fs.mkdtemp.bind(fs);
+    const archive = runtimeArchive.createPythonRuntimeArchive, makeTemp = fs.mkdtemp.bind(fs);
     let visited = 0, owned = "";
     const directoryProbe = vi.spyOn(fs, "mkdtemp").mockImplementation(async (...args) => {
       const directory = await makeTemp(...args);
       if (String(args[0]).includes("zhixing-appcontainer-")) owned = String(directory);
       return directory;
     });
-    const copyProbe = vi.spyOn(fs, "copyFile").mockImplementation(async (...args) => {
-      const stdlib = /[\\/]Lib[\\/]/i.test(String(args[0]));
-      if (stdlib) visited++;
-      await copy(...args);
-      if (stdlib) controller.abort();
+    const copyProbe = vi.spyOn(runtimeArchive, "createPythonRuntimeArchive").mockImplementation(async (...args) => {
+      const bytes = await archive(...args); visited++;
+      // Cancel after a real private archive exists, before the untrusted task starts.
+      controller.abort(); return bytes;
     });
     try {
       await expect(runPythonTests({}, [], controller.signal, 10_000)).rejects.toMatchObject({ name: "AbortError" });
-      expect(visited).toBeGreaterThan(0); expect(visited).toBeLessThanOrEqual(8); expect(owned).not.toBe("");
+      expect(visited).toBe(1); expect(owned).not.toBe("");
       await expect(fs.stat(owned)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { controller.abort(); copyProbe.mockRestore(); directoryProbe.mockRestore(); }
   }, 30_000);

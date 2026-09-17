@@ -5,6 +5,7 @@ import net from "node:net";
 import { expect, it, vi } from "vitest";
 import { runPythonTests } from "../src/python-runner.js";
 import * as runtimeCopy from "../src/sandbox-runtime-copy.js";
+import * as runtimeArchive from "../src/python-runtime-archive.js";
 
 it("runs actual Python unittest through the same file/network/process boundary", async () => {
   const start = Date.now();
@@ -12,6 +13,10 @@ it("runs actual Python unittest through the same file/network/process boundary",
   const copy = runtimeCopy.copySandboxRuntimeDirectory;
   const copyProbe = vi.spyOn(runtimeCopy, "copySandboxRuntimeDirectory").mockImplementation(async (...args) => {
     trace("runtime_copy_started"); const size = await copy(...args); trace("runtime_copy_finished"); return size;
+  });
+  const archive = runtimeArchive.createPythonRuntimeArchive;
+  const archiveProbe = vi.spyOn(runtimeArchive, "createPythonRuntimeArchive").mockImplementation(async (...args) => {
+    trace("runtime_archive_started"); const size = await archive(...args); trace("runtime_archive_finished"); return size;
   });
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-python-boundary-")));
   const secret = path.join(root, "synthetic.txt"), escaped = path.join(root, "escaped.txt");
@@ -43,6 +48,7 @@ class Boundary(unittest.TestCase):
     await expect(fs.stat(escaped)).rejects.toMatchObject({ code: "ENOENT" });
   } finally {
     copyProbe.mockRestore();
+    archiveProbe.mockRestore();
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await fs.rm(root, { recursive: true, force: true });
   }

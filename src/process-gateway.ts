@@ -5,18 +5,19 @@ import { promisify } from "node:util";
 /** These host adapters are trusted application code, NOT OS-isolated execution.
  * Keep the inventory small; untrusted code must use LocalSandbox instead. No
  * command, arguments, environment values or process output are logged here. */
-export type HostProcessPurpose = "git-storage" | "build-provenance" | "keychain" | "python-discovery" | "ocr" | "native-provider" | "pi-provider" | "trusted-mcp";
-const purposes = new Set<HostProcessPurpose>(["git-storage", "build-provenance", "keychain", "python-discovery", "ocr", "native-provider", "pi-provider", "trusted-mcp"]);
+export type HostProcessPurpose = "git-storage" | "build-provenance" | "keychain" | "python-discovery" | "python-runtime" | "ocr" | "native-provider" | "pi-provider" | "trusted-mcp";
+const purposes = new Set<HostProcessPurpose>(["git-storage", "build-provenance", "keychain", "python-discovery", "python-runtime", "ocr", "native-provider", "pi-provider", "trusted-mcp"]);
 function admit(purpose: HostProcessPurpose, command: string, args: readonly string[], options: SpawnOptions | ExecFileOptions): void {
   if (!purposes.has(purpose) || typeof command !== "string" || !command || command.includes("\0") || !Array.isArray(args) || args.some(arg => typeof arg !== "string" || arg.includes("\0")) || options.shell) throw new Error("host_process_denied");
   const base = path.basename(command).toLowerCase();
   const allowed: Partial<Record<HostProcessPurpose, RegExp>> = {
     "git-storage": /^git(?:\.exe)?$/, "build-provenance": /^git(?:\.exe)?$/, "keychain": /^security$/,
     "python-discovery": /^(?:where\.exe|python(?:3(?:\.\d+)?)?(?:\.exe)?)$/,
+    "python-runtime": /^python(?:3(?:\.\d+)?)?(?:\.exe)?$/,
     "ocr": /^(?:pdftoppm|tesseract)(?:\.exe)?$/,
   };
   if (allowed[purpose] && !allowed[purpose]!.test(base)) throw new Error("host_process_denied");
-  if (purpose === "trusted-mcp" && !path.isAbsolute(command)) throw new Error("host_process_denied");
+  if ((purpose === "trusted-mcp" || purpose === "python-runtime") && !path.isAbsolute(command)) throw new Error("host_process_denied");
 }
 export function hostProcess(purpose: HostProcessPurpose): { spawn: typeof rawSpawn; execFile: typeof rawExecFile } {
   const spawn = ((command: string, args: readonly string[], options: SpawnOptions = {}) => {

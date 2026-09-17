@@ -11,6 +11,7 @@ it("allows raw process creation only in reviewed sandbox backends and the host g
   const hostAdapters: Record<string, string> = {
     "src/build-provenance.ts": "build-provenance", "src/practice-projects.ts": "git-storage", "src/ocr.ts": "ocr",
     "src/python-runner.ts": "python-discovery", "src/native-agent.ts": "native-provider", "src/pi-client.ts": "pi-provider",
+    "src/python-runtime-archive.ts": "python-runtime",
     "src/macos-keychain.ts": "keychain", "desktop/electron/secrets.ts": "keychain", "src/mcp-connection.ts": "trusted-mcp",
   };
   async function visit(directory: string): Promise<void> {
