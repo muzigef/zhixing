@@ -6,19 +6,22 @@ const exec = promisify(hostProcess("python-runtime").execFile);
 // CPython's supported ZIP import avoids creating/ACL-scanning thousands of
 // individual stdlib files on each Windows invocation.
 const pack = `import json, os, stat, sys, zipfile
+def linked(file):
+ info = os.lstat(file)
+ return stat.S_ISLNK(info.st_mode) or bool(getattr(info, 'st_file_attributes', 0) & 0x400)
 def main():
  source, target, budget = sys.argv[1], sys.argv[2], int(sys.argv[3])
- if os.path.islink(source): raise RuntimeError('sandbox_runtime_invalid')
+ if linked(source): raise RuntimeError('sandbox_runtime_invalid')
  total, entries = 22, 0
  with zipfile.ZipFile(target, 'x', compression=zipfile.ZIP_STORED) as archive:
   for parent, directories, files in os.walk(source, followlinks=False):
    entries += len(directories) + len(files)
    if entries > 20000: raise RuntimeError('sandbox_runtime_limit')
-   directories[:] = [name for name in directories if name.lower() not in ('site-packages', '__pycache__') and not os.path.islink(os.path.join(parent, name))]
+   directories[:] = [name for name in directories if name.lower() not in ('site-packages', '__pycache__') and not linked(os.path.join(parent, name))]
    for name in files:
     file = os.path.join(parent, name)
     info = os.lstat(file)
-    if not stat.S_ISREG(info.st_mode): continue
+    if not stat.S_ISREG(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400: continue
     relative = os.path.relpath(file, source).replace(os.sep, '/')
     total += info.st_size + 76 + 2 * len(relative.encode('utf-8'))
     if total > budget: raise RuntimeError('sandbox_runtime_limit')
