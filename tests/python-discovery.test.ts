@@ -59,3 +59,13 @@ it("preserves caller cancellation instead of reporting a missing interpreter", a
   await expect(runPythonTests({}, [], controller.signal, 10_000)).rejects.toMatchObject({ name: "AbortError" });
   expect(mocks.run).not.toHaveBeenCalled();
 });
+
+it("cancels sandbox preparation at the same task deadline and waits for cleanup", async () => {
+  mocks.exec.mockImplementation((_command, _args, _options, callback) => callback(null, runtime, ""));
+  let cleaned = false;
+  mocks.run.mockImplementation((_command, _args, options) => new Promise(resolve => {
+    options.signal.addEventListener("abort", () => { cleaned = true; resolve({ ...completed, status: "cancelled" }); }, { once: true });
+  }));
+  expect(await runPythonTests({}, [], new AbortController().signal, 30)).toMatchObject({ status: "timed_out" });
+  expect(cleaned).toBe(true);
+});

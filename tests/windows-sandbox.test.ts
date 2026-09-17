@@ -6,8 +6,30 @@ import net from "node:net";
 import { spawnSync } from "node:child_process";
 import { LocalSandbox } from "../src/local-sandbox.js";
 import { executionSupport } from "../src/platform-support.js";
+import { runPythonTests } from "../src/python-runner.js";
 
 if (process.platform === "win32") {
+  it("stops Python runtime preparation promptly when cancelled and removes its private copy", async () => {
+    const controller = new AbortController();
+    const copy = fs.cp.bind(fs), makeTemp = fs.mkdtemp.bind(fs);
+    let visited = 0, owned = "";
+    const directoryProbe = vi.spyOn(fs, "mkdtemp").mockImplementation(async (...args) => {
+      const directory = await makeTemp(...args);
+      if (String(args[0]).includes("zhixing-appcontainer-")) owned = String(directory);
+      return directory;
+    });
+    const copyProbe = vi.spyOn(fs, "cp").mockImplementation(async (source, target, options) => {
+      await copy(source, target, { ...options, filter: async (from, to) => {
+        if (++visited === 3) controller.abort();
+        return options?.filter ? options.filter(from, to) : true;
+      } });
+    });
+    try {
+      await expect(runPythonTests({}, [], controller.signal, 10_000)).rejects.toMatchObject({ name: "AbortError" });
+      expect(visited).toBe(3); expect(owned).not.toBe("");
+      await expect(fs.stat(owned)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally { controller.abort(); copyProbe.mockRestore(); directoryProbe.mockRestore(); }
+  }, 30_000);
   it("tolerates files and directories being removed during workspace quota sampling", async () => {
     const code = `const fs=require('node:fs');let i=0;const timer=setInterval(()=>{
       for(let j=0;j<30;j++){fs.mkdirSync('changing');fs.writeFileSync('changing/file','owned');fs.unlinkSync('changing/file');fs.rmdirSync('changing');}

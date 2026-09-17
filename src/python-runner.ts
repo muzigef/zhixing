@@ -8,7 +8,7 @@ const exec = promisify(execFile);
 export async function runPythonTests(files: Record<string, string>, tests: string[], signal: AbortSignal, timeoutMs: number, observe?: (stage: "locate" | "inspect" | "sandbox") => void): Promise<SandboxResult> {
   const deadline = Date.now() + timeoutMs;
   const remaining = () => Math.max(0, deadline - Date.now());
-  const timedOut: SandboxResult = { status: "timed_out", stdout: "", stderr: "Python 运行环境探测已耗尽任务时间预算。", exitCode: null };
+  const timedOut: SandboxResult = { status: "timed_out", stdout: "", stderr: "Python 任务时间预算已耗尽。", exitCode: null };
   signal.throwIfAborted();
   if (!remaining()) return timedOut;
   const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "本机没有可验证的 Python 标准库隔离运行环境。", exitCode: null };
@@ -60,5 +60,16 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   if (!runtime) return missing();
   const script = `import importlib.util, os, sys, unittest\nsys.path.insert(0, os.getcwd())\nsuite = unittest.TestSuite()\nfor index, file in enumerate(${JSON.stringify(tests)}):\n spec = importlib.util.spec_from_file_location('zhixing_test_' + str(index), file)\n module = importlib.util.module_from_spec(spec)\n spec.loader.exec_module(module)\n suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(module))\nif suite.countTestCases() == 0:\n print('No unittest cases found', file=sys.stderr)\n sys.exit(1)\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\nsys.exit(0 if result.wasSuccessful() else 1)\n`;
   observe?.("sandbox");
-  return new LocalSandbox().run(runtime.executable, ["-I", "-S", "-B", "zhixing_runner.py"], { files: { ...files, "zhixing_runner.py": script }, allowedCommands: [runtime.executable], runtimeReadPath: runtime.prefix, timeoutMs: Math.max(1, remaining()), signal });
+  // The shared deadline also covers private runtime preparation, not only the
+  // final child process. Await sandbox cleanup before returning its timeout.
+  const deadlineSignal = AbortSignal.timeout(Math.max(1, remaining()));
+  try {
+    const result = await new LocalSandbox().run(runtime.executable, ["-I", "-S", "-B", "zhixing_runner.py"], { files: { ...files, "zhixing_runner.py": script }, allowedCommands: [runtime.executable], runtimeReadPath: runtime.prefix, timeoutMs: Math.max(1, remaining()), signal: AbortSignal.any([signal, deadlineSignal]) });
+    signal.throwIfAborted();
+    return deadlineSignal.aborted || !remaining() ? { ...result, status: "timed_out", stderr: result.stderr || timedOut.stderr } : result;
+  } catch (error) {
+    signal.throwIfAborted();
+    if (deadlineSignal.aborted || !remaining()) return timedOut;
+    throw error;
+  }
 }
