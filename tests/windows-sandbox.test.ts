@@ -8,6 +8,15 @@ import { LocalSandbox } from "../src/local-sandbox.js";
 import { executionSupport } from "../src/platform-support.js";
 
 if (process.platform === "win32") {
+  it("tolerates files and directories being removed during workspace quota sampling", async () => {
+    const code = `const fs=require('node:fs');let i=0;const timer=setInterval(()=>{
+      for(let j=0;j<30;j++){fs.mkdirSync('changing');fs.writeFileSync('changing/file','owned');fs.unlinkSync('changing/file');fs.rmdirSync('changing');}
+      if(++i===100){clearInterval(timer);console.log('churn completed');}
+    },1);`;
+    const result = await new LocalSandbox().run(process.execPath, ["-e", code], { allowedCommands: [process.execPath], timeoutMs: 8000 });
+    expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
+    expect(result.stdout).toContain("churn completed");
+  }, 30_000);
   it("executes real Node in AppContainer, denies outside reads/writes, loopback and child processes", async () => {
     expect(executionSupport().available).toBe(true);
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-outside-"));
