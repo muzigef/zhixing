@@ -63,12 +63,29 @@ it("fails before execution when a hard memory guarantee is required but unsuppor
 
 if (process.platform === "linux") {
   it("prevents an untrusted child from stopping the supervisor or opening its control descriptor", async () => {
-    const result = await execute(`const fs=require('node:fs');let signal=false,control=false;
+    const result = await execute(`const fs=require('node:fs');let signal=false,control=false,untrackedWrite=false;
 try{process.kill(process.ppid,'SIGSTOP');signal=true;}catch{}finally{try{process.kill(process.ppid,'SIGCONT')}catch{}}
 try{const fd=fs.openSync('/proc/'+process.ppid+'/fd/3','w');control=true;fs.closeSync(fd);}catch{}
-console.log(JSON.stringify({signal,control}));`);
+try{fs.writeFileSync('/tmp/zhixing-untracked-output','escape');untrackedWrite=true;}catch{}
+console.log(JSON.stringify({signal,control,untrackedWrite}));`);
     expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
-    expect(JSON.parse(result.stdout)).toEqual({ signal: false, control: false });
+    expect(JSON.parse(result.stdout)).toEqual({ signal: false, control: false, untrackedWrite: false });
+  }, 30_000);
+}
+
+if (process.platform !== "win32") {
+  it("denies a real Unix socket even when its containing directory has a read grant", async () => {
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zx-unix-")));
+    cleanups.push(() => fs.rm(root, { recursive: true, force: true }));
+    const socketPath = path.join(root, "probe.sock"); let connections = 0;
+    const server = net.createServer(socket => { connections++; socket.end(); });
+    await new Promise<void>(resolve => server.listen(socketPath, resolve));
+    cleanups.push(() => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
+    await new Promise<void>((resolve, reject) => { const socket = net.connect(socketPath); socket.on("error", reject); socket.on("close", () => resolve()); socket.resume(); });
+    const code = `const net=require('node:net');const s=net.connect(${JSON.stringify(socketPath)});s.on('connect',()=>{console.log('escaped');s.destroy()});s.on('error',()=>console.log('denied'));s.setTimeout(300,()=>{console.log('timeout');s.destroy()});`;
+    const result = await new LocalSandbox().run(process.execPath, ["-e", code], { allowedCommands: [process.execPath], readPaths: [root] });
+    expect(result, JSON.stringify(result)).toMatchObject({ status: "completed", exitCode: 0 });
+    expect(result.stdout.trim()).toBe("denied"); expect(connections).toBe(1);
   }, 30_000);
 }
 

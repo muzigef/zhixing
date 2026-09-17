@@ -59,7 +59,7 @@ export class PosixSandboxBackend implements SandboxBackend {
           if (![...mounts].some(mount => read.path === mount || read.path.startsWith(mount + "/"))) args.push("--ro-bind", read.path, read.path);
         }
         if (existsSync("/etc/ld.so.cache")) args.push("--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache");
-        args.push("--bind", directory, directory, "--chdir", directory, "--", helper, ...limits, request.command, ...request.args);
+        args.push("--bind", directory, directory, "--remount-ro", "/", "--remount-ro", "/tmp", "--remount-ro", "/dev", "--chdir", directory, "--", helper, ...limits, request.command, ...request.args);
       }
       const child = spawn(executable, args, { cwd: directory, shell: false, detached: true, env: { PATH: "/usr/bin:/bin", HOME: directory, TMPDIR: directory, ...(request.options.electronNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}) }, stdio: ["pipe", "pipe", "pipe", "pipe"] });
       return supervise(child as ChildProcessWithoutNullStreams, directory, request, this.id);
