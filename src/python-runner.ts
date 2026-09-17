@@ -9,13 +9,20 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   const deadline = Date.now() + timeoutMs;
   const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "本机没有可验证的 Python 标准库隔离运行环境。", exitCode: null };
   if (!["darwin", "win32", "linux"].includes(process.platform)) return unavailable;
+  const diagnostics: string[] = [];
+  const failure = (stage: string, error: unknown) => {
+    const value = error as { killed?: boolean; code?: unknown };
+    const code = value?.killed ? "probe_timeout" : typeof value?.code === "string" && /^[A-Z0-9_]{1,40}$/.test(value.code) ? value.code : "probe_failed";
+    diagnostics.push(`${stage}:${code}`);
+  };
+  const missing = () => ({ ...unavailable, stderr: `${unavailable.stderr} [${diagnostics.join(",") || "runtime_rejected"}]` });
   let runtime: { executable: string; prefix: string } | undefined;
   let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"];
   if (process.platform === "win32") {
     try {
       const { stdout } = await exec(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32/where.exe"), ["python.exe"], { signal, timeout: 2000, maxBuffer: 8000, windowsHide: true });
       candidates = stdout.trim().split(/\r?\n/).filter(file => path.isAbsolute(file) && !file.toLowerCase().includes("windowsapps")).slice(0, 4);
-    } catch { signal.throwIfAborted(); return unavailable; }
+    } catch (error) { signal.throwIfAborted(); failure("locate", error); return missing(); }
   }
   for (const candidate of candidates) {
     signal.throwIfAborted();
@@ -38,9 +45,9 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
       const frameworkExecutable = path.join(prefix, "Resources/Python.app/Contents/MacOS/Python");
       const direct = await fs.realpath(frameworkExecutable).catch(() => executable);
       runtime = { executable: direct, prefix }; break;
-    } catch { signal.throwIfAborted(); }
+    } catch (error) { signal.throwIfAborted(); failure("inspect", error); }
   }
-  if (!runtime) return unavailable;
+  if (!runtime) return missing();
   const script = `import importlib.util, os, sys, unittest\nsys.path.insert(0, os.getcwd())\nsuite = unittest.TestSuite()\nfor index, file in enumerate(${JSON.stringify(tests)}):\n spec = importlib.util.spec_from_file_location('zhixing_test_' + str(index), file)\n module = importlib.util.module_from_spec(spec)\n spec.loader.exec_module(module)\n suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(module))\nif suite.countTestCases() == 0:\n print('No unittest cases found', file=sys.stderr)\n sys.exit(1)\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\nsys.exit(0 if result.wasSuccessful() else 1)\n`;
   return new LocalSandbox().run(runtime.executable, ["-I", "-S", "-B", "zhixing_runner.py"], { files: { ...files, "zhixing_runner.py": script }, allowedCommands: [runtime.executable], runtimeReadPath: runtime.prefix, timeoutMs: Math.max(1, deadline - Date.now()), signal });
 }

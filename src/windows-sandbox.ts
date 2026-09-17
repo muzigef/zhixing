@@ -14,7 +14,16 @@ export function windowsSandboxHelper(): string | undefined {
   const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   return [resources ? path.join(resources, "runtime/windows-sandbox.exe") : "", path.join(here, "runtime/windows-sandbox.exe"), path.join(here, "../.build/windows-sandbox.exe")].find(file => file && existsSync(file));
 }
-const resultSchema = z.object({ status: z.enum(["completed", "timed_out", "unavailable", "cancelled", "resource_limited"]), stdoutBase64: z.string().max(2_666_668), stderrBase64: z.string().max(2_666_668), exitCode: z.number().int().nullable(), limit: z.enum(["memory", "cpu", "output", "workspace"]).optional() });
+const resultSchema = z.object({ status: z.enum(["completed", "timed_out", "unavailable", "cancelled", "resource_limited"]), stdoutBase64: z.string().max(2_666_668), stderrBase64: z.string().max(2_666_668), exitCode: z.number().int().nullable(), limit: z.enum(["memory", "cpu", "output", "workspace"]).optional(), error: z.string().regex(/^(?:win32_\d+_at_\d+|appcontainer_-?\d+|hresult_[A-F0-9]{8}|sandbox_setup_failed)$/).optional(), stage: z.enum(["input", "profile", "permissions", "job", "attributes", "pipes", "create_process", "assign_job", "monitor", "workspace", "capture"]).optional() });
+/** Decode only the trusted launcher's bounded protocol; never expose arbitrary exception text. */
+export function decodeWindowsSandboxResult(output: string, fallback: SandboxResult): SandboxResult {
+  const result = resultSchema.safeParse((() => { try { return JSON.parse(output); } catch { return undefined; } })());
+  if (!result.success) return fallback;
+  const value = result.data;
+  const decode = (text: string) => new StringDecoder("utf8").write(Buffer.from(text, "base64"));
+  return { ...fallback, status: value.status, exitCode: value.exitCode, ...(value.limit ? { limit: value.limit } : {}), stdout: decode(value.stdoutBase64),
+    stderr: value.status === "unavailable" ? `${fallback.stderr} [${value.stage ?? "input"}:${value.error ?? "sandbox_setup_failed"}]` : decode(value.stderrBase64) };
+}
 /** Only a private runtime copy is granted to the package SID. Never alter the
  * installation's ACL, grant home/workspace access, or fall back to plain spawn. */
 async function runWindowsSandbox(command: string, args: readonly string[], options: SandboxOptions): Promise<SandboxResult> {
@@ -75,9 +84,7 @@ async function runWindowsSandbox(command: string, args: readonly string[], optio
       child.stderr.resume(); child.stdin.on("error", () => undefined);
       child.stdout.on("data", (bytes: Buffer) => { output += decoder.write(bytes); if (output.length > 2 * policy.outputBytes + 4096) child.kill(); });
       child.on("error", () => finish(unavailable));
-      child.on("close", () => { const result = resultSchema.safeParse((() => { try { return JSON.parse(output); } catch { return undefined; } })()); if (!result.success) { finish(unavailable); return; }
-        const decode = (value: string) => { const decoder = new StringDecoder("utf8"); return decoder.write(Buffer.from(value, "base64")); };
-        finish({ ...unavailable, status: result.data.status, exitCode: result.data.exitCode, ...(result.data.limit ? { limit: result.data.limit } : {}), stdout: decode(result.data.stdoutBase64), stderr: decode(result.data.stderrBase64) }); });
+      child.on("close", () => finish(decodeWindowsSandboxResult(output, unavailable)));
       child.stdin.write(JSON.stringify({ root, executable: path.join(runtime, path.basename(resolved)), args: launchArgs, policy, electronNode: options.electronNode ?? false }) + "\n");
       options.signal?.addEventListener("abort", abort, { once: true }); if (options.signal?.aborted) abort();
     });

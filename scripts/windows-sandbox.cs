@@ -15,6 +15,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
 
 class Sandbox {
+  static string stage="input";
   [StructLayout(LayoutKind.Sequential)] struct SECURITY_ATTRIBUTES { public int nLength; public IntPtr lpSecurityDescriptor; public int bInheritHandle; }
   [StructLayout(LayoutKind.Sequential)] struct SECURITY_CAPABILITIES { public IntPtr AppContainerSid, Capabilities; public int CapabilityCount, Reserved; }
   [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct STARTUPINFO { public int cb; public string reserved, desktop, title; public int x,y,xSize,ySize,xChars,yChars,fill,flags; public short show,reserved2; public IntPtr reservedPtr,stdin,stdout,stderr; }
@@ -100,17 +101,21 @@ class Sandbox {
     IntPtr outRead=IntPtr.Zero,outWrite=IntPtr.Zero,errRead=IntPtr.Zero,errWrite=IntPtr.Zero,nil=IntPtr.Zero;
     PROCESS_INFORMATION process=new PROCESS_INFORMATION(); bool created=false,profileCreated=false;
     try {
+      stage="profile";
       int hr=CreateAppContainerProfile(profile,"Zhixing isolated test","Temporary code execution",IntPtr.Zero,0,out sid);
       if(hr!=0) throw new Exception("appcontainer_"+hr); profileCreated=true;
+      stage="permissions";
       var identity=new SecurityIdentifier(sid);
       Grant(root,identity,FileSystemRights.ReadAndExecute);
       Grant(runtime,identity,FileSystemRights.ReadAndExecute);
       Grant(work,identity,FileSystemRights.Modify);
+      stage="job";
       job=CreateJobObject(IntPtr.Zero,null); Check(job!=IntPtr.Zero);
       port=CreateIoCompletionPort(new IntPtr(-1),IntPtr.Zero,UIntPtr.Zero,1); Check(port!=IntPtr.Zero);
       var jobPort=new JOB_PORT(); jobPort.port=port; Check(SetJobPort(job,7,ref jobPort,(uint)Marshal.SizeOf(jobPort)));
       var limits=new JOB_LIMIT(); limits.basic.flags=0x2000|0x8|0x100|0x2; limits.basic.activeProcess=1; limits.processMemory=new UIntPtr((ulong)memory); limits.basic.processTime=cpu*10000000;
       Check(SetInformationJobObject(job,9,ref limits,(uint)Marshal.SizeOf(limits)));
+      stage="attributes";
       IntPtr size=IntPtr.Zero; InitializeProcThreadAttributeList(IntPtr.Zero,3,0,ref size); attrs=Marshal.AllocHGlobal(size);
       Check(InitializeProcThreadAttributeList(attrs,3,0,ref size));
       var caps=new SECURITY_CAPABILITIES(); caps.AppContainerSid=sid;
@@ -118,6 +123,7 @@ class Sandbox {
       Check(UpdateProcThreadAttribute(attrs,0,new IntPtr(0x20009),capPtr,new IntPtr(Marshal.SizeOf(caps)),IntPtr.Zero,IntPtr.Zero));
       policy=Marshal.AllocHGlobal(4); Marshal.WriteInt32(policy,1); // PROCESS_CREATION_CHILD_PROCESS_RESTRICTED
       Check(UpdateProcThreadAttribute(attrs,0,new IntPtr(0x2000E),policy,new IntPtr(4),IntPtr.Zero,IntPtr.Zero));
+      stage="pipes";
       var sa=new SECURITY_ATTRIBUTES(); sa.nLength=Marshal.SizeOf(sa); sa.bInheritHandle=1;
       Check(CreatePipe(out outRead,out outWrite,ref sa,0)); Check(SetHandleInformation(outRead,1,0));
       Check(CreatePipe(out errRead,out errWrite,ref sa,0)); Check(SetHandleInformation(errRead,1,0));
@@ -131,7 +137,9 @@ class Sandbox {
       // Stdio is exclusively inherited pipes/NUL. A windowless console still
       // needs a console host, which conflicts with the single-process policy.
       // DETACHED_PROCESS avoids allocating a console altogether.
+      stage="create_process";
       Check(CreateProcess(exe,new StringBuilder(String.Join(" ",new[]{exe}.Concat(args).Select(Quote))),IntPtr.Zero,IntPtr.Zero,true,0x80000|0x400|0x4|0x8,env,work,ref startup,out process)); created=true;
+      stage="assign_job";
       Check(AssignProcessToJobObject(job,process.process)); Check(ResumeThread(process.thread)!=0xffffffff);
       CloseHandle(outWrite); outWrite=IntPtr.Zero; CloseHandle(errWrite); errWrite=IntPtr.Zero;
       var budget=new OutputBudget(); budget.max=outputLimit;
@@ -140,9 +148,11 @@ class Sandbox {
       var cancellation=Task.Run(()=>Console.ReadLine()); var clock=System.Diagnostics.Stopwatch.StartNew();
       string status="completed", exceeded=null;
       for(;;) {
+        stage="monitor";
         exceeded=ResourceEvent(port);
         if(exceeded!=null) { status="resource_limited"; TerminateJobObject(job,1); break; }
         if(budget.exceeded!=0) { status="resource_limited"; exceeded="output"; TerminateJobObject(job,1); break; }
+        stage="workspace";
         long used=0; int count=0;
         if(WorkspaceExceeded(work,ref used,ref count,disk,fileLimit,0)) { status="resource_limited"; exceeded="workspace"; TerminateJobObject(job,1); break; }
         if(WaitForSingleObject(process.process,10)!=0x102) break;
@@ -150,9 +160,12 @@ class Sandbox {
         if(clock.ElapsedMilliseconds>=timeout) { status="timed_out"; TerminateJobObject(job,1); break; }
       }
       WaitForSingleObject(process.process,5000); uint exit; Check(GetExitCodeProcess(process.process,out exit));
+      stage="capture";
       string capturedOut=stdout.GetAwaiter().GetResult(), capturedErr=stderr.GetAwaiter().GetResult();
       if(status=="completed") {
+        stage="monitor";
         exceeded=ResourceEvent(port); if(budget.exceeded!=0) exceeded="output";
+        stage="workspace";
         long used=0; int count=0; if(WorkspaceExceeded(work,ref used,ref count,disk,fileLimit,0)) exceeded="workspace";
         if(exceeded!=null) status="resource_limited";
       }
@@ -171,6 +184,6 @@ class Sandbox {
     Console.InputEncoding=new UTF8Encoding(false); Console.OutputEncoding=new UTF8Encoding(false);
     var json=new JavaScriptSerializer(); json.MaxJsonLength=6000000; // bounded output is base64-encoded
     try { var line=Console.ReadLine(); if(line==null || line.Length>2000000) throw new Exception("sandbox_input_limit"); Console.WriteLine(json.Serialize(Run(json.Deserialize<Dictionary<string,object>>(line)))); return 0; }
-    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",error=error.Message.StartsWith("win32_")||error.Message.StartsWith("appcontainer_") ? error.Message : "sandbox_setup_failed",exitCode=(int?)null})); return 1; }
+    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",stage=stage,error=System.Text.RegularExpressions.Regex.IsMatch(error.Message,"^(win32_[0-9]+_at_[0-9]+|appcontainer_-?[0-9]+)$") ? error.Message : "hresult_"+unchecked((uint)error.HResult).ToString("X8"),exitCode=(int?)null})); return 1; }
   }
 }
