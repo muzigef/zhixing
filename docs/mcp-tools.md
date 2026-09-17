@@ -56,6 +56,6 @@
 
 可信声明之外，可设置 `"isolation": "restricted"`，并用 `"readPaths": ["/absolute/path/to/notes-server.mjs", "/absolute/path/to/approved-notes"]` 授权读取脚本和资料；至多八条路径。系统运行库与所选可执行文件自动允许读取。目录授权包含子目录，应只授予专用目录。写入仅限进程临时工作目录，网络禁止；因此上例持久 save_note 需要 trusted 模式，不能把 restricted 当成无影响开关。
 
-当前 MCP 的 restricted 模式只有 macOS sandbox-exec 实现；其他平台或缺失沙箱时明确失败，不回退。实践项目另有 Windows AppContainer 运行器，不能把它的能力等同于 Windows MCP restricted 已实现。隔离模式与读取范围纳入工具配置版本，修改后原授权失效。连接测试只发现工具；真实副作用边界由仓库沙箱子进程测试验证，真实第三方服务仍需各自测试。
+2026-09-17 起，MCP restricted 与实践执行共用 LocalSandbox 策略入口；macOS 使用 Seatbelt，Linux 使用 bubblewrap + supervisor，缺少 helper/系统能力时明确失败，不回退。Windows AppContainer 当前只支持批量代码执行，不支持 MCP 的交互式外部读授权，因此明确拒绝。统一资源预算、能力差异和原生验收见[执行沙箱](execution-sandbox.md)。隔离模式与读取范围纳入工具配置版本，修改后原授权失效。连接测试只发现工具；真实副作用边界由仓库沙箱子进程测试验证，真实第三方服务仍需各自测试。
 
 实现与验证见[`McpConnection`](../src/mcp-connection.ts)、[配置契约](../src/mcp-settings.ts)、[按需目录](../src/lazy-mcp.ts)与[隔离测试](../tests/mcp-isolation.test.ts)。连接 discovery 成功、业务调用成功和业务结果正确分别验证；成员只读配置仍是权限约束，不保证 trusted 服务不会违反声明。

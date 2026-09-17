@@ -67,10 +67,10 @@ const socket=net.connect(${port},'127.0.0.1');let connected=false;socket.on('con
       await expect(fs.stat(owned.root!)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { controller.abort(); await pending; spy.mockRestore(); }
     const output = await sandbox.run(process.execPath, ["-e", "process.stdout.write('x'.repeat(200000))"], { allowedCommands: [process.execPath], timeoutMs: 5000 });
-    expect(output).toMatchObject({ status: "completed", exitCode: 0 }); expect(output.stdout.length).toBe(65536);
+    expect(output).toMatchObject({ status: "resource_limited", limit: "output" }); expect(output.stdout.length).toBe(65536);
   }, 30_000);
 } else {
   it("does not treat a Windows helper as native support on other unsupported platforms", () => {
-    expect(executionSupport("linux", true).available).toBe(false);
+    expect(executionSupport("freebsd", true).available).toBe(false);
   });
 }

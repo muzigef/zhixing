@@ -1,13 +1,14 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { execFile } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { execFile } = hostProcess("python-discovery");
 import { promisify } from "node:util";
 import { LocalSandbox, type SandboxResult } from "./local-sandbox.js";
 const exec = promisify(execFile);
 export async function runPythonTests(files: Record<string, string>, tests: string[], signal: AbortSignal, timeoutMs: number): Promise<SandboxResult> {
   const deadline = Date.now() + timeoutMs;
   const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "本机没有可验证的 Python 标准库隔离运行环境。", exitCode: null };
-  if (!["darwin", "win32"].includes(process.platform)) return unavailable;
+  if (!["darwin", "win32", "linux"].includes(process.platform)) return unavailable;
   let runtime: { executable: string; prefix: string } | undefined;
   let candidates = ["/usr/bin/python3", "/opt/homebrew/bin/python3", "/usr/local/bin/python3"];
   if (process.platform === "win32") {
@@ -25,6 +26,10 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
       if (process.platform === "win32") {
         if (path.dirname(executable).toLowerCase() !== prefix.toLowerCase() || !/^python(?:3(?:\.\d+)?)?\.exe$/i.test(path.basename(executable))) continue;
         runtime = { executable, prefix }; break;
+      }
+      if (process.platform === "linux") {
+        if (executable.startsWith("/usr/bin/") && prefix === "/usr") { runtime = { executable, prefix }; break; }
+        continue;
       }
       const trustedRoots = ["/Applications/Xcode.app/Contents/Developer/", "/Library/Developer/CommandLineTools/", "/opt/homebrew/Cellar/", "/usr/local/Cellar/", "/System/Library/"];
       const versionedXcode = /^\/Applications\/Xcode_[0-9][a-zA-Z0-9._-]*\.app\/Contents\/Developer\//.exec(executable)?.[0];

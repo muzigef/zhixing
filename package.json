@@ -33,7 +33,9 @@
     "desktop:pack": "npm --prefix desktop run dist:mac",
     "eval:agent": "vitest run tests/agent-quality-eval.test.ts tests/desktop-tasks.test.ts tests/evidence-application.test.ts tests/desktop-diagnostics.test.ts",
     "eval:quality": "tsx scripts/evaluate-agent.ts",
-    "eval:learning": "tsx scripts/summarize-learning-outcomes.ts"
+    "eval:learning": "tsx scripts/summarize-learning-outcomes.ts",
+    "sandbox:build": "node scripts/build-posix-sandbox.mjs && node scripts/build-windows-sandbox.mjs",
+    "test:sandbox": "npm run sandbox:build && vitest run tests/sandbox-policy.test.ts tests/sandbox-boundaries.test.ts tests/execution-entrypoints.test.ts tests/mcp-isolation.test.ts tests/windows-sandbox.test.ts tests/platform-preflight.test.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.85.0",

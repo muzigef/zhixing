@@ -1,43 +1,45 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { sandboxProfile } from "./sandbox-profile.js";
-import { runWindowsSandbox } from "./windows-sandbox.js";
+import { StringDecoder } from "node:string_decoder";
+import { createSandboxPolicy, assertSandboxCapabilities, validateSandboxInputs, sandboxPolicyId } from "./sandbox-policy.js";
+import { sandboxBackend } from "./sandbox-backends.js";
+import type { SandboxOptions, SandboxResult, SandboxSession, SandboxRequest } from "./sandbox-types.js";
+export type { SandboxOptions, SandboxResult, SandboxSession } from "./sandbox-types.js";
 
-export type SandboxResult = { status: "completed" | "timed_out" | "unavailable" | "cancelled"; stdout: string; stderr: string; exitCode: number | null };
-export type SandboxOptions = { timeoutMs?: number; allowedCommands?: readonly string[]; files?: Readonly<Record<string, string>>; signal?: AbortSignal; runtimeReadPath?: string; electronNode?: boolean };
-
-/** macOS sandbox-exec wrapper. No shell, no inherited working directory, no network rule. */
+/** Sole entry for untrusted code and restricted MCP; failure never falls back to host execution. */
 export class LocalSandbox {
-  constructor(private readonly executable = "sandbox-exec") {}
+  constructor(private readonly macExecutable = "/usr/bin/sandbox-exec") {}
+  private async request(command: string, args: readonly string[], options: SandboxOptions, interactive: boolean): Promise<SandboxRequest> {
+    if (!(options.allowedCommands ?? []).includes(command) || !path.isAbsolute(command)) throw new Error("sandbox_command_denied");
+    if (args.some(arg => typeof arg !== "string" || arg.includes("\0")) || args.length > 256) throw new Error("sandbox_argument_invalid");
+    options = { ...options, files: { ...options.files }, readPaths: options.readPaths ? [...options.readPaths] : undefined }; args = [...args];
+    const policy = createSandboxPolicy({ ...options.policy, ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}) });
+    validateSandboxInputs(options.files ?? {}, policy); options.signal?.throwIfAborted();
+    const backend = sandboxBackend(process.platform, this.macExecutable);
+    if (backend) assertSandboxCapabilities(policy, backend.capabilities, interactive);
+    const resolved = await fs.realpath(command); if (!(await fs.stat(resolved)).isFile()) throw new Error("sandbox_command_denied");
+    const snapshot = { ...options, files: Object.freeze({ ...options.files }), readPaths: options.readPaths ? [...options.readPaths] : undefined };
+    return { command: resolved, args: [...args], options: snapshot, policy, interactive };
+  }
+  async open(command: string, args: readonly string[], options: SandboxOptions = {}): Promise<SandboxSession> {
+    const request = await this.request(command, args, options, true);
+    const backend = sandboxBackend(process.platform, this.macExecutable);
+    if (!backend) throw new Error("sandbox_unavailable");
+    return backend.open(request);
+  }
   async run(command: string, args: readonly string[], options: SandboxOptions = {}): Promise<SandboxResult> {
-    if (!(options.allowedCommands ?? []).includes(command)) throw new Error("sandbox_command_denied");
-    if (!path.isAbsolute(command)) throw new Error("sandbox_command_denied");
-    options.signal?.throwIfAborted();
-    if (process.platform === "win32") return runWindowsSandbox(command, args, options);
-    if (process.platform !== "darwin") return { status: "unavailable", stdout: "", stderr: "本平台尚无已验证的代码沙箱。", exitCode: null };
-    const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-sandbox-")));
-    const profile = sandboxProfile(command, directory, options.runtimeReadPath ? [{ path: options.runtimeReadPath, directory: true }] : []);
-    try {
-      for (const [name, content] of Object.entries(options.files ?? {})) {
-        if (!/^[a-zA-Z0-9._/-]+$/.test(name) || path.isAbsolute(name) || name.split("/").some(part => !part || part === "." || part === "..") || name.split("/").length > 5) throw new Error("sandbox_file_denied");
-        await fs.mkdir(path.dirname(path.join(directory, name)), { recursive: true, mode: 0o700 });
-        await fs.writeFile(path.join(directory, name), content, { flag: "wx", mode: 0o600 });
-      }
-      options.signal?.throwIfAborted();
-      return await new Promise((resolve) => {
-        let stdout = ""; let stderr = ""; let timedOut = false; let cancelled = false;
-        const child = spawn(this.executable, ["-p", profile, command, ...args], { cwd: directory, shell: false, env: { PATH: "/usr/bin:/bin", ...(options.electronNode ? { ELECTRON_RUN_AS_NODE: "1" } : {}) }, stdio: ["ignore", "pipe", "pipe"] });
-        const abort = () => { cancelled = true; child.kill("SIGKILL"); };
-        options.signal?.addEventListener("abort", abort, { once: true });
-        if (options.signal?.aborted) abort();
-        child.stdout.on("data", (data: Buffer) => { stdout = `${stdout}${data}`.slice(0, 64 * 1024); });
-        child.stderr.on("data", (data: Buffer) => { stderr = `${stderr}${data}`.slice(0, 64 * 1024); });
-        const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, options.timeoutMs ?? 5_000);
-        child.on("error", () => { clearTimeout(timer); options.signal?.removeEventListener("abort", abort); resolve({ status: "unavailable", stdout, stderr, exitCode: null }); });
-        child.on("close", (exitCode) => { clearTimeout(timer); options.signal?.removeEventListener("abort", abort); resolve({ status: cancelled ? "cancelled" : timedOut ? "timed_out" : "completed", stdout, stderr, exitCode }); });
-      });
-    } finally { await fs.rm(directory, { recursive: true, force: true }); }
+    const request = await this.request(command, args, options, false);
+    const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "本平台沙箱或所需隔离能力未就绪。", exitCode: null, policyId: sandboxPolicyId(request.policy) };
+    const backend = sandboxBackend(process.platform, this.macExecutable);
+    if (!backend) return unavailable;
+    if (backend.run) return backend.run(request);
+    let session: SandboxSession;
+    try { session = await backend.open(request); }
+    catch (error) { if (error instanceof Error && error.message === "sandbox_unavailable") return unavailable; throw error; }
+    const out = new StringDecoder("utf8"), err = new StringDecoder("utf8"); let stdout = "", stderr = "";
+    session.stdout.on("data", (chunk: Buffer) => { stdout += out.write(chunk); }); session.stderr.on("data", (chunk: Buffer) => { stderr += err.write(chunk); });
+    session.stdin.end();
+    try { const result = await session.completion; return { ...result, stdout, stderr: stderr || result.stderr }; }
+    finally { await session.dispose(); }
   }
 }

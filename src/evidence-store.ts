@@ -12,7 +12,7 @@ const artifactSchema = z.object({ id: z.string().uuid(), kind: evidenceKindSchem
 export type EvidenceArtifact = z.infer<typeof artifactSchema> & { intact: boolean };
 export type EvidenceValidation = SandboxResult & { id: string; implementationHash: string; testHash: string; createdAt: string };
 export interface EvidenceSnapshot { artifacts: EvidenceArtifact[]; validation?: EvidenceValidation; checks: EvidenceInput; }
-const validationSchema = z.object({ id: z.string().uuid(), implementationHash: z.string().regex(/^[a-f0-9]{64}$/), testHash: z.string().regex(/^[a-f0-9]{64}$/), createdAt: z.string().datetime(), status: z.enum(["completed", "timed_out", "unavailable", "cancelled"]), stdout: z.string().max(65536), stderr: z.string().max(65536), exitCode: z.number().int().nullable() });
+const validationSchema = z.object({ id: z.string().uuid(), implementationHash: z.string().regex(/^[a-f0-9]{64}$/), testHash: z.string().regex(/^[a-f0-9]{64}$/), createdAt: z.string().datetime(), status: z.enum(["completed", "timed_out", "unavailable", "cancelled", "resource_limited"]), limit: z.enum(["memory", "cpu", "output", "workspace"]).optional(), policyId: z.string().regex(/^[a-f0-9]{64}$/).optional(), backend: z.string().max(80).optional(), stdout: z.string().max(65536), stderr: z.string().max(65536), exitCode: z.number().int().nullable() });
 const hash = (text: string) => crypto.createHash("sha256").update(text).digest("hex");
 
 /** Append-only artifact records; reviews re-read owned bytes instead of trusting UI flags. */

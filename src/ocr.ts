@@ -1,10 +1,12 @@
-import { execFile } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { execFile } = hostProcess("ocr");
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
+const environment = () => ({ PATH: process.platform === "win32" ? process.env.PATH : "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", ...(process.platform === "win32" ? { SystemRoot: process.env.SystemRoot } : {}) });
 
 export type OcrPage = { page: number; text: string; confidence: number };
 export interface OcrEngine { extract(pdfFile: string, signal?: AbortSignal): Promise<readonly OcrPage[]>; }
@@ -18,12 +20,12 @@ export class TesseractOcrEngine implements OcrEngine {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-ocr-"));
     try {
       const prefix = path.join(directory, "page");
-      await run(this.commands.pdftoppm, ["-png", "-r", "180", pdfFile, prefix], { maxBuffer: 8 * 1024 * 1024, timeout: 30_000, signal });
+      await run(this.commands.pdftoppm, ["-png", "-r", "180", pdfFile, prefix], { maxBuffer: 8 * 1024 * 1024, timeout: 30_000, signal, env: environment() });
       const images = (await fs.readdir(directory)).filter((name) => /^page-\d+\.png$/.test(name)).sort((left, right) => pageNumber(left) - pageNumber(right));
       const pages: OcrPage[] = [];
       for (const image of images) {
         signal?.throwIfAborted();
-        const { stdout } = await run(this.commands.tesseract, [path.join(directory, image), "stdout", "--psm", "3", "tsv"], { maxBuffer: 8 * 1024 * 1024, timeout: 30_000, signal });
+        const { stdout } = await run(this.commands.tesseract, [path.join(directory, image), "stdout", "--psm", "3", "tsv"], { maxBuffer: 8 * 1024 * 1024, timeout: 30_000, signal, env: environment() });
         pages.push(parseTsv(stdout, pageNumber(image)));
       }
       return pages.filter((page) => page.text.trim());

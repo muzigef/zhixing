@@ -1,4 +1,5 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { hostProcess, type ChildProcessWithoutNullStreams } from "./process-gateway.js";
+const { spawn } = hostProcess("trusted-mcp");
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -7,7 +8,7 @@ import { z } from "zod/v4";
 import { mcpServerSchema, type McpServer } from "./mcp-settings.js";
 import { JsonSchemaWorker } from "./json-schema-worker.js";
 import { ToolOutcomeUnknown } from "./tool-harness.js";
-import { sandboxProfile } from "./sandbox-profile.js";
+import { LocalSandbox, type SandboxSession } from "./local-sandbox.js";
 
 const MODERN = "2026-07-28"; const LEGACY = "2025-11-25";
 export const toolSchema = z.object({ name: z.string().min(1).max(128), description: z.string().max(4000).optional(), inputSchema: z.record(z.string(), z.unknown()), outputSchema: z.record(z.string(), z.unknown()).optional() });
@@ -23,7 +24,7 @@ export class McpConnection {
   private failed?: Error;
   readonly tools: McpTool[] = [];
   get closed(): boolean { return this.shutdown !== undefined; }
-  private constructor(private readonly child: ChildProcessWithoutNullStreams, private readonly directory: string) {
+  private constructor(private readonly child: Pick<ChildProcessWithoutNullStreams, "stdin" | "stdout" | "stderr">, private readonly directory: string, private readonly managed?: SandboxSession, private readonly process?: ChildProcessWithoutNullStreams) {
     child.stdout.on("data", (chunk: Buffer) => {
       try {
         this.received += chunk.length; if (this.received > 2_000_000) throw new Error("mcp_output_limit");
@@ -32,26 +33,34 @@ export class McpConnection {
       } catch { this.fail(new Error("mcp_protocol_error")); }
     });
     child.stderr.resume(); // Never retain server logs: they may contain credentials or paths.
-    child.on("error", () => this.fail(new Error("mcp_unavailable")));
-    child.on("exit", () => this.fail(new Error("mcp_disconnected")));
+    this.process?.on("error", () => this.fail(new Error("mcp_unavailable")));
+    this.process?.on("exit", () => this.fail(new Error("mcp_disconnected")));
+    void managed?.completion.then(result => { if (!this.closed) this.fail(new Error(`mcp_sandbox_${result.status}`)); });
     child.stdin.on("error", () => this.fail(new Error("mcp_disconnected")));
   }
   static async open(raw: McpServer, signal: AbortSignal): Promise<McpConnection> {
     const config = mcpServerSchema.parse(raw); signal.throwIfAborted();
     if (!config.enabled) throw new Error("mcp_disabled");
-    if (config.isolation === "restricted" && process.platform !== "darwin") throw new Error("mcp_isolation_unavailable");
     const executable = await fs.realpath(config.command); const stat = await fs.stat(executable); if (!stat.isFile()) throw new Error("mcp_unavailable");
-    const reads = config.isolation === "restricted" ? await Promise.all((config.readPaths ?? []).map(async value => { const resolved = await fs.realpath(value); return { path: resolved, directory: (await fs.stat(resolved)).isDirectory() }; })) : [];
-    const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-mcp-process-")));
-    const restricted = config.isolation === "restricted";
-    const child = spawn(restricted ? "/usr/bin/sandbox-exec" : executable, restricted ? ["-p", sandboxProfile(executable, directory, reads), executable, ...config.args] : config.args, { cwd: directory, shell: false, detached: process.platform !== "win32", windowsHide: true,
-      env: { PATH: `${path.dirname(executable)}${path.delimiter}/usr/bin${path.delimiter}/bin`, ...(process.platform === "win32" && process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) }, stdio: ["pipe", "pipe", "pipe"] });
-    const connection = new McpConnection(child, directory);
+    let connection: McpConnection;
+    if (config.isolation === "restricted") {
+      let session: SandboxSession;
+      try {
+        session = await new LocalSandbox().open(executable, config.args, { allowedCommands: [executable], readPaths: config.readPaths, signal,
+          policy: { timeoutMs: 300_000, cpuSeconds: 30, outputBytes: 2_000_000 } });
+      } catch { signal.throwIfAborted(); throw new Error("mcp_isolation_unavailable"); }
+      connection = new McpConnection(session, session.directory, session);
+    } else {
+      const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-mcp-process-")));
+      const child = spawn(executable, config.args, { cwd: directory, shell: false, detached: process.platform !== "win32", windowsHide: true,
+        env: { PATH: `${path.dirname(executable)}${path.delimiter}/usr/bin${path.delimiter}/bin`, ...(process.platform === "win32" && process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) }, stdio: ["pipe", "pipe", "pipe"] });
+      connection = new McpConnection(child, directory, undefined, child);
+    }
     try { await connection.initialize(AbortSignal.any([signal, AbortSignal.timeout(8000)])); return connection; } catch (error) { await connection.close(); throw error; }
   }
   private async initialize(signal: AbortSignal): Promise<void> {
     let discovered: unknown;
-    try { discovered = await this.request("server/discover", {}, signal, 600); }
+    try { discovered = await this.request("server/discover", {}, signal, this.managed ? 6000 : 600); }
     catch (error) {
       signal.throwIfAborted();
       if (this.failed || error instanceof RpcError && [-32020, -32021, -32022].includes(error.code)) throw new Error("mcp_protocol_unsupported");
@@ -131,9 +140,11 @@ export class McpConnection {
   close(): Promise<void> {
     return this.shutdown ??= (async () => {
       for (const pending of [...this.pending.values()]) pending.reject(new Error("mcp_disconnected"));
+      if (this.managed) { await this.managed.dispose(); await this.validator.close(); return; }
+      const child = this.process!;
       this.child.stdin.end();
-      const exited = new Promise<void>(resolve => { if (this.child.exitCode !== null || this.child.signalCode !== null || !this.child.pid) resolve(); else this.child.once("exit", () => resolve()); });
-      const kill = (signal: NodeJS.Signals) => { try { if (process.platform !== "win32" && this.child.pid) process.kill(-this.child.pid, signal); else this.child.kill(signal); } catch { /* Already exited. */ } };
+      const exited = new Promise<void>(resolve => { if (child.exitCode !== null || child.signalCode !== null || !child.pid) resolve(); else child.once("exit", () => resolve()); });
+      const kill = (signal: NodeJS.Signals) => { try { if (process.platform !== "win32" && child.pid) process.kill(-child.pid, signal); else child.kill(signal); } catch { /* Already exited. */ } };
       let timer: NodeJS.Timeout;
       await Promise.race([exited, new Promise<void>(resolve => { timer = setTimeout(() => { kill("SIGTERM"); resolve(); }, 300); })]); clearTimeout(timer!);
       await Promise.race([exited, new Promise<void>(resolve => { timer = setTimeout(() => { kill("SIGKILL"); resolve(); }, 300); })]); clearTimeout(timer!);

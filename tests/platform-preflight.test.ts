@@ -6,7 +6,9 @@ it("distinguishes a missing sandbox from an unsupported platform without promisi
   expect(executionSupport("darwin", false)).toMatchObject({ available: false, reason: "sandbox_missing" });
   expect(executionSupport("win32", true)).toMatchObject({ available: true, verification: "runtime_result_required" });
   expect(executionSupport("win32", false)).toMatchObject({ available: false, reason: "sandbox_missing" });
-  for (const platform of ["linux"] as const) {
+  expect(executionSupport("linux", true)).toMatchObject({ available: true, verification: "runtime_result_required" });
+  expect(executionSupport("linux", false)).toMatchObject({ available: false, reason: "sandbox_missing" });
+  for (const platform of ["freebsd"] as const) {
     expect(executionSupport(platform, true)).toMatchObject({ available: false, reason: "platform_unsupported" });
     expect(() => assertExecutionSupport(platform, true)).toThrow("platform_execution_unavailable");
   }

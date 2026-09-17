@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
 
@@ -22,6 +23,10 @@ class Sandbox {
   [StructLayout(LayoutKind.Sequential)] struct BASIC_LIMIT { public long processTime,jobTime; public uint flags; public UIntPtr minWorking,maxWorking; public uint activeProcess; public UIntPtr affinity; public uint priority,scheduling; }
   [StructLayout(LayoutKind.Sequential)] struct IO_COUNTERS { public ulong readOps,writeOps,otherOps,readBytes,writeBytes,otherBytes; }
   [StructLayout(LayoutKind.Sequential)] struct JOB_LIMIT { public BASIC_LIMIT basic; public IO_COUNTERS io; public UIntPtr processMemory,jobMemory,peakProcess,peakJob; }
+  [StructLayout(LayoutKind.Sequential)] struct JOB_PORT { public IntPtr key,port; }
+  [DllImport("kernel32.dll", SetLastError=true)] static extern IntPtr CreateIoCompletionPort(IntPtr file,IntPtr existing,UIntPtr key,uint threads);
+  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetQueuedCompletionStatus(IntPtr port,out uint code,out UIntPtr key,out IntPtr data,uint timeout);
+  [DllImport("kernel32.dll", SetLastError=true, EntryPoint="SetInformationJobObject")] static extern bool SetJobPort(IntPtr job,int infoClass,ref JOB_PORT info,uint size);
   [DllImport("userenv.dll", CharSet=CharSet.Unicode)] static extern int CreateAppContainerProfile(string name,string display,string description,IntPtr capabilities,uint count,out IntPtr sid);
   [DllImport("userenv.dll", CharSet=CharSet.Unicode)] static extern int DeleteAppContainerProfile(string name);
   [DllImport("advapi32.dll")] static extern IntPtr FreeSid(IntPtr sid);
@@ -48,12 +53,36 @@ class Sandbox {
     acl.AddAccessRule(new FileSystemAccessRule(sid,rights,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Allow));
     info.SetAccessControl(acl);
   }
-  static Task<string> Capture(IntPtr handle) {
-    return Task.Run(()=> { using(var file=new FileStream(new SafeFileHandle(handle,true),FileAccess.Read)) using(var reader=new StreamReader(file,Encoding.UTF8)) {
-      var output=new StringBuilder(); var buffer=new char[4096]; int count;
-      while((count=reader.Read(buffer,0,buffer.Length))>0) if(output.Length<65536) output.Append(buffer,0,Math.Min(count,65536-output.Length));
-      return output.ToString();
+  class OutputBudget { public long bytes; public int exceeded; public int max; }
+  static Task<string> Capture(IntPtr handle, OutputBudget budget) {
+    return Task.Run(()=> { using(var file=new FileStream(new SafeFileHandle(handle,true),FileAccess.Read)) using(var output=new MemoryStream()) {
+      var buffer=new byte[4096]; int count;
+      while((count=file.Read(buffer,0,buffer.Length))>0) {
+        long total=Interlocked.Add(ref budget.bytes,count); int accepted=(int)Math.Max(0,Math.Min(count,budget.max-(total-count)));
+        if(accepted>0) output.Write(buffer,0,accepted);
+        if(total>budget.max) Interlocked.Exchange(ref budget.exceeded,1);
+      }
+      // Incomplete UTF-8 at the byte boundary is omitted by the TS decoder.
+      return Convert.ToBase64String(output.ToArray());
     }});
+  }
+  static bool WorkspaceExceeded(string directory, ref long bytes, ref int files, long maximum, int maxFiles, int depth) {
+    if(depth>32) return true;
+    foreach(var item in new DirectoryInfo(directory).EnumerateFileSystemInfos()) {
+      if(++files>maxFiles) return true;
+      if((item.Attributes&FileAttributes.ReparsePoint)!=0) continue;
+      if((item.Attributes&FileAttributes.Directory)!=0) { if(WorkspaceExceeded(item.FullName,ref bytes,ref files,maximum,maxFiles,depth+1)) return true; }
+      else { bytes+=((FileInfo)item).Length; if(bytes>maximum) return true; }
+    }
+    return false;
+  }
+  static long Limit(Dictionary<string,object> policy,string key,long min,long max) {
+    long value=Convert.ToInt64(policy[key]); if(value<min || value>max) throw new Exception("sandbox_policy_invalid"); return value;
+  }
+  static string ResourceEvent(IntPtr port) {
+    uint code; UIntPtr key; IntPtr data;
+    while(GetQueuedCompletionStatus(port,out code,out key,out data,0)) { if(code==9 || code==10) return "memory"; if(code==1 || code==2) return "cpu"; }
+    return null;
   }
   static object Run(Dictionary<string,object> input) {
     var root=Path.GetFullPath((string)input["root"]); var work=Path.Combine(root,"work"); var runtime=Path.Combine(root,"runtime");
@@ -61,9 +90,13 @@ class Sandbox {
     if(!exe.StartsWith(runtime+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase) || !Directory.Exists(work)) throw new Exception("sandbox_runtime_invalid");
     var args=((System.Collections.IEnumerable)input["args"]).Cast<string>().ToArray();
     if(args.Any(a=>a.IndexOf('\0')>=0)) throw new Exception("sandbox_argument_invalid");
-    int timeout=Math.Max(1,Math.Min(10000,Convert.ToInt32(input["timeoutMs"])));
+    var config=(Dictionary<string,object>)input["policy"];
+    int timeout=(int)Limit(config,"timeoutMs",1,300000);
+    long memory=Limit(config,"memoryBytes",67108864,1073741824), cpu=Limit(config,"cpuSeconds",1,120), disk=Limit(config,"workspaceBytes",65536,67108864);
+    int fileLimit=(int)Limit(config,"workspaceFiles",1,1024), outputLimit=(int)Limit(config,"outputBytes",1024,2000000);
     var profile="Zhixing.Sandbox."+Guid.NewGuid().ToString("N");
     IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attrs=IntPtr.Zero,capPtr=IntPtr.Zero,policy=IntPtr.Zero,env=IntPtr.Zero,handles=IntPtr.Zero;
+    IntPtr port=IntPtr.Zero;
     IntPtr outRead=IntPtr.Zero,outWrite=IntPtr.Zero,errRead=IntPtr.Zero,errWrite=IntPtr.Zero,nil=IntPtr.Zero;
     PROCESS_INFORMATION process=new PROCESS_INFORMATION(); bool created=false,profileCreated=false;
     try {
@@ -74,7 +107,9 @@ class Sandbox {
       Grant(runtime,identity,FileSystemRights.ReadAndExecute);
       Grant(work,identity,FileSystemRights.Modify);
       job=CreateJobObject(IntPtr.Zero,null); Check(job!=IntPtr.Zero);
-      var limits=new JOB_LIMIT(); limits.basic.flags=0x2000|0x8|0x100; limits.basic.activeProcess=1; limits.processMemory=new UIntPtr(512u*1024*1024);
+      port=CreateIoCompletionPort(new IntPtr(-1),IntPtr.Zero,UIntPtr.Zero,1); Check(port!=IntPtr.Zero);
+      var jobPort=new JOB_PORT(); jobPort.port=port; Check(SetJobPort(job,7,ref jobPort,(uint)Marshal.SizeOf(jobPort)));
+      var limits=new JOB_LIMIT(); limits.basic.flags=0x2000|0x8|0x100|0x2; limits.basic.activeProcess=1; limits.processMemory=new UIntPtr((ulong)memory); limits.basic.processTime=cpu*10000000;
       Check(SetInformationJobObject(job,9,ref limits,(uint)Marshal.SizeOf(limits)));
       IntPtr size=IntPtr.Zero; InitializeProcThreadAttributeList(IntPtr.Zero,3,0,ref size); attrs=Marshal.AllocHGlobal(size);
       Check(InitializeProcThreadAttributeList(attrs,3,0,ref size));
@@ -99,19 +134,33 @@ class Sandbox {
       Check(CreateProcess(exe,new StringBuilder(String.Join(" ",new[]{exe}.Concat(args).Select(Quote))),IntPtr.Zero,IntPtr.Zero,true,0x80000|0x400|0x4|0x8,env,work,ref startup,out process)); created=true;
       Check(AssignProcessToJobObject(job,process.process)); Check(ResumeThread(process.thread)!=0xffffffff);
       CloseHandle(outWrite); outWrite=IntPtr.Zero; CloseHandle(errWrite); errWrite=IntPtr.Zero;
-      var stdout=Capture(outRead); outRead=IntPtr.Zero; var stderr=Capture(errRead); errRead=IntPtr.Zero;
+      var budget=new OutputBudget(); budget.max=outputLimit;
+      var stdout=Capture(outRead,budget); outRead=IntPtr.Zero; var stderr=Capture(errRead,budget); errRead=IntPtr.Zero;
       // EOF also means the parent disappeared: destroy the job, never orphan code.
       var cancellation=Task.Run(()=>Console.ReadLine()); var clock=System.Diagnostics.Stopwatch.StartNew();
-      string status="completed";
-      while(WaitForSingleObject(process.process,20)==0x102) {
+      string status="completed", exceeded=null;
+      for(;;) {
+        exceeded=ResourceEvent(port);
+        if(exceeded!=null) { status="resource_limited"; TerminateJobObject(job,1); break; }
+        if(budget.exceeded!=0) { status="resource_limited"; exceeded="output"; TerminateJobObject(job,1); break; }
+        long used=0; int count=0;
+        if(WorkspaceExceeded(work,ref used,ref count,disk,fileLimit,0)) { status="resource_limited"; exceeded="workspace"; TerminateJobObject(job,1); break; }
+        if(WaitForSingleObject(process.process,10)!=0x102) break;
         if(cancellation.IsCompleted) { status="cancelled"; TerminateJobObject(job,1); break; }
         if(clock.ElapsedMilliseconds>=timeout) { status="timed_out"; TerminateJobObject(job,1); break; }
       }
       WaitForSingleObject(process.process,5000); uint exit; Check(GetExitCodeProcess(process.process,out exit));
-      return new {status=status,stdout=stdout.GetAwaiter().GetResult(),stderr=stderr.GetAwaiter().GetResult(),exitCode=(int)exit};
+      string capturedOut=stdout.GetAwaiter().GetResult(), capturedErr=stderr.GetAwaiter().GetResult();
+      if(status=="completed") {
+        exceeded=ResourceEvent(port); if(budget.exceeded!=0) exceeded="output";
+        long used=0; int count=0; if(WorkspaceExceeded(work,ref used,ref count,disk,fileLimit,0)) exceeded="workspace";
+        if(exceeded!=null) status="resource_limited";
+      }
+      var result=new Dictionary<string,object> { {"status",status},{"stdoutBase64",capturedOut},{"stderrBase64",capturedErr},{"exitCode",(int)exit} };
+      if(exceeded!=null) result["limit"]=exceeded; return result;
     } finally {
       if(created) TerminateProcess(process.process,1);
-      foreach(var handle in new[]{job,process.thread,process.process,outRead,outWrite,errRead,errWrite,nil}) if(handle!=IntPtr.Zero && handle!=new IntPtr(-1)) CloseHandle(handle);
+      foreach(var handle in new[]{job,port,process.thread,process.process,outRead,outWrite,errRead,errWrite,nil}) if(handle!=IntPtr.Zero && handle!=new IntPtr(-1)) CloseHandle(handle);
       if(attrs!=IntPtr.Zero) { DeleteProcThreadAttributeList(attrs); Marshal.FreeHGlobal(attrs); }
       foreach(var pointer in new[]{capPtr,policy,env,handles}) if(pointer!=IntPtr.Zero) Marshal.FreeHGlobal(pointer);
       if(sid!=IntPtr.Zero) FreeSid(sid);
@@ -122,6 +171,6 @@ class Sandbox {
     Console.InputEncoding=new UTF8Encoding(false); Console.OutputEncoding=new UTF8Encoding(false);
     var json=new JavaScriptSerializer(); json.MaxJsonLength=2000000;
     try { var line=Console.ReadLine(); if(line==null || line.Length>2000000) throw new Exception("sandbox_input_limit"); Console.WriteLine(json.Serialize(Run(json.Deserialize<Dictionary<string,object>>(line)))); return 0; }
-    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdout="",stderr=error.Message.StartsWith("win32_")||error.Message.StartsWith("appcontainer_") ? error.Message : "sandbox_setup_failed",exitCode=(int?)null})); return 1; }
+    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",error=error.Message.StartsWith("win32_")||error.Message.StartsWith("appcontainer_") ? error.Message : "sandbox_setup_failed",exitCode=(int?)null})); return 1; }
   }
 }

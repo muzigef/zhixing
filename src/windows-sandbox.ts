@@ -6,18 +6,20 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { StringDecoder } from "node:string_decoder";
 import { z } from "zod/v4";
-import type { SandboxResult, SandboxOptions } from "./local-sandbox.js";
+import type { SandboxResult, SandboxOptions, SandboxBackend, SandboxRequest, SandboxSession } from "./sandbox-types.js";
+import { createSandboxPolicy, sandboxPolicyId } from "./sandbox-policy.js";
 
 export function windowsSandboxHelper(): string | undefined {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   return [resources ? path.join(resources, "runtime/windows-sandbox.exe") : "", path.join(here, "runtime/windows-sandbox.exe"), path.join(here, "../.build/windows-sandbox.exe")].find(file => file && existsSync(file));
 }
-const resultSchema = z.object({ status: z.enum(["completed", "timed_out", "unavailable", "cancelled"]), stdout: z.string().max(65536), stderr: z.string().max(65536), exitCode: z.number().int().nullable() });
+const resultSchema = z.object({ status: z.enum(["completed", "timed_out", "unavailable", "cancelled", "resource_limited"]), stdoutBase64: z.string().max(2_666_668), stderrBase64: z.string().max(2_666_668), exitCode: z.number().int().nullable(), limit: z.enum(["memory", "cpu", "output", "workspace"]).optional() });
 /** Only a private runtime copy is granted to the package SID. Never alter the
  * installation's ACL, grant home/workspace access, or fall back to plain spawn. */
-export async function runWindowsSandbox(command: string, args: readonly string[], options: SandboxOptions): Promise<SandboxResult> {
-  const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "Windows AppContainer 沙箱未就绪。", exitCode: null };
+async function runWindowsSandbox(command: string, args: readonly string[], options: SandboxOptions): Promise<SandboxResult> {
+  const policy = createSandboxPolicy(options.policy);
+  const unavailable: SandboxResult = { status: "unavailable", stdout: "", stderr: "Windows AppContainer 沙箱未就绪。", exitCode: null, policyId: sandboxPolicyId(policy), backend: "windows-appcontainer-v1" };
   const helper = windowsSandboxHelper(); if (!helper || process.platform !== "win32") return unavailable;
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-appcontainer-"));
   const work = path.join(root, "work"), runtime = path.join(root, "runtime");
@@ -68,13 +70,26 @@ export async function runWindowsSandbox(command: string, args: readonly string[]
       const decoder = new StringDecoder("utf8");
       const abort = () => { if (!child.stdin.destroyed) child.stdin.end("cancel\n"); };
       const finish = (result: SandboxResult) => { if (completed) return; completed = true; clearTimeout(timer); options.signal?.removeEventListener("abort", abort); child.stdin.destroy(); resolve(result); };
-      const timer = setTimeout(() => { child.kill(); finish(unavailable); }, 20_000);
+      const timer = setTimeout(() => { child.kill(); finish(unavailable); }, policy.timeoutMs + 20_000);
       child.stderr.resume(); child.stdin.on("error", () => undefined);
-      child.stdout.on("data", (bytes: Buffer) => { output += decoder.write(bytes); if (output.length > 800_000) child.kill(); });
+      child.stdout.on("data", (bytes: Buffer) => { output += decoder.write(bytes); if (output.length > 2 * policy.outputBytes + 4096) child.kill(); });
       child.on("error", () => finish(unavailable));
-      child.on("close", () => { const result = resultSchema.safeParse((() => { try { return JSON.parse(output); } catch { return undefined; } })()); finish(result.success ? result.data : unavailable); });
-      child.stdin.write(JSON.stringify({ root, executable: path.join(runtime, path.basename(resolved)), args: launchArgs, timeoutMs: options.timeoutMs ?? 5000, electronNode: options.electronNode ?? false }) + "\n");
+      child.on("close", () => { const result = resultSchema.safeParse((() => { try { return JSON.parse(output); } catch { return undefined; } })()); if (!result.success) { finish(unavailable); return; }
+        const decode = (value: string) => { const decoder = new StringDecoder("utf8"); return decoder.write(Buffer.from(value, "base64")); };
+        finish({ ...unavailable, status: result.data.status, exitCode: result.data.exitCode, ...(result.data.limit ? { limit: result.data.limit } : {}), stdout: decode(result.data.stdoutBase64), stderr: decode(result.data.stderrBase64) }); });
+      child.stdin.write(JSON.stringify({ root, executable: path.join(runtime, path.basename(resolved)), args: launchArgs, policy, electronNode: options.electronNode ?? false }) + "\n");
       options.signal?.addEventListener("abort", abort, { once: true }); if (options.signal?.aborted) abort();
     });
   } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 }); }
+}
+
+export class WindowsSandboxBackend implements SandboxBackend {
+  readonly id = "windows-appcontainer-v1";
+  readonly capabilities = { memory: "hard" as const, interactive: false };
+  async open(): Promise<SandboxSession> { throw new Error("sandbox_capability_unavailable"); }
+  async run(request: SandboxRequest): Promise<SandboxResult> {
+    // External read grants/interactive stdio are not implemented by the private-copy runner.
+    if (request.options.readPaths?.length) throw new Error("sandbox_capability_unavailable");
+    return runWindowsSandbox(request.command, request.args, { ...request.options, policy: request.policy, timeoutMs: request.policy.timeoutMs });
+  }
 }

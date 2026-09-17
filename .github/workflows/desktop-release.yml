@@ -54,7 +54,7 @@ jobs:
         run: |
           node desktop/node_modules/electron/install.js
           node scripts/build-windows-sandbox.mjs
-          npx vitest run tests/windows-sandbox.test.ts tests/platform-preflight.test.ts
+          npm run test:sandbox
       - name: Verify macOS learning and execution behavior before packaging
         if: runner.os == 'macOS'
         run: npm run verify

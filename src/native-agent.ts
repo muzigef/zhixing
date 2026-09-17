@@ -1,4 +1,5 @@
-import { spawn } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { spawn } = hostProcess("native-provider");
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import os from "node:os";

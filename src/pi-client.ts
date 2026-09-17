@@ -1,4 +1,5 @@
-import { spawn } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { spawn } = hostProcess("pi-provider");
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";

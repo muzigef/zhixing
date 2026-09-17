@@ -11,6 +11,8 @@ for (const directory of ["scripts", "desktop/scripts"]) {
   }
 }
 const commands = [
+  ["node", ["scripts/build-posix-sandbox.mjs"]],
+  ["node", ["scripts/build-windows-sandbox.mjs"]],
   ["node", ["scripts/check-lockfiles.mjs"]],
   ["npm", ["run", "lint"]],
   ["npm", ["run", "typecheck"]],
@@ -49,7 +51,7 @@ if (git.status !== 0 && git.status !== 129) {
 console.log("verify passed: quality gates, sensitive scan, and diff whitespace check");
 
 function collect(directory) {
-  const ignored = new Set(["node_modules", "data", "db", "inbox", "coverage", ".git", "build", "release", "test-results"]);
+  const ignored = new Set(["node_modules", "data", "db", "inbox", "coverage", ".git", ".build", "build", "release", "test-results"]);
   const files = [];
   for (const entry of readdirSync(directory)) {
     if (ignored.has(entry) || directory === root && entry === "agent") continue;

@@ -30,3 +30,5 @@ node --import tsx scripts/evaluate-practice-project.ts --live --provider=deepsee
 ```
 
 输出路径必须不存在。报告保存原文、实际文件状态和工具记录；一次成功只验证该场景，不代表开放项目任务成功率。
+
+2026-09-17 执行入口已统一为不可变 SandboxPolicy + 平台后端；超出资源预算返回 `resource_limited`，输出超限会终止执行。完整默认值、系统差异和当前验收状态见[执行沙箱](execution-sandbox.md)。

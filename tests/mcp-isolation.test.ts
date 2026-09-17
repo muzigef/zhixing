@@ -31,7 +31,7 @@ const network=await new Promise(resolve=>{const s=net.connect({host:'127.0.0.1',
 result={resultType:'complete',content:[{type:'text',text:JSON.stringify({read,write,network})}]}; }
 process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');}`);
   const config = mcpServerSchema.parse({ id: "fixture", enabled: true, consent: "local-process-and-topic-inputs", command: process.execPath, args: [script], isolation: "restricted", readPaths: [script], tools: [{ name: "read", risk: "read", replaySafe: false }] });
-  if (process.platform !== "darwin") { await expect(McpConnection.open(config, AbortSignal.timeout(3000))).rejects.toThrow("mcp_isolation_unavailable"); return; }
+  if (!(["darwin", "linux"].includes(process.platform))) { await expect(McpConnection.open(config, AbortSignal.timeout(3000))).rejects.toThrow("mcp_isolation_unavailable"); return; }
   const connection = await McpConnection.open(config, AbortSignal.timeout(5000)); cleanups.push(() => connection.close());
   const value = await connection.call("read", {}, AbortSignal.timeout(3000)) as { content: { text: string }[] };
   expect(JSON.parse(value.content[0]!.text)).toEqual({ read: false, write: false, network: false });

@@ -1,9 +1,12 @@
 import fs from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { execFile } = hostProcess("build-provenance");
 import { promisify } from "node:util";
 import { PathPolicy } from "./paths.js";
 const exec = promisify(execFile);
+const gitEnvironment = () => ({ PATH: process.env.PATH, ...(process.platform === "win32" ? { SystemRoot: process.env.SystemRoot } : {}), GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: process.platform === "win32" ? "NUL" : "/dev/null" });
+const gitArguments = ["-c", "core.fsmonitor=false", "-c", `core.hooksPath=${process.platform === "win32" ? "NUL" : "/dev/null"}`];
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
 export { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
@@ -27,9 +30,9 @@ export async function sourceProvenance(root: string, kind: BuildProvenance["kind
   files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   let commit: string | null = null; let dirty: boolean | null = null;
   try {
-    const head = await exec("git", ["rev-parse", "HEAD"], { cwd: root, timeout: 2000, maxBuffer: 4000 });
+    const head = await exec("git", [...gitArguments, "rev-parse", "HEAD"], { cwd: root, env: gitEnvironment(), timeout: 2000, maxBuffer: 4000 });
     if (/^[a-f0-9]{40,64}$/.test(head.stdout.trim())) commit = head.stdout.trim();
-    dirty = Boolean((await exec("git", ["status", "--porcelain", "--", ...roots, ...singles], { cwd: root, timeout: 2000, maxBuffer: 128_000 })).stdout.trim());
+    dirty = Boolean((await exec("git", [...gitArguments, "status", "--porcelain", "--", ...roots, ...singles], { cwd: root, env: gitEnvironment(), timeout: 2000, maxBuffer: 128_000 })).stdout.trim());
   } catch { /* Non-repository source snapshots still have exact content hashes. */ }
   return buildProvenanceSchema.parse({ version: 1, kind, codeHash: hash(JSON.stringify(files)), files, commit, dirty, capturedAt: new Date().toISOString(), node: process.version, platform: `${process.platform}-${process.arch}` });
 }

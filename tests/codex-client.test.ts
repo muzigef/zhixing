@@ -9,6 +9,9 @@ async function collect(client: CodexCliClient): Promise<string[]> {
 }
 
 describe("Codex CLI adapter", () => {
+  it("refuses the retired live launcher instead of bypassing the native runtime permission profile", async () => {
+    await expect(collect(new CodexCliClient(undefined, { ZHIXING_ALLOW_LIVE_PROVIDER: "1" }))).rejects.toThrow("legacy_codex_runtime_retired");
+  });
   it("extracts incremental assistant text from codex JSONL without rendering lifecycle events", () => {
     expect(codexJsonText('{"type":"item.agent_message.delta","delta":"你好"}')).toBe("你好");
     expect(codexJsonText('{"type":"item.completed","item":{"type":"agent_message","text":"完整回答"}}')).toBe("完整回答");

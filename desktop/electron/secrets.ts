@@ -1,6 +1,7 @@
 import { isCustomProvider, type CustomProvider } from "../../src/api-connection-config.js";
 import { safeStorage } from "electron";
-import { execFile } from "node:child_process";
+import { hostProcess } from "../../src/process-gateway.js";
+const { execFile } = hostProcess("keychain");
 import { promisify } from "node:util";
 import { MacOSKeychainSecretStore } from "../../src/macos-keychain.js";
 import { EncryptedDesktopSecrets, type LegacySecret } from "../core/secrets.js";

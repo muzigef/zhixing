@@ -1,4 +1,5 @@
-import { spawn } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { spawn } = hostProcess("keychain");
 import type { SecretStore } from "./secret-store.js";
 
 export type KeychainRunner = (args: readonly string[]) => Promise<{ code: number; stdout: string; stderr: string }>;
@@ -38,7 +39,7 @@ export class MacOSKeychainSecretStore implements SecretStore {
 
 async function runSecurity(args: readonly string[]): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn("security", args, { shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("/usr/bin/security", args, { env: { PATH: "/usr/bin:/bin" }, shell: false, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk: Buffer) => { stdout = `${stdout}${chunk}`.slice(0, 64 * 1024); });

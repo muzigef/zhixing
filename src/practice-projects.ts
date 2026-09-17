@@ -5,7 +5,8 @@ import fs from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { execFile } from "node:child_process";
+import { hostProcess } from "./process-gateway.js";
+const { execFile } = hostProcess("git-storage");
 import { promisify } from "node:util";
 import { z } from "zod/v4";
 import { PathPolicy } from "./paths.js";
@@ -23,7 +24,7 @@ export const projectBatchSchema = z.array(projectEditSchema.extend({ content: z.
 export const projectPatchSchema = z.object({ path: projectPathSchema, expectedHash: hashSchema, replacements: z.array(z.object({ before: z.string().min(1).max(24_000), after: z.string().max(24_000) }).strict()).min(1).max(10) }).strict();
 export type ProjectBatch = z.infer<typeof projectBatchSchema>;
 export type ProjectEdit = z.infer<typeof projectEditSchema>;
-const testSchema = z.object({ invalidated: z.boolean().optional(), id: z.string().uuid(), treeHash: hashSchema, status: z.enum(["completed", "timed_out", "unavailable", "cancelled"]), stdout: z.string().max(64_000), stderr: z.string().max(64_000), exitCode: z.number().int().nullable(), createdAt: z.string().datetime() });
+const testSchema = z.object({ invalidated: z.boolean().optional(), id: z.string().uuid(), treeHash: hashSchema, status: z.enum(["completed", "timed_out", "unavailable", "cancelled", "resource_limited"]), limit: z.enum(["memory", "cpu", "output", "workspace"]).optional(), policyId: z.string().regex(/^[a-f0-9]{64}$/).optional(), backend: z.string().max(80).optional(), stdout: z.string().max(64_000), stderr: z.string().max(64_000), exitCode: z.number().int().nullable(), createdAt: z.string().datetime() });
 const recordSchema = z.object({ id: z.string().uuid(), topicId: topicIdSchema, title: z.string().min(1).max(80), createdAt: z.string().datetime(), test: testSchema.optional() });
 type ProjectRecord = z.infer<typeof recordSchema>;
 const gitConfig = "[core]\n\trepositoryformatversion = 0\n\tbare = true\n\tfilemode = false\n";
@@ -277,7 +278,8 @@ export class PracticeProjects {
         results.push(await new LocalSandbox().run(executable, ["--test", "--test-isolation=none", ...tests], { files: Object.fromEntries(files.map(file => [file.path, file.content])), allowedCommands: [executable], timeoutMs: Math.max(1, deadline - Date.now()), signal, electronNode, ...(electronNode ? { runtimeReadPath: path.resolve(path.dirname(executable), "../Frameworks") } : {}) }));
       }
       if (python.length && !signal.aborted) results.push(await runPythonTests(Object.fromEntries(files.map(file => [file.path, file.content])), python, signal, Math.max(1, deadline - Date.now())));
-      const result = { status: results.find(item => item.status !== "completed")?.status ?? "completed", exitCode: results.every(item => item.status === "completed" && item.exitCode === 0) ? 0 : results.find(item => item.exitCode !== 0)?.exitCode ?? null, stdout: results.map(item => item.stdout).join("\n"), stderr: results.map(item => item.stderr).join("\n") };
+      const primary = results.find(item => item.status !== "completed") ?? results[0];
+      const result = { limit: primary?.limit, policyId: primary?.policyId, backend: primary?.backend, status: results.find(item => item.status !== "completed")?.status ?? "completed", exitCode: results.every(item => item.status === "completed" && item.exitCode === 0) ? 0 : results.find(item => item.exitCode !== 0)?.exitCode ?? null, stdout: results.map(item => item.stdout).join("\n"), stderr: results.map(item => item.stderr).join("\n") };
       const test = testSchema.parse({ ...result, stdout: result.stdout.slice(0, 64_000), stderr: result.stderr.slice(0, 64_000), id: randomUUID(), treeHash: expectedTreeHash, createdAt: new Date().toISOString() });
       this.database.db.prepare("UPDATE practice_projects SET value=? WHERE id=? AND topic=?").run(JSON.stringify({ ...record, test }), id, topic); return test;
     });

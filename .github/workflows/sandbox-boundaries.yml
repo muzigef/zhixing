@@ -1,0 +1,39 @@
+name: sandbox-boundaries
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-boundaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      CI: '1'
+      ZHIXING_ALLOW_LIVE_PROVIDER: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.8.0
+          cache: npm
+      - run: npm install --global npm@10.9.2
+      - run: npm ci --no-audit --no-fund
+      - name: Install Linux namespace backend
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes bubblewrap
+      - name: Install Windows Electron test runtime
+        if: runner.os == 'Windows'
+        run: npm ci --prefix desktop --no-audit --no-fund
+      - name: Run actual OS boundary probes (no simulated success)
+        run: npm run test:sandbox -- --reporter=default --reporter=json --outputFile=sandbox-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandbox-boundaries-${{ matrix.os }}
+          path: sandbox-results.json
+          if-no-files-found: warn
