@@ -67,20 +67,81 @@ class Sandbox {
       return Convert.ToBase64String(output.ToArray());
     }});
   }
-  static bool WorkspaceExceeded(string directory, ref long bytes, ref int files, long maximum, int maxFiles, int depth) {
-    if(depth>32) return true;
+  [StructLayout(LayoutKind.Sequential)] struct UNICODE_STRING { public ushort length,maximum; public IntPtr buffer; }
+  [StructLayout(LayoutKind.Sequential)] struct OBJECT_ATTRIBUTES { public int length; public IntPtr root,name; public uint attributes; public IntPtr security,qos; }
+  [StructLayout(LayoutKind.Sequential)] struct IO_STATUS_BLOCK { public IntPtr status,information; }
+  [DllImport("ntdll.dll")] static extern uint NtOpenFile(out IntPtr handle,uint access,ref OBJECT_ATTRIBUTES attributes,out IO_STATUS_BLOCK status,uint share,uint options);
+  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetFileInformationByHandleEx(IntPtr handle,int kind,IntPtr info,uint size);
+  static bool Deleted(IntPtr directory) {
+    IntPtr info=Marshal.AllocHGlobal(24);
+    try { Check(GetFileInformationByHandleEx(directory,1,info,24)); return Marshal.ReadByte(info,20)!=0; }
+    finally { Marshal.FreeHGlobal(info); }
+  }
+  static IntPtr OpenChildDirectory(IntPtr parent,string name) {
+    IntPtr text=Marshal.StringToHGlobalUni(name), value=Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UNICODE_STRING)));
     try {
-      foreach(var item in new DirectoryInfo(directory).EnumerateFileSystemInfos()) {
-        if(++files>maxFiles) return true;
-        try {
-          if((item.Attributes&FileAttributes.ReparsePoint)!=0) continue;
-          if((item.Attributes&FileAttributes.Directory)!=0) { if(WorkspaceExceeded(item.FullName,ref bytes,ref files,maximum,maxFiles,depth+1)) return true; }
-          else { bytes+=((FileInfo)item).Length; if(bytes>maximum) return true; }
-        } catch(FileNotFoundException) { /* Removed since enumeration; sample again next tick. */ }
-        catch(DirectoryNotFoundException) { /* An enumerated entry disappeared before recursion/stat. */ }
+      var unicode=new UNICODE_STRING(); unicode.length=(ushort)(name.Length*2); unicode.maximum=(ushort)(unicode.length+2); unicode.buffer=text; Marshal.StructureToPtr(unicode,value,false);
+      var attrs=new OBJECT_ATTRIBUTES(); attrs.length=Marshal.SizeOf(attrs); attrs.root=parent; attrs.name=value; attrs.attributes=0x40;
+      IO_STATUS_BLOCK io; IntPtr child;
+      // Resolve a single name relative to the open parent, never by rebuilding
+      // a path that can be replaced by a junction during traversal.
+      uint status=NtOpenFile(out child,0x100081,ref attrs,out io,7,0x200021);
+      if(status==0) return child;
+      // Missing, delete-pending or changed from directory to file: next sample
+      // observes the replacement. Access denial and other faults still fail.
+      if(status==0xc0000034 || status==0xc000003a || status==0xc0000056 || status==0xc0000103) return IntPtr.Zero;
+      throw new Exception("ntstatus_"+status.ToString("X8"));
+    } finally { Marshal.FreeHGlobal(text); Marshal.FreeHGlobal(value); }
+  }
+  static bool DirectoryExceeded(IntPtr directory,ref long bytes,ref int files,long maximum,int maxFiles,int depth) {
+    if(depth>32) return true;
+    IntPtr buffer=Marshal.AllocHGlobal(65536);
+    try {
+      // FILE_ATTRIBUTE_TAG_INFO: opening with OPEN_REPARSE_POINT is not enough
+      // to decide to recurse; inspect the opened object, not cached path data.
+      if(!GetFileInformationByHandleEx(directory,9,buffer,8)) {
+        int error=Marshal.GetLastWin32Error();
+        if((error==5 || error==303) && Deleted(directory)) return false;
+        throw new Exception("win32_"+error+"_at_"+0);
       }
-    } catch(DirectoryNotFoundException) { if(depth==0) throw; /* A child directory was removed during this sample. */ }
-    return false;
+      if((Marshal.ReadInt32(buffer)&0x400)!=0) return false;
+      bool first=true;
+      for(;;) {
+        // FILE_FULL_DIR_INFO: attributes, length and name come from one kernel
+        // enumeration snapshot. No subsequent FileInfo.Length/path stat races.
+        bool ok=GetFileInformationByHandleEx(directory,first?15:14,buffer,65536); first=false;
+        if(!ok) {
+          int error=Marshal.GetLastWin32Error();
+          if(error==18 || ((error==5 || error==303) && Deleted(directory))) return false;
+          throw new Exception("win32_"+error+"_at_"+0);
+        }
+        int offset=0;
+        for(;;) {
+          IntPtr item=IntPtr.Add(buffer,offset);
+          int next=Marshal.ReadInt32(item), attributes=Marshal.ReadInt32(item,56), length=Marshal.ReadInt32(item,60);
+          if(length<0 || length%2!=0 || offset+68+length>65536) throw new Exception("sandbox_directory_record_invalid");
+          string name=Marshal.PtrToStringUni(IntPtr.Add(item,68),length/2);
+          if(name!="." && name!="..") {
+            if(++files>maxFiles) return true;
+            if((attributes&0x400)==0) {
+              if((attributes&0x10)!=0) {
+                IntPtr child=OpenChildDirectory(directory,name);
+                if(child!=IntPtr.Zero) { try { if(DirectoryExceeded(child,ref bytes,ref files,maximum,maxFiles,depth+1)) return true; } finally { CloseHandle(child); } }
+              } else { bytes+=Marshal.ReadInt64(item,40); if(bytes>maximum) return true; }
+            }
+          }
+          if(next==0) break;
+          if(next<68 || offset+next>65536-68) throw new Exception("sandbox_directory_record_invalid");
+          offset+=next;
+        }
+      }
+    } finally { Marshal.FreeHGlobal(buffer); }
+  }
+  static bool WorkspaceExceeded(string directory,ref long bytes,ref int files,long maximum,int maxFiles,int depth) {
+    var sa=new SECURITY_ATTRIBUTES(); sa.nLength=Marshal.SizeOf(sa);
+    IntPtr root=CreateFile(directory,0x100081,7,ref sa,3,0x02200000,IntPtr.Zero); Check(root!=new IntPtr(-1));
+    try { return DirectoryExceeded(root,ref bytes,ref files,maximum,maxFiles,depth); }
+    finally { CloseHandle(root); }
   }
   static long Limit(Dictionary<string,object> policy,string key,long min,long max) {
     long value=Convert.ToInt64(policy[key]); if(value<min || value>max) throw new Exception("sandbox_policy_invalid"); return value;
@@ -189,6 +250,6 @@ class Sandbox {
     Console.InputEncoding=new UTF8Encoding(false); Console.OutputEncoding=new UTF8Encoding(false);
     var json=new JavaScriptSerializer(); json.MaxJsonLength=6000000; // bounded output is base64-encoded
     try { var line=Console.ReadLine(); if(line==null || line.Length>2000000) throw new Exception("sandbox_input_limit"); Console.WriteLine(json.Serialize(Run(json.Deserialize<Dictionary<string,object>>(line)))); return 0; }
-    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",stage=stage,error=System.Text.RegularExpressions.Regex.IsMatch(error.Message,"^(win32_[0-9]+_at_[0-9]+|appcontainer_-?[0-9]+)$") ? error.Message : "hresult_"+unchecked((uint)error.HResult).ToString("X8"),exitCode=(int?)null})); return 1; }
+    catch(Exception error) { Console.WriteLine(json.Serialize(new {status="unavailable",stdoutBase64="",stderrBase64="",stage=stage,error=System.Text.RegularExpressions.Regex.IsMatch(error.Message,"^(win32_[0-9]+_at_[0-9]+|appcontainer_-?[0-9]+|ntstatus_[A-F0-9]{8})$") ? error.Message : "hresult_"+unchecked((uint)error.HResult).ToString("X8"),exitCode=(int?)null})); return 1; }
   }
 }

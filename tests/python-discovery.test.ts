@@ -69,3 +69,9 @@ it("cancels sandbox preparation at the same task deadline and waits for cleanup"
   expect(await runPythonTests({}, [], new AbortController().signal, 30)).toMatchObject({ status: "timed_out" });
   expect(cleaned).toBe(true);
 });
+
+it("does not turn completed work into a timeout when only private cleanup crosses the deadline", async () => {
+  mocks.exec.mockImplementation((_command, _args, _options, callback) => callback(null, runtime, ""));
+  mocks.run.mockImplementation(async () => { now += 10_001; return completed; });
+  expect(await runPythonTests({}, [], new AbortController().signal, 10_000)).toEqual(completed);
+});

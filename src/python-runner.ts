@@ -66,7 +66,9 @@ export async function runPythonTests(files: Record<string, string>, tests: strin
   try {
     const result = await new LocalSandbox().run(runtime.executable, ["-I", "-S", "-B", "zhixing_runner.py"], { files: { ...files, "zhixing_runner.py": script }, allowedCommands: [runtime.executable], runtimeReadPath: runtime.prefix, timeoutMs: Math.max(1, remaining()), signal: AbortSignal.any([signal, deadlineSignal]) });
     signal.throwIfAborted();
-    return deadlineSignal.aborted || !remaining() ? { ...result, status: "timed_out", stderr: result.stderr || timedOut.stderr } : result;
+    // Completion is decided before private-directory cleanup. A deadline that
+    // arrives during cleanup cannot retroactively cancel finished work.
+    return result.status === "cancelled" && deadlineSignal.aborted ? { ...result, status: "timed_out", stderr: result.stderr || timedOut.stderr } : result;
   } catch (error) {
     signal.throwIfAborted();
     if (deadlineSignal.aborted || !remaining()) return timedOut;

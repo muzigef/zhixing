@@ -8,7 +8,8 @@ import path from "node:path";
 export async function copySandboxRuntimeDirectory(source: string, target: string, usedBytes: number, maxBytes: number, signal?: AbortSignal): Promise<number> {
   const files: { from: string; to: string }[] = [];
   let entries = 0;
-  const scan = async (from: string, to: string, depth: number): Promise<void> => {
+  const pending = [{ from: source, to: target, depth: 0 }];
+  const inspect = async ({ from, to, depth }: typeof pending[number]): Promise<void> => {
     signal?.throwIfAborted();
     if (++entries > 20_000 || depth > 32) throw new Error("sandbox_runtime_limit");
     if (["site-packages", "__pycache__"].includes(path.basename(from).toLowerCase())) return;
@@ -16,14 +17,20 @@ export async function copySandboxRuntimeDirectory(source: string, target: string
     if (stat.isSymbolicLink()) return;
     if (stat.isDirectory()) {
       await fs.mkdir(to, { recursive: true });
-      for (const name of await fs.readdir(from)) await scan(path.join(from, name), path.join(to, name), depth + 1);
+      const names = await fs.readdir(from);
+      if (entries + pending.length + names.length > 20_000) throw new Error("sandbox_runtime_limit");
+      for (const name of names) pending.push({ from: path.join(from, name), to: path.join(to, name), depth: depth + 1 });
     } else if (stat.isFile()) {
       usedBytes += stat.size;
       if (usedBytes > maxBytes) throw new Error("sandbox_runtime_limit");
       files.push({ from, to });
     }
   };
-  await scan(source, target, 0);
+  while (pending.length) {
+    const results = await Promise.allSettled(pending.splice(0, 8).map(inspect));
+    const rejected = results.find(result => result.status === "rejected");
+    if (rejected?.status === "rejected") throw rejected.reason;
+  }
   let next = 0, failed = false; let failure: unknown;
   const worker = async () => {
     try {
