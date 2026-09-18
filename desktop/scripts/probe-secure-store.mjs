@@ -17,7 +17,7 @@ async function run(stage) {
     let timedOut = false, kill, errorText = "";
     child.stderr.on("data", chunk => { if (errorText.length < 64000) errorText += chunk.toString().slice(0, 64000 - errorText.length); });
     const diagnostics = () => [
-      [/No usable sandbox|Failed to move to new namespace|apparmor|zygote_host_impl_linux/i, "chromium_sandbox_unavailable"],
+      [/No usable sandbox|Failed to move to new namespace|apparmor|zygote_host_impl_linux|SUID sandbox|setuid_sandbox_host|chrome-sandbox/i, "chromium_sandbox_unavailable"],
       [/Authorization required|Missing X server|cannot open display|ozone_platform_x11/i, "display_unavailable"],
     ].filter(([pattern]) => pattern.test(errorText)).map(([, code]) => code);
     const timer = setTimeout(() => { timedOut = true; child.kill("SIGTERM"); kill = setTimeout(() => child.kill("SIGKILL"), 5000); }, 45000);

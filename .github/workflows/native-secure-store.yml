@@ -31,6 +31,20 @@ jobs:
       - name: Install isolated Linux desktop dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y gnome-keyring dbus-x11 xvfb libsecret-1-0
+      - name: Allow this Electron binary to create its Chromium sandbox
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Ubuntu 24.04 restricts unprivileged namespaces. Scope the exception to
+          # the CI Electron executable; keep Chromium's sandbox enabled.
+          cat <<PROFILE | sudo tee /etc/apparmor.d/zhixing-electron-ci >/dev/null
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile zhixing-electron-ci "$GITHUB_WORKSPACE/desktop/node_modules/electron/dist/electron" flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/zhixing-electron-ci
       - name: Native OS roundtrip and new-process read
         if: runner.os != 'Linux'
         run: node desktop/scripts/probe-secure-store.mjs --output=native-secure-store.json

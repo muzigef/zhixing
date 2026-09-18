@@ -20,7 +20,13 @@ if (process.platform === "win32") {
       return directory;
     });
     const copyProbe = vi.spyOn(runtimeArchive, "createPythonRuntimeArchive").mockImplementation(async (...args) => {
-      const bytes = await archive(...args); visited++;
+      // Exercise cancellation after a real ZIP is created, independently of the hosted
+      // Python distribution size/cold disk cache. Full stdlib preparation is covered
+      // by sandbox-python.test.ts; it must not consume this test's cancellation window.
+      const syntheticLib = path.join(path.dirname(args[2]), "synthetic-stdlib");
+      await fs.mkdir(syntheticLib);
+      await fs.writeFile(path.join(syntheticLib, "fixture.py"), "synthetic = True\n");
+      const bytes = await archive(args[0], syntheticLib, args[2], args[3], args[4]); visited++;
       // Cancel after a real private archive exists, before the untrusted task starts.
       controller.abort(); return bytes;
     });
