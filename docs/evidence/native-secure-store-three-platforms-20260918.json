@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "commit": "1386731f9be0c65d62a87f7d657672fd9108d035",
+  "runId": 35319648373,
+  "url": "https://github.com/muzigef/zhixing/actions/runs/35319648373",
+  "status": "success",
+  "scope": "GitHub hosted native OS development builds; not signed release packages",
+  "artifacts": [
+    {
+      "artifact": "native-secure-store-macos-15",
+      "file": "native-secure-store.json",
+      "sha256": "8c1368f0205ce94daf9baefb20081f652a7d6fc926b18feb6db73579d8d77092",
+      "report": {
+        "version": 1,
+        "platform": "darwin",
+        "arch": "arm64",
+        "stages": [
+          {
+            "stage": "create",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "dd245a516efdb19a68daf2765aabedda78b5ed604aed0b7d0a1f35e771da2b76",
+              "stage": "create",
+              "at": "2026-09-18T07:30:43.554Z",
+              "platform": "darwin",
+              "arch": "arm64",
+              "osRelease": "24.6.0",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "d3762bdff983315f18c07c3754175c4aa5b49d80977e1c33eb226b8189b447ed",
+              "capability": {
+                "platform": "darwin",
+                "backend": "keychain",
+                "api": "async",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "encrypted_roundtrip",
+                "no_plaintext_in_ciphertext"
+              ],
+              "reason": ""
+            }
+          },
+          {
+            "stage": "restart",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "dd245a516efdb19a68daf2765aabedda78b5ed604aed0b7d0a1f35e771da2b76",
+              "stage": "restart",
+              "at": "2026-09-18T07:30:43.898Z",
+              "platform": "darwin",
+              "arch": "arm64",
+              "osRelease": "24.6.0",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "d3762bdff983315f18c07c3754175c4aa5b49d80977e1c33eb226b8189b447ed",
+              "capability": {
+                "platform": "darwin",
+                "backend": "keychain",
+                "api": "async",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "new_process_decryption",
+                "no_plaintext_in_ciphertext",
+                "malformed_ciphertext_rejected"
+              ],
+              "reason": ""
+            }
+          }
+        ],
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "artifact": "native-secure-store-ubuntu-24.04",
+      "file": "native-secure-store-denied.json",
+      "sha256": "a5f4474245bffc46d6ff7d1725d0f6ea8ae27da88e4ce88559c114d56b791441",
+      "report": {
+        "version": 1,
+        "platform": "linux",
+        "arch": "x64",
+        "stages": [
+          {
+            "stage": "deny",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "dd245a516efdb19a68daf2765aabedda78b5ed604aed0b7d0a1f35e771da2b76",
+              "stage": "deny",
+              "at": "2026-09-18T07:31:27.667Z",
+              "platform": "linux",
+              "arch": "x64",
+              "osRelease": "6.17.0-1022-azure",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "9b827d38aacff0d69933481625c4c8f13b4732cbecd0e3477b1d2bac6102522c",
+              "capability": {
+                "platform": "linux",
+                "backend": "basic_text",
+                "api": "sync",
+                "available": false
+              },
+              "passed": true,
+              "checks": [
+                "basic_text_rejected_before_write"
+              ],
+              "reason": ""
+            }
+          }
+        ],
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "artifact": "native-secure-store-ubuntu-24.04",
+      "file": "native-secure-store.json",
+      "sha256": "4e6dcf747b567d5ffa0fed3fdda33d8e7c937d97f7c180c60ebe1d3b9c16a126",
+      "report": {
+        "version": 1,
+        "platform": "linux",
+        "arch": "x64",
+        "stages": [
+          {
+            "stage": "create",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "dd245a516efdb19a68daf2765aabedda78b5ed604aed0b7d0a1f35e771da2b76",
+              "stage": "create",
+              "at": "2026-09-18T07:31:26.538Z",
+              "platform": "linux",
+              "arch": "x64",
+              "osRelease": "6.17.0-1022-azure",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "9b827d38aacff0d69933481625c4c8f13b4732cbecd0e3477b1d2bac6102522c",
+              "capability": {
+                "platform": "linux",
+                "backend": "gnome_libsecret",
+                "api": "sync",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "encrypted_roundtrip",
+                "no_plaintext_in_ciphertext"
+              ],
+              "reason": ""
+            }
+          },
+          {
+            "stage": "restart",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "dd245a516efdb19a68daf2765aabedda78b5ed604aed0b7d0a1f35e771da2b76",
+              "stage": "restart",
+              "at": "2026-09-18T07:31:27.078Z",
+              "platform": "linux",
+              "arch": "x64",
+              "osRelease": "6.17.0-1022-azure",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "9b827d38aacff0d69933481625c4c8f13b4732cbecd0e3477b1d2bac6102522c",
+              "capability": {
+                "platform": "linux",
+                "backend": "gnome_libsecret",
+                "api": "sync",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "new_process_decryption",
+                "no_plaintext_in_ciphertext",
+                "malformed_ciphertext_rejected"
+              ],
+              "reason": ""
+            }
+          }
+        ],
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "artifact": "native-secure-store-windows-2022",
+      "file": "native-secure-store.json",
+      "sha256": "adab8becd380116b817eb913a94a78d134bbb2146834408998332b65671a2a9a",
+      "report": {
+        "version": 1,
+        "platform": "win32",
+        "arch": "x64",
+        "stages": [
+          {
+            "stage": "create",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "3a6fcd5be2a61c215d62e3a8f93155cdc013dd5025067ce13410be4a72122678",
+              "stage": "create",
+              "at": "2026-09-18T07:31:25.640Z",
+              "platform": "win32",
+              "arch": "x64",
+              "osRelease": "10.0.20348",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "07b043bf9b0a0ac14a82fac0b612b7b7ed13cde727d706d74e41a45278ab51f1",
+              "capability": {
+                "platform": "win32",
+                "backend": "dpapi",
+                "api": "async",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "encrypted_roundtrip",
+                "no_plaintext_in_ciphertext"
+              ],
+              "reason": ""
+            }
+          },
+          {
+            "stage": "restart",
+            "execution": {
+              "code": 0,
+              "signal": null,
+              "timedOut": false,
+              "diagnostics": []
+            },
+            "receipt": {
+              "version": 1,
+              "codeHash": "3a6fcd5be2a61c215d62e3a8f93155cdc013dd5025067ce13410be4a72122678",
+              "stage": "restart",
+              "at": "2026-09-18T07:31:26.222Z",
+              "platform": "win32",
+              "arch": "x64",
+              "osRelease": "10.0.20348",
+              "electron": "44.2.0",
+              "packaged": false,
+              "executableSha256": "07b043bf9b0a0ac14a82fac0b612b7b7ed13cde727d706d74e41a45278ab51f1",
+              "capability": {
+                "platform": "win32",
+                "backend": "dpapi",
+                "api": "async",
+                "available": true
+              },
+              "passed": true,
+              "checks": [
+                "new_process_decryption",
+                "no_plaintext_in_ciphertext",
+                "malformed_ciphertext_rejected"
+              ],
+              "reason": ""
+            }
+          }
+        ],
+        "passed": true,
+        "reason": ""
+      }
+    }
+  ]
+}

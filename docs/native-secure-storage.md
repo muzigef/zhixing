@@ -29,3 +29,9 @@ Linux 可运行 `--expect-basic-denied`，强制 basic_text 并确认在写入�
 `.github/workflows/native-secure-store.yml` 在 macOS、Windows、Ubuntu 原生 runner 上执行上述探针；Linux 在独立 D-Bus 会话中启动 GNOME Keyring，并额外验证拒绝明文回退。发布流程还会对 macOS / Windows **实际打包或安装后的可执行文件**运行双进程探针。日志与 JSON 分别保留，runner 尚未运行时不得声称该平台通过。
 
 当前安装包目标仍为 macOS、Windows；Linux 原生存储测试不等于已有正式 Linux 安装包。KWallet 的规则测试不等于每一种桌面环境已实测。实际运行结果见[本轮证据](evidence/interview-improvements-20260918.md)。
+
+## 2026-09-18 合并前复验
+
+探针的准备阶段在 ready 前校验临时目录并设置 userData；异步加解密在 ready 回调中执行，避免顶层等待整个探针阻塞 Electron 模块加载。Linux 子进程转发 XAUTHORITY；Ubuntu 24.04 CI 仅为确切 Electron 路径增加 AppArmor userns 规则，保持 Chromium 沙箱启用。
+
+本机 Mac 开发构建和 macOS/Windows/Ubuntu 三平台原生 CI 已通过双进程加密、重启解密与畸形密文拒绝；Ubuntu 的 GNOME libsecret 正向检查和 basic_text 拒绝均通过。此结果不覆盖全部 KWallet 环境或正式签名安装包；完整失败历史、回执和 CI 链接见[合并前复验](evidence/native-store-ci-20260918.md)。

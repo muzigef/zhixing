@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "platform": "darwin",
+  "arch": "arm64",
+  "stages": [
+    {
+      "stage": "create",
+      "execution": {
+        "code": 0,
+        "signal": null,
+        "timedOut": false,
+        "diagnostics": []
+      },
+      "receipt": {
+        "version": 1,
+        "codeHash": "1f2b562823cde8361a08ab6511ec54ef32893f3a866302e38ff9c3eedf2663cb",
+        "stage": "create",
+        "at": "2026-09-18T07:25:34.457Z",
+        "platform": "darwin",
+        "arch": "arm64",
+        "osRelease": "24.6.0",
+        "electron": "44.2.0",
+        "packaged": false,
+        "executableSha256": "d3762bdff983315f18c07c3754175c4aa5b49d80977e1c33eb226b8189b447ed",
+        "capability": {
+          "platform": "darwin",
+          "backend": "keychain",
+          "api": "async",
+          "available": true
+        },
+        "passed": true,
+        "checks": [
+          "encrypted_roundtrip",
+          "no_plaintext_in_ciphertext"
+        ],
+        "reason": ""
+      }
+    },
+    {
+      "stage": "restart",
+      "execution": {
+        "code": 0,
+        "signal": null,
+        "timedOut": false,
+        "diagnostics": []
+      },
+      "receipt": {
+        "version": 1,
+        "codeHash": "1f2b562823cde8361a08ab6511ec54ef32893f3a866302e38ff9c3eedf2663cb",
+        "stage": "restart",
+        "at": "2026-09-18T07:25:34.701Z",
+        "platform": "darwin",
+        "arch": "arm64",
+        "osRelease": "24.6.0",
+        "electron": "44.2.0",
+        "packaged": false,
+        "executableSha256": "d3762bdff983315f18c07c3754175c4aa5b49d80977e1c33eb226b8189b447ed",
+        "capability": {
+          "platform": "darwin",
+          "backend": "keychain",
+          "api": "async",
+          "available": true
+        },
+        "passed": true,
+        "checks": [
+          "new_process_decryption",
+          "no_plaintext_in_ciphertext",
+          "malformed_ciphertext_rejected"
+        ],
+        "reason": ""
+      }
+    }
+  ],
+  "passed": true,
+  "reason": ""
+}
