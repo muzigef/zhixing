@@ -8,16 +8,21 @@ if (!output || args.some(arg => !arg.startsWith("--output=") && arg !== "--expec
 const root = path.resolve(import.meta.dirname, ".."), data = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-native-secret-"));
 const executable = process.env.ZHIXING_DESKTOP_EXECUTABLE ?? (await import("electron")).default;
 const baseArgs = process.env.ZHIXING_DESKTOP_EXECUTABLE ? [] : [root];
-const keys = ["PATH", "HOME", "TMPDIR", "TMP", "TEMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "SystemRoot", "SYSTEMROOT", "XDG_RUNTIME_DIR", "XDG_CONFIG_HOME", "XDG_CURRENT_DESKTOP", "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "DISPLAY", "WAYLAND_DISPLAY", "LANG", "LC_ALL"];
+const keys = ["PATH", "HOME", "TMPDIR", "TMP", "TEMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "SystemRoot", "SYSTEMROOT", "XDG_RUNTIME_DIR", "XDG_CONFIG_HOME", "XDG_CURRENT_DESKTOP", "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "DISPLAY", "XAUTHORITY", "WAYLAND_DISPLAY", "LANG", "LC_ALL"];
 const environment = Object.fromEntries(keys.filter(key => process.env[key]).map(key => [key, process.env[key]]));
 const report = { version: 1, platform: process.platform, arch: process.arch, stages: [], passed: false, reason: "" };
 async function run(stage) {
   return new Promise(resolve => {
-    const child = spawn(executable, [...baseArgs, ...(deny ? ["--password-store=basic"] : [])], { cwd: root, env: { ...environment, ZHIXING_SECURE_STORE_PROBE: stage, ZHIXING_DESKTOP_TEST_DATA: data, ZHIXING_ALLOW_LIVE_PROVIDER: "0" }, stdio: "ignore" });
-    let timedOut = false, kill;
+    const child = spawn(executable, [...baseArgs, ...(deny ? ["--password-store=basic"] : [])], { cwd: root, env: { ...environment, ZHIXING_SECURE_STORE_PROBE: stage, ZHIXING_DESKTOP_TEST_DATA: data, ZHIXING_ALLOW_LIVE_PROVIDER: "0" }, stdio: ["ignore", "ignore", "pipe"] });
+    let timedOut = false, kill, errorText = "";
+    child.stderr.on("data", chunk => { if (errorText.length < 64000) errorText += chunk.toString().slice(0, 64000 - errorText.length); });
+    const diagnostics = () => [
+      [/No usable sandbox|Failed to move to new namespace|apparmor|zygote_host_impl_linux/i, "chromium_sandbox_unavailable"],
+      [/Authorization required|Missing X server|cannot open display|ozone_platform_x11/i, "display_unavailable"],
+    ].filter(([pattern]) => pattern.test(errorText)).map(([, code]) => code);
     const timer = setTimeout(() => { timedOut = true; child.kill("SIGTERM"); kill = setTimeout(() => child.kill("SIGKILL"), 5000); }, 45000);
     child.once("error", () => { clearTimeout(timer); clearTimeout(kill); resolve({ code: 1, timedOut, spawnFailed: true }); });
-    child.once("exit", code => { clearTimeout(timer); clearTimeout(kill); resolve({ code, timedOut }); });
+    child.once("exit", (code, signal) => { clearTimeout(timer); clearTimeout(kill); resolve({ code, signal, timedOut, diagnostics: diagnostics() }); });
   });
 }
 try {

@@ -1,4 +1,4 @@
-import { runSecureStoreProbe } from "./secure-store-probe.js";
+import { prepareSecureStoreProbe } from "./secure-store-probe.js";
 import { outcomeAssignment } from "../../src/outcome-contracts.js";
 import { benchmarkProviderPerformance } from "../../src/provider-performance.js";
 import { atomicJson } from "../../src/agent-session-store.js";
@@ -55,10 +55,10 @@ import type { ContextBudget } from "../../src/context-window.js";
 import { checkApiConnection } from "../../src/api-connection.js";
 
 if (process.env.ZHIXING_SECURE_STORE_PROBE) {
-  const exitCode = await runSecureStoreProbe();
-  app.exit(exitCode);
-  process.exit(exitCode);
-}
+  const runProbe = await prepareSecureStoreProbe();
+  // Electron emits ready after this ESM entry finishes; never await the ready-dependent probe here.
+  void app.whenReady().then(runProbe).then(code => app.exit(code)).catch(() => app.exit(1));
+} else {
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const origin = "zhixing://app";
@@ -775,3 +775,5 @@ function agentInput<T extends { type: "send" | "enqueue"; steer?: boolean }>(com
   void type; void steer;
   return request;
 }
+
+} // Normal application startup is excluded from the isolated native probe.

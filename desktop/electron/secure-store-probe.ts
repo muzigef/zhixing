@@ -6,14 +6,17 @@ import { createHash } from "node:crypto";
 import { platformCipher } from "../core/platform-cipher.js";
 import { EncryptedDesktopSecrets } from "../core/secrets.js";
 /** Explicit native acceptance only; never opens product data, legacy Keychain items, or a provider. */
-export async function runSecureStoreProbe(): Promise<number> {
+export async function prepareSecureStoreProbe(): Promise<() => Promise<number>> {
   const stage = process.env.ZHIXING_SECURE_STORE_PROBE;
   if (!["create", "restart", "deny"].includes(stage ?? "")) throw new Error("secure_probe_stage_invalid");
   const selected = process.env.ZHIXING_DESKTOP_TEST_DATA;
   if (!selected) throw new Error("secure_probe_isolation_required");
   const root = await fs.realpath(selected), temporary = await fs.realpath(os.tmpdir());
   if (path.dirname(root) !== temporary || !path.basename(root).startsWith("zhixing-native-secret-")) throw new Error("secure_probe_isolation_required");
-  app.setName("知行"); app.setPath("userData", root); await app.whenReady();
+  app.setName("知行"); app.setPath("userData", root);
+  return () => runSecureStoreProbe(root, stage!);
+}
+async function runSecureStoreProbe(root: string, stage: string): Promise<number> {
   const cipher = platformCipher(process.platform, safeStorage), capability = await cipher.describe();
   const provenance = JSON.parse(await fs.readFile(path.join(app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), "build"), "runtime/build-provenance.json"), "utf8")) as { codeHash: string };
   if (!/^[a-f0-9]{64}$/.test(provenance.codeHash)) throw new Error("secure_probe_provenance_invalid");
