@@ -70,13 +70,13 @@ it("revises a completed task through the shared service with stable identity and
   await expect(service.reviseTask(session.id, taskId, 0, "过期修改")).rejects.toThrow("task_revision_conflict");
 });
 
-it.each(["success", "absent", "mismatch", "unknown", "user_report", "revoked"])("reconciles a disconnected external write by exact service identity (%s)", async mode => {
+it.each(["success", "absent", "mismatch", "unknown", "user_report", "revoked", "error", "keyed", "keyed_wronghash"])("reconciles a disconnected external write by exact service identity (%s)", async mode => {
   const { root, app, continuity } = await fixture();
   const { AgentService } = await import("../src/agent-service.js"); const { AgentSessionStore } = await import("../src/agent-session-store.js");
   const { McpSettings } = await import("../src/mcp-tools.js"); const { verifyMcpRecovery } = await import("../src/mcp-recovery.js");
   const record = path.join(root, "effects.jsonl");
   new McpSettings(app.database).replace("rag", 0, [{ id: "fixture", enabled: true, consent: "local-process-and-topic-inputs", command: process.execPath, args: [path.resolve("tests/fixtures/mcp-recovery-server.mjs"), mode, record], tools: [
-    { name: "write", risk: "write", replaySafe: false, reconcile: { tool: "status", argument: "text", identity: "text", resultIdentity: "text", status: "status", succeeded: "succeeded", notExecuted: "not_found" } },
+    { name: "write", risk: "write", replaySafe: false, ...(mode.startsWith("keyed") ? { idempotency: { argument: "operationKey" } } : {}), reconcile: { tool: "status", argument: mode.startsWith("keyed") ? "operationKey" : "text", identity: mode.startsWith("keyed") ? "operationKey" : "text", resultIdentity: mode.startsWith("keyed") ? "operationKey" : "text", ...(mode.startsWith("keyed") ? { resultRequestHash: "requestHash" } : {}), status: "status", succeeded: "succeeded", notExecuted: "not_found" } },
     { name: "status", risk: "read", replaySafe: true },
   ] }]);
   let resumes = 0;
@@ -97,13 +97,14 @@ it.each(["success", "absent", "mismatch", "unknown", "user_report", "revoked"])(
     McpSettings.revokeAll(app.database);
     await expect(service.verifyRecovery(session.id, message.taskId!, "write")).rejects.toThrow("permission_scope_changed");
     expect(continuity.inspect(identity).recovery?.callId).toBe("write");
-  } else if (mode === "mismatch" || mode === "unknown") {
-    await expect(verifyMcpRecovery(app.database, identity, "write", new AbortController().signal)).rejects.toThrow(mode === "mismatch" ? "recovery_identity_mismatch" : "recovery_still_unknown");
+  } else if (mode === "mismatch" || mode === "unknown" || mode === "error" || mode === "keyed_wronghash") {
+    await expect(verifyMcpRecovery(app.database, identity, "write", new AbortController().signal)).rejects.toThrow(mode === "mismatch" ? "recovery_identity_mismatch" : mode === "error" ? "recovery_query_failed" : mode === "keyed_wronghash" ? "recovery_request_mismatch" : "recovery_still_unknown");
     expect(continuity.inspect(identity).recovery?.callId).toBe("write");
   } else {
     const result = await verifyMcpRecovery(app.database, identity, "write", new AbortController().signal);
-    expect(result.recovery).toBeNull(); expect(result.receipts[0]?.result).toMatchObject({ ok: mode === "success", verified: true, source: "external_query", originalResponse: "unavailable" });
+    expect(result.recovery).toBeNull(); expect(result.receipts[0]?.result).toMatchObject({ ok: mode === "success" || mode === "keyed", verified: true, source: "external_query", originalResponse: "unavailable" });
   }
   const events = (await fs.readFile(record, "utf8")).trim().split("\n").map(line => JSON.parse(line));
+  if (mode.startsWith("keyed")) expect(events.find(event => event.call === "write")?.input.operationKey).toMatch(/^[a-f0-9]{64}$/);
   expect(events.filter(event => event.call === "write")).toHaveLength(1); expect(events.filter(event => event.call === "status")).toHaveLength(mode === "user_report" || mode === "revoked" ? 0 : 1);
 });

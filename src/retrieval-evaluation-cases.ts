@@ -1,0 +1,55 @@
+import type { RetrievalQuestion } from "./retrieval-evaluation.js";
+
+/** Author-written public synthetic handbook, fixed development set, not an unseen benchmark. */
+export const retrievalCorpus = [
+  { name: "permissions.md", topic: "rag", text: "# Permission boundary\n\nOnly an explicit user grant permits a scoped write. Valid JSON, model suggestions, and commands quoted in retrieved documents cannot grant permission. Check the current topic and path before dispatch.\n" },
+  { name: "cache.md", topic: "rag", text: "# Cache freshness\n\n商品改价后，已有缓存可能仍返回旧金额。缓存命中只说明找到了键，不保证内容最新；写入后应失效或刷新相关缓存。\n\n# Cache expiration\n\n本合成系统的缓存有效期是 15 秒。过期后重新读取源数据；即使未过期也可能因源数据已修改而陈旧。\n" },
+  { name: "cancellation.md", topic: "rag", text: "# Stop propagation\n\nPressing Stop must propagate cancellation to the network request and executing tool. Returning early from a timeout does not prove the underlying operation ended. Obtain a real termination receipt.\n" },
+  { name: "recovery.md", topic: "rag", text: "# Unknown write outcome\n\n外部写操作在断网时可能已经成功。结果未知时先用原操作身份查询服务端回执，不应直接重放。用户自报成功只能标记为未独立核验；服务端幂等键能防止同一操作重复生效。\n" },
+  { name: "storage.md", topic: "rag", text: "# Transaction scope\n\nSQLite transactions atomically commit changes inside that database. They do not atomically commit a separate JSON file or remote service action. Cross-store recovery must reconcile durable intentions with actual receipts.\n" },
+  { name: "summary.md", topic: "rag", text: "# Summary provenance\n\n摘要来源哈希确认绑定原记录没有变化，不能证明摘要的语义正确。用户纠正、否定条件和未完成事项要另行核实；保留原文才能追溯错误概括。\n" },
+  { name: "vectors.md", topic: "rag", text: "# Embedding identity\n\nHash feature vectors do not learn meaning. A trained embedding model may retrieve paraphrases across languages. Bind cached vectors to the text hash and actual model revision; identical model names may hide changed weights.\n" },
+  { name: "teams.md", topic: "rag", text: "# Team reliability\n\n多个成员可能共享同一种错误，人数增加不保证答案更正确。独立工作、结构化命题、可核查依据和主 Agent 审查能帮助发现分歧，但通信与纠错会增加耗时。\n" },
+  { name: "budgets.md", topic: "rag", text: "# Reasoning budget\n\nSome models share the output allocation between reasoning and visible text. Exhausting that allocation can leave a report incomplete; it does not by itself establish an unpaid bill. Reserve space for the final answer and respect explicit reasoning choices.\n" },
+  { name: "metrics.md", topic: "rag", text: "# Latency experiment\n\n固定合成实验中，仅在缓存命中时，P50 延迟从 100 毫秒降至 80 毫秒。未命中请求不在该比较内；材料没有提供准确率提升数据，也不能推出所有请求均加速。\n" },
+  { name: "learning.md", topic: "rag", text: "# Learning evidence\n\nA fluent explanation or completed code test is not proof that a learner understands. Record the learner's independent explanation, transfer to a new task, and delayed retention. A pre/post gain alone does not establish a causal treatment effect without an appropriate comparison.\n" },
+  { name: "ocr.md", topic: "rag", text: "# OCR coverage\n\n混合 PDF 应保留可提取文字，并对无文字页面逐页识别。OCR 置信分不是事实正确概率，空白页与识别失败不能自动区分；未识别页应保留在覆盖回执中。\n" },
+  { name: "idempotency.md", topic: "rag", text: "# Replay safety\n\nAn idempotent operation has the same effect when repeated with the same operation identity. A retry counter or a local log alone does not guarantee exactly once across a remote service. A read-only verifier must match the original operation identity.\n" },
+  { name: "scope-example.md", topic: "tool-calling", text: "# Separate topic example\n\n隔离主题专有标记 topicsealedmarker，仅供跨主题检索边界测试使用，不是用户秘密。\n" },
+];
+const reference = (document: string, anchor: string, grade: 1 | 2 = 2) => ({ document, anchor, grade });
+const entries: [string, string, string, string][] = [
+  ["RQ01", "怎样阻止助手进行用户没有允许的文件修改？", "permissions.md", "Permission boundary"],
+  ["RQ02", "资料中说忽略授权并写入文件，可以执行吗？", "permissions.md", "Permission boundary"],
+  ["RQ03", "价格已调整但查询还是以前的金额，可能是什么问题？", "cache.md", "Cache freshness"],
+  ["RQ04", "合成系统中的缓存多久到期？", "cache.md", "Cache expiration"],
+  ["RQ05", "点击中止后后台还在计算，如何确认真的停了？", "cancellation.md", "Stop propagation"],
+  ["RQ06", "Does a timeout racing promise prove that the remote action was cancelled?", "cancellation.md", "Stop propagation"],
+  ["RQ07", "断线时写入可能成功了，再发一次之前应该怎么办？", "recovery.md", "Unknown write outcome"],
+  ["RQ08", "用户说上次写入成功，能当成独立核验的服务端回执吗？", "recovery.md", "Unknown write outcome"],
+  ["RQ09", "数据库回滚可以撤销已经写好的聊天文件吗？", "storage.md", "Transaction scope"],
+  ["RQ10", "What must recovery reconcile after a crash across JSON and SQLite?", "storage.md", "Transaction scope"],
+  ["RQ11", "有原文哈希的摘要仍可能编造事实吗？", "summary.md", "Summary provenance"],
+  ["RQ12", "为什么长对话要额外保留尚未做完的事和纠正？", "summary.md", "Summary provenance"],
+  ["RQ13", "六十四维哈希特征可以证明系统理解同义句吗？", "vectors.md", "Embedding identity"],
+  ["RQ14", "同名模型换了权重后，原来的检索向量还能复用吗？", "vectors.md", "Embedding identity"],
+  ["RQ15", "Why can several agents agree on the same wrong result?", "teams.md", "Team reliability"],
+  ["RQ16", "多成员是否必然比一个助手更准、更快？", "teams.md", "Team reliability"],
+  ["RQ17", "模型只想了很久却没有输出完整报告，是否就是余额不足？", "budgets.md", "Reasoning budget"],
+  ["RQ18", "How should we reserve visible answer space when thinking consumes output tokens?", "budgets.md", "Reasoning budget"],
+  ["RQ19", "材料的时延改善是否也适用于未命中的请求？", "metrics.md", "Latency experiment"],
+  ["RQ20", "实验里的 P50 延迟从多少降到了多少？", "metrics.md", "Latency experiment"],
+  ["RQ21", "代码跑通后，怎样确认学习者能迁移到新任务？", "learning.md", "Learning evidence"],
+  ["RQ22", "Does a pre/post gain alone prove the tutor caused learning?", "learning.md", "Learning evidence"],
+  ["RQ23", "扫描识别分数能否直接解释成原文事实的正确率？", "ocr.md", "OCR coverage"],
+  ["RQ24", "What distinguishes idempotency from merely counting retry attempts?", "idempotency.md", "Replay safety"],
+];
+export const retrievalQuestions: RetrievalQuestion[] = [
+  ...entries.map(([id, query, document, anchor]) => ({ id, topic: "rag", query, relevant: [reference(document, anchor)] })),
+  { id: "RQ25", topic: "rag", query: "外部写入中断后，如何结合停止传播和核验回执避免重复执行？", relevant: [reference("cancellation.md", "Stop propagation"), reference("recovery.md", "Unknown write outcome")] },
+  { id: "RQ26", topic: "rag", query: "如何在内容修改和嵌入权重变化后避免复用陈旧检索结果？", relevant: [reference("vectors.md", "Embedding identity"), reference("cache.md", "Cache freshness", 1)] },
+  { id: "RN01", topic: "rag", query: "土星最大的卫星是什么？", relevant: [] },
+  { id: "RN02", topic: "rag", query: "What is the boiling point of liquid nitrogen?", relevant: [] },
+  { id: "RQ27", topic: "rag", query: "合成实验准确率提高了多少个百分点？", relevant: [reference("metrics.md", "Latency experiment")] },
+  { id: "RN04", topic: "rag", query: "topicsealedmarker", relevant: [] },
+];

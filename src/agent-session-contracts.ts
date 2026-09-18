@@ -52,7 +52,7 @@ export const messageSchema = z.object({
 export type ChatMessage = z.infer<typeof messageSchema>;
 export const chatSchema = z.object({
   collaboration: teamConfigurationSchema.optional(),
-  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(10), z.literal(11), z.literal(12), z.literal(13)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9), z.literal(10), z.literal(11), z.literal(12), z.literal(13), z.literal(14)]),
   id: z.string().uuid(),
   title: z.string().min(1).max(80),
   customTitle: z.boolean().default(false),
@@ -72,6 +72,8 @@ export const chatSchema = z.object({
   context: z.object({
     goal: z.string().max(4000), notes: z.string().max(4000),
     summary: z.string().max(4000).optional(), summaryThroughId: z.string().uuid().optional(),
+    summaryRecipe: z.string().max(100).optional(), summaryHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    summaryProducer: z.object({ provider: providerSchema, model: z.string().max(128).optional() }).strict().optional(),
     summarySourceHash: z.string().regex(/^[a-f0-9]{64}$/).optional(), summaryAttemptFailed: z.boolean().optional(),
     lastAttemptId: z.string().uuid().optional(),
   }).optional(),

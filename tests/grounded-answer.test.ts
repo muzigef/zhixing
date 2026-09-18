@@ -8,6 +8,13 @@ import type { ModelClient } from "../src/model.js";
 const evidence = [{ text: "RAG needs citations.", score: 1, citation: { topicId: "rag" as const, documentId: "d", documentName: "notes.md", pageNumber: null, anchor: "Grounding" } }];
 function runtime() { const registry = new ProviderRegistry(); const client = new MockModelClient(); registry.register({ id: "mock", client, health: async () => "healthy" as const }); registry.route("tutor", "mock"); return new ProviderRuntime(registry, client); }
 describe("grounded answer", () => {
+  it("carries OCR uncertainty and incomplete document coverage into the actual generation prompt", async () => {
+    const registry = new ProviderRegistry(); let received = "";
+    const client: ModelClient = { async *stream(prompt) { received = prompt; yield { type: "text_delta", text: "RAG needs citations. [notes.md#anchor=Grounding]" }; yield { type: "done" }; } };
+    registry.register({ id: "fixture", client, health: async () => "healthy" }); registry.route("tutor", "fixture");
+    await answerFromEvidence(new ProviderRuntime(registry, new MockModelClient()), "what", [{ ...evidence[0]!, citation: { ...evidence[0]!.citation, extraction: { method: "ocr", confidence: 53, incompleteDocument: true } } }], true, new AbortController().signal);
+    expect(received).toContain("OCR 识别置信度 53"); expect(received).toContain("部分页面未识别");
+  });
   it("无证据拒答，未确认时不外发证据", async () => {
     await expect(answerFromEvidence(runtime(), "what", [], false, new AbortController().signal)).resolves.toContain("insufficient_evidence");
     await expect(answerFromEvidence(runtime(), "what", evidence, false, new AbortController().signal)).rejects.toThrow("external_content_confirmation_required");

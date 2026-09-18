@@ -10,7 +10,7 @@ import { restrictedStudy } from "./outcome-contracts.js";
 import { accessSelection, bindPermissions, retainGrants, writePermission, type AccessSelection } from "./agent-permissions.js";
 import { McpSettings } from "./mcp-settings.js";
 import { randomUUID } from "node:crypto";
-import { planConversationSummary } from "./conversation-summary.js";
+import { planConversationSummary, SUMMARY_RECIPE, summaryTextHash } from "./conversation-summary.js";
 import { excerpt } from "./conversation-context.js";
 import type { LearningApplication } from "./learning-application.js";
 import { providerRuntime, runAssistantTask } from "./assistant-runtime.js";
@@ -576,6 +576,8 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
       }, signal);
       if (!("partial" in result && result.partial) && result.text.trim()) {
         session.context!.summary = result.text;
+        session.context!.summaryRecipe = SUMMARY_RECIPE; session.context!.summaryHash = summaryTextHash(result.text);
+        session.context!.summaryProducer = { provider, ...(client.identity ? { model: client.identity.model } : {}) };
         session.context!.summaryThroughId = plan.throughId;
         session.context!.summarySourceHash = plan.sourceHash;
         session.context!.summaryAttemptFailed = false;
@@ -595,7 +597,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
     let removedRepeat = 0;
     const display = (text: string) => {
       if (!text) return;
-      if (message.firstTokenMs === undefined) message.firstTokenMs = Date.now() - started;
+      if (message.firstTokenMs === undefined && text.trim()) message.firstTokenMs = Date.now() - started;
       message.text += text;
       this.emit({ type: "delta", sessionId: session.id, messageId: message.id, text });
       observer?.onText?.(text, request.provider);
@@ -725,6 +727,7 @@ export class AgentService<Store extends AgentSessionStore = AgentSessionStore> {
             background.signal.throwIfAborted();
             if (current.messages.at(-1)?.id !== session.messages.at(-1)?.id || current.context?.goal !== session.context?.goal || current.context?.notes !== session.context?.notes) return;
             current.context = { ...current.context!, summary: snapshot.context?.summary, summaryThroughId: snapshot.context?.summaryThroughId,
+              summaryRecipe: snapshot.context?.summaryRecipe, summaryHash: snapshot.context?.summaryHash, summaryProducer: snapshot.context?.summaryProducer,
               summarySourceHash: snapshot.context?.summarySourceHash, summaryAttemptFailed: snapshot.context?.summaryAttemptFailed, lastAttemptId: snapshot.context?.lastAttemptId };
             current.messages.at(-1)!.timings!.compactionMs = Date.now() - compactStarted;
             await this.store.save(current);

@@ -22,3 +22,11 @@ it("records a real clarification as reviewable rather than a provider outage", a
   const report = await evaluateQuality([{ id: "R12", prompt: "继续", criteria: ["必要时澄清"] }], ["demo"], 1, async () => ({ status: "waiting", text: "", items: [{ kind: "question", title: "选择方向" }] }));
   expect(report.results[0]?.review).toBe("pending_human_review");
 });
+it("persists frozen rubrics before dispatch and resists a runner mutating the reference criteria", async () => {
+  const cases = [{ id: "A", prompt: "question", criteria: ["frozen criterion"] }]; let dispatched = 0; let initial: unknown;
+  const report = await evaluateQuality(cases, ["demo"], 1, async (_provider, task) => { dispatched++; task.criteria[0] = "lowered criterion"; cases[0]!.criteria[0] = "changed outside"; return { status: "completed", text: "answer", criteria: ["answer-supplied criterion"] }; }, async partial => { if (!dispatched) initial = structuredClone(partial.evaluationDesign); });
+  expect(initial).toMatchObject({ datasetClassification: "development", rubricHash: expect.stringMatching(/^[a-f0-9]{64}$/) });
+  expect(report.results[0]!.criteria).toEqual(["frozen criterion"]);
+  await expect(evaluateQuality(cases, ["demo"], 1, async () => { dispatched++; return { status: "completed", text: "unused" }; }, async () => { throw new Error("checkpoint_unavailable"); })).rejects.toThrow("checkpoint_unavailable");
+  expect(dispatched).toBe(1);
+});

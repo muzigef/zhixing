@@ -1,3 +1,4 @@
+import { mcpOperationInput, mcpRequestHash } from "./mcp-operation.js";
 import { McpSettings, mcpAlias } from "./mcp-settings.js";
 import { McpConnection } from "./mcp-connection.js";
 import type { ZhixingDatabase } from "./database.js";
@@ -17,18 +18,23 @@ export async function verifyMcpRecovery(database: ZhixingDatabase, identity: Exe
   try {
     const original = connection.tools.find(tool => tool.name === policy.name);
     if (!original || mcpAlias(server, original.name, original.inputSchema) !== call.tool) throw new Error("mcp_configuration_changed");
-    const reference = (call.input as Record<string, unknown> | null)?.[rule.identity];
-    if (typeof reference !== "string" && typeof reference !== "number") throw new Error("recovery_identity_missing");
+    if (!call.input || typeof call.input !== "object" || Array.isArray(call.input)) throw new Error("recovery_identity_missing");
+    const operationInput = mcpOperationInput(policy, call.tool, call.input as Record<string, unknown>, { topicId: identity.topicId, executionId: identity.taskId, callId, signal });
+    const reference = operationInput[rule.identity];
+    if (!(typeof reference === "string" && reference.trim().length > 0 && reference.length <= 1000 && !/[\0\r\n]/.test(reference)) && !(typeof reference === "number" && Number.isSafeInteger(reference))) throw new Error("recovery_identity_missing");
     const input = { [rule.argument]: reference }; await connection.validate(rule.tool, input, signal);
     const response = await connection.call(rule.tool, input, signal);
+    if ((response as { isError?: boolean }).isError) throw new Error("recovery_query_failed");
     const result = (response as { structuredContent?: Record<string, unknown> }).structuredContent;
     signal.throwIfAborted();
     if (settings.read(identity.topicId).revision !== configuration.revision) throw new Error("mcp_configuration_changed");
     if (!result || result[rule.resultIdentity] !== reference) throw new Error("recovery_identity_mismatch");
+    const requestHash = mcpRequestHash(operationInput);
+    if (rule.resultRequestHash && result[rule.resultRequestHash] !== requestHash) throw new Error("recovery_request_mismatch");
     const status = result[rule.status];
     if (status !== rule.succeeded && status !== rule.notExecuted) throw new Error("recovery_still_unknown");
     const succeeded = status === rule.succeeded;
-    continuity.resolve(identity, callId, { ok: succeeded, recovery: true, verified: true, source: "external_query", outcome: succeeded ? "succeeded" : "not_executed", originalResponse: "unavailable", verification: { server: server.id, tool: rule.tool, reference, status } });
+    continuity.resolve(identity, callId, { ok: succeeded, recovery: true, verified: true, source: "external_query", outcome: succeeded ? "succeeded" : "not_executed", originalResponse: "unavailable", verification: { server: server.id, tool: rule.tool, reference, status, identityBasis: policy.idempotency ? "host_operation" : "configured_field", requestHash, requestHashVerified: Boolean(rule.resultRequestHash) } });
     return continuity.inspect(identity);
   } finally { await connection.close(); }
 }

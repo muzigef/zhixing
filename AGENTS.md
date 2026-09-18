@@ -1,6 +1,6 @@
 # 知行仓库开发指令
 
-核对日期：2026-09-14；实现基线：`485b358`。本文件面向在此仓库修改代码的开发 Agent，规定工程、隐私和验证要求；项目架构见 [Agent 设计说明](docs/agent-design.md)，使用导航见 [文档索引](docs/README.md)，完成情况见 [当前状态](docs/current-status.md)。
+核对日期：2026-09-18；当前开发起点：`c373c03`，逐项状态见 `docs/interview-improvement-plan-20260918.md`。本文件面向在此仓库修改代码的开发 Agent，规定工程、隐私和验证要求；项目架构见 [Agent 设计说明](docs/agent-design.md)，使用导航见 [文档索引](docs/README.md)，完成情况见 [当前状态](docs/current-status.md)。
 
 本文件提供指令，不是权限隔离机制。通过 `scripts/pi-safe.sh` 启动 Pi 开发工具时会加载 `.pi/extensions/zhixing-guard.ts`，拦截受限路径和命令；应用侧的工具校验、权限与隔离由共享 Runtime 实现。桌面构建把 `desktop/runtime-AGENTS.md` 复制到 `build/runtime/AGENTS.md`，不把根目录开发规则当作产品聊天指令。设计文档是普通参考资料，不作为自动加载的行为规则。
 
@@ -48,7 +48,7 @@
 
 - 用户要求桌面与 CLI 的记忆和长对话策略完全相同；两端必须调用共享 AgentService，禁止前端构造最终 prompt、挑选模型历史或注入自定义 runtime。
 - 两端 Pi 共用 src/pi-model-worker.ts，SDK 只生成模型结果；业务模式通过共享请求契约表示。
-- 当前 CLI `execute()` 仍提前拒绝超过 8,000 字符的输入，共享契约/桌面上限为 20,000；该入口差异尚未修正。不得据共享策略推断所有入口行为完全一致。
+- CLI `execute()` 与共享发送契约/桌面均引用 `MAX_INPUT_CHARACTERS`（20,000）；真实入口测试覆盖 8,001 / 20,000 / 20,001 字符。新增入口不得再次硬编码独立限额。
 - 统一设计见 [记忆策略](docs/agent-memory.md)；[0.7 验收](docs/evidence/unified-agent.md)是首次统一的历史记录，不代替当前回归。
 
 ## 当前通用模型接入约束
@@ -69,3 +69,11 @@
 - 固定宿主进程仅通过 process-gateway 中登记的用途启动；新增进程/Worker 入口必须更新入口审计和边界测试。trusted MCP、OCR、认证等宿主适配器不等于 OS 沙箱。
 - 变更隔离时运行 `npm run test:sandbox` 及完整 verify；平台能力声明必须有对应 OS 的实际进程探针。Windows MCP 交互式隔离未实现时继续明确拒绝。
 - 不把 RSS/目录轮询写成瞬时硬上限；硬内存要求不满足时必须拒绝。资源超限使用 resource_limited，不得截断输出后仍报告执行成功。详见 [执行沙箱](docs/execution-sandbox.md)。
+
+## 持久化与恢复补强（2026-09-18）
+
+- 逐请求预算不能退回总估计/已知用量取最大值；未知回执保留预留，落盘失败后不发新请求。
+- 含 budgetLedger 或 summaryRecipe 的会话必须写 v14，旧格式仍兼容读取，禁止覆盖降级；不要删除升级前副本。
+- 摘要和索引规则变化必须提升对应 recipe；异步语义结果在使用前复核源版本。
+- 外部幂等键和版本观测仅按显式服务契约处理，isError、错身份、错请求哈希不能证明成功；未知写入不自动重放。
+- 数据库快照在私有副本检查；恢复不得删除目标 WAL/SHM，必须核对暂存副本再替换。跨存储取消可能留下撤权后的部分副本，标记未完成并保留，不声称已回滚所有影响。

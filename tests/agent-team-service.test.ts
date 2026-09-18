@@ -12,7 +12,7 @@ import { imageFromBytes } from "../src/image-input.js";
 import { capabilitiesFor } from "../src/model-capabilities.js";
 import type { AgentExecutor } from "../src/agent-executor.js";
 
-it("persists native team budgets in v12 with an original backup and refuses downgrade writes", async () => {
+it("persists native team budgets and request reservations in v14 with an original backup and refuses downgrade writes", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "native-team-store-"));
   const client: AgentExecutor = { kind: "agent-executor", identity: { provider: "native-codex", model: "gpt-test", connection: "native-codex" }, capabilities: capabilitiesFor({ async *stream() {} }), async prepare() {}, async execute(request, _signal, onText) {
     const system = request.messages.filter(item => item.role === "system").map(item => item.content).join("\n");
@@ -26,7 +26,7 @@ it("persists native team budgets in v12 with an original backup and refuses down
     await service.pauseMaintenance();
     expect(reply.team?.status).toBe("completed");
     const loaded = await new AgentSessionStore(root).load(session.id);
-    expect(loaded.version).toBe(12); expect(loaded.messages.at(-1)?.team?.nativeTasks).toBe(5);
+    expect(loaded.version).toBe(14); expect(loaded.messages.at(-1)?.team?.budgetLedger?.version).toBe(1); expect(loaded.messages.at(-1)?.team?.nativeTasks).toBe(5);
     expect(JSON.parse(await fs.readFile(path.join(root, "conversations", `${session.id}.json.v8.bak`), "utf8")).version).toBe(8);
     await expect(store.save({ ...loaded, version: 11, messages: [], collaboration: undefined })).rejects.toThrow("storage_version_unsupported");
     expect((await store.load(session.id)).messages.at(-1)?.team?.nativeTasks).toBe(5);
@@ -43,7 +43,7 @@ it("keeps single default and persists an actual team through the shared headless
     const reply = await service.invoke({ ...request, collaboration: teamConfigurationSchema.parse({ mode: "same-model-team" }) });
     expect(calls).toBe(6); expect(reply.team?.status).toBe("completed");
     const message = (await new AgentSessionStore(root).load(session.id)).messages.at(-1)!;
-    expect((await new AgentSessionStore(root).load(session.id)).version).toBe(11);
+    expect((await new AgentSessionStore(root).load(session.id)).version).toBe(14);
     expect(message.team?.tasks).toHaveLength(2); expect(message.team?.packet?.hash).toHaveLength(64);
     expect(JSON.parse(await fs.readFile(path.join(root, "conversations", `${session.id}.json.v8.bak`), "utf8")).version).toBe(8);
     expect(message.team?.members).toHaveLength(2); expect(message.collaboration?.mode).toBe("same-model-team");

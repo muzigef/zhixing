@@ -176,7 +176,8 @@ describe("natural interaction through the actual CLI", () => {
       await desktopStore.save(structuredClone(base));
       await desktop.send({ sessionId: base.id, text: "解释一下恢复流程", provider, style: "adaptive" }); await desktop.idle(); await desktop.pauseMaintenance();
       expect(bodies[0]).toEqual(actualCli);
-      expect(JSON.stringify(actualCli)).toContain("旧摘要只讲过查询向量");
+      expect(JSON.stringify(actualCli)).not.toContain("旧摘要只讲过查询向量");
+      expect(JSON.stringify(actualCli)).toContain("旧摘要来源、生成规则或内容校验不匹配");
       expect(JSON.stringify(actualCli)).toContain("read_conversation_history");
       expect((await desktop.load(base.id)).messages.at(-1)?.status).toBe("completed");
     } finally { await desktop.pauseMaintenance(); app.close(); }

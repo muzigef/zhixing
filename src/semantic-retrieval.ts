@@ -1,3 +1,4 @@
+import { DOCUMENT_INDEX_RECIPE } from "./document-index-recipe.js";
 import { z } from "zod/v4";
 import { cosineSimilarity } from "./embedding.js";
 import type { ZhixingDatabase } from "./database.js";
@@ -37,24 +38,33 @@ export class OllamaEmbedding implements SemanticEmbedding {
   }
 }
 interface Chunk { id: string; text: string; hash: string; }
+export const SEMANTIC_INDEX_RECIPE = "semantic-v2-verbatim-query400-cosine035";
 export class SemanticIndex {
+  private readonly modelKey: string;
+  private readonly modelId: string;
   constructor(private readonly database: ZhixingDatabase, private readonly model: SemanticEmbedding) {
+    this.modelId = model.id; this.modelKey = JSON.stringify([SEMANTIC_INDEX_RECIPE, DOCUMENT_INDEX_RECIPE, model.id]);
     database.db.exec("CREATE TABLE IF NOT EXISTS semantic_embeddings (chunk_id TEXT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE, model TEXT NOT NULL, content_hash TEXT NOT NULL, vector TEXT NOT NULL, PRIMARY KEY(chunk_id, model))");
   }
-  indexedCount(topic: string): number { return (this.database.db.prepare("SELECT count(*) AS count FROM semantic_embeddings e JOIN chunks c ON c.id=e.chunk_id WHERE c.topic_id=? AND e.model=? AND e.content_hash=c.content_hash").get(topic, this.model.id) as { count: number }).count; }
+  private current(chunk: { id: string; hash: string }): boolean {
+    if (this.model.id !== this.modelId) throw new Error("semantic_model_changed");
+    return Boolean(this.database.db.prepare("SELECT 1 FROM chunks c JOIN documents d ON d.id=c.document_id JOIN document_indexes i ON i.document_id=d.id WHERE c.id=? AND c.content_hash=? AND i.recipe=? AND d.status IN ('indexed','ocr_low_confidence','ocr_partial')").get(chunk.id, chunk.hash, DOCUMENT_INDEX_RECIPE));
+  }
+  indexedCount(topic: string): number { return (this.database.db.prepare("SELECT count(*) AS count FROM semantic_embeddings e JOIN chunks c ON c.id=e.chunk_id JOIN documents d ON d.id=c.document_id JOIN document_indexes i ON i.document_id=d.id WHERE c.topic_id=? AND e.model=? AND e.content_hash=c.content_hash AND i.recipe=? AND d.status IN ('indexed','ocr_low_confidence','ocr_partial')").get(topic, this.modelKey, DOCUMENT_INDEX_RECIPE) as { count: number }).count; }
   async build(topic: string, signal: AbortSignal): Promise<{ indexed: number }> {
     let after = 0; let indexed = 0;
     for (;;) {
       signal.throwIfAborted();
-      const chunks = this.database.db.prepare("SELECT c.rowid AS position, c.id, c.text, c.content_hash AS hash FROM chunks c JOIN documents d ON d.id=c.document_id WHERE c.topic_id=? AND d.status IN ('indexed','ocr_low_confidence') AND c.rowid>? ORDER BY c.rowid LIMIT 16").all(topic, after) as (Chunk & { position: number })[];
+      const chunks = this.database.db.prepare("SELECT c.rowid AS position, c.id, c.text, c.content_hash AS hash FROM chunks c JOIN documents d ON d.id=c.document_id JOIN document_indexes i ON i.document_id=d.id WHERE c.topic_id=? AND i.recipe=? AND d.status IN ('indexed','ocr_low_confidence','ocr_partial') AND c.rowid>? ORDER BY c.rowid LIMIT 16").all(topic, DOCUMENT_INDEX_RECIPE, after) as (Chunk & { position: number })[];
       if (!chunks.length) return { indexed };
       if (indexed + chunks.length > 5000) throw new Error("semantic_index_limit");
-      const missing = chunks.filter((chunk) => !this.database.db.prepare("SELECT 1 FROM semantic_embeddings WHERE chunk_id=? AND model=? AND content_hash=?").get(chunk.id, this.model.id, chunk.hash));
+      const missing = chunks.filter((chunk) => !this.database.db.prepare("SELECT 1 FROM semantic_embeddings WHERE chunk_id=? AND model=? AND content_hash=?").get(chunk.id, this.modelKey, chunk.hash));
       if (missing.length) {
         const vectors = await this.model.embed(missing.map((chunk) => chunk.text), signal); signal.throwIfAborted();
         if (vectors.length !== missing.length) throw new Error("semantic_output_invalid");
         this.database.db.transaction(() => {
-          missing.forEach((chunk, index) => { const vector = vectorSchema.parse(vectors[index]); this.database.db.prepare("INSERT OR REPLACE INTO semantic_embeddings(chunk_id, model, content_hash, vector) VALUES (?, ?, ?, ?)").run(chunk.id, this.model.id, chunk.hash, JSON.stringify(vector)); });
+          if (missing.some(chunk => !this.current(chunk))) throw new Error("semantic_source_changed");
+          missing.forEach((chunk, index) => { const vector = vectorSchema.parse(vectors[index]); this.database.db.prepare("INSERT OR REPLACE INTO semantic_embeddings(chunk_id, model, content_hash, vector) VALUES (?, ?, ?, ?)").run(chunk.id, this.modelKey, chunk.hash, JSON.stringify(vector)); });
         })();
       }
       indexed += chunks.length; after = chunks.at(-1)!.position;
@@ -62,11 +72,12 @@ export class SemanticIndex {
   }
   async search(topic: string, query: string, signal: AbortSignal): Promise<SearchResult[]> {
     signal.throwIfAborted();
-    const rows = this.database.db.prepare(`SELECT c.id AS chunkId, c.text, c.page_number AS pageNumber, c.anchor, d.id AS documentId, d.name AS documentName, e.vector FROM semantic_embeddings e JOIN chunks c ON c.id=e.chunk_id JOIN documents d ON d.id=c.document_id WHERE c.topic_id=? AND e.model=? AND e.content_hash=c.content_hash AND d.status IN ('indexed','ocr_low_confidence') LIMIT 5000`).all(topic, this.model.id) as { chunkId: string; text: string; pageNumber: number | null; anchor: string | null; documentId: string; documentName: string; vector: string }[];
+    const rows = this.database.db.prepare(`SELECT c.id AS chunkId, c.content_hash AS hash, c.text, c.page_number AS pageNumber, c.anchor, d.id AS documentId, d.name AS documentName, e.vector FROM semantic_embeddings e JOIN chunks c ON c.id=e.chunk_id JOIN documents d ON d.id=c.document_id JOIN document_indexes i ON i.document_id=d.id WHERE c.topic_id=? AND e.model=? AND i.recipe=? AND e.content_hash=c.content_hash AND d.status IN ('indexed','ocr_low_confidence','ocr_partial') LIMIT 5000`).all(topic, this.modelKey, DOCUMENT_INDEX_RECIPE) as { chunkId: string; hash: string; text: string; pageNumber: number | null; anchor: string | null; documentId: string; documentName: string; vector: string }[];
     if (!rows.length) return [];
     const [vector] = await this.model.embed([query.slice(0, 400)], signal); signal.throwIfAborted();
     vectorSchema.parse(vector);
-    return rows.map(({ vector: stored, ...row }) => withSourceVersion({ text: row.text, score: cosineSimilarity(vector!, vectorSchema.parse(JSON.parse(stored))), citation: { topicId: topic, chunkId: row.chunkId, pageNumber: row.pageNumber, anchor: row.anchor, documentId: row.documentId, documentName: row.documentName } })).filter((item) => item.score >= .35).sort((a, b) => b.score - a.score).slice(0, 8);
+    if (rows.some(row => !this.current({ id: row.chunkId, hash: row.hash }))) throw new Error("semantic_source_changed");
+    return this.database.withExtraction(rows.map(({ vector: stored, ...row }) => withSourceVersion({ text: row.text, score: cosineSimilarity(vector!, vectorSchema.parse(JSON.parse(stored))), citation: { topicId: topic, chunkId: row.chunkId, pageNumber: row.pageNumber, anchor: row.anchor, documentId: row.documentId, documentName: row.documentName } })).filter((item) => item.score >= .35).sort((a, b) => b.score - a.score).slice(0, 8));
   }
 }
 

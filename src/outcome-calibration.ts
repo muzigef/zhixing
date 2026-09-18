@@ -1,3 +1,4 @@
+import { ordinalAgreement } from "./ordinal-agreement.js";
 import { createHash } from "node:crypto";
 import type { OutcomeResult, OutcomeView, ScoreDistribution } from "./outcome-contracts.js";
 
@@ -7,7 +8,8 @@ export function scoreDistribution(values: number[]): ScoreDistribution {
     standardDeviation: values.length > 1 ? Math.sqrt(values.reduce((sum, value) => sum + (value - mean!) ** 2, 0) / (values.length - 1)) : null };
 }
 export function explanationSourceHash(trial: Pick<OutcomeView, "topicId" | "id">, phase: string, result: OutcomeResult): string {
-  return createHash("sha256").update(JSON.stringify([trial.topicId, trial.id, phase, result.answers, result.explanation, result.assistance, result.submittedAt])).digest("hex");
+  const legacy = [trial.topicId, trial.id, phase, result.answers, result.explanation, result.assistance, result.submittedAt];
+  return createHash("sha256").update(JSON.stringify(result.transferExample === undefined ? legacy : [...legacy, { transferExample: result.transferExample, transferPrompt: result.transferPrompt }])).digest("hex");
 }
 export function validateExplanationReviews(trial: OutcomeView): void {
   for (const [phase, result] of Object.entries(trial.results)) {
@@ -18,10 +20,18 @@ export function validateExplanationReviews(trial: OutcomeView): void {
   }
 }
 export function outcomeCalibration(trials: OutcomeView[]) {
+  const reviewerPairs = new Map<string, { reviewerA: string; reviewerB: string; pairs: [number, number][] }>();
   const forms = new Map<string, { topicId: string; bankVersion: number; formId: number; phase: string; mode: string; conditions: string; scores: number[] }>();
   const reviews = { pending: 0, singleReviewed: 0, doubleReviewed: 0, agreements: 0, disagreements: 0, reviewerIdentity: "self_reported" as const };
   for (const trial of trials) for (const [phase, result] of Object.entries(trial.results)) {
     const latest = new Map((result.reviews ?? []).map(review => [review.reviewer, review.verdict]));
+    const reviewers = [...latest].filter(([, verdict]) => verdict !== "withdrawn").sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+    const value = (verdict: string) => verdict === "supported" ? 4 : verdict === "partial" ? 2 : 0;
+    for (let i = 0; i < reviewers.length; i++) for (let j = i + 1; j < reviewers.length; j++) {
+      const [reviewerA, verdictA] = reviewers[i]!, [reviewerB, verdictB] = reviewers[j]!;
+      const key = JSON.stringify([reviewerA, reviewerB]), pair = reviewerPairs.get(key) ?? { reviewerA, reviewerB, pairs: [] };
+      pair.pairs.push([value(verdictA), value(verdictB)]); reviewerPairs.set(key, pair);
+    }
     const active = [...latest.values()].filter(verdict => verdict !== "withdrawn");
     if (!active.length) reviews.pending++;
     else if (active.length === 1) reviews.singleReviewed++;
@@ -31,6 +41,6 @@ export function outcomeCalibration(trials: OutcomeView[]) {
     const key = JSON.stringify(dimensions), entry = forms.get(key) ?? { ...dimensions, scores: [] };
     entry.scores.push(100 * result.correctCount / result.total); forms.set(key, entry);
   }
-  return { status: "uncalibrated" as const, forms: [...forms.values()].map(({ scores, ...dimensions }) => ({ ...dimensions, records: scores.length, meanScore: scoreDistribution(scores).mean })), reviews,
-    interpretation: "题卷按阶段、方式和模型条件分别描述；差异可能来自样本与教学，不能据此证明等难度。标准差描述记录间差异，不是置信区间；身份与独立性尚未核验。" };
+  return { status: "uncalibrated" as const, reviewerAgreement: [...reviewerPairs.values()].map(({ pairs, ...identity }) => ({ ...identity, agreement: ordinalAgreement(pairs) })), forms: [...forms.values()].map(({ scores, ...dimensions }) => ({ ...dimensions, records: scores.length, meanScore: scoreDistribution(scores).mean })), reviews,
+    interpretation: "题卷按阶段、方式和模型条件分别描述；差异可能来自样本与教学，不能据此证明等难度。标准差描述记录间差异，不是置信区间；配对一致性只取同一答卷每位评阅者最新有效评分；撤回不计，常数评分下kappa可为空。一致性不证明真值；身份与独立性尚未核验。" };
 }

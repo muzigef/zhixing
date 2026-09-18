@@ -1,3 +1,8 @@
+import { runSecureStoreProbe } from "./secure-store-probe.js";
+import { outcomeAssignment } from "../../src/outcome-contracts.js";
+import { benchmarkProviderPerformance } from "../../src/provider-performance.js";
+import { atomicJson } from "../../src/agent-session-store.js";
+import { evaluationCommandAllowed } from "../core/evaluation-isolation.js";
 import { nativeRuntimeCatalog } from "../../src/native-runtime-catalog.js";
 import { ApiConnections } from "../../src/api-connections.js";
 import { nativeBackend } from "../../src/native-agent.js";
@@ -49,6 +54,12 @@ import { withModelBudget } from "../../src/model-capabilities.js";
 import type { ContextBudget } from "../../src/context-window.js";
 import { checkApiConnection } from "../../src/api-connection.js";
 
+if (process.env.ZHIXING_SECURE_STORE_PROBE) {
+  const exitCode = await runSecureStoreProbe();
+  app.exit(exitCode);
+  process.exit(exitCode);
+}
+
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const origin = "zhixing://app";
 protocol.registerSchemesAsPrivileged([
@@ -58,7 +69,10 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 app.setName("知行");
-app.setPath("userData", path.join(app.getPath("appData"), "Zhixing"));
+const productionData = path.join(app.getPath("appData"), "Zhixing");
+const isolatedEvaluation = process.env.ZHIXING_DESKTOP_EVALUATION === "1";
+if (isolatedEvaluation && (process.env.ZHIXING_DESKTOP_TEST_DATA || process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0")) throw new Error("evaluation_environment_conflict");
+app.setPath("userData", isolatedEvaluation ? await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-isolated-evaluation-")) : productionData);
 // Automated UI checks always supply an isolated temporary data directory.
 if (process.env.ZHIXING_DESKTOP_TEST_DATA)
   app.setPath("userData", process.env.ZHIXING_DESKTOP_TEST_DATA);
@@ -78,7 +92,7 @@ const customSecrets = new Map<CustomProvider, EncryptedDesktopSecrets>();
 function secretsFor(provider: "deepseek-api" | "kimi-api" | CustomProvider): EncryptedDesktopSecrets {
   if (provider === "deepseek-api") return secrets;
   if (provider === "kimi-api") return kimiSecrets;
-  if (!customSecrets.has(provider)) customSecrets.set(provider, desktopSecrets(app.getPath("userData"), provider));
+  if (!customSecrets.has(provider)) customSecrets.set(provider, desktopSecrets(isolatedEvaluation ? productionData : app.getPath("userData"), provider, isolatedEvaluation));
   return customSecrets.get(provider)!;
 }
 function apiModel(provider: "deepseek-api" | "kimi-api" | CustomProvider) {
@@ -232,11 +246,13 @@ else {
         worker: path.join(resources, "pi-model-worker.mjs"),
         sdk: await resolvePackagedPiSdk(app.getAppPath()),
       });
-      secrets = desktopSecrets(root);
-      kimiSecrets = desktopSecrets(root, "kimi-api");
+      secrets = desktopSecrets(isolatedEvaluation ? productionData : root, "deepseek-api", isolatedEvaluation);
+      kimiSecrets = desktopSecrets(isolatedEvaluation ? productionData : root, "kimi-api", isolatedEvaluation);
       apiConnections = new ApiConnections(path.join(root, "api-connections.json"));
       connectionProfiles = (await apiConnections.load()).connections;
       const store = new DesktopStore(root);
+      // Only validated preferences are copied; workspace, sessions and keys stay at their original location.
+      if (isolatedEvaluation) await store.saveSettings(await new DesktopStore(productionData).settings());
       deepseekModel = (await store.settings()).deepseekModel;
       semanticModel = (await store.settings()).semanticModel ?? "";
       contextBudget = (await store.settings()).contextBudget;
@@ -266,7 +282,8 @@ else {
           )
             throw new Error("invalid_sender");
           const command = desktopCommandSchema.parse(raw);
-          if (checkingApi && ["team-evaluate", "check-api", "configure-deepseek", "configure-kimi", "api-connection-save", "api-connection-remove", "settings", "send", "enqueue", "answer", "resume-queue", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
+          if (isolatedEvaluation && !evaluationCommandAllowed(command.type)) throw new Error("evaluation_read_only");
+          if (checkingApi && ["team-evaluate", "provider-benchmark", "check-api", "configure-deepseek", "configure-kimi", "api-connection-save", "api-connection-remove", "settings", "send", "enqueue", "answer", "resume-queue", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           if (learningController && ["new", "fork", "answer", "enqueue", "resume-queue", "withdraw", "context", "permissions", "rename", "settings", "configure-deepseek", "configure-kimi", "workspace-select", "workspace-backup", "workspace-restore"].includes(command.type)) throw new Error("learning_busy");
           let data: unknown;
           switch (command.type) {
@@ -328,12 +345,13 @@ else {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               learning.registry.get(command.topicId);
               const trials = learning.outcomes.list(command.topicId);
-              const report = { version: 1, exportedAt: new Date().toISOString(), topicId: command.topicId, assignment: "learner_selected", trials, summary: summarizeOutcomes(trials) };
+              const report = { version: 1, exportedAt: new Date().toISOString(), topicId: command.topicId, assignment: outcomeAssignment(trials), trials, summary: summarizeOutcomes(trials) };
               const selected = await dialog.showSaveDialog(window, { title: "导出本地学习验证（包含你的作答）", defaultPath: `zhixing-outcomes-${command.topicId}.json`, filters: [{ name: "JSON", extensions: ["json"] }] });
               if (!selected.canceled && selected.filePath) await fs.writeFile(selected.filePath, JSON.stringify(report, null, 2), { encoding: "utf8", mode: 0o600 });
               data = { cancelled: selected.canceled };
               break;
             }
+            case "outcome-enroll":
             case "outcome-start":
             case "outcome-submit":
             case "outcome-lesson":
@@ -343,7 +361,11 @@ else {
               if (learningController || service.activeSessionId) throw new Error("learning_busy");
               learning.registry.get(command.topicId); beginLearning();
               try {
-                if (command.type === "outcome-start") data = learning.outcomes.start(command.topicId, command.mode, command.protocol);
+                if (command.type === "outcome-enroll") {
+                  if (command.topicId !== command.ticket.plan.topicId) throw new Error("cross_topic_denied");
+                  data = learning.outcomes.startAssigned(command.ticket);
+                }
+                else if (command.type === "outcome-start") data = learning.outcomes.start(command.topicId, command.mode, command.protocol);
                 else if (command.type === "outcome-submit") data = learning.outcomes.submit(command.topicId, command.id, command.phase, command.submission);
                 else if (command.type === "outcome-lesson") data = await service.openOutcomeLesson(command.topicId, command.id);
                 else if (command.type === "outcome-finish-lesson") data = await service.finishOutcomeLesson(command.topicId, command.id);
@@ -597,11 +619,28 @@ else {
             case "check-api":
               if (service.activeSessionId || learningController) throw new Error("learning_busy");
               checkingApi = true;
-              try { data = await checkApiConnection(apiModel(command.provider)); }
+              try { data = await checkApiConnection(apiModel(command.provider), { mode: command.mode }); }
               finally { checkingApi = false; }
               break;
             case "team-evaluation-status":
               data = { running: Boolean(evaluationController), progress: evaluationProgress }; break;
+            case "provider-benchmark": {
+              if (service.activeSessionId || learningController || command.provider !== "demo" && process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("learning_busy");
+              checkingApi = true; evaluationController = new AbortController(); evaluationProgress = undefined;
+              await service.pauseMaintenance();
+              try {
+                const evaluationRoot = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-performance-")), provenance = await learning.provenance();
+                evaluationIdle = benchmarkProviderPerformance({ cycles: command.cycles, signal: evaluationController.signal, create: () => {
+                  const native = nativeBackend(command.provider, nativeSettingsEnvironment(), contextBudget); if (native) return native;
+                  if (command.provider === "demo") return new DesktopDemoClient();
+                  if (command.provider === "pi-codex") return createAgentModel(command.provider, { pi, secrets, contextBudget });
+                  if (command.provider === "deepseek-api" || command.provider === "kimi-api" || isCustomProvider(command.provider)) return apiModel(command.provider);
+                  throw new Error("provider_not_found");
+                }, checkpoint: partial => atomicJson(path.join(evaluationRoot, "report.json"), { ...partial, provider: command.provider, syntheticOnly: command.provider === "demo", provenance }, 2_000_000) });
+                data = { ...await evaluationIdle as object, provider: command.provider, syntheticOnly: command.provider === "demo", provenance };
+              } finally { checkingApi = false; evaluationController = undefined; }
+              break;
+            }
             case "team-evaluate": {
               if (service.activeSessionId || learningController || process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0") throw new Error("learning_busy");
               checkingApi = true; evaluationController = new AbortController();
@@ -609,7 +648,7 @@ else {
               try {
                 const evaluationRoot = await fs.mkdtemp(path.join(os.tmpdir(), "zhixing-team-evaluation-"));
                 const provenance = await learning.provenance();
-                evaluationIdle = evaluateTeams({ root: evaluationRoot, suite: command.suite, leadProvider: command.leadProvider, resolve: provider => provider === "native-codex" ? nativeBackend(provider, nativeSettingsEnvironment(), contextBudget)! : provider === "pi-codex" ? createAgentModel(provider, { pi, secrets, contextBudget }) : provider === "deepseek-api" || provider === "kimi-api" ? apiModel(provider) : (() => { throw new Error("provider_not_found"); })(), signal: evaluationController.signal, onProgress: value => { evaluationProgress = value; } });
+                evaluationIdle = evaluateTeams({ root: evaluationRoot, suite: command.suite, caseIds: command.caseIds, repetitions: command.repetitions, leadProvider: command.leadProvider, resolve: provider => provider === "native-codex" ? nativeBackend(provider, nativeSettingsEnvironment(), contextBudget)! : provider === "pi-codex" ? createAgentModel(provider, { pi, secrets, contextBudget }) : provider === "deepseek-api" || provider === "kimi-api" ? apiModel(provider) : (() => { throw new Error("provider_not_found"); })(), signal: evaluationController.signal, onProgress: value => { evaluationProgress = value; } });
                 data = { ...await evaluationIdle as object, provenance };
               } finally { checkingApi = false; evaluationController = undefined; }
               break;

@@ -13,6 +13,8 @@ export const workerTimingSchema = z.object({
   firstTextMs: milliseconds.optional(),
   submittedReasoning: z.string().min(1).max(32).optional(),
   outputTokenLimit: z.number().int().positive().max(16_384).optional(),
+  requestAttempts: z.number().int().min(1).max(3).optional(),
+  retryWaitMs: milliseconds.optional(),
   providerContextWindow: z.number().int().positive().max(100_000_000).optional(),
   providerMaxOutput: z.number().int().positive().max(100_000_000).optional(),
 }).strict();

@@ -23,6 +23,7 @@ import { EvidenceStore, dayIdSchema, type EvidenceKind, type EvidenceValidation 
 import { LocalSandbox } from "./local-sandbox.js";
 import { applicationTools, type ApplicationToolOptions } from "./application-tools.js";
 import { OllamaEmbedding, SemanticIndex, fuseEvidence } from "./semantic-retrieval.js";
+import { extractionNotice } from "./document-extraction.js";
 import { citationMarker } from "./citation-marker.js";
 import { AssessmentStore } from "./learning-assessment.js";
 import { LearningOutcomeStore } from "./learning-outcomes.js";
@@ -64,7 +65,7 @@ export class LearningApplication {
     try {
       const index = await this.semanticIndex(signal);
       if (!index.indexedCount(topic)) return { evidence: lexical, retrieval: { mode: "lexical_fallback", reason: "semantic_index_empty" } };
-      return { evidence: fuseEvidence(lexical, await index.search(topic, query, signal)), retrieval: { mode: "hybrid" } };
+      return { evidence: this.database.withChunkContext(fuseEvidence(lexical, await index.search(topic, query, signal))), retrieval: { mode: "hybrid" } };
     } catch (error) { if (signal.aborted) throw error; return { evidence: lexical, retrieval: { mode: "lexical_fallback", reason: "semantic_unavailable" } }; }
   }
   constructor(readonly root: string, readonly registry: TopicRegistry, readonly database: ZhixingDatabase, readonly library: DocumentLibrary, readonly runtime: LearningRuntime, private readonly resources?: string) {
@@ -202,7 +203,7 @@ export class LearningApplication {
     const activeDay = overview.days.find((day) => day.state === "进行中")?.dayId;
     const selectedDay = overview.course.find((day) => day.id === activeDay) ?? overview.course[0];
     const course = selectedDay ? { ...selectedDay, topicId } : undefined;
-    const sources = evidence.map((item) => ({ text: item.text, citation: item.citation, marker: citationMarker(item.citation) }));
+    const sources = evidence.map((item) => ({ text: item.text, citation: item.citation, marker: citationMarker(item.citation), extractionNotice: extractionNotice(item.citation.extraction) }));
     const needsProgress = /进度|今天|今日|实验|课程|第.?天|下一步|学到|完成/.test(question);
     const memory = await this.memory.snapshot(topicId, question, teaching);
     signal.throwIfAborted();
@@ -242,7 +243,7 @@ export class LearningApplication {
     if (!rows.length) throw new Error("citation_not_found");
     const text = rows.map((row) => row.text).join("");
     if (citation.contentHash && (rows.length !== 1 || sourceHash(text) !== citation.contentHash)) throw new Error("citation_version_mismatch");
-    return { citation, text: text.slice(0, 12_000), truncated: text.length > 12_000 || rows.length === 20 };
+    return { citation: this.database.withExtraction([{ citation, text, score: 0 }])[0]!.citation, text: text.slice(0, 12_000), truncated: text.length > 12_000 || rows.length === 20 };
   }
   close(): void { this.database.close(); }
 }

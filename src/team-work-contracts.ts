@@ -1,11 +1,16 @@
 import { z } from "zod/v4";
 import { teamFailureSchema, teamReportSchema } from "./team-quality.js";
+import { conversationAnchorsSchema } from "./conversation-anchor-contracts.js";
 import { citationSchema } from "./learning-contracts.js";
 
 export const executionEvidenceSchema = z.object({ id: z.string().length(64), executionId: z.string().uuid(), callId: z.string().max(200), tool: z.string().max(200), inputHash: z.string().length(64), outputHash: z.string().length(64), ok: z.boolean() }).strict();
 export type ExecutionEvidence = z.infer<typeof executionEvidenceSchema>;
 
-export const teamPacketSchema = z.object({ question: z.string().max(32_000), history: z.array(z.object({ role: z.enum(["user", "assistant", "observation"]), content: z.string().max(24_000) }).strict()).max(12), truncated: z.boolean(), hash: z.string().length(64) }).strict();
+export const teamPacketSchema = z.object({ question: z.string().max(32_000), history: z.array(z.object({ role: z.enum(["user", "assistant", "observation"]), content: z.string().max(24_000) }).strict()).max(12), truncated: z.boolean(), hash: z.string().length(64), context: z.object({ version: z.literal(1), historySourceHash: z.string().regex(/^[a-f0-9]{64}$/), sourceMessages: z.number().int().nonnegative(), sourceCharacters: z.number().int().nonnegative(), omittedMessages: z.number().int().nonnegative(), omittedCharacters: z.number().int().nonnegative(), anchors: conversationAnchorsSchema }).strict().optional() }).strict().refine(packet => {
+  const retained = packet.history.reduce((sum, item) => sum + item.content.length, 0);
+  const anchors = packet.context?.anchors.items.reduce((sum, item) => sum + item.text.length, 0) ?? 0;
+  return retained + anchors <= 24_000 && (!packet.context || packet.context.sourceMessages - packet.history.length === packet.context.omittedMessages && packet.context.sourceCharacters - retained === packet.context.omittedCharacters);
+});
 export type TeamPacket = z.infer<typeof teamPacketSchema>;
 
 const key = z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/);

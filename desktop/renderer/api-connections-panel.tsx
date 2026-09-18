@@ -1,3 +1,4 @@
+import { connectionProbeLabel, type ApiConnectionResult } from "../../src/provider-capability-contracts.js";
 import { useEffect, useState } from "react";
 import { Plus, Check, Settings2 } from "lucide-react";
 import { apiConnectionInputSchema, isCustomProvider, type ApiConnection, type ApiConnectionInput } from "../../src/api-connection-config.js";
@@ -58,9 +59,9 @@ export function ApiConnectionsPanel({ profiles, settings, busy, onSave, onUpdate
     </div>
     {isCustomProvider(settings.provider) && !selected && <p role="alert" className="message-error">当前连接已移除，请选择其他模型后再发送。已有对话会保留。</p>}
     {selected && !editing && <div className="connection-selected"><p>{selected.baseUrl}</p><button type="button" className="api-connection-button" disabled={busy || working || !selected.configured} onClick={() => void act(async () => {
-      const result = await request<{ firstTokenMs: number; durationMs: number }>({ type: "check-api", provider: selected.id });
-      setNotice(`连接正常 · 首字 ${(result.firstTokenMs / 1000).toFixed(2)} 秒 · 总耗时 ${(result.durationMs / 1000).toFixed(2)} 秒`);
-    })}>{working ? "正在测试…" : "测试自定义连接"}</button><small>发送一条固定测试消息，不携带对话或学习资料。测试可能产生少量 API 用量。</small></div>}
+      const result = await request<ApiConnectionResult>({ type: "check-api", provider: selected.id });
+      setNotice(connectionProbeLabel(result));
+    })}>{working ? "正在测试…" : "测试自定义连接"}</button><button type="button" disabled={busy || working || !selected.configured || !selected.tools} onClick={() => void act(async () => { setNotice(connectionProbeLabel(await request<ApiConnectionResult>({ type: "check-api", provider: selected.id, mode: "tools" }))); })}>测试自定义工具能力</button><small>文本测试一轮；工具测试最多两轮，只使用无副作用的合成工具。不携带对话或学习资料，按 API 用量计费。</small></div>}
     {editing && <form className="connection-form" onSubmit={event => { event.preventDefault(); void save(); }}>
       <h4>{original ? "管理连接" : "添加 API 连接"}</h4>
       {!original && <><label>服务商模板<select aria-label="服务商模板" value={preset} onChange={event => { const id = event.target.value; setPreset(id); setDraft(id ? providerTemplate(id) : empty()); setApiKey(""); }}><option value="">自定义服务商</option>{providerCatalog.map(provider => <option key={provider.id} value={provider.id}>{provider.name}</option>)}</select></label>

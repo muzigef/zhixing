@@ -1,3 +1,4 @@
+import type { NativeRuntimeProbe } from "./provider-capability-contracts.js";
 import { hostProcess } from "./process-gateway.js";
 const { spawn } = hostProcess("native-provider");
 import fs from "node:fs/promises";
@@ -15,7 +16,7 @@ import type { NativeRunner, NativeRuntimeAdapter } from "./native-runtime-contra
 export type { NativeCommand, NativeRunner } from "./native-runtime-contract.js";
 export type { NativeVendor } from "./native-runtime-catalog.js";
 
-export interface NativeAgentStatus { vendor: NativeVendor; installed: boolean; executable: string; available: boolean; reason: string; authentication: "managed_by_official_runtime"; }
+export interface NativeAgentStatus { checkedAt: string; runtime?: NativeRuntimeProbe; authenticationChecked: false; vendor: NativeVendor; installed: boolean; executable: string; available: boolean; reason: string; authentication: "managed_by_official_runtime"; }
 function defaultExecutable(vendor: NativeVendor, environment: NodeJS.ProcessEnv): string {
   const configured = environment[`ZHIXING_${vendor.toUpperCase()}_EXECUTABLE`];
   if (configured) return configured;
@@ -69,7 +70,7 @@ export class NativeAgentExecutor implements AgentExecutor {
   constructor(readonly vendor: NativeVendor, private readonly environment: NodeJS.ProcessEnv = process.env, private readonly runner: NativeRunner = runNativeProcess, private readonly executable = defaultExecutable(vendor, environment), readonly contextBudget = environmentContextBudget(environment), private readonly adapter: NativeRuntimeAdapter | undefined = nativeRuntimeAdapters[vendor]) { this.environment = Object.freeze({ ...environment }); }
   private command(directory: string) { return { executable: this.executable, cwd: directory, environment: { ...nativeEnvironment(this.environment), ...this.adapter?.environment } }; }
   async status(signal: AbortSignal): Promise<NativeAgentStatus> {
-    const result: NativeAgentStatus = { vendor: this.vendor, executable: this.executable, installed: false, available: false, authentication: "managed_by_official_runtime", reason: "未找到官方运行时。" };
+    const result: NativeAgentStatus = { checkedAt: new Date().toISOString(), authenticationChecked: false, vendor: this.vendor, executable: this.executable, installed: false, available: false, authentication: "managed_by_official_runtime", reason: "未找到官方运行时。" };
     // A help-only probe does not sign in, inspect account files, or send a model request.
     let help = "";
     try { await this.runner({ ...this.command(os.tmpdir()), args: ["--help"], input: "" }, AbortSignal.any([signal, AbortSignal.timeout(10_000)]), line => { help += line + "\n"; if (help.length > 200_000) throw new Error("provider_output_limit"); }); }
@@ -77,7 +78,7 @@ export class NativeAgentExecutor implements AgentExecutor {
     result.installed = true;
     if (this.adapter) {
       const probe = await this.adapter.probe(this.command(os.tmpdir()), this.runner, signal, help);
-      result.available = probe.available; result.reason = probe.reason;
+      result.available = probe.available; result.reason = probe.reason; result.runtime = probe.runtime;
     }
     else result.reason = nativeRuntimeCatalog.find(entry => entry.vendor === this.vendor)!.pendingReason;
     return result;

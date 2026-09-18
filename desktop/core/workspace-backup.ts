@@ -45,8 +45,9 @@ async function* walk(root: string, relative: string): AsyncIterable<string> {
 }
 /** Explicit user export; only application-owned data and a consistent SQLite snapshot are included. */
 export async function createWorkspaceBackup(app: LearningApplication, store: DesktopStore, directory: string, appVersion: string, signal: AbortSignal): Promise<string> {
+  signal.throwIfAborted();
   await store.flush();
-  await app.projects.validateBackup();
+  await app.projects.validateBackup(); signal.throwIfAborted();
   const parent = await fs.realpath(directory).catch((error) => { if (error.code === "ENOENT") return path.resolve(directory); throw error; });
   if ([app.root, path.join(store.root, "conversations")].some((root) => parent === root || parent.startsWith(`${root}${path.sep}`))) throw new Error("backup_destination_invalid");
   await fs.mkdir(parent, { recursive: true, mode: 0o700 });
@@ -66,15 +67,17 @@ export async function createWorkspaceBackup(app: LearningApplication, store: Des
       signal.throwIfAborted(); const destination = `workspace/${relative}`; if (!allowed(destination)) continue;
       await copy(safe(app.root, relative), safe(target, destination), signal); await record(destination);
     }
-    const database = "workspace/zhixing/db/zhixing.sqlite"; await app.database.backup(safe(target, database)); await record(database);
+    const database = "workspace/zhixing/db/zhixing.sqlite"; signal.throwIfAborted(); await app.database.backup(safe(target, database)); signal.throwIfAborted(); await record(database);
     for (const root of ["conversations", "preferences.json", "api-connections.json"]) for await (const relative of walk(store.root, root)) {
       signal.throwIfAborted(); const destination = `desktop/${relative}`; if (!allowed(destination)) continue;
       await copy(safe(store.root, relative), safe(target, destination), signal); await record(destination);
     }
-    await fs.writeFile(safe(target, "manifest.json"), JSON.stringify(manifest, null, 2), { flag: "wx", mode: 0o600 }); return target;
+    signal.throwIfAborted();
+    await fs.writeFile(safe(target, "manifest.json"), JSON.stringify(manifest, null, 2), { flag: "wx", mode: 0o600 }); signal.throwIfAborted(); return target;
   } catch (error) { await fs.rm(target, { recursive: true, force: true }); throw error; }
 }
 export async function inspectWorkspaceBackup(directory: string, signal: AbortSignal): Promise<Manifest> {
+  signal.throwIfAborted();
   const file = safe(directory, "manifest.json"); if ((await fs.stat(file)).size > 4_000_000) throw new Error("backup_size_limit");
   const manifest = manifestSchema.parse(JSON.parse(await fs.readFile(file, "utf8")));
   const seen = new Set<string>(); let total = 0;
@@ -88,11 +91,11 @@ export async function inspectWorkspaceBackup(directory: string, signal: AbortSig
   if (!seen.has("workspace/zhixing/db/zhixing.sqlite")) throw new Error("backup_invalid");
   inspectDatabaseSnapshot(safe(directory, "workspace/zhixing/db/zhixing.sqlite"));
   for (const relative of ["desktop/api-connections.json", "workspace/zhixing/settings/api-connections.local.json"]) if (seen.has(relative)) await new ApiConnections(safe(directory, relative)).load();
-  return manifest;
+  signal.throwIfAborted(); return manifest;
 }
 /** Non-destructive restore: new workspace, remapped conversation IDs, no inherited execution grants. */
 export async function restoreWorkspaceBackup(directory: string, parent: string, store: DesktopStore, signal: AbortSignal): Promise<{ workspace: string; sessions: number }> {
-  const manifest = await inspectWorkspaceBackup(directory, signal);
+  const manifest = await inspectWorkspaceBackup(directory, signal); signal.throwIfAborted();
   await fs.mkdir(parent, { recursive: true, mode: 0o700 }); const workspace = await fs.realpath(await fs.mkdtemp(path.join(parent, "workspace-")));
   try {
     for (const item of manifest.files.filter((item) => item.path.startsWith("workspace/"))) {
@@ -125,8 +128,9 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
           for (const item of message.items ?? []) if ((item.kind === "approval" || item.kind === "question") && item.callId === callId && callId) { item.status = "pending"; item.answer = undefined; }
         }
       } finally { journalDatabase.close(); }
-      await (cliChats.includes(chat) ? cliStore : store).save(chat);
+      await (cliChats.includes(chat) ? cliStore : store).save(chat); signal.throwIfAborted();
     }
+    signal.throwIfAborted();
     const database = new ZhixingDatabase(safe(workspace, "zhixing/db/zhixing.sqlite"));
     try { McpSettings.revokeAll(database); PracticeProjects.clearSelections(database); new LearningOutcomeStore(database).remapSessions(ids);
       AgentExecutionStore.remapSessions(database, ids); } finally { database.close(); }
@@ -135,6 +139,7 @@ export async function restoreWorkspaceBackup(directory: string, parent: string, 
       const target = new ApiConnections(path.join(store.root, "api-connections.json"));
       await target.merge(profiles.connections, (await target.load()).revision);
     }
+    signal.throwIfAborted();
     return { workspace, sessions: chats.length };
   } catch (error) {
     // Keep partially restored data for inspection; never delete conversations already imported.

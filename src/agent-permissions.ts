@@ -30,7 +30,7 @@ export function writePermission(tool: string, input: unknown, topic: string): Wr
   const kind = tool.startsWith("mcp_") ? "external" : tool.startsWith("project_") ? "project" : "learning";
   const paths = Array.isArray(args.files) ? args.files.map(file => (file as { path?: string }).path).sort() : undefined;
   const operations = Array.isArray(args.files) ? args.files.map(file => ({ path: (file as { path?: string }).path, operation: (file as { content?: unknown }).content === null ? "delete" : "write" })).sort((a, b) => String(a.path).localeCompare(String(b.path))) : undefined;
-  const target = kind === "external" ? canonical(args) : kind === "project" ? { projectId: args.projectId, path: args.path, operations, snapshotId: args.snapshotId } : { dayId: args.dayId, kind: args.kind };
+  const target = kind === "external" || tool === "correct_memory" ? canonical(args) : kind === "project" ? { projectId: args.projectId, path: args.path, operations, snapshotId: args.snapshotId } : { dayId: args.dayId, kind: args.kind };
   const label = kind === "external" ? "本会话中，此版本外部工具的相同参数" : kind === "project" ? `本会话当前项目：${args.path ?? paths?.join("、") ?? tool}` : `本会话当前主题：${args.dayId ?? ""} ${args.kind ?? tool}`;
   return { kind, label: label.slice(0, 500), key: createHash("sha256").update(JSON.stringify([kind, topic, tool, target])).digest("hex") };
 }

@@ -18,6 +18,7 @@ for(const event of [{type:'thread.started',thread_id:'synthetic'},{type:'turn.st
 `, { mode: 0o700 });
 await fs.writeFile(nativeFixture, `#!${process.execPath}\nconst args=process.argv.slice(2);
 if(args.includes('--help')) console.log('--restricted --safe-mode --tools --strict-mcp-config --no-session-persistence --setting-sources --system-prompt-file');
+else if(args[0]==='--version') console.log('2.1.0 (Claude Code)');
 else if(args[0]==='auth') console.log(JSON.stringify({loggedIn:true,authMethod:'claude.ai'},null,2));
 else {let input='';process.stdin.on('data',part=>input+=part);process.stdin.on('end',()=>{
 if(!args.includes('--restricted')||!args.includes('--safe-mode')||args[args.indexOf('--tools')+1]!==''||process.env.ANTHROPIC_API_KEY) process.exit(2);
@@ -47,6 +48,10 @@ async function launch() {
         const body = JSON.parse(options.body);
         if (body.model !== (kimi ? "kimi-k3" : "deepseek-v4-flash")) throw new Error("fixture_model_crossed");
         if (kimi && (body.thinking || !["low", "high", "max"].includes(body.reasoning_effort))) throw new Error("fixture_reasoning_invalid");
+        if (body.tools?.some(tool => tool.function.name === "zhixing_connection_probe")) {
+          const result = body.messages.find(message => message.role === "tool");
+          return new Response(JSON.stringify({ model: "reported-fixture-model", choices: [{ message: result ? { content: JSON.parse(result.content).nonce } : { content: null, reasoning_content: "synthetic", tool_calls: [{ id: "capability-probe", type: "function", function: { name: "zhixing_connection_probe", arguments: "{}" } }] }, finish_reason: result ? "stop" : "tool_calls" }] }), { headers: { "content-type": "application/json" } });
+        }
         return new Response(JSON.stringify({ choices: [{ message: { reasoning_content: "private-synthetic-reasoning", content: "连接正常。合成回答。" }, finish_reason: "stop" }], usage: { prompt_tokens: 20, completion_tokens: 10 } }), { headers: { "content-type": "application/json" } });
       }
       if (url === "https://compatible.example/v1/chat/completions") {
@@ -91,7 +96,12 @@ try {
     if (process.platform !== "win32") assert.equal((await fs.stat(path.join(data, `${vendor}.credential`))).mode & 0o777, 0o600);
   }
   await page.getByRole("button", { name: "测试连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
+  await page.getByRole("button", { name: "测试工具能力", exact: true }).click();
+  await page.getByText(/合成工具往返已验证/).waitFor();
+  const capabilities = await page.evaluate(async () => window.zhixing.invoke({ type: "check-api", provider: "kimi-api", mode: "tools" }));
+  assert.equal(capabilities.ok, true); assert.equal(capabilities.data.capabilityEvidence.observed.tools, "roundtrip_confirmed");
+  assert.equal(capabilities.data.capabilityEvidence.reportedModel, "reported-fixture-model");
   await page.screenshot({ path: path.join(os.tmpdir(), "zhixing-kimi-settings.png"), animations: "disabled" });
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("textbox", { name: "发送给知行" }).fill("这是合成测试，请简短回答。");
@@ -107,10 +117,10 @@ try {
   await page.getByText("已找到 API 配置", { exact: true }).waitFor();
   assert.equal(await page.locator("#kimi-api-key").inputValue(), "");
   await page.getByRole("button", { name: "测试连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
   await page.getByRole("button", { name: /DeepSeek API/ }).click();
   await page.getByRole("button", { name: "测试连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
   await page.getByRole("button", { name: "添加 API 连接", exact: true }).click();
   await page.getByRole("textbox", { name: "连接名称", exact: true }).fill("测试第三家");
   await page.getByRole("textbox", { name: "API 根地址", exact: true }).fill("https://compatible.example/v1");
@@ -120,7 +130,7 @@ try {
   await page.getByText("连接已保存。选择它后即可开始对话。", { exact: true }).waitFor();
   await page.getByRole("button", { name: /^测试第三家/ }).click();
   await page.getByRole("button", { name: "测试自定义连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
   let customBoot = await page.evaluate(async () => (await window.zhixing.invoke({ type: "boot" })).data);
   const customId = customBoot.settings.provider;
   assert.match(customId, /^api-[a-f0-9]{32}$/);
@@ -150,7 +160,7 @@ try {
   await page.locator(".model-picker").filter({ hasText: "第三家模型" }).waitFor();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await page.getByRole("button", { name: "测试自定义连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
   await page.getByRole("button", { name: "管理 第三家模型", exact: true }).click();
   await page.getByLabel("自定义 API Key", { exact: true }).scrollIntoViewIfNeeded();
   await page.locator(".connection-form").screenshot({ path: path.join(os.tmpdir(), "zhixing-custom-connections.png"), animations: "disabled" });
@@ -165,7 +175,7 @@ try {
   assert.match(missing.error, /移除|尚未配置/);
   await page.getByRole("button", { name: /Kimi API/ }).click();
   await page.getByRole("button", { name: "测试连接", exact: true }).click();
-  await page.getByText(/连接正常 · 首字/).waitFor();
+  await page.getByText(/连接正常 · 首正文/).waitFor();
   for (const [id, label, protocol] of [["anthropic", "Anthropic · Claude", "anthropic-messages"], ["openai", "OpenAI · GPT", "openai-responses"]]) {
     await page.getByRole("button", { name: "添加 API 连接", exact: true }).click();
     assert.equal(await page.getByLabel("服务商模板", { exact: true }).locator("option").count(), 11);
@@ -178,7 +188,7 @@ try {
     await page.getByText("连接已保存。选择它后即可开始对话。", { exact: true }).waitFor();
     await page.locator(".custom-connection-row").getByRole("button", { name: new RegExp(`^${label}`) }).click();
     await page.getByRole("button", { name: "测试自定义连接", exact: true }).click();
-    await page.getByText(/连接正常 · 首字/).waitFor();
+    await page.getByText(/连接正常 · 首正文/).waitFor();
     await page.getByRole("button", { name: "关闭", exact: true }).click();
     await page.getByRole("textbox", { name: "发送给知行" }).fill(`使用 ${id} 回答合成问题。`);
     await page.getByRole("button", { name: "发送消息", exact: true }).click();
@@ -211,8 +221,12 @@ try {
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.locator(".assistant-message").getByText("官方 Codex 的合成回答。", { exact: true }).waitFor();
   await page.getByRole("button", { name: "停止生成", exact: true }).waitFor({ state: "hidden" });
+  const measured = await page.evaluate(() => window.zhixing.invoke({ type: "provider-benchmark", provider: "native-codex", cycles: 1 }));
+  assert.equal(measured.ok, true); assert.equal(measured.data.planned, 2);
+  assert.equal(measured.data.rows.every(row => row.completed && row.firstTokenMs === null && row.timingUnit === "completed_message"), true);
+  assert.equal(measured.data.rows[1].phase, "reused_client");
   assert.deepEqual(errors, []);
-  console.log("API UI passed: independent Kimi/DeepSeek credentials, masked input, draft reset, connection test, provider badge, restart existing DeepSeek compatibility, custom vendor add/rename/key retention/select/probe/chat/restart/remove, ten templates, Messages/Responses round trips, official Claude and Codex executable/select/chat, pinned Codex model and subscription auth, stale revision and missing-provider rejection. HTTP, official process and cipher use isolated fixtures.");
+  console.log("API UI passed: independent Kimi/DeepSeek credentials, masked input, draft reset, connection test, provider badge, restart existing DeepSeek compatibility, custom vendor add/rename/key retention/select/probe/chat/restart/remove, ten templates, Messages/Responses round trips, official Claude and Codex executable/select/chat, pinned Codex model and subscription auth, stale revision, missing-provider rejection and fixed-prompt native performance IPC. HTTP, official process and cipher use isolated fixtures.");
 } finally {
   if (running) await running.app.close();
   await fs.rm(data, { recursive: true, force: true });

@@ -34,7 +34,7 @@ export interface InvocationRequest {
   readonly onTurn?: (text: string, kind: "progress" | "final") => void;
   readonly shouldPause?: () => boolean;
   /** Actual application revisions, not a model-supplied claim of progress. */
-  readonly toolState?: (name?: string) => string;
+  readonly toolState?: (name?: string, input?: unknown) => string;
   /** Missing execution requirements; undefined means no unfinished plan. */
   readonly completionCheck?: (signal: AbortSignal) => string | undefined | Promise<string | undefined>;
   /** Bounded presentation validation; cannot grant tools or certify factual correctness. */
@@ -190,7 +190,7 @@ export async function collectInvocation(runtime: ProviderRuntime, request: Invoc
           const width = pending.phase === "executing" ? (calls.slice(pending.next, pending.executingUntil ?? pending.next + 1).every(eligible) ? (pending.executingUntil ?? pending.next + 1) - pending.next : 1)
             : eligible(calls[pending.next]!) && calls[pending.next + 1] && eligible(calls[pending.next + 1]!) ? 2 : 1;
           const batch = calls.slice(pending.next, pending.next + width);
-          const dispatchStates = batch.map(call => request.toolState?.(call.tool) ?? "");
+          const dispatchStates = batch.map(call => request.toolState?.(call.tool, call.input) ?? "");
           for (const [index, call] of batch.entries()) { const duplicate = loop.tool(call.tool!, call.input, dispatchStates[index]); if (duplicate) throw new Error(duplicate); }
           pending.phase = "executing";
           if (width > 1 || pending.executingUntil !== undefined) { checkpoint.version = 2; pending.executingUntil = Math.max(pending.executingUntil ?? 0, pending.next + width); }

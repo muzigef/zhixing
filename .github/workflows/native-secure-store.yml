@@ -1,0 +1,52 @@
+name: native-secure-store
+on:
+  workflow_dispatch:
+  push:
+    paths: ['desktop/core/secrets.ts', 'desktop/core/platform-cipher.ts', 'desktop/electron/secrets.ts', 'desktop/electron/secure-store-probe.ts', 'desktop/scripts/probe-secure-store.mjs', '.github/workflows/native-secure-store.yml']
+  pull_request:
+    paths: ['desktop/core/secrets.ts', 'desktop/core/platform-cipher.ts', 'desktop/electron/secrets.ts', 'desktop/electron/secure-store-probe.ts', 'desktop/scripts/probe-secure-store.mjs', '.github/workflows/native-secure-store.yml']
+permissions:
+  contents: read
+jobs:
+  native:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.8.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix desktop --no-audit --no-fund
+      - run: npm --prefix desktop run prepare:runtime
+      - run: npm --prefix desktop run build
+      - name: Install isolated Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y gnome-keyring dbus-x11 xvfb libsecret-1-0
+      - name: Native OS roundtrip and new-process read
+        if: runner.os != 'Linux'
+        run: node desktop/scripts/probe-secure-store.mjs --output=native-secure-store.json
+      - name: Native Linux Secret Service and plaintext fallback refusal
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          dbus-run-session -- bash -euc '
+            export XDG_CURRENT_DESKTOP=GNOME
+            eval "$(printf "%s" "synthetic-disposable-ci-password" | gnome-keyring-daemon --unlock --components=secrets)"
+            xvfb-run -a node desktop/scripts/probe-secure-store.mjs --output=native-secure-store.json
+            xvfb-run -a node desktop/scripts/probe-secure-store.mjs --expect-basic-denied --output=native-secure-store-denied.json
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-secure-store-${{ matrix.os }}
+          path: native-secure-store*.json
+          if-no-files-found: warn

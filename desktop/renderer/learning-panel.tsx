@@ -45,10 +45,10 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
   async function importFile() {
     setBusy(true); setError("");
     try {
-      const value = await request<{ cancelled?: boolean; status?: string; chunks?: number; reason?: string }>({ type: "learning-import", topicId });
+      const value = await request<{ cancelled?: boolean; status?: string; chunks?: number; reason?: string; extraction?: { unreadPages: number[] } }>({ type: "learning-import", topicId });
       if (!value.cancelled) {
-        const labels: Record<string, string> = { indexed: "已导入并建立索引", duplicate: "这份资料已经导入", ocr_low_confidence: "已导入，部分扫描文字需要核对", ocr_required: "需要安装本地 OCR 才能识别这份扫描资料", parse_failed: "无法解析这份资料", rejected: "资料导入未完成" };
-        setResult(`${labels[value.status ?? ""] ?? "导入未完成"}${value.chunks ? `，共 ${value.chunks} 个片段。` : "。"}`);
+        const labels: Record<string, string> = { indexed: "已导入并建立索引", duplicate: "这份资料已经导入", ocr_low_confidence: "已导入，部分扫描文字需要核对", ocr_partial: "已导入可识别的页面，部分页面未识别；可重试导入补齐", ocr_required: "页面尚未识别；请检查本地 OCR 后重试", parse_failed: "无法解析这份资料", rejected: "资料导入未完成" };
+        setResult(`${labels[value.status ?? ""] ?? "导入未完成"}${value.chunks ? `，共 ${value.chunks} 个片段。` : "。"}${value.extraction?.unreadPages.length ? ` 未识别页：${value.extraction.unreadPages.join("、")}（可能为空白或识别失败）。` : ""}`);
         await refresh();
       }
     } catch (problem) { setError(problem instanceof Error ? problem.message : "导入未完成"); }
@@ -81,7 +81,7 @@ export function LearningPanel({ workspace, topicId, busy: taskBusy, onWorkspace,
       <AssessmentPanel key={`checks-${topicId}`} topicId={topicId} days={overview.days} results={overview.assessments ?? []} disabled={busy || taskBusy} refresh={refresh} />
       <div className="learning-section-heading"><h3>学习资料 · {overview.materials.length}</h3><button disabled={busy || taskBusy} onClick={() => void importFile()}>导入 PDF / Markdown</button></div>
       <button disabled={busy || taskBusy || !overview.materials.length} onClick={() => { setBusy(true); setError(""); void request<{ indexed: number }>({ type: "semantic-index", topicId }).then((value) => setResult(`已建立 ${value.indexed} 个片段的本机语义索引。`)).catch((problem) => setError(problem.message)).finally(() => setBusy(false)); }}>构建本机语义索引</button>
-      {overview.materials.length ? <ul className="material-list">{overview.materials.map((item) => <li key={item.id}><span>{item.name}</span><small>{({ indexed: "可检索", ocr_low_confidence: "需核对 OCR", ocr_required: "待 OCR", parse_failed: "解析失败", rejected: "未导入" } as Record<string, string>)[item.status] ?? item.status}</small></li>)}</ul> : <p className="learning-empty">导入你希望参考的资料，开启会话授权后，知行会检索并提供原文出处。</p>}
+      {overview.materials.length ? <ul className="material-list">{overview.materials.map((item) => <li key={item.id}><span>{item.name}</span><small>{({ indexed: "可检索", ocr_low_confidence: "需核对 OCR", ocr_partial: "部分页面未识别", ocr_required: "待 OCR", parse_failed: "解析失败", rejected: "未导入" } as Record<string, string>)[item.status] ?? item.status}</small></li>)}</ul> : <p className="learning-empty">导入你希望参考的资料，开启会话授权后，知行会检索并提供原文出处。</p>}
       {busy && <p role="status">正在处理… <button onClick={() => void request({ type: "learning-cancel" })}>取消当前操作</button></p>}
       {result && <div className="learning-result" role="status">{result}</div>}
       <div className="modal-actions"><button disabled={busy || taskBusy} className="primary" onClick={() => onDiscuss("请结合当前学习进度和资料，讲解今天的核心概念，并用一个例子串联。")}>回到对话继续学习</button></div>

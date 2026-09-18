@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "status": "failed",
+  "suite": "expanded",
+  "leadProvider": "native-codex",
+  "repetitions": 1,
+  "connectionPreflight": [
+    {
+      "provider": "deepseek-api",
+      "ok": true,
+      "data": {
+        "model": "deepseek-v4-flash",
+        "firstTokenMs": 13093,
+        "durationMs": 13093
+      }
+    },
+    {
+      "provider": "kimi-api",
+      "ok": false,
+      "error": "等待回答超时，请重试。"
+    }
+  ],
+  "evaluatorSourceHash": "780168ac8d092658dde86d8ce32443e0ce564bcb9e0861ce5fe7664a424d2cd2",
+  "appBundleHash": "4a1c970a62d4aaca8e9cf245cabcd18d05d1a7db7e88ae6c9337a2949b22ecfe",
+  "isolatedWorkspace": true,
+  "qualityRunCompleted": false
+}

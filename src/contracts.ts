@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import type { ExtractionQuality } from "./document-extraction.js";
 
 export const topicIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "topicId 必须为 kebab-case");
 export type TopicId = z.infer<typeof topicIdSchema>;
@@ -18,6 +19,7 @@ export interface TopicDefinition {
 }
 
 export interface Citation {
+  readonly extraction?: ExtractionQuality;
   readonly contentHash?: string;
   readonly chunkId?: string;
   readonly topicId: TopicId;

@@ -30,6 +30,7 @@
     "pdfjs-dist": "6.2.108"
   },
   "devDependencies": {
+    "@electron/asar": "3.4.1",
     "@electron/osx-sign": "1.3.3",
     "@electron/rebuild": "4.2.0",
     "@types/react": "^19.0.0",

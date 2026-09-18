@@ -1,3 +1,4 @@
+import { teamBudgetLabel } from "../../src/team-budget-ledger.js";
 import { nativeRuntimeCatalog } from "../../src/native-runtime-catalog.js";
 import { useState } from "react";
 import { teamTaskRetryProblem } from "../../src/team-work-contracts.js";
@@ -16,7 +17,7 @@ export function TeamCard({ team, running, onStop, onRerun, onRetryTask, canRerun
     <p>{team.members.filter(member => member.status === "completed").length} / {team.members.length} 成员已完成 · 主模型 {team.lead.model}</p>
     {team.members.map((member, index) => <section key={member.id}><div className="team-member-heading"><strong>{memberRoleLabels[member.role]}</strong><span>{memberStatusLabels[member.status]}</span>{running && (["queued", "running"].includes(member.status) || team.review?.followUp?.member === index + 1 && team.review.followUp.status === "running") && <button onClick={() => onStop(member.id)}>停止此成员</button>}</div>
       <p className="message-meta">{providerLabel(member.binding.provider)} · {member.binding.model}{member.durationMs !== undefined ? ` · ${(member.durationMs / 1000).toFixed(1)} 秒` : ""}</p>
-      {member.resourcePolicy && <p className="message-meta">本次采用：{({ quick: "快速", balanced: "均衡", deep: "深入" } as const)[member.binding.reasoning]} · 每次至多 {member.resourcePolicy.maxOutputTokens} token（推理与正文合计） · {({ explicit: "手动指定档位", inherited: "继承主 Agent 档位", "budget-aware": "按可用输出预算自动匹配" } as const)[member.resourcePolicy.reasoningSource]}{member.resourcePolicy.budgetLimited ? "。当前预算低于该档位的建议目标，仍可能截断；可调整成员或整题输出预算。" : ""}</p>}
+      {member.resourcePolicy && <p className="message-meta">本次采用：{({ quick: "快速", balanced: "均衡", deep: "深入" } as const)[member.binding.reasoning]} · 每次输出目标 {member.resourcePolicy.maxOutputTokens} token（推理与正文合计） · {({ explicit: "手动指定档位", inherited: "继承主 Agent 档位", "budget-aware": "按可用输出预算自动匹配" } as const)[member.resourcePolicy.reasoningSource]}{member.resourcePolicy.budgetLimited ? "。当前预算低于该档位的建议目标，仍可能截断；可调整成员或整题输出预算。" : ""}</p>}
       <p>{member.task}</p>{member.error && <p role="status">{member.error}</p>}
       {member.report ? <details><summary>查看成员结论与依据</summary><Report report={member.report} /></details> : member.result && <details><summary>查看成员结论</summary><pre className="team-result">{member.result}</pre></details>}
     </section>)}
@@ -37,6 +38,7 @@ export function TeamCard({ team, running, onStop, onRerun, onRetryTask, canRerun
     {!!(team.review?.recheck?.checks ?? team.review?.checks)?.length && <details><summary>逐项核查依据</summary><ul>{(team.review?.recheck?.checks ?? team.review?.checks)?.map((check, index) => <li key={index}>{check.task} / 条件 {check.criterion + 1}：{check.status === "supported" ? "已审查" : "待核查"} · {check.reason}{check.sourceTask ? ` · 依据任务 ${check.sourceTask}` : ""}</li>)}</ul></details>}
     {team.review?.recheck && <p>补证后审查：{team.review.recheck.guidance ?? (team.review.recheck.failureCode ? teamFailureLabels[team.review.recheck.failureCode] : "等待完成")}</p>}
     <p className="message-meta">共 {team.modelTurns} 次模型请求{team.nativeTasks ? ` · ${team.nativeTasks} 次官方 Agent 任务` : ""} · {team.toolCalls} 次工具请求 · 已报告输入 {team.inputTokens} / 输出 {team.outputTokens} token{team.unknownUsageRequests ? ` · ${team.unknownUsageRequests} 次用量未知` : ""}</p>
+    <p className="message-meta">{teamBudgetLabel(team)}</p>
     {team.nativeTokenLimit && <p className="message-meta">官方 Agent 按任务数、时限和回答长度限制；token 用量在返回后核算，可能超过输出目标。无法确认的用量保留预留，不记为零。</p>}
     <p className="message-meta">成员结论供主 Agent 核查；完成状态不代表回答正确性已获认证。{team.planning === "fallback" ? "主模型分工未取得有效结构，已使用固定核查职责。" : ""}</p>
     {["partial", "failed", "interrupted"].includes(team.status) && <><p className="message-meta">继续会复用已保存结论。补做只重试所选任务及尚未执行的依赖分支，再重新审查和综合；保留原预算，可能再次计费。用量未知的旧请求仍计入预留。重新运行会创建新任务。</p><button disabled={!canRerun} onClick={onRerun}>重新运行整个团队（新任务）</button></>}

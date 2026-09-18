@@ -7,7 +7,7 @@ it("tests a connection using a bounded synthetic prompt without history or tools
     expect(options).toEqual({ reasoning: "quick", maxOutputTokens: 2048 });
     yield { type: "text_delta", text: "连接正常" };
     yield { type: "usage", usage: { model: "synthetic", inputTokens: 10, outputTokens: 5 } };
-    yield { type: "done" };
+    yield { type: "done", reportedModel: "synthetic" };
   } };
   expect(await checkApiConnection(client)).toMatchObject({ model: "synthetic", durationMs: expect.any(Number), firstTokenMs: expect.any(Number) });
 });

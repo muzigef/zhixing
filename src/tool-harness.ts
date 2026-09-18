@@ -1,10 +1,11 @@
+import type { ResourceObservation } from "./resource-observation.js";
 import { z, type ZodType } from "zod/v4";
 import type { TopicId } from "./contracts.js";
 import type { ModelToolDefinition } from "./model.js";
 import { boundToolOutput } from "./tool-results.js";
 import type { ToolResultStore } from "./tool-result-store.js";
 
-const actionableErrors = new Set(["task_plan_invalid", "task_plan_requirement_changed", "project_file_conflict", "project_tree_conflict", "project_tests_required", "project_selection_changed", "project_result_outdated", "project_limit", "project_busy", "project_git_unavailable", "mcp_configuration_changed", "mcp_input_invalid", "mcp_input_limit", "mcp_remote_error", "mcp_result_unsupported"]);
+const actionableErrors = new Set(["memory_changed", "memory_not_found", "task_plan_invalid", "task_plan_requirement_changed", "project_file_conflict", "project_tree_conflict", "project_tests_required", "project_selection_changed", "project_result_outdated", "project_limit", "project_busy", "project_git_unavailable", "mcp_configuration_changed", "mcp_input_invalid", "mcp_input_limit", "mcp_remote_error", "mcp_result_unsupported"]);
 
 export type ToolRisk = "read" | "write" | "destructive";
 /** An external effect may have happened. Keep the call executing for explicit recovery. */
@@ -22,6 +23,8 @@ export interface ToolDefinition<I, O> {
   readonly resource?: string;
   /** Explicitly pure and independent; risk=read alone is insufficient. */
   readonly parallelSafe?: boolean;
+  readonly observationScope?: (input: unknown) => string | undefined;
+  readonly observe?: (input: I, output: O) => ResourceObservation | undefined;
   readonly validate?: (input: I, context: ToolExecutionContext) => Promise<void>;
   readonly review?: (input: I, context: ToolExecutionContext) => Promise<string>;
   readonly execute: (input: I, context: ToolExecutionContext) => Promise<O>;
@@ -29,11 +32,12 @@ export interface ToolDefinition<I, O> {
 export interface ToolExecutionContext {
   readonly topicId: TopicId;
   readonly callId?: string;
+  readonly executionId?: string;
   readonly signal: AbortSignal;
   /** The control plane supplies the maximum capability for this run. */
   readonly maxRisk?: ToolRisk;
 }
-export interface ToolResult { readonly tool: string; readonly ok: boolean; readonly output?: unknown; readonly errorCode?: string; readonly issues?: readonly { path: string; code: string; expected?: string }[]; readonly durationMs: number; }
+export interface ToolResult { readonly tool: string; readonly ok: boolean; readonly output?: unknown; readonly errorCode?: string; readonly issues?: readonly { path: string; code: string; expected?: string }[]; readonly durationMs: number; readonly observation?: ResourceObservation; }
 
 /** Public diagnostics contain schema locations and expected types, never raw input values. */
 export function toolFailure(error: unknown): { ok: false; errorCode: string; issues?: ToolResult["issues"] } {
@@ -75,6 +79,7 @@ export class ToolHarness {
     if (input && typeof input === "object" && "topicId" in input && input.topicId !== topicId) throw new Error("cross_topic_denied");
     return { risk: tool.risk, input: tool.input.parse(input) };
   }
+  observationScope(name: string, input: unknown): string | undefined { return this.#tools.get(name)?.observationScope?.(input); }
   async validatedPreview(name: string, input: unknown, context: ToolExecutionContext): Promise<{ risk: ToolRisk; input: unknown; preview?: string }> {
     const preview = this.preview(name, input, context.topicId);
     const tool = this.#tools.get(name)!;
@@ -101,13 +106,14 @@ export class ToolHarness {
       signal.throwIfAborted(); dispatched = true;
       const output = await withDeadline(tool.execute(input, { ...context, signal }), signal);
       signal.throwIfAborted();
+      const observation = tool.observe?.(input, output);
       const serialized = JSON.stringify(output ?? null);
       let reference: { resultId: string } | undefined;
       if (serialized?.length > 11_000) {
         try { reference = this.results?.retain(context.topicId, serialized); } catch { /* Preserve the actual execution result even if optional archival fails. */ }
       }
       const bounded = boundToolOutput(output, 11_000, reference);
-      return { tool: name, ok: true, output: serialized?.length > 11_000 && !reference ? { ...(bounded as object), retention: "unavailable" } : bounded, durationMs: Date.now() - started };
+      return { tool: name, ok: true, ...(observation ? { observation } : {}), output: serialized?.length > 11_000 && !reference ? { ...(bounded as object), retention: "unavailable" } : bounded, durationMs: Date.now() - started };
     } catch (error) {
       if (error instanceof ToolOutcomeUnknown) throw error;
       if (dispatched && tool.risk !== "read" && !tool.idempotent && (context.signal.aborted || timeout?.aborted)) throw new ToolOutcomeUnknown();

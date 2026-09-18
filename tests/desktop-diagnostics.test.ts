@@ -32,3 +32,10 @@ it("separates transport variants and reports numeric per-turn timings without pr
   expect(result.variants[1]).toMatchObject({ transport: "auto", processTailP50: 3000 });
   expect(JSON.stringify(result)).not.toContain("private prompt");
 });
+it("includes official runtimes, labels completed-message latency honestly and keeps unknown usage/cache separate", () => {
+  const base = { role: "assistant" as const, provider: "native-codex" as const, model: "fixture", status: "completed" as const, firstTokenMs: 1000, durationMs: 1100, text: "private", id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+  const group = summarizePerformance([base, { ...base, id: crypto.randomUUID(), status: "failed" }]).find(item => item.provider === "native-codex")!;
+  expect(group).toMatchObject({ completed: 1, failed: 1, failureRate: .5, firstBodyP50: 1000, durationP95: 1100, timingUnit: "completed_message" });
+  expect(group.firstTokenP50).toBeUndefined();
+  expect(group.variants[0]).toMatchObject({ firstBodyP50: 1000, cacheReadTokens: null, unknownUsageMessages: 1 });
+});

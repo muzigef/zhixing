@@ -1,8 +1,10 @@
+import { qualityRubricHash } from "./explanation-rubric.js";
+import type { ChatMessage } from "./agent-session-contracts.js";
 import type { BuildProvenance } from "./build-provenance-contracts.js";
 import { createHash } from "node:crypto";
 import { publicError } from "./agent-errors.js";
 export interface QualityCase { id: string; prompt: string; criteria: string[]; seed?: { role: "user" | "assistant"; text: string; status: "completed" | "interrupted" }[]; }
-export interface QualityAnswer { status: string; text: string; error?: string; durationMs?: number; firstTokenMs?: number; model?: string; items?: unknown[]; usage?: unknown; reasoning?: string; timings?: { turns: number; toolCalls: number; [key: string]: unknown }; quality?: unknown; evidenceSupport?: unknown; modelTimings?: unknown; }
+export interface QualityAnswer { grounding?: { rawText: string; support: import("./evidence-support.js").EvidenceSupport }; summaryEvidence?: { sourceHash: string; messageCount: number; throughMessageId?: string; sourceMessages: ChatMessage[] }; status: string; text: string; error?: string; durationMs?: number; firstTokenMs?: number; model?: string; items?: unknown[]; usage?: unknown; reasoning?: string; timings?: { turns: number; toolCalls: number; [key: string]: unknown }; quality?: unknown; evidenceSupport?: unknown; modelTimings?: unknown; }
 /** Classify only known evidence; an empty final text does not identify a provider outage. */
 export function qualityFailure(answer: QualityAnswer): string {
   if (answer.status === "interrupted") return "cancelled";
@@ -30,20 +32,22 @@ export async function evaluateQuality(cases: QualityCase[], providers: string[],
   run: (provider: string, task: QualityCase, repetition: number) => Promise<QualityAnswer>,
   checkpoint?: (report: QualityReport) => Promise<void>): Promise<QualityReport> {
   if (!Number.isInteger(repetitions) || repetitions < 1 || repetitions > 2 || !cases.length || cases.length > 12 || !providers.length || providers.length > 2 || new Set(cases.map(task => task.id)).size !== cases.length || new Set(providers).size !== providers.length) throw new Error("evaluation_budget_invalid");
-  const report: QualityReport = { version: 2, syntheticOnly: true, startedAt: new Date().toISOString(), datasetHash: createHash("sha256").update(JSON.stringify(cases)).digest("hex"), expectedResults: cases.length * providers.length * repetitions, results: [] };
+  const frozenCases = structuredClone(cases);
+  const report: QualityReport = { version: 2, syntheticOnly: true, startedAt: new Date().toISOString(), datasetHash: createHash("sha256").update(JSON.stringify(frozenCases)).digest("hex"), evaluationDesign: { datasetClassification: "development", caseIds: frozenCases.map(item => item.id), rubricHash: qualityRubricHash(frozenCases), rubricTiming: "before_dispatch" }, expectedResults: cases.length * providers.length * repetitions, results: [] };
+  await checkpoint?.(report);
   for (const provider of providers) {
     let unavailable: QualityAnswer | undefined;
-    for (let repetition = 1; repetition <= repetitions; repetition++) for (const task of cases) {
+    for (let repetition = 1; repetition <= repetitions; repetition++) for (const task of frozenCases) {
       const attempted = !unavailable;
       let answer: QualityAnswer;
       if (unavailable) answer = { status: "failed", text: "", error: "evaluation_not_attempted", model: unavailable.model, reasoning: unavailable.reasoning };
-      else { try { answer = await run(provider, task, repetition); } catch { answer = { status: "failed", text: "", error: "evaluation_exception" }; } }
+      else { try { answer = await run(provider, structuredClone(task), repetition); } catch { answer = { status: "failed", text: "", error: "evaluation_exception" }; } }
       if (answer.status === "completed" && !answer.text.trim()) answer = { ...answer, status: "failed", error: "empty_answer" };
       if (!answer.text && answer.status === "failed" && !["execution_no_progress", "empty_answer"].includes(qualityFailure(answer))) unavailable = answer;
-      report.results.push({ provider, repetition, ...task, ...answer, attempted, review: ["completed", "waiting"].includes(answer.status) ? "pending_human_review" : "unavailable" });
+      report.results.push({ ...answer, ...task, provider, repetition, attempted, review: ["completed", "waiting"].includes(answer.status) ? "pending_human_review" : "unavailable" });
       await checkpoint?.(report);
     }
   }
   return report;
 }
-export interface QualityReport { version: number; syntheticOnly: boolean; startedAt: string; datasetHash?: string; expectedResults?: number; conditions?: { provenance?: BuildProvenance; dataset: string; codeHash: string; requestedReasoning: string }; results: (QualityCase & QualityAnswer & { provider: string; repetition: number; attempted: boolean; review: "pending_human_review" | "unavailable" })[]; }
+export interface QualityReport { evaluationDesign?: { rubricTiming?: "before_dispatch" | "export_time"; datasetClassification: "development" | "regression"; rubricHash: string; caseIds: string[] }; version: number; syntheticOnly: boolean; startedAt: string; datasetHash?: string; expectedResults?: number; conditions?: { details?: Record<string, unknown>; sourceReportHash?: string; stage?: string; provenance?: BuildProvenance; dataset: string; codeHash: string; requestedReasoning: string }; results: (QualityCase & QualityAnswer & { provider: string; repetition: number; attempted: boolean; review: "pending_human_review" | "unavailable" })[]; }

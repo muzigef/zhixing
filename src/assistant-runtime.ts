@@ -1,3 +1,4 @@
+import { resourceObservationState } from "./resource-observation.js";
 import { writePermission, type AgentPermissions, type WriteGrant } from "./agent-permissions.js";
 import type { Citation, SearchResult } from "./contracts.js";
 import { modelPhaseLabels, type ModelTiming } from "./model-telemetry.js";
@@ -180,14 +181,15 @@ export async function runAssistantTask(options: {
       onContext: options.onContext,
       onProgress: (phase) => activity("model", modelPhaseLabels[phase], "running"),
       onTurn: options.onTurn, shouldPause: () => waiting,
-      toolState: (name) => {
+      toolState: (name, input) => {
         const resource = name ? tools?.harness.resource(name) : undefined;
         const local = resource ? "" : tasks?.snapshot(taskId, options.topicId!).operations.filter(item => item.status === "completed").map(item => item.key).sort().join(":") ?? "";
         const journal = execution?.read();
         const effects = [...(journal?.history ?? []), ...(journal?.pending ? [journal.pending] : [])].flatMap(turn => turn.toolResults)
           .filter(item => tools?.harness.resource(item.tool) && (!resource || tools.harness.resource(item.tool) === resource) && tools?.harness.risk(item.tool) !== "read" && (item.result as { ok?: boolean } | null)?.ok === true)
           .map(item => item.callId).join(":");
-        return `${local}|${effects}`;
+        const observations = resourceObservationState([...(journal?.history ?? []), ...(journal?.pending ? [journal.pending] : [])].flatMap(turn => turn.toolResults), tool => tools?.harness.resource(tool), name ? tools?.harness.observationScope(name, input) ?? resource : undefined);
+        return `${local}|${effects}${observations ? `|${observations}` : ""}`;
       },
       completionCheck: async (signal) => {
         const snapshot = tasks ? await verifiedTaskSnapshot(options.application!, tasks, taskId, options.topicId!, signal) : undefined;
@@ -213,10 +215,10 @@ export async function runAssistantTask(options: {
         const key = `tool-${++toolSequence}`;
         activity(key, labels[name] ?? "执行学习查询", "running");
         const grant = writePermission(name, input, options.topicId ?? "general-chat");
-        const writeAllowed = decision?.answer === "allow" || !reportedExternal && (options.writeGrants?.some(item => item.key === grant.key) || options.allowWrites && grant.kind === "learning");
+        const writeAllowed = decision?.answer === "allow" || name !== "correct_memory" && !reportedExternal && (options.writeGrants?.some(item => item.key === grant.key) || options.allowWrites && grant.kind === "learning");
         if (reportedExternal && decision?.answer !== "allow" && !options.onInteraction) return { ok: false, errorCode: "tool_policy_denied" };
         if (risk !== "read" && !writeAllowed && options.onInteraction) {
-          const preview = await tools!.harness.validatedPreview(name, input, { topicId: options.topicId!, signal: toolSignal, callId });
+          const preview = await tools!.harness.validatedPreview(name, input, { topicId: options.topicId!, signal: toolSignal, callId, executionId: taskId });
           pause(callId);
           await options.onInteraction({ id: interactionId(taskId, callId), callId, kind: "approval", title: name === "save_artifact" ? "保存这份学习产物" : name === "run_experiment" ? "运行当前实现与测试" : `执行 ${name}`, tool: name, input: preview.input as Record<string, unknown>, preview: preview.preview, permissionLabel: grant.label, status: "pending" });
           waiting = true; activity(key, "等待你授权这项操作", "completed");
@@ -226,7 +228,7 @@ export async function runAssistantTask(options: {
         const toolStarted = Date.now();
         const harness = writeAllowed && ["save_artifact", "run_experiment"].includes(name) && options.application && options.topicId ? options.application.tools(true, { taskId, allowWrites: true }).harness : tools!.harness;
         await options.onTool?.(name, "started");
-        const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, maxRisk: writeAllowed ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
+        const result = await harness.execute(name, input, { topicId: options.topicId ?? "general-chat", signal: toolSignal, callId, executionId: taskId, maxRisk: writeAllowed ? "write" : "read" }).finally(() => { toolMs += Date.now() - toolStarted; });
         await options.onTool?.(name, result.ok ? "finished" : "failed");
         const receipt = options.onToolReceipt ? executionEvidence(taskId, callId ?? key, name, input, result) : undefined;
         if (receipt) await options.onToolReceipt!(receipt);

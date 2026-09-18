@@ -17,9 +17,9 @@ export class LearningContextBuilder {
     const checkpoint = teaching === undefined ? await this.teaching?.load(topicId) : teaching;
     const matching = this.database.searchMemories(topicId, query);
     const memories = (matching.length ? matching : this.database.searchMemories(topicId, "")).slice(0, 3)
-      .map(item => ({ id: item.id, content: relevantExcerpt(item.content, 1500, query), sourceRef: item.sourceRef, selection: matching.length ? "query_relevant" : "recent_fallback" }));
+      .map(item => ({ id: item.id, content: relevantExcerpt(item.content, 1500, query), sourceRef: item.sourceRef, contentHash: item.contentHash, selection: matching.length ? "query_relevant" : "recent_fallback" }));
     return {
-      ...(profile ? { profile } : {}), memories,
+      ...(profile ? { profile } : {}), memories, memoryPolicy: "明确确认的更正取代旧记录；无更正链的矛盾仍须核实，不能仅据时间先后判断事实。",
       ...(checkpoint ? { teaching: { dayId: checkpoint.dayId, stage: checkpoint.stage, quizRound: checkpoint.quizRound,
         currentExercise: checkpoint.currentExercise?.slice(0, 8000), learnerAttempts: checkpoint.learnerAttempts } } : {}),
     };

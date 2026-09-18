@@ -79,12 +79,13 @@ export const codexRuntimeAdapter: NativeRuntimeAdapter = {
   async probe(command, runner, signal) {
     let execHelp = "", sandboxHelp = "", version = "", available = false;
     try {
-      await runner({ ...command, args: ["--version"], input: "" }, AbortSignal.any([signal, AbortSignal.timeout(10_000)]), line => { version += line; });
+      await runner({ ...command, args: ["--version"], input: "" }, AbortSignal.any([signal, AbortSignal.timeout(10_000)]), line => { version += line + "\n"; if (version.length > 200) throw new Error("provider_output_limit"); });
       for (const name of ["exec", "sandbox"]) await runner({ ...command, args: [name, "--help"], input: "" }, AbortSignal.any([signal, AbortSignal.timeout(10_000)]), line => { if (name === "exec") execHelp += line + "\n"; else sandboxHelp += line + "\n"; });
       // Enable only releases whose wire request and permission profile passed acceptance.
       available = /^codex-cli 0\.153\.4$/.test(version.trim()) && ["--ignore-user-config", "--ignore-rules", "--strict-config", "--ephemeral", "--json"].every(flag => execHelp.includes(flag)) && /--permission-profile/.test(sandboxHelp);
     } catch { signal.throwIfAborted(); }
-    return { available, reason: available ? "可通过官方 Codex 的 ChatGPT 订阅执行仅上下文任务；不依赖 Pi。" : "当前仅验收 Codex 0.153.4 的隔离权限与空工具请求；其他版本需先验收后启用。" };
+    const reported = /^codex-cli (\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?)$/.exec(version.trim())?.[1] ?? null;
+    return { available, runtime: { version: reported, source: "process_reported", isolationBasis: available ? "allowlisted_version" : "unavailable" }, reason: available ? "可通过官方 Codex 的 ChatGPT 订阅执行仅上下文任务；不依赖 Pi。" : "当前仅验收 Codex 0.153.4 的隔离权限与空工具请求；其他版本需先验收后启用。" };
   },
   execute: executeCodex,
 };

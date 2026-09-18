@@ -43,3 +43,13 @@ it("refuses unverified runtime releases before authentication or dispatch", asyn
   await expect(executor.execute(request, new AbortController().signal)).rejects.toThrow("native_isolation_unavailable");
   expect(calls.some(call => call.args[0] === "login" || call.args[0] === "exec" && !call.args.includes("--help"))).toBe(false);
 });
+it("reports observed versions without enabling an unaccepted runtime or probing subscription credentials", async () => {
+  for (const version of ["codex-cli 0.153.4", "codex-cli 0.999.0", "invalid version private-output"]) {
+    const { executor, calls } = fixture({ version }), result = await executor.status(new AbortController().signal);
+    expect(result.authenticationChecked).toBe(false);
+    expect(result.runtime?.version).toBe(version.startsWith("codex-cli") ? version.split(" ")[1] : null);
+    expect(result.available).toBe(version === "codex-cli 0.153.4");
+    expect(calls.some(call => call.args[0] === "login")).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("private-output");
+  }
+});

@@ -1,0 +1,553 @@
+{
+  "baselineStoreRevision": "c373c03:src/agent-session-store.ts",
+  "optimizedStoreSha256": "a8ceae155e946266b07115108ee90d04beb79eb529ca3158298766756fa24838",
+  "benchmarkSha256": "79f671adeb3cf0508256cc655a1555bff49264c0531cfe458d5fbd07382b3672",
+  "baseline": {
+    "version": 1,
+    "syntheticOnly": true,
+    "platform": "darwin-arm64",
+    "node": "v24.8.0",
+    "scenario": "single-conversation-tail-update",
+    "interpretation": "七次预热后尾部修改；逻辑文件读取/写入次数与字节，不是物理磁盘 I/O、常数复杂度或真实模型速度。",
+    "results": [
+      {
+        "messages": 250,
+        "serializedBytes": 89757,
+        "coldSaveMs": 3.932582999999994,
+        "samples": [
+          {
+            "wallMs": 2.411541999999997,
+            "cpuMs": 5.217,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 2.221499999999992,
+            "cpuMs": 4.845,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.9025840000000187,
+            "cpuMs": 2.975,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.6381669999999815,
+            "cpuMs": 1.726,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.6783749999999884,
+            "cpuMs": 3.379,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.703249999999997,
+            "cpuMs": 3.177,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.6297910000000115,
+            "cpuMs": 1.659,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 1.703249999999997,
+          "p95": 2.411541999999997
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 3.177,
+          "p95": 5.217
+        }
+      },
+      {
+        "messages": 2000,
+        "serializedBytes": 719881,
+        "coldSaveMs": 13.580000000000013,
+        "samples": [
+          {
+            "wallMs": 12.938165999999995,
+            "cpuMs": 14.288,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 12.34341599999999,
+            "cpuMs": 15.965,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 12.036500000000018,
+            "cpuMs": 12.692,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 12.109791999999999,
+            "cpuMs": 13.141,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 12.105000000000018,
+            "cpuMs": 12.95,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 11.846291999999949,
+            "cpuMs": 12.44,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 11.65033299999999,
+            "cpuMs": 12.311,
+            "segmentReads": 7,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 12.105000000000018,
+          "p95": 12.938165999999995
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 12.95,
+          "p95": 15.965
+        }
+      },
+      {
+        "messages": 10000,
+        "serializedBytes": 3603881,
+        "coldSaveMs": 63.822749999999985,
+        "samples": [
+          {
+            "wallMs": 59.292332999999985,
+            "cpuMs": 76.35,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 58.73741599999994,
+            "cpuMs": 63.585,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 59.33233299999995,
+            "cpuMs": 65.264,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 59.67429200000004,
+            "cpuMs": 61.918,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 62.42583300000001,
+            "cpuMs": 64.791,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 61.39537500000006,
+            "cpuMs": 65.246,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 59.58770800000002,
+            "cpuMs": 62.031,
+            "segmentReads": 39,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 59.58770800000002,
+          "p95": 62.42583300000001
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 64.791,
+          "p95": 76.35
+        }
+      },
+      {
+        "messages": 20000,
+        "serializedBytes": 7218880,
+        "coldSaveMs": 125.7476660000001,
+        "samples": [
+          {
+            "wallMs": 113.87924999999996,
+            "cpuMs": 121.268,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 115.28433300000006,
+            "cpuMs": 123.418,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 114.71866599999998,
+            "cpuMs": 124.471,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 116.13029200000005,
+            "cpuMs": 128.195,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 117.55562499999996,
+            "cpuMs": 128.978,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 116.20287500000018,
+            "cpuMs": 120.061,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 116.49874999999975,
+            "cpuMs": 126.374,
+            "segmentReads": 79,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 116.13029200000005,
+          "p95": 117.55562499999996
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 124.471,
+          "p95": 128.978
+        }
+      }
+    ]
+  },
+  "optimized": {
+    "version": 1,
+    "syntheticOnly": true,
+    "platform": "darwin-arm64",
+    "node": "v24.8.0",
+    "scenario": "single-conversation-tail-update",
+    "interpretation": "七次预热后尾部修改；逻辑文件读取/写入次数与字节，不是物理磁盘 I/O、常数复杂度或真实模型速度。",
+    "results": [
+      {
+        "messages": 250,
+        "serializedBytes": 89757,
+        "coldSaveMs": 3.024583000000007,
+        "samples": [
+          {
+            "wallMs": 1.7452499999999986,
+            "cpuMs": 4.65,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.594709000000023,
+            "cpuMs": 2.07,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 2.151917000000026,
+            "cpuMs": 3.631,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.5206249999999955,
+            "cpuMs": 3.036,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.3621249999999918,
+            "cpuMs": 2.168,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.3836659999999767,
+            "cpuMs": 1.52,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          },
+          {
+            "wallMs": 1.194041999999996,
+            "cpuMs": 1.53,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 89757
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 1.5206249999999955,
+          "p95": 2.151917000000026
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 2.168,
+          "p95": 4.65
+        }
+      },
+      {
+        "messages": 2000,
+        "serializedBytes": 719881,
+        "coldSaveMs": 10.878082999999975,
+        "samples": [
+          {
+            "wallMs": 6.956458000000026,
+            "cpuMs": 10.835,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 6.735124999999982,
+            "cpuMs": 16.285,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 5.650583000000012,
+            "cpuMs": 5.936,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 5.6447080000000085,
+            "cpuMs": 5.696,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 5.59895800000001,
+            "cpuMs": 5.841,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 5.358542,
+            "cpuMs": 5.787,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          },
+          {
+            "wallMs": 5.920999999999992,
+            "cpuMs": 6.266,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 90745
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 5.650583000000012,
+          "p95": 6.956458000000026
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 5.936,
+          "p95": 16.285
+        }
+      },
+      {
+        "messages": 10000,
+        "serializedBytes": 3603881,
+        "coldSaveMs": 51.523709,
+        "samples": [
+          {
+            "wallMs": 26.52745900000002,
+            "cpuMs": 27.348,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 25.762207999999987,
+            "cpuMs": 26.586,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 24.950458000000026,
+            "cpuMs": 25.543,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 25.926416999999958,
+            "cpuMs": 26.925,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 25.361207999999976,
+            "cpuMs": 26.578,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 25.630667000000017,
+            "cpuMs": 26.881,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          },
+          {
+            "wallMs": 26.405875000000037,
+            "cpuMs": 29.62,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 93561
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 25.762207999999987,
+          "p95": 26.52745900000002
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 26.881,
+          "p95": 29.62
+        }
+      },
+      {
+        "messages": 20000,
+        "serializedBytes": 7218880,
+        "coldSaveMs": 103.32658300000003,
+        "samples": [
+          {
+            "wallMs": 54.07650000000001,
+            "cpuMs": 57.988,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 55.420875000000024,
+            "cpuMs": 58.505,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 57.44262499999991,
+            "cpuMs": 59.686,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 56.20091699999989,
+            "cpuMs": 59.484,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 56.40858299999991,
+            "cpuMs": 59.353,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 58.915707999999995,
+            "cpuMs": 62.217,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          },
+          {
+            "wallMs": 56.58804200000009,
+            "cpuMs": 59.88,
+            "segmentReads": 0,
+            "writes": 1,
+            "logicalWriteBytes": 97330
+          }
+        ],
+        "warmWallMs": {
+          "samples": 7,
+          "p50": 56.40858299999991,
+          "p95": 58.915707999999995
+        },
+        "warmCpuMs": {
+          "samples": 7,
+          "p50": 59.484,
+          "p95": 62.217
+        }
+      }
+    ]
+  }
+}

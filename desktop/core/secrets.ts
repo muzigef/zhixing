@@ -25,6 +25,7 @@ export class EncryptedDesktopSecrets implements SecretStore {
     private readonly cipher: DesktopCipher,
     private readonly legacy?: LegacySecret,
     private readonly provider: "deepseek-api" | "kimi-api" | CustomProvider = "deepseek-api",
+    private readonly readOnly = false,
   ) {
     if (!["deepseek-api", "kimi-api"].includes(provider) && !isCustomProvider(provider)) throw new Error("invalid_secret_reference");
     this.file = path.join(root, isCustomProvider(provider) ? `${provider}.credential` : provider === "kimi-api" ? "kimi.credential" : "deepseek.credential");
@@ -55,6 +56,7 @@ export class EncryptedDesktopSecrets implements SecretStore {
     }
   }
   async set(reference: string, value: string): Promise<void> {
+    if (this.readOnly) throw new Error("evaluation_read_only");
     this.assertReference(reference);
     const key = value.trim();
     if (key.length < 8 || key.length > 4096 || /\s/.test(key))

@@ -1,0 +1,16 @@
+import path from "node:path";
+import { benchmarkProviderPerformance, providerBenchmarkSelectionSchema } from "../src/provider-performance.js";
+import { NativeAgentExecutor } from "../src/native-agent.js";
+import { sourceProvenance } from "../src/build-provenance.js";
+import { atomicJson } from "../src/agent-session-store.js";
+import { writeEvaluationJson } from "./evaluation-json.mjs";
+import type { ModelClient } from "../src/model.js";
+const arg = (name: string) => process.argv.find(value => value.startsWith(`--${name}=`))?.slice(name.length + 3);
+const live = process.argv.includes("--live"), provider = arg("provider") ?? (live ? "native-codex" : "demo"), output = arg("output");
+if (!["demo", "native-codex"].includes(provider) || provider !== "demo" && (!live || process.env.ZHIXING_ALLOW_LIVE_PROVIDER === "0")) throw new Error("explicit_live_provider_required");
+const { cycles } = providerBenchmarkSelectionSchema.parse({ cycles: Number(arg("cycles") ?? "2") });
+await writeEvaluationJson(output, {}); const provenance = await sourceProvenance(process.cwd());
+const fixture = (): ModelClient => ({ identity: { provider: "demo", model: "fixture", connection: "local" }, async *stream() { yield { type: "progress", phase: "waiting" }; yield { type: "text_delta", text: "4" }; yield { type: "done" }; } });
+const result = await benchmarkProviderPerformance({ cycles, create: () => provider === "demo" ? fixture() : new NativeAgentExecutor("codex"), signal: AbortSignal.timeout(cycles * 2 * 60_000 + 10_000), checkpoint: partial => atomicJson(path.resolve(output!), { ...partial, syntheticOnly: provider === "demo", provenance }, 2_000_000) });
+console.log(JSON.stringify({ planned: result.planned, summary: result.summary, syntheticOnly: provider === "demo" }));
+if (result.rows.some(row => !row.completed)) process.exitCode = 1;

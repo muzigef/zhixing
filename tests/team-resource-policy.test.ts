@@ -64,7 +64,7 @@ async function fixture() {
   const config = teamConfigurationSchema.parse({ mode: "mixed-model-team", members: [{ role: "reasoning-checker", provider: "deepseek-api" }, { role: "material-checker", provider: "kimi-api" }] });
   return { calls, resolve, config };
 }
-it("prevents reasoning starvation on the actual two API request shapes and persists v13 policies", async () => {
+it("prevents reasoning starvation on the actual two API request shapes and persists policies with the v14 request ledger", async () => {
   const f = await fixture(); const root = await fs.mkdtemp(path.join(os.tmpdir(), "team-resource-test-"));
   const store = new AgentSessionStore(root), service = new AgentService(store, f.resolve);
   try {
@@ -78,7 +78,8 @@ it("prevents reasoning starvation on the actual two API request shapes and persi
     expect(f.calls[1]).toMatchObject({ reasoning_effort: "low", max_tokens: 4096 });
     expect(f.calls[1]?.thinking).toBeUndefined();
     const loaded = await new AgentSessionStore(root).load(session.id);
-    expect(loaded.version).toBe(13);
+    expect(loaded.version).toBe(14);
+    expect(loaded.messages.at(-1)?.team?.budgetLedger?.version).toBe(1);
     expect(loaded.messages.at(-1)?.team?.members.map(m => m.resourcePolicy?.reasoningSource)).toEqual(["budget-aware", "budget-aware"]);
     expect(JSON.parse(await fs.readFile(path.join(root, "conversations", `${session.id}.json.v8.bak`), "utf8")).version).toBe(8);
     await expect(store.save({ ...loaded, version: 12, messages: [], collaboration: undefined })).rejects.toThrow("storage_version_unsupported");

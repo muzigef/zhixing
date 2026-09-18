@@ -61,6 +61,7 @@ import { formatTerminalMarkdown, TerminalMarkdownWriter } from "./terminal-markd
 import { ConversationSessionStore, emptyConversation } from "./conversation-session.js";
 import { ReplController, PromptAssembler, type ReplSnapshot } from "./repl-controller.js";
 import { ReplInput, ReplOutput } from "./repl-input.js";
+import { MAX_INPUT_CHARACTERS } from "./input-limits.js";
 
 assertSupportedNodeVersion();
 const root = process.env.ZHIXING_ROOT ? path.resolve(process.env.ZHIXING_ROOT) : path.resolve(import.meta.dirname, "../..");
@@ -174,10 +175,10 @@ async function selectActiveTopic(topicId: TopicId): Promise<void> {
 
 async function restoreDatabaseSafely(file: string): Promise<void> {
   await cliAgent.service.pauseMaintenance();
-  await previewBackup(file);
+  const checkedBackup = await previewBackup(file);
   database.close();
   try {
-    await restoreBackup(file, path.join(root, "zhixing", "db", "zhixing.sqlite"), true);
+    await restoreBackup(file, path.join(root, "zhixing", "db", "zhixing.sqlite"), true, checkedBackup.sha256);
   } catch (error) {
     database = new ZhixingDatabase(path.join(root, "zhixing", "db", "zhixing.sqlite"));
     workflowLedger = new WorkflowLedger(database);
@@ -198,7 +199,7 @@ async function restoreDatabaseSafely(file: string): Promise<void> {
 async function execute(line: string): Promise<string> {
   let command = line.trim();
   if (!command) return "";
-  if (command.length > 8_000) return "这条消息太长，请拆成几条发送（每条最多 8,000 字符）。";
+  if (command.length > MAX_INPUT_CHARACTERS) return `这条消息太长，请拆成几条发送（每条最多 ${MAX_INPUT_CHARACTERS.toLocaleString("en-US")} 字符）。`;
   const teamMode = /^\/mode (single|same|mixed)$/.exec(command);
   if (teamMode) {
     const mode = ({ single: "single", same: "same-model-team", mixed: "mixed-model-team" } as const)[teamMode[1] as "single" | "same" | "mixed"] as CollaborationMode;
@@ -535,7 +536,7 @@ async function execute(line: string): Promise<string> {
   if (importFile) return run("import_document", activeTopic, async (_lifecycle, signal) => {
     const result = await importStagedDocument(root, library, importFile, signal);
     await selectActiveTopic(result.topicId);
-    return `导入结果：${result.status}\n主题：${result.topicId}\n文档：${result.documentId || "—"}\n分块：${result.chunks}${result.reason ? `\n原因：${result.reason}` : ""}`;
+    return `导入结果：${result.status}\n主题：${result.topicId}\n文档：${result.documentId || "—"}\n分块：${result.chunks}${result.reason ? `\n原因：${result.reason}` : ""}${result.extraction?.unreadPages.length ? `\n未识别页：${result.extraction.unreadPages.join("、")}（可能为空白或识别失败）` : ""}`;
   });
   if (command === "资料库") return run("list_library", activeTopic, async () => {
     const documents = library.list(activeTopic);
@@ -574,6 +575,13 @@ async function execute(line: string): Promise<string> {
     announceModelWork();
     const result = await collectReply(command, { purpose: "guidance", onAudit: record => lifecycle.model(record.providerId, record.role, record.durationMs, record.status, record) }, signal);
     return result.text;
+  });
+  const correction = /^更正记忆\s+([\w-]+)\s+([\s\S]+?)\s+--确认$/.exec(command);
+  if (correction) return run("write_memory", activeTopic, async () => {
+    const old = database.readMemory(activeTopic, correction[1]!);
+    if (!old) throw new Error("memory_not_found");
+    const result = database.correctMemory(activeTopic, { id: old.id, expectedHash: old.contentHash, content: correction[2]! });
+    return `已更正记忆：${result.id}；旧记录 ${old.id} 保留来源但不再召回。`;
   });
   const remember = /^记住\s+(.+?)(\s+--确认)?$/.exec(command);
   const memoryContent = remember?.[1];
@@ -868,7 +876,7 @@ async function executeConversationCommand(command: string): Promise<string> {
   if (importFile) {
     const result = await importStagedDocument(root, library, importFile);
     await selectActiveTopic(result.topicId);
-    return `导入结果：${result.status}\n主题：${result.topicId}\n文档：${result.documentId || "—"}\n分块：${result.chunks}${result.reason ? `\n原因：${result.reason}` : ""}`;
+    return `导入结果：${result.status}\n主题：${result.topicId}\n文档：${result.documentId || "—"}\n分块：${result.chunks}${result.reason ? `\n原因：${result.reason}` : ""}${result.extraction?.unreadPages.length ? `\n未识别页：${result.extraction.unreadPages.join("、")}（可能为空白或识别失败）` : ""}`;
   }
   const deletePreview = /^资料删除预览\s+([a-z][a-z0-9-]*)\s+([\w-]+)$/.exec(command);
   if (deletePreview) {

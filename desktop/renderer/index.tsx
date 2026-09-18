@@ -1,3 +1,4 @@
+import { connectionProbeLabel, type ApiConnectionResult } from "../../src/provider-capability-contracts.js";
 import { TeamCard, TeamSettingsPanel } from "./team-panel.js";
 import { collaborationLabels, teamModeConfiguration, type CollaborationMode } from "../../src/team-contracts.js";
 import { ApiConnectionsPanel } from "./api-connections-panel.js";
@@ -1459,12 +1460,16 @@ function SettingsDialog({
             </form>
             <button className="api-connection-button" disabled={busy || savingKey || checkingApi || !api?.configured} onClick={() => {
               setCheckingApi(true); setConnection(""); setFailure("");
-              void invoke<{ firstTokenMs: number; durationMs: number }>({ type: "check-api", provider: isKimi ? "kimi-api" : "deepseek-api" })
-                .then(result => setConnection(`连接正常 · 首字 ${(result.firstTokenMs / 1000).toFixed(1)} 秒 · 总耗时 ${(result.durationMs / 1000).toFixed(1)} 秒`))
+              void invoke<ApiConnectionResult>({ type: "check-api", provider: isKimi ? "kimi-api" : "deepseek-api" })
+                .then(result => setConnection(connectionProbeLabel(result)))
                 .catch(problem => setFailure(messageOf(problem)))
                 .finally(() => setCheckingApi(false));
             }}>{checkingApi ? "测试中…" : "测试连接"}</button>
-            <p role="status">{connection || "测试只发送一条简短问题，按 API 用量计费。"}</p>
+            <button className="api-connection-button" disabled={busy || savingKey || checkingApi || !api?.configured} onClick={() => {
+              setCheckingApi(true); setConnection(""); setFailure("");
+              void invoke<ApiConnectionResult>({ type: "check-api", provider: isKimi ? "kimi-api" : "deepseek-api", mode: "tools" }).then(result => setConnection(connectionProbeLabel(result))).catch(problem => setFailure(messageOf(problem))).finally(() => setCheckingApi(false));
+            }}>测试工具能力</button>
+            <p role="status">{connection || "文本测试一轮；工具测试最多两轮，只使用合成工具。均不携带对话或学习资料，按 API 用量计费。"}</p>
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { budgetUsageSchema, calibratedInputReservation, ensureBudgetLedger, teamBudgetAccounting } from "./team-budget-ledger.js";
 import { capabilitiesFor } from "./model-capabilities.js";
 import { estimateTokens } from "./context-window.js";
 import { imageBudgetView } from "./image-input.js";
@@ -48,15 +49,19 @@ export class TeamBudget {
       ...(typeof (client as Partial<ContinuableModelClient>).continue === "function" ? { continue: (prompt: string, results: readonly ToolResultMessage[], signal: AbortSignal, options?: ModelRequestOptions) => this.request(client, purpose, cap, prompt, signal, options, results) } : {}) };
   }
   private async nativeRequest(client: AgentExecutor, purpose: Purpose, cap: number, request: Parameters<AgentExecutor["execute"]>[0], signal: AbortSignal, onText?: (text: string) => void) {
-    const release = await this.acquire(client, signal); let reserved = 0;
+    const release = await this.acquire(client, signal); let reserved = 0; let entryIndex = -1;
     try {
       const input = estimateTokens(JSON.stringify(request.messages));
       await this.mutate(() => {
         signal.throwIfAborted();
+        const ledger = ensureBudgetLedger(this.state);
+        const key = JSON.stringify(client.identity ?? { provider: "local" });
+        const inputReserved = calibratedInputReservation(this.state, key, input);
         const reserveLead = purpose === "lead" ? 0 : Math.min(4096, Math.floor(this.config.maxOutputTokens / 2));
         const reserveReview = this.state.protocol && ["member", "planning"].includes(purpose) && this.state.review?.status === "pending" ? Math.min(2048, Math.floor(this.config.maxOutputTokens / 8)) : 0;
         reserved = Math.min(cap, this.config.maxOutputTokens - this.state.reservedOutputTokens - reserveLead - reserveReview);
-        if (reserved < 128 || this.state.modelTurns + (this.state.nativeTasks ?? 0) >= this.config.maxModelTurns - (purpose === "lead" ? 0 : 2) || Math.max(this.state.estimatedInputTokens, this.state.inputTokens) + input > this.config.maxInputTokens) throw new Error("team_budget_exhausted");
+        if (reserved < 128 || this.state.modelTurns + (this.state.nativeTasks ?? 0) >= this.config.maxModelTurns - (purpose === "lead" ? 0 : 2) || teamBudgetAccounting(this.state).accountedInputTokens + inputReserved > this.config.maxInputTokens) throw new Error("team_budget_exhausted");
+        entryIndex = ledger.entries.length; ledger.entries.push({ key, native: true, rawInput: input, inputReserved, outputReserved: reserved });
         this.state.nativeTasks = (this.state.nativeTasks ?? 0) + 1;
         this.state.nativeTokenLimit = "observed"; this.state.reservedOutputTokens += reserved;
         this.state.estimatedInputTokens += input; this.state.unknownUsageRequests++;
@@ -69,7 +74,7 @@ export class TeamBudget {
       if (result.usage) {
         const usage = result.usage;
         if (![usage.inputTokens, usage.outputTokens].every(value => Number.isSafeInteger(value) && value >= 0)) throw new Error("provider_usage_invalid");
-        await this.mutate(() => { this.state.unknownUsageRequests--; this.state.inputTokens += usage.inputTokens; this.state.outputTokens += usage.outputTokens; this.state.reservedOutputTokens += usage.outputTokens - reserved; });
+        await this.mutate(() => { teamBudgetAccounting(this.state); this.state.budgetLedger!.entries[entryIndex]!.usage = usage; this.state.unknownUsageRequests--; this.state.inputTokens += usage.inputTokens; this.state.outputTokens += usage.outputTokens; this.state.reservedOutputTokens += usage.outputTokens - reserved; });
       }
       signal.throwIfAborted();
       if (result.text.length > maxOutputChars) throw new Error("provider_output_limit");
@@ -78,16 +83,20 @@ export class TeamBudget {
   }
   private async *request(client: ModelClient, purpose: "lead" | "member" | "planning" | "review" | "followup", cap: number, prompt: string, signal: AbortSignal, options?: ModelRequestOptions, results?: readonly ToolResultMessage[]): AsyncIterable<ModelEvent> {
     const release = await this.acquire(client, signal);
-    let reserved = 0; let reported = false;
+    let reserved = 0; let entryIndex = -1; let usageEvent: ModelEvent | undefined; let invalidUsage = false;
     try {
       const view = imageBudgetView({ messages: options?.messages ?? [{ role: "user", content: prompt }], history: options?.history, tools: options?.tools, results });
       const input = estimateTokens(view.text) + view.imageTokens;
       await this.mutate(() => {
         signal.throwIfAborted();
+        const ledger = ensureBudgetLedger(this.state);
+        const key = JSON.stringify(client.identity ?? { provider: "local" });
+        const inputReserved = calibratedInputReservation(this.state, key, input);
         const reserveLead = purpose === "lead" ? 0 : Math.min(4096, Math.floor(this.config.maxOutputTokens / 2));
         const reserveReview = this.state.protocol && ["member", "planning"].includes(purpose) && this.state.review?.status === "pending" ? Math.min(2048, Math.floor(this.config.maxOutputTokens / 8)) : 0;
         reserved = Math.min(cap, options?.maxOutputTokens ?? cap, this.config.maxOutputTokens - this.state.reservedOutputTokens - reserveLead - reserveReview);
-        if (reserved < 128 || this.state.modelTurns + (this.state.nativeTasks ?? 0) >= this.config.maxModelTurns - (purpose === "lead" ? 0 : 2) || Math.max(this.state.estimatedInputTokens, this.state.inputTokens) + input > this.config.maxInputTokens) throw new Error("team_budget_exhausted");
+        if (reserved < 128 || this.state.modelTurns + (this.state.nativeTasks ?? 0) >= this.config.maxModelTurns - (purpose === "lead" ? 0 : 2) || teamBudgetAccounting(this.state).accountedInputTokens + inputReserved > this.config.maxInputTokens) throw new Error("team_budget_exhausted");
+        entryIndex = ledger.entries.length; ledger.entries.push({ key, native: false, rawInput: input, inputReserved, outputReserved: reserved });
         this.state.modelTurns++; this.state.reservedOutputTokens += reserved; this.state.estimatedInputTokens += input; this.state.unknownUsageRequests++;
       });
       signal.throwIfAborted();
@@ -96,16 +105,30 @@ export class TeamBudget {
       for await (const event of events) {
         signal.throwIfAborted();
         if (event.type === "tool_call") await this.mutate(() => { if (this.state.toolCalls >= this.config.maxToolCalls) throw new Error("team_tool_budget_exhausted"); this.state.toolCalls++; });
-        if (event.type === "usage" && event.usage && !reported) {
-          const usage = event.usage;
-          if (![usage.inputTokens, usage.outputTokens].every(value => Number.isFinite(value) && value >= 0)) throw new Error("provider_usage_invalid");
-          await this.mutate(() => {
-            reported = true; this.state.unknownUsageRequests--; this.state.inputTokens += usage.inputTokens; this.state.outputTokens += usage.outputTokens;
-            this.state.reservedOutputTokens += Math.ceil(usage.outputTokens) - reserved;
-          });
+        if (event.type === "usage") {
+          if (usageEvent || !budgetUsageSchema.safeParse(event.usage).success) { invalidUsage = true; throw new Error("provider_usage_invalid"); }
+          usageEvent = event; continue;
+        }
+        if (event.type === "done") {
+          if (usageEvent) { await this.settle(entryIndex, usageEvent); const report = usageEvent; usageEvent = undefined; yield report; }
+          yield event; return;
         }
         yield event;
       }
-    } finally { release(); }
+      if (usageEvent) { await this.settle(entryIndex, usageEvent); const report = usageEvent; usageEvent = undefined; yield report; }
+    } finally {
+      try { if (usageEvent && !invalidUsage) await this.settle(entryIndex, usageEvent); } finally { release(); }
+    }
+  }
+  private async settle(index: number, event: ModelEvent): Promise<void> {
+    const usage = budgetUsageSchema.parse(event.usage);
+    await this.mutate(() => {
+      teamBudgetAccounting(this.state);
+      const entry = this.state.budgetLedger!.entries[index]!;
+      if (entry.usage) return;
+      entry.usage = usage;
+      this.state.unknownUsageRequests--; this.state.inputTokens += usage.inputTokens; this.state.outputTokens += usage.outputTokens;
+      this.state.reservedOutputTokens += usage.outputTokens - entry.outputReserved;
+    });
   }
 }

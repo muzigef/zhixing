@@ -6,14 +6,14 @@ import type { ZhixingDatabase } from "./database.js";
 
 const safeText = z.string().max(4000).refine(text => !/[\0\r\n]|(?:api[_-]?key|token|password|secret)\s*[=:]|(?:^|[\\/])(?:\.env(?:\.[^\\/]*)?|auth\.json|\.ssh|\.codex)(?:[\\/]|$)/i.test(text));
 const field = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/);
-export const mcpReconcileSchema = z.object({ tool: z.string().min(1).max(128), argument: field, identity: field, resultIdentity: field, status: field, succeeded: z.string().min(1).max(80), notExecuted: z.string().min(1).max(80) }).strict().refine(value => value.succeeded !== value.notExecuted);
+export const mcpReconcileSchema = z.object({ tool: z.string().min(1).max(128), argument: field, identity: field, resultIdentity: field, status: field, resultRequestHash: field.optional(), succeeded: z.string().min(1).max(80), notExecuted: z.string().min(1).max(80) }).strict().refine(value => value.succeeded !== value.notExecuted);
 export const mcpServerSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]{0,23}$/), enabled: z.boolean().default(false),
   consent: z.literal("local-process-and-topic-inputs"),
   command: safeText.refine(value => path.isAbsolute(value)), args: z.array(safeText).max(32).default([]),
   isolation: z.enum(["trusted", "restricted"]).optional(),
   readPaths: z.array(safeText.refine(value => path.isAbsolute(value))).max(8).optional(),
-  tools: z.array(z.object({ name: z.string().min(1).max(128), risk: z.enum(["read", "write"]), replaySafe: z.boolean().default(false), reconcile: mcpReconcileSchema.optional() }).strict().refine(tool => (tool.risk === "read" || !tool.replaySafe) && (!tool.reconcile || tool.risk === "write"))).max(20),
+  tools: z.array(z.object({ name: z.string().min(1).max(128), risk: z.enum(["read", "write"]), replaySafe: z.boolean().default(false), reconcile: mcpReconcileSchema.optional(), idempotency: z.object({ argument: field }).strict().optional(), observation: z.object({ identity: field, resultIdentity: field, version: field }).strict().optional() }).strict().refine(tool => (tool.risk === "read" || !tool.replaySafe) && (!tool.observation || tool.risk === "read" && tool.replaySafe) && (!tool.reconcile || tool.risk === "write") && (!tool.idempotency || tool.risk === "write" && (!tool.reconcile || tool.reconcile.identity === tool.idempotency.argument)))).max(20),
 }).strict().refine(server => new Set(server.tools.map(tool => tool.name)).size === server.tools.length);
 export type McpServer = z.infer<typeof mcpServerSchema>;
 const settingsSchema = z.object({ revision: z.number().int().nonnegative(), servers: z.array(mcpServerSchema).max(4) });

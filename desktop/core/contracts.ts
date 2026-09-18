@@ -1,3 +1,7 @@
+import { apiProbeModeSchema } from "../../src/provider-capability-contracts.js";
+import { studyTicketSchema } from "../../src/teaching-study-contracts.js";
+import { providerBenchmarkSelectionSchema } from "../../src/provider-performance-contracts.js";
+import { teamEvaluationSelectionSchema } from "../../src/team-evaluation-contracts.js";
 import { nativeProviderSchema } from "../../src/native-runtime-catalog.js";
 import { apiConnectionInputSchema, type ApiConnection, customProviderSchema } from "../../src/api-connection-config.js";
 import { accessSelectionSchema } from "../../src/agent-permissions.js";
@@ -39,8 +43,9 @@ import { agentSendSchema, type SessionSummary, type AgentEvent as DesktopEvent }
 export const sendSchema = agentSendSchema.extend({ provider: providerSchema });
 export type SendRequest = z.infer<typeof sendSchema>;
 export const desktopCommandSchema = z.discriminatedUnion("type", [
+  providerBenchmarkSelectionSchema.extend({ type: z.literal("provider-benchmark"), provider: providerSchema }).strict(),
   z.object({ type: z.literal("native-agent-status") }).strict(),
-  z.object({ type: z.literal("team-evaluate"), leadProvider: z.enum(["pi-codex", "native-codex"]).optional(), suite: z.enum(["pilot", "holdout", "regression", "quality"]) }).strict(),
+  teamEvaluationSelectionSchema.extend({ type: z.literal("team-evaluate"), leadProvider: z.enum(["pi-codex", "native-codex"]).optional() }).strict(),
   z.object({ type: z.literal("team-evaluation-status") }).strict(),
   z.object({ type: z.literal("team-stop-member"), sessionId: z.string().uuid(), memberId: z.string().uuid() }).strict(),
   z.object({ type: z.literal("reminder-status"), topicId: topicIdSchema }),
@@ -75,7 +80,7 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
     apiKey: z.string().trim().min(8).max(4096),
   }),
   z.object({ type: z.literal("configure-kimi"), apiKey: z.string().trim().min(8).max(4096) }),
-  z.object({ type: z.literal("check-api"), provider: z.union([customProviderSchema, z.enum(["deepseek-api", "kimi-api"])]) }),
+  z.object({ type: z.literal("check-api"), mode: apiProbeModeSchema.optional(), provider: z.union([customProviderSchema, z.enum(["deepseek-api", "kimi-api"])]) }),
   z.object({ type: z.literal("api-connection-save"), revision: z.number().int().nonnegative(), connection: apiConnectionInputSchema, apiKey: z.string().trim().min(8).max(4096).optional() }).strict(),
   z.object({ type: z.literal("api-connection-remove"), revision: z.number().int().nonnegative(), id: customProviderSchema }).strict(),
   z.object({ type: z.literal("copy"), text: z.string().max(100_000) }),
@@ -99,6 +104,7 @@ export const desktopCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("outcome-review-explanation"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, review: explanationReviewInputSchema }),
   z.object({ type: z.literal("observation-update"), topicId: topicIdSchema, id: z.string().uuid(), revision: z.number().int().positive(), annotation: z.string().max(2000), withdrawn: z.boolean() }),
   z.object({ type: z.literal("outcome-export"), topicId: topicIdSchema }),
+  z.object({ type: z.literal("outcome-enroll"), topicId: topicIdSchema, ticket: studyTicketSchema }).strict(),
   z.object({ type: z.literal("outcome-start"), topicId: topicIdSchema, mode: outcomeModeSchema, protocol: outcomeProtocolSchema.optional() }),
   z.object({ type: z.literal("outcome-submit"), topicId: topicIdSchema, id: z.string().uuid(), phase: outcomePhaseSchema, submission: outcomeSubmissionSchema }),
   z.object({ type: z.literal("outcome-lesson"), topicId: topicIdSchema, id: z.string().uuid() }),

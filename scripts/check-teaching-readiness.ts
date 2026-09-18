@@ -1,0 +1,10 @@
+import { readEvaluationJson, writeEvaluationJson } from "./evaluation-json.mjs";
+import { inspectTeachingReadiness } from "../src/teaching-readiness.js";
+const args = process.argv.slice(2), arg = (name: string) => args.find(value => value.startsWith(`--${name}=`))?.slice(name.length + 3);
+const files = args.filter(value => !value.startsWith("--"));
+if (!files.length || files.length > 100 || args.some(value => value.startsWith("--") && !/^--(?:criteria|output)=/.test(value))) throw new Error("usage: --criteria=criteria.json --output=new-readiness.json export1.json [export2.json]");
+const exported = []; for (const file of files) exported.push(await readEvaluationJson(file, 4_000_000));
+const result = inspectTeachingReadiness(exported, await readEvaluationJson(arg("criteria")));
+await writeEvaluationJson(arg("output"), result);
+console.log(JSON.stringify({ recorded: result.recorded, completeRecords: result.completeRecords, dataCompletenessReady: result.dataCompletenessReady, realStudyVerified: false }));
+if (!result.dataCompletenessReady) process.exitCode = 1;

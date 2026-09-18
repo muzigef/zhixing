@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "reportHash": "2a7f552965a2be085b5af25a131cf9a1cd9337a7fe83350ecd16fdfb00f75337",
+  "reviewer": {
+    "name": "开发侧 Codex 对照复核",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "scores": [
+    {
+      "provider": "fixed:native-codex",
+      "id": "RAG01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "明确 100→80 毫秒、20 毫秒差值和 20% 降幅，保留缓存命中组并排除未命中外推；未编造准确率。逐字核对题设原文与算术。",
+      "failures": []
+    },
+    {
+      "provider": "end_to_end:native-codex",
+      "id": "RAG01",
+      "repetition": 1,
+      "criteria": [
+        "pass",
+        "pass",
+        "pass"
+      ],
+      "rationale": "明确 100→80 毫秒、20 毫秒差值和 20% 降幅，保留缓存命中组并排除未命中外推；未编造准确率。逐字核对题设原文与算术。",
+      "failures": []
+    }
+  ]
+}

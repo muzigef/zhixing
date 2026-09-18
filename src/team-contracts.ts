@@ -1,3 +1,4 @@
+import { teamBudgetLedgerSchema } from "./team-budget-ledger.js";
 import { z } from "zod/v4";
 import { providerSchema } from "./agent-provider.js";
 import { teamFailureSchema, teamReportSchema, teamReviewDecisionSchema } from "./team-quality.js";
@@ -74,6 +75,7 @@ export const teamSnapshotSchema = z.object({
   estimatedInputTokens: z.number().int().nonnegative(),
   inputTokens: z.number().nonnegative(), outputTokens: z.number().nonnegative(),
   unknownUsageRequests: z.number().int().nonnegative(),
+  budgetLedger: teamBudgetLedgerSchema.optional(),
   configHash: z.string().length(64).optional(), scopeHash: z.string().length(64).optional(),
   question: z.string().max(32_000).optional(),
   planning: z.enum(["pending", "running", "completed", "fallback", "interrupted"]).optional(),

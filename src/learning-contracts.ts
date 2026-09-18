@@ -1,10 +1,12 @@
 import { z } from "zod/v4";
+import { extractionQualitySchema } from "./document-extraction.js";
 import { topicIdSchema } from "./contracts.js";
 import type { TopicPlanDay } from "./plan-loader.js";
 import type { AssessmentResult } from "./learning-assessment.js";
 import type { LearningObservation } from "./learning-observations.js";
 
 export const citationSchema = z.object({
+  extraction: extractionQualitySchema.optional(),
   topicId: topicIdSchema,
   documentId: z.string().uuid(),
   documentName: z.string().max(255),

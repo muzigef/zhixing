@@ -20,7 +20,7 @@ async function fixture() {
   cleanups.push(async () => { service.stop(); await service.idle(); await service.pauseMaintenance(); app.close(); await fs.rm(root, { recursive: true, force: true }); });
   return { app, service, prompts };
 }
-const submission = { answers: [0, 1, 2], explanation: "我的理由只保存在本地检查里。", assistance: "independent" as const };
+const submission = { answers: [0, 1, 2], explanation: "我的理由只保存在本地检查里。", transferExample: "TRANSFER_PRIVATE_MARKER：我的迁移作答不应进入教学上下文。", assistance: "independent" as const };
 
 it("binds an isolated lesson to an actual session and measures only after a completed model response", async () => {
   const { app, service, prompts } = await fixture();
@@ -33,6 +33,7 @@ it("binds an isolated lesson to an actual session and measures only after a comp
   await service.send({ sessionId: lesson.id, text: "请开始讲解。", provider: "demo", style: "concise", contextAllowed: true, execution: "session" });
   await service.idle();
   expect(prompts[0]).not.toContain(submission.explanation);
+  expect(prompts[0]).not.toContain("TRANSFER_PRIVATE_MARKER");
   expect(prompts[0]).not.toContain(trial.questions[0]!.title);
   expect(prompts[0]).not.toContain("本轮刚读取的受控快照");
   const stored = await service.load(lesson.id);

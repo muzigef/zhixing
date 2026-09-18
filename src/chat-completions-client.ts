@@ -1,3 +1,4 @@
+import { reportedModelName } from "./provider-capability-contracts.js";
 import type { ApiConnection } from "./api-connection-config.js";
 import { imageContext, imageDataUrl } from "./image-input.js";
 import type { ContinuableModelClient, ModelEvent, ModelRequestOptions, ModelUsage, ToolResultMessage } from "./model.js";
@@ -5,6 +6,7 @@ import { assertLiveProviderAllowed } from "./provider-policy.js";
 import type { SecretStore } from "./secret-store.js";
 import { abortable } from "./abortable.js";
 import { adapterCapabilities, outputTokenLimit } from "./model-capabilities.js";
+import { fetchModelResponse } from "./provider-retry.js";
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 const MAX_SSE_FRAME_BYTES = 64 * 1024;
@@ -13,7 +15,7 @@ type Signature = { google: { thought_signature: string } };
 type WireTool = { id: string; type: "function"; function: { name: string; arguments: string }; extra_content?: Signature };
 type WireMessage = { role: "system" | "user" | "assistant" | "tool"; content: string | { type: "text"; text: string }[] | ({ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } })[] | null; reasoning_content?: string; tool_calls?: WireTool[]; tool_call_id?: string; extra_content?: Signature };
 type Delta = { content?: string | null; reasoning_content?: string | null; extra_content?: unknown; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }> };
-type Payload = { error?: unknown; usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_cache_hit_tokens?: number; prompt_tokens_details?: { cached_tokens?: number }; completion_tokens_details?: { reasoning_tokens?: number } }; choices?: Array<{ delta?: Delta; message?: Delta; finish_reason?: string | null }> };
+type Payload = { model?: string; error?: unknown; usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_cache_hit_tokens?: number; prompt_tokens_details?: { cached_tokens?: number }; completion_tokens_details?: { reasoning_tokens?: number } }; choices?: Array<{ delta?: Delta; message?: Delta; finish_reason?: string | null }> };
 
 /** Stateless, bounded text/tool adapter. Every request carries its own conversation. */
 export class ChatCompletionsClient implements ContinuableModelClient {
@@ -67,7 +69,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       const messages = wireHistory(prompt, options, reasoningStateRequired, this.provider, this.model, this.connection?.id);
       const requestedAt = Date.now(), startupMs = requestedAt - started;
       let firstEventMs: number | undefined, firstTextMs: number | undefined;
-      const response = await abortable(() => this.fetcher(this.endpoint, {
+      const { response, attempts, retryWaitMs } = await fetchModelResponse(this.fetcher, this.endpoint, {
         method: "POST", signal, redirect: "error",
         headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
         body: JSON.stringify({ model: this.model, messages, stream: true, ...(!this.connection || this.connection.streamUsage ? { stream_options: { include_usage: true } } : {}), [this.connection?.tokenField ?? "max_tokens"]: outputLimit,
@@ -75,7 +77,7 @@ export class ChatCompletionsClient implements ContinuableModelClient {
           ...(reasoningEnabled ? { reasoning_effort: effort } : {}),
           ...(options?.tools?.length ? { tools: options.tools.map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.inputSchema } })) } : {}),
         }),
-      }), signal);
+      }, started + this.timeoutMs);
       if (!response.ok) {
         void response.body?.cancel().catch(() => undefined);
         throw new Error(`provider_unavailable: ${this.provider} HTTP ${response.status}`);
@@ -89,10 +91,13 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       let finishReason: string | undefined;
       let hasText = false;
       let answer = ""; let textSize = 0; let reasoning = ""; let signature: Signature | undefined;
-      const model = this.model;
+      const model = this.model; let reportedModel: string | undefined;
       const calls = new Map<number, WireTool>();
       const consume = function* (payload: Payload): Generator<ModelEvent> {
         if (!payload || payload.error || !Array.isArray(payload.choices)) throw new Error("provider_protocol_error");
+        const observed = reportedModelName(payload.model);
+        if (reportedModel && observed && reportedModel !== observed) throw new Error("provider_model_mismatch");
+        reportedModel = observed ?? reportedModel;
         firstEventMs ??= Date.now() - requestedAt;
         if (payload.usage) {
           const value = payload.usage;
@@ -174,13 +179,13 @@ export class ChatCompletionsClient implements ContinuableModelClient {
       else if (reasoning) yield { type: "provider_state", result: { deepseekReasoning: reasoning } };
       if (usage) { usageReported = true; yield { type: "usage", usage }; }
       const finishedAt = Date.now();
-      yield { type: "timing", timing: { transport: "sse", startupMs, selectionMs: 0, totalMs: finishedAt - started, requestMs: finishedAt - requestedAt, firstEventMs, firstTextMs, processTailMs: 0, submittedReasoning: effort, outputTokenLimit: outputLimit } };
-      yield { type: "done" };
+      yield { type: "timing", timing: { transport: "sse", startupMs, selectionMs: 0, totalMs: finishedAt - started, requestMs: finishedAt - requestedAt, firstEventMs, firstTextMs, processTailMs: 0, submittedReasoning: effort, outputTokenLimit: outputLimit, requestAttempts: attempts, retryWaitMs } };
+      yield { type: "done", ...(reportedModel ? { reportedModel } : {}) };
     } catch (error) {
       // A failed generation can still have known billable usage. Never emit done or tools here.
       if (usage && !usageReported) { usageReported = true; yield { type: "usage", usage }; }
       if (parent.aborted) throw new DOMException("cancelled", "AbortError");
-      if (timeout.aborted) throw new Error(`provider_timeout: ${this.provider}-api 请求超时`);
+      if (timeout.aborted || error instanceof DOMException && error.name === "TimeoutError") throw new Error(`provider_timeout: ${this.provider}-api 请求超时`);
       const safeErrors = new Set(["secret_store_unavailable", "invalid_secret_reference", "provider_protocol_error", "provider_protocol_error: missing body", "provider_protocol_error: invalid JSON", "provider_protocol_error: invalid tool arguments", "provider_protocol_error: missing call id", "provider_protocol_error: missing tool result", "provider_output_limit", "provider_incomplete", "provider_model_mismatch", `provider_unavailable: ${this.provider}-api 未配置`, `provider_unavailable: ${this.provider} 空响应`]);
       if (error instanceof Error && (safeErrors.has(error.message) || /^provider_incomplete: (length|content_filter)$/.test(error.message) || /^provider_unavailable: (deepseek|kimi|compatible) HTTP [1-5]\d{2}$/.test(error.message))) throw error;
       // Network exceptions can contain authorization headers or request content.

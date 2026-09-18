@@ -21,6 +21,7 @@ function fixture(options: { tools?: boolean; auth?: string; truncated?: boolean;
   let answers = 0;
   const runner: NativeRunner = async (command, _signal, line) => {
     commands.push(command);
+    if (command.args[0] === "--version") { line("2.1.0 (Claude Code)"); return; }
     if (command.args.includes("--help")) { line(options.old ? "old CLI" : flags); return; }
     if (command.args[0] === "auth") { line(JSON.stringify({ loggedIn: true, authMethod: options.auth ?? "claude.ai" })); return; }
     if (options.tools) { line(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "Bash" }] } })); return; }

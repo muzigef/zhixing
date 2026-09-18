@@ -1,3 +1,4 @@
+import type { NativeRuntimeProbe } from "./provider-capability-contracts.js";
 import type { AgentExecutor, AgentExecutionResult } from "./agent-executor.js";
 
 export interface NativeCommand { executable: string; args: string[]; input: string; cwd: string; environment: NodeJS.ProcessEnv; subscriptionStatus?: boolean; }
@@ -9,6 +10,6 @@ export type NativeContext = Omit<NativeCommand, "args" | "input">;
 export interface NativeRuntimeAdapter {
   readonly environment?: Readonly<NodeJS.ProcessEnv>;
   model(environment: NodeJS.ProcessEnv): string;
-  probe(command: NativeContext, runner: NativeRunner, signal: AbortSignal, help: string): Promise<{ available: boolean; reason: string }>;
+  probe(command: NativeContext, runner: NativeRunner, signal: AbortSignal, help: string): Promise<{ available: boolean; reason: string; runtime?: NativeRuntimeProbe }>;
   execute(command: NativeContext, runner: NativeRunner, request: Parameters<AgentExecutor["execute"]>[0], model: string, signal: AbortSignal, onText?: (text: string) => void): Promise<AgentExecutionResult>;
 }

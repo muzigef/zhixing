@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "checkedAt": "2026-09-18T06:00:17.227Z",
+  "authenticationChecked": false,
+  "vendor": "codex",
+  "executable": "/opt/homebrew/bin/codex",
+  "installed": true,
+  "available": true,
+  "authentication": "managed_by_official_runtime",
+  "reason": "可通过官方 Codex 的 ChatGPT 订阅执行仅上下文任务；不依赖 Pi。",
+  "runtime": {
+    "version": "0.153.4",
+    "source": "process_reported",
+    "isolationBasis": "allowlisted_version"
+  },
+  "interpretation": "Local help/version only; no subscription authentication or model request. Process-reported metadata is not vendor identity attestation."
+}

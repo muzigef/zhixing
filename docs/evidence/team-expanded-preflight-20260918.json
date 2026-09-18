@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "status": "preflight_failed",
+  "suite": "expanded",
+  "leadProvider": "native-codex",
+  "selection": "all-12",
+  "planned": 48,
+  "qualityAttemptedRows": 0,
+  "preflight": [
+    {
+      "suite": "expanded",
+      "ready": true,
+      "leadProvider": "native-codex",
+      "leadModel": "gpt-6-astra",
+      "deepseek": "deepseek-v4-flash",
+      "kimi": "kimi-k3"
+    },
+    {
+      "preflight": {
+        "provider": "deepseek-api",
+        "ok": true,
+        "data": {
+          "model": "deepseek-v4-flash",
+          "firstTokenMs": 1670,
+          "durationMs": 1729
+        }
+      }
+    },
+    {
+      "preflight": {
+        "provider": "kimi-api",
+        "ok": false,
+        "error": "等待回答超时，请重试。"
+      }
+    }
+  ],
+  "appBundleHash": "4a1c970a62d4aaca8e9cf245cabcd18d05d1a7db7e88ae6c9337a2949b22ecfe",
+  "evaluatorSourceHash": "780168ac8d092658dde86d8ce32443e0ce564bcb9e0861ce5fe7664a424d2cd2",
+  "isolatedWorkspace": true,
+  "shutdown": "isolated_process_SIGTERM_then_SIGKILL_after_graceful_close_stalled"
+}

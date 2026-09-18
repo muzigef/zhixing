@@ -108,3 +108,11 @@ it("preserves formal release signing requirements and Windows packaging", () => 
   expect(packagingConfiguration({ mode: "release" }, environment).config).toEqual({ forceCodeSigning: true, mac: { hardenedRuntime: true, notarize: true } });
   expect(packagingConfiguration({ mode: "none" }, {}).config).toEqual({});
 });
+it("requires official signing for version tags and explicit formal Windows builds", () => {
+  const options = fixture();
+  expect(getSigningPlan({ ...options, environment: { GITHUB_REF: "refs/tags/v0.11.0" } })).toEqual({ mode: "release" });
+  expect(getSigningPlan({ ...options, platform: "win32", environment: { ZHIXING_RELEASE_CHANNEL: "formal" } })).toEqual({ mode: "windows-release" });
+  expect(() => getSigningPlan({ ...options, environment: { GITHUB_REF: "refs/tags/v0.11.0", ZHIXING_RELEASE_CHANNEL: "preview" } })).toThrow("release_channel_conflict");
+  expect(() => packagingConfiguration({ mode: "windows-release" }, {})).toThrow("Signing configuration missing");
+  expect(packagingConfiguration({ mode: "windows-release" }, { CSC_LINK: "synthetic-certificate-reference" }).config).toEqual({ forceCodeSigning: true, win: { signAndEditExecutable: true, verifyUpdateCodeSignature: true } });
+});

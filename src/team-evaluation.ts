@@ -1,3 +1,7 @@
+import { teamExpandedCases } from "./team-expanded-cases.js";
+import { pairedEvaluation } from "./paired-evaluation.js";
+import { teamEvaluationSelectionSchema, type TeamEvaluationSelection } from "./team-evaluation-contracts.js";
+import { teamStageDiagnostics } from "./team-stage-diagnostics.js";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { AgentService } from "./agent-service.js";
@@ -19,6 +23,8 @@ export const evaluationArms = ["single-pi", "self-review-pi", "same-team", "mixe
 export type EvaluationArm = typeof evaluationArms[number];
 interface RequestRecord { transport?: "native-task"; outputLimit?: "observed"; firstOutputMs?: number; provider: AgentProvider; model?: string; phase: "planning" | "member" | "review" | "followup" | "answer"; durationMs: number; maxOutputTokens?: number; requestedReasoning?: string; timing?: ModelTiming; usage?: ModelUsage; completed: boolean; failureCode?: TeamFailure; reportIssue?: string; }
 export interface EvaluationRow {
+  attempted?: boolean;
+  diagnostics?: ReturnType<typeof teamStageDiagnostics>;
   caseId: string; repeat: number; arm: EvaluationArm; completed: boolean; error?: string; durationMs: number;
   firstTokenMs: number | null; firstOutputMs?: number | null; text: string; turns: ChatMessage[]; requests: RequestRecord[];
   grade: ReturnType<typeof scoreTeamAnswer>;
@@ -75,13 +81,14 @@ export function summarizeTeamEvaluation(rows: EvaluationRow[]) {
   return evaluationArms.filter(arm => rows.some(row => row.arm === arm)).map(arm => {
     const group = rows.filter(row => row.arm === arm); const requests = group.flatMap(row => row.requests);
     const times = group.map(row => row.durationMs).sort((a, b) => a - b);
-    return { arm, count: group.length, completed: group.filter(row => row.completed).length, correct: group.filter(row => row.grade.correct).length,
+    return { arm, count: group.length, completed: group.filter(row => row.completed).length, correct: group.filter(row => row.completed && row.grade.correct).length,
       fullySuccessful: group.filter(row => row.completed && row.grade.correct && row.grade.explanationPresent).length,
+      meanDeliveredFieldScore: group.length ? group.reduce((sum, row) => sum + (row.completed ? row.grade.score : 0), 0) / group.length : 0,
       meanFieldScore: group.length ? group.reduce((sum, row) => sum + row.grade.score, 0) / group.length : 0,
       medianMs: times.length ? (times[Math.floor((times.length - 1) / 2)]! + times[Math.floor(times.length / 2)]!) / 2 : 0, p95Ms: times.length ? times[Math.ceil(times.length * 0.95) - 1]! : 0,
       modelRequests: requests.filter(row => row.transport !== "native-task").length, nativeTasks: requests.filter(row => row.transport === "native-task").length, inputTokens: requests.reduce((sum, row) => sum + (row.usage?.inputTokens ?? 0), 0), outputTokens: requests.reduce((sum, row) => sum + (row.usage?.outputTokens ?? 0), 0),
       cacheReadTokens: requests.length && requests.every(row => row.usage?.cacheReadTokens !== undefined) ? requests.reduce((sum, row) => sum + row.usage!.cacheReadTokens!, 0) : null,
-      unknownUsageRequests: requests.filter(row => !row.usage).length,
+      unknownUsageRequests: requests.filter(row => !row.usage).length, stageCosts: teamStageDiagnostics(requests).stages,
     };
   });
 }
@@ -98,10 +105,13 @@ function comparisons(rows: EvaluationRow[], baseline: EvaluationArm) {
   });
 }
 /** Runs only the fixed synthetic suite, with isolated conversations and no workspace tools. */
-export async function evaluateTeams(options: { root: string; suite: "pilot" | "holdout" | "regression" | "quality"; leadProvider?: "pi-codex" | "native-codex"; resolve: (provider: AgentProvider) => AgentBackend; signal: AbortSignal; onProgress?: (progress: EvaluationProgress) => void }) {
-  const startedAt = new Date().toISOString(); const cases = options.suite === "pilot" ? teamDevelopmentCases : options.suite === "quality" ? teamQualityCases : options.suite === "regression" ? teamHoldoutCases.filter(item => ["H02", "H04"].includes(item.id)) : teamHoldoutCases;
-  const repeats = options.suite === "holdout" ? 2 : 1;
-  const qualityProtocol = ["quality", "regression"].includes(options.suite);
+export async function evaluateTeams(options: TeamEvaluationSelection & { root: string; leadProvider?: "pi-codex" | "native-codex"; resolve: (provider: AgentProvider) => AgentBackend; signal: AbortSignal; onProgress?: (progress: EvaluationProgress) => void }) {
+  const selection = teamEvaluationSelectionSchema.parse({ suite: options.suite, caseIds: options.caseIds, repetitions: options.repetitions });
+  const startedAt = new Date().toISOString(); const corpus = options.suite === "expanded" ? teamExpandedCases : options.suite === "pilot" ? teamDevelopmentCases : options.suite === "quality" ? teamQualityCases : options.suite === "regression" ? teamHoldoutCases.filter(item => ["H02", "H04"].includes(item.id)) : teamHoldoutCases;
+  if (selection.caseIds?.some(id => !corpus.some(item => item.id === id))) throw new Error("team_evaluation_case_selection");
+  const cases = selection.caseIds ? corpus.filter(item => selection.caseIds!.includes(item.id)) : corpus;
+  const repeats = selection.repetitions ?? (options.suite === "holdout" ? 2 : 1);
+  const qualityProtocol = ["quality", "regression", "expanded"].includes(options.suite);
   const leadProvider = options.leadProvider ?? "pi-codex";
   const baseline: EvaluationArm = leadProvider === "native-codex" ? "single-codex" : "single-pi";
   const candidateArms = evaluationArms.filter(arm => leadProvider === "native-codex" ? !["single-pi", "self-review-pi"].includes(arm) : !["single-codex", "self-review-codex"].includes(arm));
@@ -113,8 +123,8 @@ export async function evaluateTeams(options: { root: string; suite: "pilot" | "h
     catch (error) { unavailable.set(provider, publicError(error)); }
   }
   const rows: EvaluationRow[] = [];
-  const report = () => ({ version: 6, memberResourcePolicyVersion: 1, leadProvider, teamProtocol: 3, suite: options.suite, startedAt, finishedAt: new Date().toISOString(), planned: cases.length * repeats * arms.length,
-    datasetHash: createHash("sha256").update(JSON.stringify(cases)).digest("hex"), bindings, unavailable: Object.fromEntries(unavailable), reasoning: "balanced", memberReasoning: actualMemberReasoning(rows), rows, summary: summarizeTeamEvaluation(rows), comparisons: comparisons(rows, baseline),
+  const report = () => ({ version: 7, selection: { caseIds: cases.map(item => item.id), repetitions: repeats, datasetClassification: "author_written_development" }, stageDiagnosticsVersion: 1, memberResourcePolicyVersion: 1, leadProvider, teamProtocol: 3, suite: options.suite, startedAt, finishedAt: new Date().toISOString(), planned: cases.length * repeats * arms.length,
+    fullDatasetHash: createHash("sha256").update(JSON.stringify(corpus)).digest("hex"), datasetHash: createHash("sha256").update(JSON.stringify(cases)).digest("hex"), bindings, unavailable: Object.fromEntries(unavailable), reasoning: "balanced", memberReasoning: actualMemberReasoning(rows), rows, summary: summarizeTeamEvaluation(rows), comparisons: comparisons(rows, baseline), pairedComparisons: arms.filter(arm => arm !== baseline).map(arm => pairedEvaluation(rows.map(row => ({ caseId: row.caseId, repeat: row.repeat, arm: row.arm, score: row.grade.score, completed: row.completed })), baseline, arm)),
     limits: { maxModelRequestsPerArm: 12, rootDeadlineMs: 240_000, memberDeadlineMs: 180_000, maxOutputPerRequest: 4096, teamMaxOutputTokens: 16_384, totalOutputTokensPerArm: qualityProtocol ? 16_384 : null, selfReviewRounds },
     limitations: ["固定合成工程样本，不是独立人类盲评或真实教学效果试验", "各组实际调用与计算量不同；预算上限不等于严格等算力", "解释存在性不等于解释正确或教学有效", "成本只报告用量，未知用量和订阅账单不能记为零", "官方 Agent 的 token 预算是返回后核算，硬限制仅覆盖任务数、时限和可见回答长度", "官方 CLI 当前按完整消息交付，firstOutputMs 不能称为流式首 token 时间"],
   });
@@ -135,7 +145,7 @@ export async function evaluateTeams(options: { root: string; suite: "pilot" | "h
       }
     } catch (problem) { completed = false; error = publicError(problem); }
     finally { service.stop(); await service.idle(); await service.pauseMaintenance(); }
-    return { caseId: item.id, repeat, arm, completed, error, durationMs: Date.now() - started, firstTokenMs: requests[0]?.transport === "native-task" ? null : turns[0]?.firstTokenMs ?? null, firstOutputMs: turns[0]?.firstTokenMs ?? null, text, turns, requests, grade: scoreTeamAnswer(item, text) };
+    return { caseId: item.id, repeat, arm, attempted: requests.length > 0, completed, error, durationMs: Date.now() - started, firstTokenMs: requests[0]?.transport === "native-task" ? null : turns[0]?.firstTokenMs ?? null, firstOutputMs: turns[0]?.firstTokenMs ?? null, text, turns, requests, grade: scoreTeamAnswer(item, text), diagnostics: teamStageDiagnostics(requests, turns.at(-1)?.team) };
   };
   for (let repeat = 0; repeat < repeats; repeat++) for (const [index, item] of cases.entries()) {
     const offset = (index + repeat * 3) % arms.length;

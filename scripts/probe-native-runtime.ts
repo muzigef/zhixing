@@ -1,0 +1,10 @@
+import { NativeAgentExecutor } from "../src/native-agent.js";
+import { nativeRuntimeCatalog } from "../src/native-runtime-catalog.js";
+import { writeEvaluationJson } from "./evaluation-json.mjs";
+const args = process.argv.slice(2), arg = (name: string) => args.find(value => value.startsWith(`--${name}=`))?.slice(name.length + 3);
+const vendor = nativeRuntimeCatalog.find(entry => entry.vendor === arg("vendor"))?.vendor;
+if (!vendor || args.some(value => !/^--(?:vendor|output)=/.test(value))) throw new Error("usage: --vendor=codex|claude|gemini --output=new-runtime-receipt.json");
+const status = await new NativeAgentExecutor(vendor).status(AbortSignal.timeout(40000));
+await writeEvaluationJson(arg("output"), { version: 1, ...status, interpretation: "Local help/version only; no subscription authentication or model request. Process-reported metadata is not vendor identity attestation." });
+console.log(JSON.stringify({ vendor, installed: status.installed, available: status.available, version: status.runtime?.version ?? null }));
+if (!status.available) process.exitCode = 1;

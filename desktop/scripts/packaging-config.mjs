@@ -1,5 +1,9 @@
 export function packagingConfiguration(plan, sourceEnvironment) {
   const environment = { ...sourceEnvironment };
+  if (plan.mode === "windows-release") {
+    if (!environment.CSC_LINK) throw new Error("Signing configuration missing: CSC_LINK");
+    return { environment, config: { forceCodeSigning: true, win: { signAndEditExecutable: true, verifyUpdateCodeSignature: true } } };
+  }
   if (plan.mode === "release") {
     for (const key of ["CSC_LINK", "APPLE_ID", "APPLE_APP_SPECIFIC_PASSWORD", "APPLE_TEAM_ID"]) {
       if (!environment[key]) throw new Error(`Signing configuration missing: ${key}`);

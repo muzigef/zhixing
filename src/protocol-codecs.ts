@@ -1,3 +1,4 @@
+import { reportedModelName } from "./provider-capability-contracts.js";
 import type { ApiConnection } from "./api-connection-config.js";
 import { imageContext, imageDataUrl } from "./image-input.js";
 import type { ModelEvent, ModelRequestOptions, ModelUsage } from "./model.js";
@@ -5,6 +6,7 @@ import { array, record, string } from "./provider-http.js";
 
 type ObjectValue = Record<string, unknown>;
 export interface ProtocolDecoder {
+  readonly reportedModel?: string;
   readonly complete: boolean;
   readonly usage?: ModelUsage;
   consume(value: unknown): string[];
@@ -84,7 +86,7 @@ function validateCalls(content: unknown[], anthropic: boolean): ModelEvent[] {
 }
 
 export class MessagesDecoder implements ProtocolDecoder {
-  complete = false; usage?: ModelUsage;
+  complete = false; usage?: ModelUsage; reportedModel?: string;
   private started = false; private stopReason?: string; private content: ObjectValue[] = [];
   private active = new Map<number, { block: ObjectValue; json: string; stopped: boolean }>();
   private counts: ObjectValue = {};
@@ -93,12 +95,14 @@ export class MessagesDecoder implements ProtocolDecoder {
     const data = record(value), text: string[] = [];
     if (data.type === "error" || this.complete) throw new Error("provider_protocol_error");
     if (data.type === "message") {
+      this.reportedModel = reportedModelName(data.model);
       if (this.started) throw new Error("provider_protocol_error");
       this.content = array(data.content).map(record); this.stopReason = string(data.stop_reason); this.complete = true;
       this.usage = usage(data.usage, this.connection.model, true);
       return this.content.filter(block => block.type === "text").map(block => string(block.text, 64_000));
     }
     if (data.type === "message_start") {
+      this.reportedModel = reportedModelName(record(data.message).model);
       if (this.started) throw new Error("provider_protocol_error");
       this.started = true; this.counts = record(record(data.message).usage ?? {});
     } else if (data.type === "content_block_start") {
@@ -141,7 +145,7 @@ export class MessagesDecoder implements ProtocolDecoder {
 }
 
 export class ResponsesDecoder implements ProtocolDecoder {
-  complete = false; usage?: ModelUsage;
+  complete = false; usage?: ModelUsage; reportedModel?: string;
   private content: unknown[] = []; private status?: string; private streamedText = "";
   constructor(private readonly connection: ApiConnection) {}
   consume(value: unknown): string[] {
@@ -151,6 +155,7 @@ export class ResponsesDecoder implements ProtocolDecoder {
     if (data.type === "response.output_text.delta") { const text = string(data.delta, 64_000); this.streamedText += text; return [text]; }
     if (data.type === "response.completed" || data.type === "response.incomplete" || !data.type && Array.isArray(data.output) || data.object === "response") {
       const final = record(data.response ?? data);
+      this.reportedModel = reportedModelName(final.model);
       this.status = string(final.status); this.content = array(final.output); this.complete = true;
       this.usage = usage(final.usage, this.connection.model, false);
       const answer = this.content.flatMap(value => { const block = record(value); return block.type === "message" ? array(block.content).filter(value => record(value).type === "output_text").map(value => string(record(value).text, 64_000)) : []; }).join("");

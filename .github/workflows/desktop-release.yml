@@ -7,10 +7,11 @@ on:
         type: choice
         default: all
         options: [all, macos-15, macos-15-intel, windows-2022]
-      sign_macos:
-        description: Sign and notarize macOS builds using configured repository secrets
-        type: boolean
-        default: false
+      channel:
+        description: Preview or formal distribution (version tags always require formal signing)
+        type: choice
+        default: preview
+        options: [preview, formal]
   push:
     tags: ['v*']
 permissions:
@@ -24,7 +25,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       ZHIXING_DESKTOP_NATIVE_CIPHER: '1'
+      ZHIXING_RELEASE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'formal' || inputs.channel || 'preview' }}
     steps:
+      - name: Keep identical source bytes across platform runners
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -62,13 +66,13 @@ jobs:
       - run: npm --prefix desktop run dist:host
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          ZHIXING_ALLOW_ADHOC: ${{ inputs.sign_macos && runner.os == 'macOS' && '0' || '1' }}
-          ZHIXING_SIGN_MACOS: ${{ inputs.sign_macos && runner.os == 'macOS' && '1' || '0' }}
-          CSC_LINK: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          APPLE_ID: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ inputs.sign_macos && runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
+          ZHIXING_ALLOW_ADHOC: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && '0' || '1' }}
+          ZHIXING_SIGN_MACOS: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && '1' || '0' }}
+          CSC_LINK: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && secrets.MAC_CSC_LINK || env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'Windows' && secrets.WIN_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ env.ZHIXING_RELEASE_CHANNEL == 'formal' && runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
       - name: Install and verify Windows NSIS artifact
         if: runner.os == 'Windows'
         run: node desktop/scripts/install-windows-preview.mjs
@@ -81,15 +85,25 @@ jobs:
             executable="$ZHIXING_DESKTOP_INSTALLED_EXECUTABLE"
           fi
           test -f "$executable"
-          ZHIXING_DESKTOP_EXECUTABLE="$executable" npm --prefix desktop run test:ui
-      - name: Verify signing and notarization
-        if: inputs.sign_macos && runner.os == 'macOS'
+          ZHIXING_DESKTOP_EXECUTABLE="$executable" node desktop/scripts/verify-packaged-ui.mjs --output="desktop/release/packaged-ui-$RUNNER_OS-$RUNNER_ARCH.json"
+      - name: Verify packaged native secure storage across process restart
         shell: bash
         run: |
-          application="$(find desktop/release -name '知行.app' -type d -print -quit)"
-          codesign --verify --deep --strict "$application"
-          xcrun stapler validate "$application"
-          spctl --assess --type execute "$application"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            executable="$GITHUB_WORKSPACE/$(find desktop/release -path '*/知行.app/Contents/MacOS/知行' -type f -print -quit)"
+          else
+            executable="$ZHIXING_DESKTOP_INSTALLED_EXECUTABLE"
+          fi
+          ZHIXING_DESKTOP_EXECUTABLE="$executable" node desktop/scripts/probe-secure-store.mjs --output="desktop/release/native-secure-store-$RUNNER_OS-$RUNNER_ARCH.json"
+      - name: Gate exact release artifacts and native acceptance
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            executable="$GITHUB_WORKSPACE/$(find desktop/release -path '*/知行.app/Contents/MacOS/知行' -type f -print -quit)"
+          else
+            executable="$ZHIXING_DESKTOP_INSTALLED_EXECUTABLE"
+          fi
+          ZHIXING_DESKTOP_EXECUTABLE="$executable" node desktop/scripts/verify-release.mjs --ui="desktop/release/packaged-ui-$RUNNER_OS-$RUNNER_ARCH.json" --storage="desktop/release/native-secure-store-$RUNNER_OS-$RUNNER_ARCH.json" --output="desktop/release/release-acceptance-$RUNNER_OS-$RUNNER_ARCH.json"
       - run: npm --prefix desktop run checksums
       - uses: actions/upload-artifact@v4
         with:
@@ -100,7 +114,19 @@ jobs:
             desktop/release/Zhixing-*.exe
             desktop/release/SHA256SUMS-*.txt
             desktop/release/acceptance-windows.json
+            desktop/release/native-secure-store-*.json
+            desktop/release/packaged-ui-*.json
+            desktop/release/release-acceptance-*.json
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-failed-acceptance-${{ matrix.os }}
+          path: |
+            desktop/release/native-secure-store-*.json
+            desktop/release/packaged-ui-*.json
+            desktop/release/release-acceptance-*.json
+          if-no-files-found: warn
   draft-release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
@@ -108,10 +134,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.8.0
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+      - name: Require all formal platform receipts and unchanged artifacts
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node desktop/scripts/check-release-set.mjs artifacts
       - name: Create reviewable draft release
         env:
           GH_TOKEN: ${{ github.token }}

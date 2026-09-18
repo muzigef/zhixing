@@ -180,3 +180,11 @@ it("preserves images through every internal stage using the supported user-image
     if (call.kind !== "FINAL") expect(call.messages.at(-1)?.content).toContain("内部 JSON");
   }
 });
+it("checks frozen packet integrity before resolving models for a resumed team", async () => {
+  const f = fixture(); const signal = new AbortController().signal;
+  const team = await TeamCoordinator.create(f.input, signal); await team.run(f.options, signal);
+  const previous = structuredClone(team.snapshot); previous.packet!.question = "篡改的任务";
+  let resolved = 0;
+  await expect(TeamCoordinator.create({ ...f.input, previous, resolve: () => { resolved++; return f.options.client; } }, signal)).rejects.toThrow("team_packet_changed");
+  expect(resolved).toBe(0);
+});

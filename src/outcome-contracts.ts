@@ -1,3 +1,4 @@
+import { studyBindingSchema, type StudyBinding } from "./teaching-study-contracts.js";
 import { z } from "zod/v4";
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance-contracts.js";
 import type { outcomeCalibration } from "./outcome-calibration.js";
@@ -10,15 +11,18 @@ export const outcomePhaseSchema = z.enum(["pre", "post", "delayed"]);
 export const outcomeSubmissionSchema = z.object({
   answers: z.array(z.number().int().min(-1).max(2)).length(3),
   explanation: z.string().trim().min(1).max(2000),
+  transferExample: z.string().trim().min(1).max(2000).optional(),
   assistance: z.enum(["independent", "hint", "solution"]),
 }).strict();
 export type OutcomeMode = z.infer<typeof outcomeModeSchema>;
 export type OutcomePhase = z.infer<typeof outcomePhaseSchema>;
 export type OutcomeSubmission = z.infer<typeof outcomeSubmissionSchema>;
-export const explanationReviewInputSchema = z.object({ expectedExplanation: z.string().max(2000), expectedRevision: z.number().int().min(0).max(100), reviewer: z.string().trim().min(1).max(100), verdict: z.enum(["supported", "partial", "unsupported", "withdrawn"]), feedback: z.string().trim().min(1).max(2000) }).strict();
-export const explanationReviewSchema = explanationReviewInputSchema.omit({ expectedExplanation: true, expectedRevision: true }).extend({ sourceHash: z.string().regex(/^[a-f0-9]{64}$/), revision: z.number().int().positive(), reviewedAt: z.string().datetime() });
+export const reviewerDeclarationSchema = z.object({ kind: z.enum(["human", "development_assistant"]), independent: z.boolean() }).strict().refine(value => value.kind === "human" || !value.independent);
+export const explanationReviewInputSchema = z.object({ expectedExplanation: z.string().max(2000), expectedTransferExample: z.string().max(2000).optional(), declaration: reviewerDeclarationSchema.optional(), transferVerdict: z.enum(["supported", "partial", "unsupported"]).optional(), expectedRevision: z.number().int().min(0).max(100), reviewer: z.string().trim().min(1).max(100), verdict: z.enum(["supported", "partial", "unsupported", "withdrawn"]), feedback: z.string().trim().min(1).max(2000) }).strict();
+export const explanationReviewSchema = explanationReviewInputSchema.omit({ expectedExplanation: true, expectedRevision: true, expectedTransferExample: true }).extend({ sourceHash: z.string().regex(/^[a-f0-9]{64}$/), revision: z.number().int().positive(), reviewedAt: z.string().datetime() });
 export type ExplanationReviewInput = z.infer<typeof explanationReviewInputSchema>;
 export interface OutcomeResult extends OutcomeSubmission {
+  transferPrompt?: string;
   formId: number;
   correctCount: number; total: number; submittedAt: string; elapsedMs: number;
   explanationReview: "pending_human_review" | "human_reviewed" | "withdrawn";
@@ -31,6 +35,8 @@ export interface LessonEvidence {
   completedTurns: number; failedTurns: number; durationMs: number;
 }
 export interface OutcomeView {
+  study?: StudyBinding;
+  transferPrompt?: string;
   id: string; topicId: string; mode: OutcomeMode; bankVersion: number; title: string;
   protocol?: OutcomeProtocol; provenance?: BuildProvenance;
   stage: OutcomePhase | "lesson" | "waiting" | "complete" | "abandoned";
@@ -54,10 +60,13 @@ export const lessonEvidenceSchema = z.object({
   completedTurns: z.number().int().nonnegative(), failedTurns: z.number().int().nonnegative(), durationMs: z.number().finite().nonnegative(),
 });
 export const outcomeResultSchema = outcomeSubmissionSchema.extend({
+  transferPrompt: z.string().min(1).max(1000).optional(),
   formId: z.number().int().min(0).max(2), correctCount: z.number().int().min(0).max(3), total: z.literal(3),
   submittedAt: z.string().datetime(), elapsedMs: z.number().finite().nonnegative(), explanationReview: z.enum(["pending_human_review", "human_reviewed", "withdrawn"]), reviews: z.array(explanationReviewSchema).max(100).optional(),
-});
+}).refine(result => (result.transferExample === undefined) === (result.transferPrompt === undefined));
 export const outcomeViewSchema = z.object({
+  study: studyBindingSchema.optional(),
+  transferPrompt: z.string().min(1).max(1000).optional(),
   id: z.string().uuid(), topicId: z.enum(["agent-development", "rag"]), mode: outcomeModeSchema, bankVersion: z.literal(1), title: z.string().min(1).max(200),
   protocol: outcomeProtocolSchema.optional(), provenance: buildProvenanceSchema.optional(),
   stage: z.enum(["pre", "lesson", "post", "waiting", "delayed", "complete", "abandoned"]), repeated: z.boolean(),
@@ -66,4 +75,9 @@ export const outcomeViewSchema = z.object({
   results: z.object({ pre: outcomeResultSchema.optional(), post: outcomeResultSchema.optional(), delayed: outcomeResultSchema.optional() }),
   lesson: lessonEvidenceSchema.optional(), feedback: z.array(z.string().max(1000)).max(3).optional(),
 });
-export const outcomeExportSchema = z.object({ version: z.literal(1), exportedAt: z.string().datetime(), topicId: z.enum(["agent-development", "rag"]), assignment: z.literal("learner_selected"), trials: z.array(outcomeViewSchema).max(50) });
+export const outcomeExportSchema = z.object({ version: z.literal(1), exportedAt: z.string().datetime(), topicId: z.enum(["agent-development", "rag"]), assignment: z.enum(["learner_selected", "randomized", "mixed"]), trials: z.array(outcomeViewSchema).max(50) });
+
+export function outcomeAssignment(trials: OutcomeView[]): "learner_selected" | "randomized" | "mixed" {
+  const assigned = trials.filter(trial => trial.study).length;
+  return !assigned ? "learner_selected" : assigned === trials.length ? "randomized" : "mixed";
+}

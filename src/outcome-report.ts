@@ -1,4 +1,4 @@
-import { outcomeExportSchema, type OutcomeView } from "./outcome-contracts.js";
+import { outcomeAssignment, outcomeExportSchema, type OutcomeView } from "./outcome-contracts.js";
 import { outcomeBank } from "./outcome-bank.js";
 import { summarizeOutcomes } from "./learning-outcomes.js";
 import { validateExplanationReviews } from "./outcome-calibration.js";
@@ -9,6 +9,7 @@ export function mergeOutcomeExports(raw: unknown[]) {
   const records = new Map<string, { trial: OutcomeView; exportedAt: string }>(); let duplicates = 0;
   for (const value of raw) {
     const file = outcomeExportSchema.parse(value);
+    if (file.assignment !== outcomeAssignment(file.trials)) throw new Error("outcome_assignment_label_invalid");
     for (const trial of file.trials) {
       if (trial.topicId !== file.topicId) throw new Error("cross_topic_denied");
       validateExplanationReviews(trial);
@@ -20,6 +21,7 @@ export function mergeOutcomeExports(raw: unknown[]) {
       if (previous) {
         duplicates++;
         for (const key of ["topicId", "mode", "bankVersion", "createdAt", "repeated"] as const) if (previous.trial[key] !== trial[key]) throw new Error("outcome_export_conflict");
+        if (JSON.stringify(previous.trial.study) !== JSON.stringify(trial.study)) throw new Error("outcome_export_conflict");
         if ((previous.trial.protocol ?? "prompt_only") !== (trial.protocol ?? "prompt_only") || previous.trial.provenance && trial.provenance && JSON.stringify(previous.trial.provenance) !== JSON.stringify(trial.provenance) || previous.trial.lesson && trial.lesson && JSON.stringify(previous.trial.lesson) !== JSON.stringify(trial.lesson)) throw new Error("outcome_export_conflict");
         for (const phase of ["pre", "post", "delayed"] as const) {
           const before = previous.trial.results[phase]; const after = trial.results[phase];
@@ -37,7 +39,15 @@ export function mergeOutcomeExports(raw: unknown[]) {
       records.set(trial.id, { trial, exportedAt: file.exportedAt });
     }
   }
-  return { version: 1, assignment: "learner_selected", files: raw.length, duplicates, summary: summarizeOutcomes([...records.values()].map(record => record.trial)),
-    limitations: ["统计单位是去重后的验证记录，不是已核实身份的独立参与者。", "学习方式由参与者选择；既往学习、题卷难度与学习时长未控制，结果不能证明因果效果。", "独立作答由参与者自报；文字解释尚待人工复核。", "重复练习与不满足同模型条件的记录保留，但不纳入首次独立对照。"],
+  return { version: 1, assignment: outcomeAssignment([...records.values()].map(record => record.trial)), files: raw.length, duplicates, summary: summarizeOutcomes([...records.values()].map(record => record.trial)),
+    limitations: ["统计单位是去重后的验证记录，不是已核实身份的独立参与者。", "个人记录由参与者选择；研究票据记录的分配须另与冻结清单核对。该描述性汇总不进行随机研究的意向性分析。", "独立作答由参与者自报；文字解释尚待人工复核。", "重复练习与不满足同模型条件的记录保留，但不纳入首次独立对照。"],
   };
+}
+
+/** Only for explicitly supplied exports. Summary callers do not gain raw-answer fields. */
+export function validatedOutcomeTrials(raw: unknown[]): OutcomeView[] {
+  mergeOutcomeExports(raw);
+  const files = raw.map(value => outcomeExportSchema.parse(value)).sort((a, b) => Date.parse(a.exportedAt) - Date.parse(b.exportedAt));
+  const trials = new Map<string, OutcomeView>(); for (const file of files) for (const trial of file.trials) trials.set(trial.id, trial);
+  return [...trials.values()];
 }

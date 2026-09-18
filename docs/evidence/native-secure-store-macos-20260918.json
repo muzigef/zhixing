@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "platform": "darwin",
+  "arch": "arm64",
+  "stages": [
+    {
+      "stage": "create",
+      "execution": {
+        "code": null,
+        "timedOut": true
+      }
+    }
+  ],
+  "passed": false,
+  "reason": "native_probe_timeout"
+}

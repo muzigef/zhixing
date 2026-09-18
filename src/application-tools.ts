@@ -6,6 +6,7 @@ import { evidenceKindSchema, dayIdSchema } from "./evidence-store.js";
 import { TaskExecutionStore, operationArtifactId, taskPlanSchema } from "./task-execution.js";
 import { ToolResultStore } from "./tool-result-store.js";
 import { TeachingPolicy } from "./teaching-policy.js";
+import { memoryCorrectionSchema } from "./memory-correction.js";
 
 export interface ApplicationToolOptions { taskId: string; allowWrites: boolean; learningAccess?: boolean; onRetrieval?: (status: RetrievalStatus) => void; }
 /** Completion is tied to owned artifact bytes and the exact implementation/test hashes that passed. */
@@ -36,6 +37,12 @@ export function applicationTools(app: LearningApplication, base: LearningTools, 
   harness.register({ name: "task_status", description: "查看当前任务的持久步骤、真实结果及未完成事项。重启或重试先查询，不重复保存已完成产物。", risk: "read", input: z.object({}).strict(), timeoutMs: 5000, idempotent: true, execute: async (_input, context) => verifiedTaskSnapshot(app, task(context.topicId), options.taskId, context.topicId, context.signal) });
   harness.register({ name: "plan_task", description: "建立执行步骤，完成状态由真实操作更新。项目步骤必须使用 project_* 完成条件和 projectId，不能填写课程产物 kind。只需保存课程产物时用 artifact_saved 和 kind；课程测试用 tests_passed。", risk: "read", input: z.object({ steps: taskPlanSchema }).strict(), timeoutMs: 5000, idempotent: true, execute: async ({ steps }, context) => task(context.topicId).plan(options.taskId, context.topicId, steps) });
   if (options.learningAccess === false) return { harness, definitions: harness.definitions() };
+  harness.register({ name: "search_memories", description: "检索当前主题的有效记忆及原文哈希。遇到矛盾需核实；不能把新近性当作正确性。", risk: "read", input: z.object({ query: z.string().max(400) }).strict(), timeoutMs: 5000, idempotent: true, parallelSafe: true, execute: async ({ query }, context) => app.database.searchMemories(context.topicId, query) });
+  harness.register({ name: "correct_memory", description: "更正当前主题的一条长期记忆。先读取旧记录及哈希，再提交具体新内容供用户确认；保留旧来源，更正后不再召回旧事实。", risk: "write", resource: "learning-memory", input: memoryCorrectionSchema, timeoutMs: 5000, idempotent: true,
+    validate: async (input, context) => { const old = app.database.readMemory(context.topicId, input.id); if (!old) throw new Error("memory_not_found"); if (old.contentHash !== input.expectedHash) throw new Error("memory_changed"); },
+    review: async (input, context) => `旧记忆：${app.database.readMemory(context.topicId, input.id)!.content}\n更正为：${input.content}\n旧记录保留用于追溯，不再作为有效事实召回。`,
+    execute: async (input, context) => app.database.correctMemory(context.topicId, input),
+  });
   harness.register({ name: "learning_state", description: "按当前问题查询知识点的实际作答来源与教学建议；不代表整体掌握，不修改进度。仅在需要未提供的学习记录时查询。", risk: "read", input: z.object({ question: z.string().trim().min(1).max(4000) }).strict(), timeoutMs: 5000, idempotent: true, parallelSafe: true, execute: async ({ question }, context) => new TeachingPolicy(app.observations).decide(context.topicId, question) });
   const stepId = z.string().regex(/^[a-z0-9_-]{1,40}$/).optional();
 

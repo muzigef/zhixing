@@ -12,7 +12,7 @@ import { adapterCapabilities } from "../src/model-capabilities.js";
 it("uses the standard even-sample median while retaining failed runs in the count", () => {
   const row = (durationMs: number, completed: boolean): EvaluationRow => ({ caseId: "D01", repeat: 1, arm: "single-pi", completed, durationMs, firstTokenMs: null, text: "", turns: [], requests: [], grade: { parsed: true, fields: { value: true }, score: 1, correct: true, explanationPresent: true } });
   const group = summarizeTeamEvaluation([row(10, true), row(30, false)])[0]!;
-  expect(group).toMatchObject({ count: 2, completed: 1, fullySuccessful: 1, medianMs: 20, p95Ms: 30 });
+  expect(group).toMatchObject({ count: 2, completed: 1, correct: 1, meanDeliveredFieldScore: .5, fullySuccessful: 1, medianMs: 20, p95Ms: 30 });
 });
 it("evaluates native Codex instead of Pi without falsely labeling completed messages as first tokens", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "native-evaluation-test-"));
@@ -64,7 +64,10 @@ it("records review requests and matches the normal five-request team with a five
   try {
     const result = await evaluateTeams({ root, suite: "regression", resolve: provider => ({ ...client, identity: { provider, model: provider, connection: provider } }), signal: new AbortController().signal });
     expect(result.rows).toHaveLength(8);
-    expect(result.version).toBe(6); expect(result.teamProtocol).toBe(3);
+    expect(result.stageDiagnosticsVersion).toBe(1);
+    expect(result.rows.find(row => row.arm === "same-team")?.diagnostics?.stages.find(stage => stage.phase === "member")).toMatchObject({ requests: 2, completed: 2, unknownUsageRequests: 0 });
+    expect(result.rows.every(row => row.diagnostics?.semanticQuality === "requires_review")).toBe(true);
+    expect(result.version).toBe(7); expect(result.teamProtocol).toBe(3);
     expect(result.memberReasoning).toEqual({ "pi-codex": "balanced", "deepseek-api": "balanced", "kimi-api": "balanced" });
     for (const member of result.rows.flatMap(row => row.turns.flatMap(turn => turn.team?.members ?? []))) expect(member.binding.reasoning).toBe(result.memberReasoning[member.binding.provider]);
     expect(result.rows.find(row => row.arm === "self-review-pi")?.turns).toHaveLength(5);

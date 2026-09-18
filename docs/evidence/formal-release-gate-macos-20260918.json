@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "channel": "formal",
+  "platform": "darwin",
+  "arch": "arm64",
+  "appVersion": "0.11.0",
+  "identity": {
+    "executableSha256": "31aaae781fa82af2dfb1dffb5162f76c1651613c9fc50c8c0229b9a52f6838bb",
+    "resourcesSha256": "796a2ad9feeb83219696950c62e30827853599b0369c7a4986c80654ca74db99",
+    "codeHash": "edcdd78fac1e1f52d77be91977eee83da01473d0ac7f89c69eb53baf30496bb2"
+  },
+  "artifacts": [],
+  "passed": false,
+  "formalReady": false,
+  "problems": [
+    "native_storage_receipt_invalid",
+    "distribution_artifacts_missing",
+    "distribution_payload_mismatch",
+    "macos_developerId_missing",
+    "macos_hardenedRuntime_missing",
+    "macos_notarized_missing",
+    "macos_gatekeeperAccepted_missing"
+  ],
+  "interpretation": "Only this exact build and supplied native runner receipts were checked. Preview, local signing, or unexecuted platform workflows never count as formal distribution acceptance. Signature validity does not guarantee SmartScreen reputation or teaching effectiveness.",
+  "checkedAt": "2026-09-18T05:44:09.296Z",
+  "signature": {
+    "codesignVerified": true,
+    "developerId": false,
+    "hardenedRuntime": false,
+    "notarized": false,
+    "gatekeeperAccepted": false
+  },
+  "artifactBindings": [],
+  "receiptHashes": {
+    "ui": "7e5c6b6cd6fdeacdf664debca6342c8361937b0075c22b4337d78b147923a24d",
+    "storage": "4b00a578f2762f9415c6708d6597d7743ec2983daf7ccf41826242f86d6f9d72"
+  }
+}

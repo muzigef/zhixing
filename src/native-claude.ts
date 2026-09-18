@@ -6,9 +6,12 @@ import { record, array, string } from "./provider-http.js";
 export const claudeRuntimeAdapter: NativeRuntimeAdapter = {
   environment: { CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" },
   model: () => "official-runtime-selected",
-  async probe(_command, _runner, _signal, help) {
+  async probe(command, runner, signal, help) {
+    let reported = "";
+    try { await runner({ ...command, args: ["--version"], input: "" }, AbortSignal.any([signal, AbortSignal.timeout(10000)]), line => { reported += line + "\n"; if (reported.length > 200) throw new Error("provider_output_limit"); }); } catch { signal.throwIfAborted(); reported = ""; }
+    const version = /^(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?) \(Claude Code\)$/.exec(reported.trim())?.[1] ?? null;
     const available = ["--restricted", "--safe-mode", "--tools", "--strict-mcp-config", "--no-session-persistence", "--setting-sources", "--system-prompt-file"].every(flag => help.includes(flag));
-    return { available, reason: available ? "可执行仅上下文任务；登录状态由官方 Claude Code 检查。" : "需要支持 --restricted 与 --safe-mode 的新版 Claude Code。" };
+    return { available, runtime: { version, source: "process_reported", isolationBasis: available ? "required_flags" : "unavailable" }, reason: available ? "可执行仅上下文任务；登录状态由官方 Claude Code 检查。" : "需要支持 --restricted 与 --safe-mode 的新版 Claude Code。" };
   },
   async execute(command, runner, request, _model, signal, onText) {
     let streamed = "", final: AgentExecutionResult | undefined;

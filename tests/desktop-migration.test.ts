@@ -40,7 +40,7 @@ it("refuses a database from a newer version before migration", async () => {
 
 it("marks the new database semantics so older binaries cannot silently discard product/permission evidence", () => {
   const db = new ZhixingDatabase(":memory:");
-  try { expect((db.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number }).version).toBe(6); }
+  try { expect((db.db.prepare("SELECT MAX(version) AS version FROM schema_migrations").get() as { version: number }).version).toBe(9); }
   finally { db.close(); }
 });
 

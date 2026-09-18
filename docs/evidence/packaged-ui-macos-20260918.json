@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "at": "2026-09-18T05:37:15.518Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "packaged": true,
+  "identity": {
+    "executableSha256": "31aaae781fa82af2dfb1dffb5162f76c1651613c9fc50c8c0229b9a52f6838bb",
+    "resourcesSha256": "796a2ad9feeb83219696950c62e30827853599b0369c7a4986c80654ca74db99",
+    "codeHash": "edcdd78fac1e1f52d77be91977eee83da01473d0ac7f89c69eb53baf30496bb2"
+  },
+  "groups": [
+    "smoke",
+    "smoke-learning",
+    "smoke-interactions",
+    "smoke-outcomes",
+    "smoke-projects",
+    "smoke-api",
+    "smoke-team"
+  ],
+  "passed": true,
+  "reason": ""
+}

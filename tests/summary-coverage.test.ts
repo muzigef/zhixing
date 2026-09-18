@@ -93,3 +93,15 @@ it("does not commit coverage or lose the completed answer when maintenance is ca
   expect(saved.messages.at(-1)?.status).toBe("completed");
   expect(saved.messages.slice(0, 50)).toEqual(session.messages);
 });
+
+it("invalidates changed summary recipes and edited derived text without discarding original history", async () => {
+  const { session, send } = await fixture(50); const saved = await send();
+  expect(saved.context?.summaryRecipe).toBeTruthy(); expect(saved.context?.summaryProducer?.provider).toBe("mock");
+  const edited = structuredClone(saved); edited.context!.summary = "synthetic corrupt summary";
+  const changed = structuredClone(saved); changed.context!.summaryRecipe = "future-recipe";
+  for (const invalid of [edited, changed]) {
+    const context = JSON.parse(buildMessages(invalid, { sessionId: session.id, text: "继续", provider: "mock", style: "adaptive" }).find(m => m.role === "observation")!.content);
+    expect(context.summarySource).toBeUndefined(); expect(context.summary).toBeUndefined(); expect(context.unverifiedSummary).toBeUndefined();
+    expect(invalid.messages.slice(0, 50)).toEqual(session.messages);
+  }
+});

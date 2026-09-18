@@ -23,7 +23,7 @@ export function NativeAgentsPanel({ settings, busy, onSave }: { settings: Deskto
       void window.zhixing.invoke({ type: "native-agent-status" }).then(result => { if (!result.ok) throw new Error(result.error); setStatuses(result.data as NativeAgentStatus[]); }).catch(() => setError("检查未完成，请确认官方程序可以启动。")).finally(() => setChecking(false));
     }}>{checking ? "正在检查…" : "检查官方 Agent"}</button>
     <small>只检查本机程序能力；不读取账号文件，也不发送模型请求。</small>
-    {statuses.map(status => <div className="connection-selected" key={status.vendor}><strong>{providerLabel(`native-${status.vendor}`)}</strong><p>{status.reason}</p>{status.available && <button type="button" disabled={busy || checking} onClick={() => { setError(""); void onSave({ ...settings, provider: `native-${status.vendor}`, collaboration: undefined }).catch(() => setError("切换未完成，请重试。")); }}>以单 Agent 使用</button>}</div>)}
+    {statuses.map(status => <div className="connection-selected" key={status.vendor}><strong>{providerLabel(`native-${status.vendor}`)}</strong><p>{status.reason}</p>{status.runtime && <small>程序报告版本：{status.runtime.version ?? "未取得"} · {status.runtime.isolationBasis === "allowlisted_version" ? "在已验收版本范围" : status.runtime.isolationBasis === "required_flags" ? "已核对必要参数，真实账号仍需验证" : "未满足当前隔离要求"}；未检查登录状态。</small>}{status.available && <button type="button" disabled={busy || checking} onClick={() => { setError(""); void onSave({ ...settings, provider: `native-${status.vendor}`, collaboration: undefined }).catch(() => setError("切换未完成，请重试。")); }}>以单 Agent 使用</button>}</div>)}
     {error && <p role="alert" className="message-error">{error}</p>}
   </div>;
 }

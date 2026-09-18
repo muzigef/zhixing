@@ -33,3 +33,10 @@ export const outcomeBank: Record<string, { title: string; goal: string; forms: Q
     ],
   },
 };
+
+/** Separate transfer response; preserve this exact prompt with each submitted example. */
+export function outcomeTransferPrompt(topic: string): string {
+  if (topic === "agent-development") return "举一个上述选择题之外的新场景，说明模型建议、实际执行、结果核验与权限边界分别是什么。无法举例可明确写暂时不会。";
+  if (topic === "rag") return "举一个上述选择题之外的新问题和资料例子，说明什么结论有支持、什么结论仍缺证据，以及你的判断理由。无法举例可明确写暂时不会。";
+  throw new Error("outcome_not_available");
+}

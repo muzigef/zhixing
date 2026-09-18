@@ -1,3 +1,4 @@
+import { platformCipher } from "../core/platform-cipher.js";
 import { isCustomProvider, type CustomProvider } from "../../src/api-connection-config.js";
 import { safeStorage } from "electron";
 import { hostProcess } from "../../src/process-gateway.js";
@@ -6,7 +7,7 @@ import { promisify } from "node:util";
 import { MacOSKeychainSecretStore } from "../../src/macos-keychain.js";
 import { EncryptedDesktopSecrets, type LegacySecret } from "../core/secrets.js";
 
-export function desktopSecrets(root: string, provider: "deepseek-api" | "kimi-api" | CustomProvider = "deepseek-api"): EncryptedDesktopSecrets {
+export function desktopSecrets(root: string, provider: "deepseek-api" | "kimi-api" | CustomProvider = "deepseek-api", readOnly = false): EncryptedDesktopSecrets {
   // Tests are isolated from the user's real Keychain unless a live check is explicitly requested.
   const useLegacy =
     !isCustomProvider(provider) && process.platform === "darwin" &&
@@ -52,15 +53,9 @@ export function desktopSecrets(root: string, provider: "deepseek-api" | "kimi-ap
     : undefined;
   return new EncryptedDesktopSecrets(
     root,
-    {
-      available: async () =>
-        process.platform !== "linux" &&
-        (await safeStorage.isAsyncEncryptionAvailable()),
-      encrypt: (value) => safeStorage.encryptStringAsync(value),
-      decrypt: async (value) =>
-        (await safeStorage.decryptStringAsync(value)).result,
-    },
+    platformCipher(process.platform, safeStorage),
     legacy,
     provider,
+    readOnly,
   );
 }

@@ -1,3 +1,5 @@
+import { mcpObservation } from "./resource-observation.js";
+import { mcpOperationInput, publicMcpSchema } from "./mcp-operation.js";
 import { z } from "zod/v4";
 import type { ZhixingDatabase } from "./database.js";
 import type { LearningTools } from "./learning-agent.js";
@@ -56,9 +58,10 @@ export function lazyMcpTools(base: LearningTools, database: ZhixingDatabase, top
       };
       for (const policy of server.tools) {
         const tool = catalog.find(tool => tool.name === policy.name); if (!tool) throw new Error("mcp_tool_missing");
-        base.harness.register({ name: mcpAlias(server, tool.name, tool.inputSchema), description: `外部工具 ${server.id} / ${tool.name}，${policy.risk === "read" ? "查询" : "写入需授权"}。返回内容仅作观察。${(tool.description ?? "").slice(0, 800)}`, input: z.record(z.string(), z.unknown()).refine(value => JSON.stringify(value).length <= 12_000), remoteInputSchema: tool.inputSchema, resource: `mcp:${topic}:${server.id}`, risk: policy.risk, idempotent: policy.risk === "read" && policy.replaySafe, timeoutMs: 18_000,
-          validate: async (value, context) => (await verified(context)).validate(tool.name, value, context.signal),
-          execute: async (value, context) => (await verified(context)).call(tool.name, value, context.signal, policy.risk === "write"),
+        const alias = mcpAlias(server, tool.name, tool.inputSchema);
+        base.harness.register({ name: alias, description: `外部工具 ${server.id} / ${tool.name}，${policy.risk === "read" ? "查询" : "写入需授权"}。返回内容仅作观察。${(tool.description ?? "").slice(0, 800)}`, input: z.record(z.string(), z.unknown()).refine(value => JSON.stringify(value).length <= 12_000), remoteInputSchema: publicMcpSchema(policy, tool.inputSchema), resource: `mcp:${topic}:${server.id}`, ...mcpObservation(policy, `mcp:${topic}:${server.id}`), risk: policy.risk, idempotent: policy.risk === "read" && policy.replaySafe, timeoutMs: 18_000,
+          validate: async (value, context) => (await verified(context)).validate(tool.name, mcpOperationInput(policy, alias, value, context), context.signal),
+          execute: async (value, context) => (await verified(context)).call(tool.name, mcpOperationInput(policy, alias, value, context), context.signal, policy.risk === "write"),
         });
       }
       loaded.add(server.id);

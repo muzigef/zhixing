@@ -1,3 +1,4 @@
+import { releaseChannel } from "./release-policy.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -36,8 +37,10 @@ export function assertSigningIdentityAvailable(identity, run = spawnSync) {
   if (!listSigningIdentities(run).some(item => item.fingerprint === identity)) throw new Error("local_signing_identity_unavailable: 固定的代码签名证书不可用；请检查钥匙串中的有效期、私钥和代码签名信任。不会退回临时签名。");
 }
 export function getSigningPlan({ platform = process.platform, environment = process.env, configFile = localSigningConfig, run = spawnSync } = {}) {
-  if (platform !== "darwin") return { mode: "none" };
-  if (environment.ZHIXING_SIGN_MACOS === "1") {
+  const formal = releaseChannel(environment) === "formal";
+  if (platform === "win32" && formal) return { mode: "windows-release" };
+  if (platform !== "darwin") { if (formal) throw new Error("formal_platform_unsupported"); return { mode: "none" }; }
+  if (formal || environment.ZHIXING_SIGN_MACOS === "1") {
     if (environment.ZHIXING_LOCAL_SIGNING_IDENTITY) throw new Error("macos_signing_mode_conflict");
     return { mode: "release" };
   }

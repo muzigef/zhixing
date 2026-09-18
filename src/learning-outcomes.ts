@@ -1,17 +1,19 @@
-import { createHash, randomInt, randomUUID } from "node:crypto";
-import { outcomeCalibration, scoreDistribution } from "./outcome-calibration.js";
+import { validateStudyTicket } from "./teaching-study-registry.js";
+import type { StudyBinding } from "./teaching-study-contracts.js";
+import { randomInt, randomUUID } from "node:crypto";
+import { outcomeCalibration, scoreDistribution, explanationSourceHash } from "./outcome-calibration.js";
 import { explanationReviewInputSchema } from "./outcome-contracts.js";
 import { outcomeProtocolSchema, type OutcomeProtocol } from "./outcome-contracts.js";
 import { buildProvenanceSchema, type BuildProvenance } from "./build-provenance.js";
 import { z } from "zod/v4";
 import type { ZhixingDatabase } from "./database.js";
 import { topicIdSchema } from "./contracts.js";
-import { outcomeBank } from "./outcome-bank.js";
+import { outcomeBank, outcomeTransferPrompt } from "./outcome-bank.js";
 import { lessonEvidenceSchema, outcomeViewSchema, outcomeModeSchema, outcomePhaseSchema, outcomeSubmissionSchema, type LessonEvidence, type OutcomeMode, type OutcomePhase, type OutcomeResult, type OutcomeSummary, type OutcomeView } from "./outcome-contracts.js";
 
-interface StoredTrial extends Omit<OutcomeView, "title" | "questions" | "feedback"> { forms: number[]; openedAt: string; }
+interface StoredTrial extends Omit<OutcomeView, "title" | "questions" | "feedback" | "transferPrompt"> { forms: number[]; openedAt: string; }
 const phases: OutcomePhase[] = ["pre", "post", "delayed"];
-const storedTrialSchema = outcomeViewSchema.omit({ title: true, questions: true, feedback: true }).extend({
+const storedTrialSchema = outcomeViewSchema.omit({ title: true, questions: true, feedback: true, transferPrompt: true }).extend({
   forms: z.array(z.number().int().min(0).max(2)).length(3).refine(forms => new Set(forms).size === 3),
   openedAt: z.string().datetime(),
 });
@@ -41,9 +43,10 @@ export class LearningOutcomeStore {
     const { forms } = trial;
     const phase = phases.indexOf(trial.stage as OutcomePhase);
     return { id: trial.id, topicId: trial.topicId, mode: trial.mode, bankVersion: trial.bankVersion,
-      protocol: trial.protocol ?? "prompt_only", provenance: trial.provenance,
+      protocol: trial.protocol ?? "prompt_only", provenance: trial.provenance, ...(trial.study ? { study: trial.study } : {}),
       stage: trial.stage, repeated: trial.repeated, createdAt: trial.createdAt, reviewAt: trial.reviewAt,
       sessionId: trial.sessionId, results: trial.results, lesson: trial.lesson, title: unit.title,
+      ...(phase >= 0 ? { transferPrompt: outcomeTransferPrompt(trial.topicId) } : {}),
       questions: phase < 0 ? [] : unit.forms[forms[phase]!]!.map(({ title, choices }) => ({ title, choices })),
       ...(trial.stage === "complete" ? { feedback: unit.forms[forms[2]!]!.map(q => q.feedback) } : {}),
     };
@@ -62,10 +65,27 @@ export class LearningOutcomeStore {
       const previous = this.list(topic);
       if (previous.some(t => !["complete", "abandoned"].includes(t.stage))) throw new Error("outcome_active");
       if (previous.length >= 50) throw new Error("outcome_limit");
-      const forms = [0, 1, 2];
-      for (let i = 2; i > 0; i--) { const j = randomInt(i + 1); [forms[i], forms[j]] = [forms[j]!, forms[i]!]; }
-      const timestamp = this.now().toISOString();
-      return this.save({ id: randomUUID(), topicId: topic, mode, protocol, bankVersion: 1, stage: "pre", repeated: previous.length > 0, createdAt: timestamp, openedAt: timestamp, forms, results: {} });
+      return this.newTrial(topic, mode, protocol, previous.length > 0);
+    })();
+  }
+  private newTrial(topic: string, mode: OutcomeMode, protocol: OutcomeProtocol, repeated: boolean, id: string = randomUUID(), study?: StudyBinding): OutcomeView {
+    const forms = [0, 1, 2];
+    for (let i = 2; i > 0; i--) { const j = randomInt(i + 1); [forms[i], forms[j]] = [forms[j]!, forms[i]!]; }
+    const timestamp = this.now().toISOString();
+    return this.save({ id, topicId: topic, mode, protocol, bankVersion: 1, stage: "pre", repeated, createdAt: timestamp, openedAt: timestamp, forms, results: {}, ...(study ? { study } : {}) });
+  }
+  startAssigned(raw: unknown): OutcomeView {
+    const ticket = validateStudyTicket(raw), topic = ticket.plan.topicId;
+    if (Date.parse(ticket.assignment.assignedAt) > this.now().getTime()) throw new Error("study_assignment_in_future");
+    return this.database.db.transaction(() => {
+      const previous = this.list(topic), existing = previous.find(trial => trial.id === ticket.assignment.trialId);
+      if (existing) {
+        if (existing.study?.ticketHash !== ticket.ticketHash) throw new Error("study_assignment_mismatch");
+        return existing;
+      }
+      // One learner per topic/workspace: never reset prior exposure by changing a participant code.
+      if (previous.length) throw new Error("study_requires_unused_topic");
+      return this.newTrial(topic, ticket.assignment.mode, ticket.plan.protocol, false, ticket.assignment.trialId, { registryHash: ticket.registryHash, planHash: ticket.planHash, ticketHash: ticket.ticketHash, participantCode: ticket.assignment.participantCode, assignedAt: ticket.assignment.assignedAt });
     })();
   }
   submit(topic: string, id: string, rawPhase: OutcomePhase, raw: unknown): OutcomeView {
@@ -73,14 +93,14 @@ export class LearningOutcomeStore {
     return this.database.db.transaction(() => {
       const trial = this.read(topic, id); const previous = trial.results[phase];
       if (previous) {
-        if (JSON.stringify(previous.answers) !== JSON.stringify(submission.answers) || previous.explanation !== submission.explanation || previous.assistance !== submission.assistance) throw new Error("outcome_already_submitted");
+        if (JSON.stringify(previous.answers) !== JSON.stringify(submission.answers) || previous.explanation !== submission.explanation || previous.transferExample !== submission.transferExample || previous.assistance !== submission.assistance) throw new Error("outcome_already_submitted");
         return this.view(trial);
       }
       if (trial.stage !== phase) throw new Error("outcome_stage_invalid");
       const now = this.now();
       if (phase === "delayed" && (!trial.reviewAt || now.getTime() < Date.parse(trial.reviewAt))) throw new Error("outcome_review_not_due");
       const questions = outcomeBank[topic]!.forms[trial.forms[phases.indexOf(phase)]!]!;
-      trial.results[phase] = { ...submission, formId: trial.forms[phases.indexOf(phase)]!, correctCount: questions.filter((q, i) => q.correct === submission.answers[i]).length, total: questions.length, submittedAt: now.toISOString(), elapsedMs: Math.max(0, now.getTime() - Date.parse(trial.openedAt)), explanationReview: "pending_human_review" };
+      trial.results[phase] = { ...submission, ...(submission.transferExample !== undefined ? { transferPrompt: outcomeTransferPrompt(topic) } : {}), formId: trial.forms[phases.indexOf(phase)]!, correctCount: questions.filter((q, i) => q.correct === submission.answers[i]).length, total: questions.length, submittedAt: now.toISOString(), elapsedMs: Math.max(0, now.getTime() - Date.parse(trial.openedAt)), explanationReview: "pending_human_review" };
       trial.stage = phase === "pre" ? "lesson" : phase === "post" ? "waiting" : "complete";
       if (phase === "post") trial.reviewAt = new Date(now.getTime() + 3 * 86400000).toISOString();
       return this.save(trial);
@@ -124,9 +144,9 @@ export class LearningOutcomeStore {
       const trial = this.read(topic, id);
       if (!["complete", "abandoned"].includes(trial.stage)) throw new Error("outcome_review_not_ready");
       const result = trial.results[phase];
-      if (!result || result.explanation !== input.expectedExplanation || (result.reviews?.length ?? 0) !== input.expectedRevision || input.expectedRevision >= 100) throw new Error("outcome_review_conflict");
-      const sourceHash = createHash("sha256").update(JSON.stringify([topic, id, phase, result.answers, result.explanation, result.assistance, result.submittedAt])).digest("hex");
-      (result.reviews ??= []).push({ reviewer: input.reviewer, verdict: input.verdict, feedback: input.feedback, sourceHash, revision: input.expectedRevision + 1, reviewedAt: this.now().toISOString() });
+      if (!result || result.explanation !== input.expectedExplanation || result.transferExample !== input.expectedTransferExample || input.transferVerdict !== undefined && result.transferExample === undefined || (result.reviews?.length ?? 0) !== input.expectedRevision || input.expectedRevision >= 100) throw new Error("outcome_review_conflict");
+      const sourceHash = explanationSourceHash(trial, phase, result);
+      (result.reviews ??= []).push({ reviewer: input.reviewer, verdict: input.verdict, ...(input.declaration ? { declaration: input.declaration } : {}), ...(input.transferVerdict ? { transferVerdict: input.transferVerdict } : {}), feedback: input.feedback, sourceHash, revision: input.expectedRevision + 1, reviewedAt: this.now().toISOString() });
       result.explanationReview = input.verdict === "withdrawn" ? "withdrawn" : "human_reviewed";
       return this.save(trial);
     })();

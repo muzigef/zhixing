@@ -21,7 +21,7 @@ export async function sourceProvenance(root: string, kind: BuildProvenance["kind
     if (stat.isSymbolicLink() || !stat.isDirectory() && (!stat.isFile() || stat.nlink !== 1 || stat.size > 5_000_000)) throw new Error("provenance_source_invalid");
     if (stat.isDirectory()) {
       for (const entry of (await fs.readdir(target)).sort()) {
-        if (/^(?:\.env(?:\..*)?|auth\.json|\.ssh|\.codex|node_modules|build|dist|credentials?(?:\..*)?|tokens?(?:\..*)?)$/i.test(entry)) continue;
+        if (/^(?:\.env(?:\..*)?|auth\.json|\.ssh|\.codex|node_modules|__pycache__|build|dist|credentials?(?:\..*)?|tokens?(?:\..*)?)$/i.test(entry)) continue;
         await visit(`${name}/${entry}`);
       }
     } else { if (files.length >= 2000) throw new Error("provenance_source_limit"); files.push({ path: name, sha256: hash(await fs.readFile(target)) }); }

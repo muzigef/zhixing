@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "capturedAt": "2026-09-18T06:59:58.233Z",
+  "status": "engineering_passed_external_acceptance_pending",
+  "source": {
+    "codeHash": "c81f0c49c57a68268609403ed9ee0ea5493b674a6c9c55cfa4090466948caaba",
+    "fileCount": 561,
+    "commit": "c373c031e486bd386203b3979f571c65a668172b",
+    "dirty": true,
+    "node": "v24.8.0",
+    "platform": "darwin-arm64"
+  },
+  "completedEngineeringItems": [
+    "I01",
+    "I02",
+    "I03",
+    "I04",
+    "I05",
+    "I06",
+    "I07",
+    "I08",
+    "I09",
+    "I10",
+    "I11",
+    "I12",
+    "I13",
+    "I14",
+    "I15",
+    "I16",
+    "I17",
+    "I18",
+    "I19",
+    "I20",
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06"
+  ],
+  "checks": {
+    "verify": {
+      "passed": true,
+      "testFiles": 194,
+      "tests": 1022,
+      "integration": 9,
+      "eval": 6,
+      "additionalCountsAlreadyIncluded": true
+    },
+    "desktopUI": {
+      "passed": true,
+      "groups": [
+        "Desktop",
+        "Learning",
+        "Interactions",
+        "Outcome",
+        "Projects",
+        "API",
+        "Team"
+      ]
+    },
+    "documentation": {
+      "passed": true,
+      "files": 29,
+      "linksChecked": 650,
+      "broken": [],
+      "anchorsChecked": false
+    }
+  },
+  "logs": [
+    {
+      "path": ".build/interview-B06-verify-final.log",
+      "sha256": "b3d3819fc26f4d5b7ec451785b9a5368d3870fd6f488d4342e6c4207bf15c942"
+    },
+    {
+      "path": ".build/interview-B06-ui.log",
+      "sha256": "2427e5b66cabc221facc2e1fa5b59e5f359b6aeaecd517b1153a7c90317501ec"
+    },
+    {
+      "path": ".build/interview-B06-targeted-final.log",
+      "sha256": "442109f694c82aa5111c57a2ce29b1effd1e4d9e2fda76fe2aab67d287f1fe77"
+    },
+    {
+      "path": ".build/interview-B06-version.log",
+      "sha256": "ac1525a8a73cc20f4d1bd71e284ea9b92818d4c9eee9902754b5f72b4675dd0c"
+    },
+    {
+      "path": ".build/interview-document-links.json",
+      "sha256": "00b0c38360bca099314236d3c5ed8db28c5c4c9fcb7deab0b1c999f38d4b2998"
+    }
+  ],
+  "externalAcceptance": [
+    {
+      "item": "expanded_team_comparison",
+      "status": "not_started",
+      "startedRows": 0,
+      "plannedRows": 48,
+      "reason": "Kimi preflight timed out twice"
+    },
+    {
+      "item": "native_secure_storage",
+      "status": "macos_initialization_timeout_target_os_pending"
+    },
+    {
+      "item": "formal_release",
+      "status": "gate_rejected_missing_prerequisites"
+    },
+    {
+      "item": "independent_quality_review_and_real_teaching",
+      "status": "pending_independent_raters_participants_and_72h_followup"
+    }
+  ],
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "remoteCITriggered": false,
+    "installedAppChanged": false,
+    "finalSourcePackaged": false,
+    "earlierPackageReceipt": "packaged-ui-macos-20260918.json"
+  }
+}

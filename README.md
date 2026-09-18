@@ -9,11 +9,11 @@
 
 ## 当前状态
 
-源码基线 `60570bc`：根包 `0.1.0`，桌面 `0.11.0`。支持单 Agent、同模型团队与异模型团队；默认单 Agent。支持官方 Codex 订阅直连、Pi 兼容通道、DeepSeek、Kimi，以及动态 API 连接。
+当前开发基于 `c373c03`，改进范围与状态见[26 项台账](docs/interview-improvement-plan-20260918.md)：根包 `0.1.0`，桌面 `0.11.0`。支持单 Agent、同模型团队与异模型团队；默认单 Agent。支持官方 Codex 订阅直连、Pi 兼容通道、DeepSeek、Kimi，以及动态 API 连接。
 
 API 支持 Chat Completions、Responses、Messages 三类协议，提供 OpenAI、Anthropic、Google、DeepSeek、Qwen、Kimi、GLM、MiniMax、豆包、混元十家模板。同协议新厂商可以通过配置接入；新协议或官方运行时通过适配器扩展。模板存在不代表对应账号已经实测，订阅也不自动提供 API 额度。详见[通用接入架构](docs/provider-architecture.md)。
 
-最近本地架构验收通过 814 项测试、七组实际包 UI，以及 Codex / DeepSeek / Kimi 的最小真实连接。远端 #44 出现过团队 UI 点击超时，已定位为测试过早向未关闭弹窗后的输入框填字，修复和回归见[CI 记录](docs/evidence/ci-44-team-ui-20260911.md)。当前版本、候选包、历史安装与待办统一见[当前状态](docs/current-status.md)，避免将源码、安装包和运行中的应用混为一谈。
+2026-09-11 历史架构验收通过 814 项测试、七组实际包 UI，以及 Codex / DeepSeek / Kimi 的最小真实连接。2026-09-18 的工程补强、真实检索/RAG/性能记录与尚未满足的外部验收条件见[本次证据](docs/evidence/interview-improvements-20260918.md)。远端 #44 出现过团队 UI 点击超时，已定位为测试过早向未关闭弹窗后的输入框填字，修复和回归见[CI 记录](docs/evidence/ci-44-team-ui-20260911.md)。当前版本、候选包、历史安装与待办统一见[当前状态](docs/current-status.md)，避免将源码、安装包和运行中的应用混为一谈。
 
 ## 设计理念
 

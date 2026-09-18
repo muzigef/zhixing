@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reportHash": "2a7f552965a2be085b5af25a131cf9a1cd9337a7fe83350ecd16fdfb00f75337",
+  "datasetHash": "357b4c9dcfeb99507a1ef92658f3f65854fdfa825c5fcbd4ae23a2bff0d12d49",
+  "planned": 2,
+  "recorded": 2,
+  "attempted": 2,
+  "completed": 2,
+  "reviewed": 2,
+  "unreviewed": 0,
+  "passed": 2,
+  "passRate": 1,
+  "independentHumanReviewed": 0,
+  "reviewer": {
+    "name": "开发侧 Codex 对照复核",
+    "kind": "development_assistant",
+    "independent": false
+  },
+  "failures": {},
+  "qualityFailures": {},
+  "groups": [
+    {
+      "provider": "fixed:native-codex",
+      "model": "gpt-6-astra",
+      "reasoning": "quick",
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "waiting": 0,
+      "latency": {
+        "samples": 1,
+        "p50": 15452.900833,
+        "p95": 15452.900833
+      },
+      "firstToken": {
+        "samples": 0,
+        "p50": null,
+        "p95": null
+      }
+    },
+    {
+      "provider": "end_to_end:native-codex",
+      "model": "gpt-6-astra",
+      "reasoning": "quick",
+      "planned": 1,
+      "attempted": 1,
+      "completed": 1,
+      "waiting": 0,
+      "latency": {
+        "samples": 1,
+        "p50": 18040.610625,
+        "p95": 18040.610625
+      },
+      "firstToken": {
+        "samples": 0,
+        "p50": null,
+        "p95": null
+      }
+    }
+  ],
+  "interpretation": "描述性统计。通过率分母为已评分结果；未评分、未尝试和未完成不能算通过。耗时采用完成回答的最近秩 P50/P95；模型、思考档位、数据集和代码条件不同不能直接合并。评分者身份与独立性由导入者声明，应用不验证其身份。"
+}

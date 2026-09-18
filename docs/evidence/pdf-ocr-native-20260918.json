@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "fixture": "public-generated-mixed-text-and-raster",
+  "fixtureSha256": "fa07fcc9b6ddccc0c4bdd61f05441c2fdb19ab8bf56cf483f704bbc047c68eca",
+  "platform": "darwin-arm64",
+  "node": "v24.8.0",
+  "tesseract": "tesseract 5.5.2",
+  "poppler": "pdftoppm version 26.06.0",
+  "status": "passed",
+  "elapsedMs": 703.9845,
+  "imported": {
+    "status": "indexed",
+    "documentId": "ed8daf80-97af-48ab-a615-6c399db305cc",
+    "chunks": 2,
+    "extraction": {
+      "totalPages": 2,
+      "ocrPages": [
+        2
+      ],
+      "unreadPages": [],
+      "lowConfidencePages": []
+    }
+  },
+  "recognized": {
+    "text": "CACHE CONDITIONS CAN FAIL",
+    "page": 2,
+    "extraction": {
+      "method": "ocr",
+      "confidence": 96.29912575,
+      "incompleteDocument": false
+    }
+  },
+  "limitation": "本机真实 OCR 工具链的固定英文扫描页验收，不代表中文、表格、公式或所有真实 PDF 的识别准确率。"
+}

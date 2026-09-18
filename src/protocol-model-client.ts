@@ -7,6 +7,7 @@ import { assertLiveProviderAllowed } from "./provider-policy.js";
 import type { SecretStore } from "./secret-store.js";
 import { MessagesDecoder, ResponsesDecoder, protocolRequest } from "./protocol-codecs.js";
 import { responseFrames } from "./provider-http.js";
+import { fetchModelResponse } from "./provider-retry.js";
 
 /** Native wire protocols; only validated tool requests reach the existing application harness. */
 export class ProtocolModelClient implements ContinuableModelClient {
@@ -40,9 +41,9 @@ export class ProtocolModelClient implements ContinuableModelClient {
       const key = await abortable(() => this.secrets.get(`keychain:zhixing/${this.connection.id}`), signal);
       if (!key) throw new Error("provider_unavailable");
       const requested = Date.now(); let firstEventMs: number | undefined, firstTextMs: number | undefined, textSize = 0;
-      const response = await abortable(() => this.fetcher(`${this.connection.baseUrl}/${anthropic ? "messages" : "responses"}`, {
+      const { response, attempts, retryWaitMs } = await fetchModelResponse(this.fetcher, `${this.connection.baseUrl}/${anthropic ? "messages" : "responses"}`, {
         method: "POST", redirect: "error", signal, headers: { "content-type": "application/json", ...(anthropic ? { "x-api-key": key, "anthropic-version": "2023-06-01" } : { authorization: `Bearer ${key}` }) }, body: JSON.stringify(body),
-      }), signal);
+      }, started + this.timeoutMs);
       if (!response.ok) { void response.body?.cancel().catch(() => undefined); throw new Error(`provider_unavailable: HTTP ${response.status}`); }
       for await (const frame of responseFrames(response, signal)) {
         firstEventMs ??= Date.now() - requested;
@@ -59,12 +60,12 @@ export class ProtocolModelClient implements ContinuableModelClient {
       yield* result.events;
       yield { type: "provider_state", result: { connectionId: this.connection.id, model: this.connection.model, protocol: this.connection.protocol, content: result.state } };
       if (decoder.usage) { reported = true; yield { type: "usage", usage: decoder.usage }; }
-      yield { type: "timing", timing: { transport: "sse", startupMs: requested - started, selectionMs: 0, totalMs: Date.now() - started, requestMs: Date.now() - requested, firstEventMs, firstTextMs, processTailMs: 0, outputTokenLimit: maxOutput } };
-      yield { type: "done" };
+      yield { type: "timing", timing: { transport: "sse", startupMs: requested - started, selectionMs: 0, totalMs: Date.now() - started, requestMs: Date.now() - requested, firstEventMs, firstTextMs, processTailMs: 0, outputTokenLimit: maxOutput, requestAttempts: attempts, retryWaitMs } };
+      yield { type: "done", ...(decoder.reportedModel ? { reportedModel: decoder.reportedModel } : {}) };
     } catch (error) {
       if (decoder.usage && !reported) yield { type: "usage", usage: decoder.usage };
       if (parent.aborted) throw new DOMException("cancelled", "AbortError");
-      if (timeout.aborted) throw new Error("provider_timeout");
+      if (timeout.aborted || error instanceof DOMException && error.name === "TimeoutError") throw new Error("provider_timeout");
       if (error instanceof Error && /^(provider_(protocol_error|incomplete|output_limit|model_mismatch|continuation_context_required|unavailable)|secret_store_unavailable|invalid_secret_reference)(: HTTP [1-5]\d{2})?$/.test(error.message)) throw error;
       throw new Error("provider_unavailable");
     }
